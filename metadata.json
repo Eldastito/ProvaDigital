@@ -1,0 +1,8 @@
+{
+  "name": "ExamePad SaaS - Prova Digital",
+  "description": "Core SaaS for ExamePad: Tenant management, Item Bank with AI generation, Exam Assembly, and Student Allocation.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

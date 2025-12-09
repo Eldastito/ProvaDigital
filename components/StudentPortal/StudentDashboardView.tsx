@@ -1,0 +1,674 @@
+
+import React, { useState } from 'react';
+import { TrendingUp, AlertTriangle, BookOpen, CheckCircle, Calendar, Clock, Brain, Award, ChevronLeft, ChevronRight, Trophy, X, FileText, Check, Eye, User as UserIcon, List, ArrowUp, ArrowDown, Coins, Star, Activity } from 'lucide-react';
+import { AppState, RiskLevel, User, Exam, ExamResult, QuestionType, UserRole } from '../../types';
+import { AnalyticsService } from '../../services/analyticsService';
+
+interface StudentDashboardViewProps {
+    state: AppState;
+    user: User;
+}
+
+// Simple SVG Line Chart Component
+const EvolutionChart = ({ data }: { data: { label: string, value: number }[] }) => {
+    if (data.length < 2) return <div className="h-40 flex items-center justify-center text-slate-400 text-sm">Dados insuficientes para gráfico de evolução.</div>;
+
+    const height = 150;
+    const width = 300;
+    const padding = 20;
+
+    const maxY = 10; // Grades are 0-10
+    const points = data.map((d, i) => {
+        const x = padding + (i / (data.length - 1)) * (width - 2 * padding);
+        const y = height - padding - (d.value / maxY) * (height - 2 * padding);
+        return `${x},${y}`;
+    }).join(' ');
+
+    return (
+        <div className="w-full overflow-hidden">
+            <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full">
+                {/* Grid Lines */}
+                <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#e2e8f0" strokeWidth="1" />
+                <line x1={padding} y1={padding} x2={width - padding} y2={padding} stroke="#e2e8f0" strokeWidth="1" strokeDasharray="4" />
+                
+                {/* Path */}
+                <polyline points={points} fill="none" stroke="#0077b6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                
+                {/* Dots and Labels */}
+                {data.map((d, i) => {
+                    const x = padding + (i / (data.length - 1)) * (width - 2 * padding);
+                    const y = height - padding - (d.value / maxY) * (height - 2 * padding);
+                    return (
+                        <g key={i}>
+                            <circle cx={x} cy={y} r="4" fill="white" stroke="#0077b6" strokeWidth="2" />
+                            <text x={x} y={y - 10} textAnchor="middle" fontSize="10" fill="#0f1d2e" fontWeight="bold">{d.value.toFixed(1)}</text>
+                            <text x={x} y={height - 2} textAnchor="middle" fontSize="8" fill="#64748b">{d.label.slice(0, 6)}</text>
+                        </g>
+                    );
+                })}
+            </svg>
+        </div>
+    );
+};
+
+export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps) => {
+    const isParent = user.role === UserRole.PAIS;
+    
+    // Se for pai, pega o filho selecionado na store (selectedChildId)
+    // Se não houver seleção, fallback para o primeiro filho disponível
+    let studentIdToView = user.id;
+    
+    if (isParent) {
+        if (state.selectedChildId) {
+            studentIdToView = state.selectedChildId;
+        } else if (user.childrenIds && user.childrenIds.length > 0) {
+            studentIdToView = user.childrenIds[0];
+        }
+    }
+
+    const student = state.students.find(s => s.id === studentIdToView);
+
+    const analytics = new AnalyticsService(state);
+    const stats = student ? analytics.getStudentStats(student.id) : null;
+    const profile = student ? state.studentProfiles?.find(p => p.studentId === student.id) : null;
+    
+    // Buscar perfil estendido (para moedas e badges)
+    // No mock, UserProfileExtended usa userId, mas para aluno o userId é o studentId em muitos casos ou mapeado.
+    // Vamos tentar achar pelo studentId
+    const extendedProfile = student ? state.userProfiles?.find(p => p.userId === student.id) : null;
+    
+    // Calendar State
+    const [currentMonth, setCurrentMonth] = useState(new Date());
+    // Ranking Modal State
+    const [showRankingModal, setShowRankingModal] = useState(false);
+    // Result Modal State
+    const [selectedResult, setSelectedResult] = useState<ExamResult | null>(null);
+    // Agenda Modal State
+    const [showAgendaModal, setShowAgendaModal] = useState(false);
+
+    if (!student || !stats) return (
+        <div className="p-8 text-center text-slate-500">
+            Nenhum aluno selecionado ou dados não encontrados.
+        </div>
+    );
+
+    const getRiskColor = (level: RiskLevel) => {
+        if (level === RiskLevel.HIGH) return 'bg-rose-100 text-rose-700 border-rose-200';
+        if (level === RiskLevel.MEDIUM) return 'bg-amber-100 text-amber-700 border-amber-200';
+        return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+    };
+
+    const recentResults = state.results
+        .filter(r => r.studentId === student.id)
+        .sort((a, b) => new Date(b.gradedAt).getTime() - new Date(a.gradedAt).getTime());
+
+    // Prepare Chart Data
+    const chartData = state.results
+        .filter(r => r.studentId === student.id)
+        .sort((a, b) => new Date(a.gradedAt).getTime() - new Date(b.gradedAt).getTime())
+        .map(r => {
+            const exam = state.exams.find(e => e.id === r.examId);
+            return {
+                label: exam?.subject.slice(0,3) || 'Av',
+                value: r.totalScore
+            };
+        });
+
+    // Trend Logic
+    const lastTwoResults = chartData.slice(-2);
+    const trend = lastTwoResults.length === 2 ? lastTwoResults[1].value - lastTwoResults[0].value : 0;
+
+    // --- RANKING CALCULATION LOGIC ---
+    const calculateRanks = () => {
+        const getAvg = (sId: string) => analytics.getStudentStats(sId)?.averageGrade || 0;
+
+        // 1. Class Rank
+        const classStudents = state.students.filter(s => s.classId === student.classId);
+        const sortedClass = classStudents.sort((a, b) => getAvg(b.id) - getAvg(a.id));
+        const classRank = sortedClass.findIndex(s => s.id === student.id) + 1;
+
+        // 2. School Rank
+        const schoolStudents = state.students.filter(s => s.schoolId === student.schoolId);
+        const sortedSchool = schoolStudents.sort((a, b) => getAvg(b.id) - getAvg(a.id));
+        const schoolRank = sortedSchool.findIndex(s => s.id === student.id) + 1;
+
+        // 3. General (Tenant) Rank
+        const allStudents = state.students.filter(s => s.tenantId === student.tenantId);
+        const sortedGeneral = allStudents.sort((a, b) => getAvg(b.id) - getAvg(a.id));
+        const generalRank = sortedGeneral.findIndex(s => s.id === student.id) + 1;
+
+        return { classRank, schoolRank, generalRank, totalClass: classStudents.length, totalSchool: schoolStudents.length, totalGeneral: allStudents.length };
+    };
+
+    const ranks = calculateRanks();
+
+    // Calendar Logic (Reuse existing logic)
+    const getDaysInMonth = (date: Date) => {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const days = new Date(year, month + 1, 0).getDate();
+        const firstDay = new Date(year, month, 1).getDay();
+        return { days, firstDay };
+    };
+
+    const { days, firstDay } = getDaysInMonth(currentMonth);
+    
+    const myExams = state.registrations
+        .filter(r => r.studentId === student.id)
+        .map(r => state.exams.find(e => e.id === r.examId))
+        .filter(Boolean) as Exam[];
+
+    const getEventsForDay = (day: number) => {
+        const dateStr = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toISOString().split('T')[0];
+        const exams = myExams.filter(e => e.scheduledDate === dateStr);
+        const announcements = state.announcements.filter(a => a.eventDate === dateStr);
+        
+        const mappedEvents = [
+            ...exams.map(e => ({ 
+                type: e.title.toLowerCase().includes('trabalho') ? 'TRABALHO' : 'PROVA', 
+                title: e.title,
+                date: e.scheduledDate 
+            })),
+            ...announcements.map(a => ({ 
+                type: a.type === 'AVISO' ? 'OUTRO' : 'EVENTO', 
+                title: a.title,
+                date: a.eventDate
+            }))
+        ];
+
+        return mappedEvents;
+    };
+
+    const getAllMonthEvents = () => {
+        const events = [];
+        for(let i=1; i<=days; i++) {
+            const dayEvents = getEventsForDay(i);
+            if(dayEvents.length > 0) events.push(...dayEvents.map(e => ({...e, day: i})));
+        }
+        return events;
+    };
+
+    const changeMonth = (delta: number) => {
+        const newDate = new Date(currentMonth);
+        newDate.setMonth(newDate.getMonth() + delta);
+        setCurrentMonth(newDate);
+    };
+
+    const getEventColor = (type: string) => {
+        switch(type) {
+            case 'PROVA': return 'bg-rose-500 border-rose-600 text-white';
+            case 'TRABALHO': return 'bg-blue-500 border-blue-600 text-white';
+            case 'EVENTO': return 'bg-emerald-500 border-emerald-600 text-white';
+            default: return 'bg-slate-400 border-slate-500 text-white';
+        }
+    };
+
+    const getEventLabel = (type: string) => {
+        switch(type) {
+            case 'PROVA': return 'Prova/Avaliação';
+            case 'TRABALHO': return 'Trabalho/Pesquisa';
+            case 'EVENTO': return 'Evento Escolar';
+            default: return 'Comunicado Geral';
+        }
+    };
+
+    const renderCorrectionModal = () => {
+        if (!selectedResult) return null;
+        const exam = state.exams.find(e => e.id === selectedResult.examId);
+        if (!exam) return null;
+
+        return (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in">
+                <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl h-[90vh] flex flex-col">
+                    <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
+                         <div>
+                             <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2"><FileText size={20}/> Correção: {exam.title}</h3>
+                             <p className="text-xs text-slate-500">Nota Final: <strong className="text-brand-primary text-sm">{selectedResult.totalScore.toFixed(1)}</strong></p>
+                         </div>
+                         <button onClick={() => setSelectedResult(null)} className="p-2 hover:bg-slate-200 rounded-full text-slate-500"><X size={20}/></button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-8 bg-slate-100">
+                        <div className="bg-white shadow-sm p-8 max-w-2xl mx-auto min-h-full">
+                             <div className="text-center border-b pb-6 mb-6">
+                                 <h1 className="text-2xl font-bold uppercase tracking-wide">{exam.title}</h1>
+                                 <div className="flex justify-center gap-4 text-sm text-slate-500 mt-2">
+                                     <span>Aluno: {student.name}</span>
+                                     <span>Data: {new Date(selectedResult.gradedAt).toLocaleDateString()}</span>
+                                 </div>
+                             </div>
+                             <div className="space-y-8">
+                                 {exam.items.map((conf, idx) => {
+                                     const item = state.items.find(i => i.id === conf.itemId);
+                                     const answer = selectedResult.answers.find(a => a.itemId === conf.itemId);
+                                     if (!item) return null;
+
+                                     return (
+                                         <div key={item.id} className={`p-4 border rounded-lg ${answer?.isCorrect ? 'border-emerald-200 bg-emerald-50/30' : 'border-rose-200 bg-rose-50/30'}`}>
+                                             <div className="flex gap-3 mb-2">
+                                                 <span className="font-bold text-slate-700">{idx+1}.</span>
+                                                 <div className="flex-1 font-medium text-slate-800">{item.statement}</div>
+                                                 <div className="font-bold text-xs">
+                                                     {answer?.scoreObtained}/{conf.customScore || item.score} pts
+                                                 </div>
+                                             </div>
+                                             
+                                             {item.type !== QuestionType.ESSAY ? (
+                                                 <div className="pl-7 space-y-1">
+                                                     {item.alternatives.map((alt, i) => {
+                                                         const isSelected = answer?.selectedAlternativeId === alt.id;
+                                                         const isKey = alt.isCorrect;
+                                                         
+                                                         let rowClass = "text-sm p-1 rounded flex justify-between ";
+                                                         if (isSelected && isKey) rowClass += "bg-emerald-100 text-emerald-800 font-bold";
+                                                         else if (isSelected && !isKey) rowClass += "bg-rose-100 text-rose-800 font-bold line-through decoration-rose-500";
+                                                         else if (!isSelected && isKey) rowClass += "bg-sky-50 text-sky-700 font-bold border border-sky-200";
+                                                         else rowClass += "text-slate-500";
+
+                                                         return (
+                                                             <div key={i} className={rowClass}>
+                                                                 <span>{String.fromCharCode(97+i)}) {alt.text}</span>
+                                                                 {isKey && <Check size={14} className="text-emerald-600"/>}
+                                                             </div>
+                                                         );
+                                                     })}
+                                                 </div>
+                                             ) : (
+                                                 <div className="pl-7 mt-2">
+                                                     <div className="text-xs font-bold text-slate-500 uppercase">Sua Resposta:</div>
+                                                     <div className="p-2 bg-white border border-slate-200 rounded text-sm text-slate-600 italic">
+                                                         (Resposta discursiva avaliada pelo professor)
+                                                     </div>
+                                                 </div>
+                                             )}
+                                         </div>
+                                     );
+                                 })}
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="space-y-6 max-w-7xl mx-auto">
+            {isParent && (
+                <div className="bg-sky-50 border border-sky-200 p-4 rounded-lg flex items-center gap-3 text-sky-800 mb-4 animate-in slide-in-from-top-2">
+                    <UserIcon size={24} className="p-1 bg-sky-200 rounded-full"/>
+                    <div>
+                        <span className="font-bold text-xs uppercase">Modo Responsável</span>
+                        <p className="text-sm">Visualizando o desempenho acadêmico de <strong>{student.name}</strong>.</p>
+                    </div>
+                </div>
+            )}
+
+            <div className="mb-6 flex justify-between items-end">
+                <div>
+                    <h1 className="text-2xl font-bold text-brand-dark">Olá, {user.name.split(' ')[0]}! 🦉</h1>
+                    <p className="text-slate-500">Acompanhamento em Tempo Real.</p>
+                </div>
+                <div className="flex gap-3">
+                    {state.settings.rankingEnabled && (
+                        <button onClick={() => setShowRankingModal(true)} className="bg-amber-100 text-amber-700 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-amber-200 transition shadow-sm border border-amber-200">
+                            <Trophy size={18}/> Posição no Ranking
+                        </button>
+                    )}
+                    <button onClick={() => setShowAgendaModal(true)} className="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-slate-50 transition shadow-sm">
+                        <List size={18}/> Ver Agenda Completa
+                    </button>
+                </div>
+            </div>
+
+            {/* Top Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-slate-400 uppercase">Média Geral</span>
+                        <TrendingUp size={20} className="text-brand-primary"/>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                        <div className="text-3xl font-black text-slate-800">{stats.averageGrade.toFixed(1)}</div>
+                        {trend !== 0 && (
+                            <div className={`flex items-center text-xs font-bold ${trend > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                {trend > 0 ? <ArrowUp size={12}/> : <ArrowDown size={12}/>}
+                                {Math.abs(trend).toFixed(1)}
+                            </div>
+                        )}
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">Em {stats.examsTaken} provas</div>
+                </div>
+
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                     <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-slate-400 uppercase">Frequência</span>
+                        <CheckCircle size={20} className={stats.attendanceRate > 85 ? "text-emerald-500" : "text-rose-500"}/>
+                    </div>
+                    <div className="text-3xl font-black text-slate-800">{stats.attendanceRate}%</div>
+                    <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden">
+                        <div 
+                            className={`h-full ${stats.attendanceRate > 85 ? 'bg-emerald-500' : 'bg-rose-500'}`} 
+                            style={{width: `${stats.attendanceRate}%`}}
+                        ></div>
+                    </div>
+                </div>
+
+                <div className={`p-5 rounded-xl border shadow-sm ${getRiskColor(stats.riskLevel)}`}>
+                     <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold uppercase opacity-70">Status de Risco</span>
+                        <AlertTriangle size={20}/>
+                    </div>
+                    <div className="text-xl font-black">
+                        {stats.riskLevel === RiskLevel.LOW ? 'Zona Segura' : stats.riskLevel === RiskLevel.MEDIUM ? 'Atenção' : 'Crítico'}
+                    </div>
+                    <div className="text-xs mt-1 opacity-80">
+                        {stats.riskLevel === RiskLevel.LOW ? 'Continue assim!' : 'Procure o Corujão.'}
+                    </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-brand-dark to-brand-primary text-white p-5 rounded-xl border border-brand-dark shadow-sm">
+                     <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-sky-200 uppercase">Meta Próxima Prova</span>
+                        <BookOpen size={20} className="text-white"/>
+                    </div>
+                    <div className="text-3xl font-black text-white">
+                        {Math.min(10, stats.missingPointsForApproval).toFixed(1)}
+                    </div>
+                    <div className="text-xs text-sky-100 mt-1">Para manter média 6.0</div>
+                </div>
+            </div>
+
+            {/* Middle Section: Learning Profile & Gamification */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Learning Profile Card */}
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+                            <Brain size={20} className="text-purple-600"/> Perfil de Aprendizagem
+                        </h3>
+                        {profile ? (
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-xl">
+                                        {profile.learningChannel.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <div className="text-sm text-slate-500 uppercase font-bold">Canal Principal</div>
+                                        <div className="text-lg font-bold text-slate-800">{profile.learningChannel}</div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-xs text-slate-500 uppercase font-bold mb-2">Pontos Fortes</div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {profile.topStrengths.map(s => (
+                                            <span key={s} className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-bold border border-slate-200">
+                                                {s}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center py-6 text-slate-400">
+                                <Activity size={32} className="mx-auto mb-2 opacity-50"/>
+                                <p className="text-sm">Triagem de perfil ainda não realizada.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Gamification / Coins Card */}
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-6 rounded-xl border border-amber-200 shadow-sm flex flex-col justify-between relative overflow-hidden">
+                    <div className="relative z-10">
+                        <h3 className="font-bold text-amber-800 flex items-center gap-2 mb-4">
+                            <Coins size={20} className="text-amber-600"/> Conquistas & Moedas
+                        </h3>
+                        <div className="flex items-end gap-2 mb-2">
+                            <span className="text-4xl font-black text-amber-600">{extendedProfile?.owlCoins || 0}</span>
+                            <span className="text-sm font-bold text-amber-700 mb-1">Owl Coins</span>
+                        </div>
+                        <p className="text-xs text-amber-800/70 mb-4">Continue estudando para ganhar mais recompensas!</p>
+                        
+                        <div className="flex gap-2">
+                            {(extendedProfile?.badges || ['Iniciante']).map((badge, idx) => (
+                                <div key={idx} className="bg-white/60 px-2 py-1 rounded text-xs font-bold text-amber-800 flex items-center gap-1 border border-amber-200">
+                                    <Star size={10} fill="orange" className="text-orange-400"/> {badge}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <Coins size={100} className="absolute -right-4 -bottom-4 text-amber-200 opacity-50 rotate-12"/>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left Column: Calendar & Evolution */}
+                <div className="space-y-6">
+                     {/* Evolution Chart Card */}
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><TrendingUp size={18}/> Evolução de Notas</h3>
+                        <EvolutionChart data={chartData} />
+                    </div>
+
+                    {/* Quick Agenda Widget */}
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                        <div className="flex justify-between items-center mb-4">
+                             <h3 className="font-bold text-slate-800 flex items-center gap-2"><Calendar size={18}/> Agenda Rápida</h3>
+                             <button onClick={() => setShowAgendaModal(true)} className="text-xs text-brand-primary hover:underline">Expandir</button>
+                        </div>
+                        <div className="space-y-2">
+                            {getAllMonthEvents().slice(0, 3).map((ev, i) => (
+                                <div key={i} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded transition">
+                                    <div className={`w-2 h-8 rounded-full ${getEventColor(ev.type).split(' ')[0]}`}></div>
+                                    <div>
+                                        <div className="text-xs font-bold text-slate-500 uppercase">{new Date(ev.date || '').toLocaleDateString()}</div>
+                                        <div className="text-sm font-bold text-slate-800 line-clamp-1">{ev.title}</div>
+                                    </div>
+                                </div>
+                            ))}
+                            {getAllMonthEvents().length === 0 && <p className="text-slate-400 text-sm text-center py-4">Sem eventos próximos.</p>}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Center/Right Column: Results & Announcements */}
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Grades History */}
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Clock size={18}/> Histórico de Provas</h3>
+                        <div className="space-y-3">
+                            {recentResults.length === 0 && <p className="text-slate-400 text-sm">Nenhuma prova realizada ainda.</p>}
+                            {recentResults.map(result => {
+                                const exam = state.exams.find(e => e.id === result.examId);
+                                return (
+                                    <div key={result.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 transition">
+                                        <div>
+                                            <div className="font-bold text-slate-800">{exam?.title}</div>
+                                            <div className="text-xs text-slate-500">{exam?.subject} • {new Date(result.gradedAt).toLocaleDateString()}</div>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <button 
+                                                onClick={() => setSelectedResult(result)}
+                                                className="text-xs font-bold text-brand-primary bg-brand-light px-3 py-1.5 rounded-lg hover:bg-brand-secondary hover:text-white transition flex items-center gap-1"
+                                            >
+                                                Ver Correção <Eye size={12}/>
+                                            </button>
+                                            <div className={`font-bold text-lg ${result.totalScore >= 6 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                {result.totalScore.toFixed(1)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Mural Announcements */}
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Calendar size={18}/> Mural da Escola</h3>
+                        <div className="space-y-4">
+                            {state.announcements.map(ann => (
+                                <div key={ann.id} className={`p-3 rounded-lg border-l-4 ${ann.type === 'URGENTE' ? 'border-rose-500 bg-rose-50' : 'border-brand-secondary bg-slate-50'}`}>
+                                    <div className="text-xs font-bold text-slate-500 mb-1 flex justify-between">
+                                        <span>{ann.type}</span>
+                                        <span>{new Date(ann.createdAt).toLocaleDateString()}</span>
+                                    </div>
+                                    <div className="font-bold text-slate-800 text-sm mb-1">{ann.title}</div>
+                                    <p className="text-xs text-slate-600 line-clamp-3">{ann.content}</p>
+                                </div>
+                            ))}
+                            {state.announcements.length === 0 && <p className="text-slate-400 text-sm">Nenhum aviso.</p>}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* AGENDA MODAL */}
+            {showAgendaModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full h-[80vh] flex flex-col border-2 border-brand-primary relative overflow-hidden">
+                        <div className="bg-slate-50 p-6 border-b flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Calendar className="text-brand-primary"/> Agenda Escolar</h2>
+                            <button onClick={() => setShowAgendaModal(false)}><X size={24} className="text-slate-400 hover:text-slate-600"/></button>
+                        </div>
+                        
+                        <div className="flex flex-1 overflow-hidden">
+                            {/* Calendar Sidebar */}
+                            <div className="w-1/3 bg-slate-50 border-r border-slate-200 p-6 overflow-y-auto">
+                                <div className="flex justify-between items-center mb-6">
+                                     <button onClick={() => changeMonth(-1)} className="p-1 hover:bg-slate-200 rounded"><ChevronLeft size={20}/></button>
+                                     <span className="font-bold text-lg">{currentMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span>
+                                     <button onClick={() => changeMonth(1)} className="p-1 hover:bg-slate-200 rounded"><ChevronRight size={20}/></button>
+                                </div>
+                                <div className="grid grid-cols-7 gap-1 text-center mb-2 text-xs font-bold text-slate-400">
+                                    <div>D</div><div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div>
+                                </div>
+                                <div className="grid grid-cols-7 gap-1 text-sm">
+                                    {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
+                                    {Array.from({ length: days }).map((_, i) => {
+                                        const day = i + 1;
+                                        const events = getEventsForDay(day);
+                                        const hasEvent = events.length > 0;
+                                        return (
+                                            <div key={day} className={`h-10 flex flex-col items-center justify-center rounded-lg relative ${hasEvent ? 'bg-white border border-slate-200 font-bold shadow-sm' : 'text-slate-400'}`}>
+                                                {day}
+                                                {hasEvent && (
+                                                    <div className="flex gap-0.5 mt-1">
+                                                        {events.slice(0, 3).map((e, idx) => (
+                                                            <div key={idx} className={`w-1.5 h-1.5 rounded-full ${getEventColor(e.type).split(' ')[0]}`}></div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="mt-8 border-t pt-4">
+                                    <h4 className="text-xs font-bold text-slate-500 uppercase mb-3">Legenda de Atividades</h4>
+                                    <div className="space-y-2 text-xs">
+                                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-rose-500"></div> Prova / Avaliação</div>
+                                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500"></div> Trabalho / Pesquisa</div>
+                                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500"></div> Evento Escolar</div>
+                                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-slate-400"></div> Outros</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Event Details */}
+                            <div className="flex-1 p-8 overflow-y-auto bg-white">
+                                <h3 className="font-bold text-slate-800 text-lg mb-6">Eventos do Mês</h3>
+                                <div className="space-y-4">
+                                    {getAllMonthEvents().map((ev, i) => (
+                                        <div key={i} className={`p-4 rounded-xl border-l-4 flex gap-4 shadow-sm ${getEventColor(ev.type).replace('text-white', 'bg-slate-50')}`}>
+                                            <div className="flex flex-col items-center justify-center px-4 border-r border-slate-200">
+                                                <span className="text-2xl font-black text-slate-700">{new Date(ev.date || '').getDate()}</span>
+                                                <span className="text-xs uppercase font-bold text-slate-400">{new Date(ev.date || '').toLocaleDateString('pt-BR', {month: 'short'})}</span>
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded text-white ${getEventColor(ev.type).split(' ')[0]}`}>
+                                                        {getEventLabel(ev.type)}
+                                                    </span>
+                                                </div>
+                                                <div className="font-bold text-slate-800 text-lg">{ev.title}</div>
+                                                <div className="text-xs text-slate-500 mt-1">Clique para ver detalhes (se disponível).</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {getAllMonthEvents().length === 0 && (
+                                        <div className="text-center py-20 text-slate-400">
+                                            <Calendar size={48} className="mx-auto mb-4 opacity-20"/>
+                                            <p>Nenhum evento agendado para este mês.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* RANKING MODAL */}
+            {showRankingModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border-2 border-brand-primary relative">
+                        {/* Confetti Effect Background */}
+                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/confetti.png')] opacity-10 pointer-events-none"></div>
+                        
+                        <div className="p-6 text-center relative">
+                            <button 
+                                onClick={() => setShowRankingModal(false)}
+                                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
+                            >
+                                <X size={20}/>
+                            </button>
+
+                            <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-yellow-200 shadow-inner">
+                                <Trophy size={40} className="text-yellow-600 drop-shadow-sm" />
+                            </div>
+
+                            <h2 className="text-2xl font-black text-slate-800 mb-2">Sua Posição</h2>
+                            <p className="text-slate-500 text-sm mb-6">Comparativo baseado na média global das notas.</p>
+
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                    <div className="text-left">
+                                        <div className="font-bold text-slate-700">Na Turma</div>
+                                        <div className="text-xs text-slate-400">Entre {ranks.totalClass} alunos</div>
+                                    </div>
+                                    <div className="text-2xl font-black text-brand-primary">#{ranks.classRank}</div>
+                                </div>
+
+                                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                    <div className="text-left">
+                                        <div className="font-bold text-slate-700">Na Escola</div>
+                                        <div className="text-xs text-slate-400">Entre {ranks.totalSchool} alunos</div>
+                                    </div>
+                                    <div className="text-2xl font-black text-brand-secondary">#{ranks.schoolRank}</div>
+                                </div>
+
+                                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                    <div className="text-left">
+                                        <div className="font-bold text-slate-700">Geral (Rede)</div>
+                                        <div className="text-xs text-slate-400">Entre {ranks.totalGeneral} alunos</div>
+                                    </div>
+                                    <div className="text-2xl font-black text-slate-600">#{ranks.generalRank}</div>
+                                </div>
+                            </div>
+
+                            {state.settings.rankingAnonymity === 'ANONIMO' && (
+                                <p className="text-[10px] text-slate-400 mt-4 italic">
+                                    * O ranking público da escola é exibido de forma anônima para proteger a identidade dos alunos, mas você sempre pode ver sua posição aqui.
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* RESULT PDF-LIKE MODAL */}
+            {renderCorrectionModal()}
+        </div>
+    );
+};
