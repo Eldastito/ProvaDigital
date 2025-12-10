@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
-import { TrendingUp, AlertTriangle, BookOpen, CheckCircle, Calendar, Clock, Brain, Award, ChevronLeft, ChevronRight, Trophy, X, FileText, Check, Eye, User as UserIcon, List, ArrowUp, ArrowDown, Coins, Star, Activity } from 'lucide-react';
-import { AppState, RiskLevel, User, Exam, ExamResult, QuestionType, UserRole } from '../../types';
+import { TrendingUp, AlertTriangle, BookOpen, CheckCircle, Calendar, Clock, Brain, Award, ChevronLeft, ChevronRight, Trophy, X, FileText, Check, Eye, User as UserIcon, List, ArrowUp, ArrowDown, Coins, Star, Activity, Zap, Medal, Sparkles } from 'lucide-react';
+import { AppState, RiskLevel, User, Exam, ExamResult, QuestionType, UserRole, GamifiedEventStatus } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
+import { useAppStore } from '../../store/useAppStore';
 
 interface StudentDashboardViewProps {
     state: AppState;
@@ -53,6 +54,7 @@ const EvolutionChart = ({ data }: { data: { label: string, value: number }[] }) 
 
 export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps) => {
     const isParent = user.role === UserRole.PAIS;
+    const { registerStudentToEvent } = useAppStore();
     
     // Se for pai, pega o filho selecionado na store (selectedChildId)
     // Se não houver seleção, fallback para o primeiro filho disponível
@@ -73,18 +75,21 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
     const profile = student ? state.studentProfiles?.find(p => p.studentId === student.id) : null;
     
     // Buscar perfil estendido (para moedas e badges)
-    // No mock, UserProfileExtended usa userId, mas para aluno o userId é o studentId em muitos casos ou mapeado.
-    // Vamos tentar achar pelo studentId
     const extendedProfile = student ? state.userProfiles?.find(p => p.userId === student.id) : null;
     
     // Calendar State
     const [currentMonth, setCurrentMonth] = useState(new Date());
     // Ranking Modal State
     const [showRankingModal, setShowRankingModal] = useState(false);
+    const [rankingMode, setRankingMode] = useState<'ACADEMIC' | 'XP'>('ACADEMIC');
+
     // Result Modal State
     const [selectedResult, setSelectedResult] = useState<ExamResult | null>(null);
     // Agenda Modal State
     const [showAgendaModal, setShowAgendaModal] = useState(false);
+    
+    // Event Modal
+    const [showEventRules, setShowEventRules] = useState<string | null>(null);
 
     if (!student || !stats) return (
         <div className="p-8 text-center text-slate-500">
@@ -118,23 +123,50 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
     const lastTwoResults = chartData.slice(-2);
     const trend = lastTwoResults.length === 2 ? lastTwoResults[1].value - lastTwoResults[0].value : 0;
 
+    // --- EVENTS LOGIC ---
+    const availableEvents = state.gamifiedEvents.filter(e => 
+        e.schoolId === student.schoolId && 
+        e.status === GamifiedEventStatus.OPEN &&
+        !e.participants.some(p => p.studentId === student.id)
+    );
+
+    const myActiveEvents = state.gamifiedEvents.filter(e => 
+        e.participants.some(p => p.studentId === student.id) &&
+        e.status !== GamifiedEventStatus.FINISHED
+    );
+
+    const handleAcceptEvent = (eventId: string) => {
+        if (confirm("Você leu as regras e deseja se inscrever?")) {
+            registerStudentToEvent(eventId, student.id);
+            setShowEventRules(null);
+        }
+    };
+
     // --- RANKING CALCULATION LOGIC ---
     const calculateRanks = () => {
-        const getAvg = (sId: string) => analytics.getStudentStats(sId)?.averageGrade || 0;
+        const getMetric = (sId: string) => {
+            if (rankingMode === 'ACADEMIC') {
+                return analytics.getStudentStats(sId)?.idgScore || 0; // Usando IDG Ponderado
+            } else {
+                // XP Ranking (Coins)
+                const p = state.userProfiles?.find(up => up.userId === sId);
+                return p?.owlCoins || 0;
+            }
+        };
 
         // 1. Class Rank
         const classStudents = state.students.filter(s => s.classId === student.classId);
-        const sortedClass = classStudents.sort((a, b) => getAvg(b.id) - getAvg(a.id));
+        const sortedClass = classStudents.sort((a, b) => getMetric(b.id) - getMetric(a.id));
         const classRank = sortedClass.findIndex(s => s.id === student.id) + 1;
 
         // 2. School Rank
         const schoolStudents = state.students.filter(s => s.schoolId === student.schoolId);
-        const sortedSchool = schoolStudents.sort((a, b) => getAvg(b.id) - getAvg(a.id));
+        const sortedSchool = schoolStudents.sort((a, b) => getMetric(b.id) - getMetric(a.id));
         const schoolRank = sortedSchool.findIndex(s => s.id === student.id) + 1;
 
         // 3. General (Tenant) Rank
         const allStudents = state.students.filter(s => s.tenantId === student.tenantId);
-        const sortedGeneral = allStudents.sort((a, b) => getAvg(b.id) - getAvg(a.id));
+        const sortedGeneral = allStudents.sort((a, b) => getMetric(b.id) - getMetric(a.id));
         const generalRank = sortedGeneral.findIndex(s => s.id === student.id) + 1;
 
         return { classRank, schoolRank, generalRank, totalClass: classStudents.length, totalSchool: schoolStudents.length, totalGeneral: allStudents.length };
@@ -163,6 +195,12 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
         const exams = myExams.filter(e => e.scheduledDate === dateStr);
         const announcements = state.announcements.filter(a => a.eventDate === dateStr);
         
+        // Add Gamified Events to Calendar
+        const gameEvents = state.gamifiedEvents.filter(e => 
+            e.participants.some(p => p.studentId === student.id) &&
+            e.eventDate.startsWith(dateStr)
+        );
+
         const mappedEvents = [
             ...exams.map(e => ({ 
                 type: e.title.toLowerCase().includes('trabalho') ? 'TRABALHO' : 'PROVA', 
@@ -173,6 +211,11 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                 type: a.type === 'AVISO' ? 'OUTRO' : 'EVENTO', 
                 title: a.title,
                 date: a.eventDate
+            })),
+            ...gameEvents.map(e => ({
+                type: 'COMPETICAO',
+                title: e.title,
+                date: e.eventDate
             }))
         ];
 
@@ -199,6 +242,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
             case 'PROVA': return 'bg-rose-500 border-rose-600 text-white';
             case 'TRABALHO': return 'bg-blue-500 border-blue-600 text-white';
             case 'EVENTO': return 'bg-emerald-500 border-emerald-600 text-white';
+            case 'COMPETICAO': return 'bg-amber-500 border-amber-600 text-white';
             default: return 'bg-slate-400 border-slate-500 text-white';
         }
     };
@@ -208,6 +252,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
             case 'PROVA': return 'Prova/Avaliação';
             case 'TRABALHO': return 'Trabalho/Pesquisa';
             case 'EVENTO': return 'Evento Escolar';
+            case 'COMPETICAO': return 'Competição';
             default: return 'Comunicado Geral';
         }
     };
@@ -311,7 +356,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                 <div className="flex gap-3">
                     {state.settings.rankingEnabled && (
                         <button onClick={() => setShowRankingModal(true)} className="bg-amber-100 text-amber-700 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-amber-200 transition shadow-sm border border-amber-200">
-                            <Trophy size={18}/> Posição no Ranking
+                            <Trophy size={18}/> Ver Ranking
                         </button>
                     )}
                     <button onClick={() => setShowAgendaModal(true)} className="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-slate-50 transition shadow-sm">
@@ -320,15 +365,61 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                 </div>
             </div>
 
+            {/* EVENT INVITATIONS (NEW) */}
+            {availableEvents.length > 0 && !isParent && (
+                <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6 rounded-xl shadow-lg mb-6 relative overflow-hidden animate-in slide-in-from-top-4">
+                    <div className="relative z-10">
+                        <h3 className="text-xl font-bold mb-2 flex items-center gap-2"><Sparkles className="text-yellow-400"/> Convites Especiais ({availableEvents.length})</h3>
+                        <div className="flex gap-4 overflow-x-auto pb-2">
+                            {availableEvents.map(evt => (
+                                <div key={evt.id} className="min-w-[280px] bg-white/10 border border-white/20 p-4 rounded-lg hover:bg-white/20 transition">
+                                    <div className="text-xs font-bold text-purple-200 uppercase mb-1">{evt.type.replace('_', ' ')}</div>
+                                    <h4 className="font-bold text-lg leading-tight mb-2">{evt.title}</h4>
+                                    <div className="flex items-center gap-2 text-xs text-purple-100 mb-3">
+                                        <Calendar size={12}/> {new Date(evt.eventDate).toLocaleDateString()}
+                                        <span className="opacity-50">|</span>
+                                        <Coins size={12} className="text-yellow-400"/> Prémio: {evt.rewardCoins}
+                                    </div>
+                                    <button 
+                                        onClick={() => setShowEventRules(evt.id)}
+                                        className="w-full bg-white text-purple-700 py-2 rounded font-bold text-sm hover:bg-purple-50 transition"
+                                    >
+                                        Inscrever-se
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <Trophy size={150} className="absolute -right-4 -bottom-4 text-white/10 rotate-12"/>
+                </div>
+            )}
+
+            {/* My Active Events */}
+            {myActiveEvents.length > 0 && !isParent && (
+                <div className="bg-white border-l-4 border-amber-500 p-4 rounded-xl shadow-sm mb-6 flex items-center justify-between">
+                    <div>
+                        <h4 className="font-bold text-slate-800 flex items-center gap-2"><Award className="text-amber-500"/> Suas Competições</h4>
+                        <p className="text-sm text-slate-500">Você está inscrito em {myActiveEvents.length} evento(s). Prepare-se!</p>
+                    </div>
+                    <div className="flex gap-2">
+                        {myActiveEvents.map(e => (
+                            <span key={e.id} className="text-xs font-bold bg-amber-50 text-amber-700 px-2 py-1 rounded border border-amber-200">
+                                {e.title}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Top Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-slate-400 uppercase">Média Geral</span>
+                        <span className="text-xs font-bold text-slate-400 uppercase">Índice Global (IDG)</span>
                         <TrendingUp size={20} className="text-brand-primary"/>
                     </div>
                     <div className="flex items-baseline gap-2">
-                        <div className="text-3xl font-black text-slate-800">{stats.averageGrade.toFixed(1)}</div>
+                        <div className="text-3xl font-black text-slate-800">{stats.idgScore.toFixed(1)}</div>
                         {trend !== 0 && (
                             <div className={`flex items-center text-xs font-bold ${trend > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                                 {trend > 0 ? <ArrowUp size={12}/> : <ArrowDown size={12}/>}
@@ -336,7 +427,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                             </div>
                         )}
                     </div>
-                    <div className="text-xs text-slate-500 mt-1">Em {stats.examsTaken} provas</div>
+                    <div className="text-xs text-slate-500 mt-1">Média Ponderada (Provas + Trabalhos)</div>
                 </div>
 
                 <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
@@ -384,10 +475,26 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
                     <div>
                         <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
-                            <Brain size={20} className="text-purple-600"/> Perfil de Aprendizagem
+                            <Brain size={20} className="text-purple-600"/> Perfil e Conquistas
                         </h3>
-                        {profile ? (
-                            <div className="space-y-4">
+                        <div className="space-y-4">
+                            {/* Academic Achievements List */}
+                            {extendedProfile?.academicAchievements && extendedProfile.academicAchievements.length > 0 && (
+                                <div className="mb-4">
+                                    <div className="text-xs text-slate-500 uppercase font-bold mb-2">Conquistas Acadêmicas</div>
+                                    <div className="space-y-2">
+                                        {extendedProfile.academicAchievements.map(ach => (
+                                            <div key={ach.id} className="flex items-center gap-2 bg-yellow-50 p-2 rounded border border-yellow-200 text-sm text-yellow-800">
+                                                <Medal size={16}/>
+                                                <span className="font-bold">{ach.title}</span>
+                                                <span className="text-xs bg-white px-1 rounded ml-auto border border-yellow-300">+{ach.bonusPoints} pts</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {profile ? (
                                 <div className="flex items-center gap-4">
                                     <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-xl">
                                         {profile.learningChannel.charAt(0)}
@@ -397,23 +504,13 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                                         <div className="text-lg font-bold text-slate-800">{profile.learningChannel}</div>
                                     </div>
                                 </div>
-                                <div>
-                                    <div className="text-xs text-slate-500 uppercase font-bold mb-2">Pontos Fortes</div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {profile.topStrengths.map(s => (
-                                            <span key={s} className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-bold border border-slate-200">
-                                                {s}
-                                            </span>
-                                        ))}
-                                    </div>
+                            ) : (
+                                <div className="text-center py-6 text-slate-400">
+                                    <Activity size={32} className="mx-auto mb-2 opacity-50"/>
+                                    <p className="text-sm">Triagem de perfil ainda não realizada.</p>
                                 </div>
-                            </div>
-                        ) : (
-                            <div className="text-center py-6 text-slate-400">
-                                <Activity size={32} className="mx-auto mb-2 opacity-50"/>
-                                <p className="text-sm">Triagem de perfil ainda não realizada.</p>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -421,13 +518,15 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                 <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-6 rounded-xl border border-amber-200 shadow-sm flex flex-col justify-between relative overflow-hidden">
                     <div className="relative z-10">
                         <h3 className="font-bold text-amber-800 flex items-center gap-2 mb-4">
-                            <Coins size={20} className="text-amber-600"/> Conquistas & Moedas
+                            <Coins size={20} className="text-amber-600"/> Liga de XP & Conquistas
                         </h3>
                         <div className="flex items-end gap-2 mb-2">
                             <span className="text-4xl font-black text-amber-600">{extendedProfile?.owlCoins || 0}</span>
                             <span className="text-sm font-bold text-amber-700 mb-1">Owl Coins</span>
                         </div>
-                        <p className="text-xs text-amber-800/70 mb-4">Continue estudando para ganhar mais recompensas!</p>
+                        <p className="text-xs text-amber-800/70 mb-4">
+                            Você subiu <strong>{ranks.schoolRank}º</strong> no Ranking de Engajamento!
+                        </p>
                         
                         <div className="flex gap-2">
                             {(extendedProfile?.badges || ['Iniciante']).map((badge, idx) => (
@@ -570,7 +669,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                                         <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-rose-500"></div> Prova / Avaliação</div>
                                         <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500"></div> Trabalho / Pesquisa</div>
                                         <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500"></div> Evento Escolar</div>
-                                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-slate-400"></div> Outros</div>
+                                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-amber-500"></div> Competição</div>
                                     </div>
                                 </div>
                             </div>
@@ -609,6 +708,34 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                 </div>
             )}
 
+            {/* EVENT RULES MODAL */}
+            {showEventRules && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-purple-200">
+                        <div className="bg-purple-900 p-6 text-white">
+                            <h2 className="text-xl font-bold flex items-center gap-2"><Trophy size={24} className="text-yellow-400"/> Regras do Evento</h2>
+                        </div>
+                        <div className="p-6">
+                            <h3 className="font-bold text-lg text-slate-800 mb-2">{availableEvents.find(e=>e.id===showEventRules)?.title}</h3>
+                            <p className="text-sm text-slate-600 mb-4 italic">{availableEvents.find(e=>e.id===showEventRules)?.description}</p>
+                            
+                            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-sm text-slate-700 leading-relaxed font-medium mb-6">
+                                {availableEvents.find(e=>e.id===showEventRules)?.rules}
+                            </div>
+
+                            <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 p-2 rounded mb-6 border border-amber-100">
+                                <AlertTriangle size={14}/> Ao aceitar, você se compromete a participar no dia do evento.
+                            </div>
+
+                            <div className="flex gap-4">
+                                <button onClick={() => setShowEventRules(null)} className="flex-1 py-3 border border-slate-300 rounded-lg font-bold text-slate-600 hover:bg-slate-50">Cancelar</button>
+                                <button onClick={() => handleAcceptEvent(showEventRules)} className="flex-1 py-3 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700">Aceitar & Inscrever</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* RANKING MODAL */}
             {showRankingModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in">
@@ -624,42 +751,91 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                                 <X size={20}/>
                             </button>
 
-                            <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-yellow-200 shadow-inner">
-                                <Trophy size={40} className="text-yellow-600 drop-shadow-sm" />
+                            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border-4 shadow-inner ${rankingMode === 'ACADEMIC' ? 'bg-yellow-100 border-yellow-200' : 'bg-amber-100 border-amber-300'}`}>
+                                {rankingMode === 'ACADEMIC' ? <Trophy size={40} className="text-yellow-600 drop-shadow-sm" /> : <Coins size={40} className="text-amber-600 drop-shadow-sm"/>}
                             </div>
 
-                            <h2 className="text-2xl font-black text-slate-800 mb-2">Sua Posição</h2>
-                            <p className="text-slate-500 text-sm mb-6">Comparativo baseado na média global das notas.</p>
+                            <h2 className="text-2xl font-black text-slate-800 mb-2">
+                                {rankingMode === 'ACADEMIC' ? 'Ranking Ponderado' : 'Liga de Engajamento'}
+                            </h2>
+                            <p className="text-slate-500 text-sm mb-4">
+                                {rankingMode === 'ACADEMIC' ? 'Critérios: Provas (60%) + Trabalhos (30%) + Extras.' : 'Baseado em Owl Coins ganhas nos jogos.'}
+                            </p>
+
+                            {/* TOGGLE */}
+                            <div className="flex justify-center gap-2 mb-6">
+                                <button 
+                                    onClick={() => setRankingMode('ACADEMIC')}
+                                    className={`px-4 py-1 rounded-full text-xs font-bold transition ${rankingMode === 'ACADEMIC' ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500'}`}
+                                >
+                                    Acadêmico (IDG)
+                                </button>
+                                <button 
+                                    onClick={() => setRankingMode('XP')}
+                                    className={`px-4 py-1 rounded-full text-xs font-bold transition ${rankingMode === 'XP' ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-500'}`}
+                                >
+                                    XP / Moedas
+                                </button>
+                            </div>
+
+                            {/* Score Breakdown (New Feature) */}
+                            {rankingMode === 'ACADEMIC' && (
+                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-4 text-left">
+                                    <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Composição da sua Nota Global ({stats.idgScore.toFixed(1)})</h4>
+                                    
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between items-center">
+                                            <span>📘 Médias de Provas (60%)</span>
+                                            <span className="font-bold">{stats.examAverage.toFixed(1)}</span>
+                                        </div>
+                                        <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                                            <div className="bg-blue-500 h-full" style={{width: `${stats.examAverage * 10}%`}}></div>
+                                        </div>
+
+                                        <div className="flex justify-between items-center mt-1">
+                                            <span>📙 Médias de Trabalhos (30%)</span>
+                                            <span className="font-bold">{stats.projectAverage.toFixed(1)}</span>
+                                        </div>
+                                        <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                                            <div className="bg-orange-500 h-full" style={{width: `${stats.projectAverage * 10}%`}}></div>
+                                        </div>
+
+                                        {stats.bonusPoints > 0 && (
+                                            <div className="flex justify-between items-center text-emerald-700 font-bold bg-emerald-50 px-2 py-1 rounded mt-2">
+                                                <span className="flex items-center gap-1"><Medal size={12}/> Bônus Extra (Olimpíadas/Eventos)</span>
+                                                <span>+{stats.bonusPoints.toFixed(1)}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="space-y-3">
-                                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                <div className="flex items-center justify-between p-4 bg-white shadow-sm rounded-xl border border-slate-200">
                                     <div className="text-left">
                                         <div className="font-bold text-slate-700">Na Turma</div>
                                         <div className="text-xs text-slate-400">Entre {ranks.totalClass} alunos</div>
                                     </div>
-                                    <div className="text-2xl font-black text-brand-primary">#{ranks.classRank}</div>
+                                    <div className={`text-2xl font-black ${rankingMode === 'XP' ? 'text-amber-600' : 'text-brand-primary'}`}>#{ranks.classRank}</div>
                                 </div>
 
-                                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                <div className="flex items-center justify-between p-4 bg-white shadow-sm rounded-xl border border-slate-200">
                                     <div className="text-left">
                                         <div className="font-bold text-slate-700">Na Escola</div>
                                         <div className="text-xs text-slate-400">Entre {ranks.totalSchool} alunos</div>
                                     </div>
-                                    <div className="text-2xl font-black text-brand-secondary">#{ranks.schoolRank}</div>
-                                </div>
-
-                                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
-                                    <div className="text-left">
-                                        <div className="font-bold text-slate-700">Geral (Rede)</div>
-                                        <div className="text-xs text-slate-400">Entre {ranks.totalGeneral} alunos</div>
-                                    </div>
-                                    <div className="text-2xl font-black text-slate-600">#{ranks.generalRank}</div>
+                                    <div className={`text-2xl font-black ${rankingMode === 'XP' ? 'text-amber-700' : 'text-brand-secondary'}`}>#{ranks.schoolRank}</div>
                                 </div>
                             </div>
 
-                            {state.settings.rankingAnonymity === 'ANONIMO' && (
+                            {state.settings.rankingAnonymity === 'ANONIMO' && rankingMode === 'ACADEMIC' && (
                                 <p className="text-[10px] text-slate-400 mt-4 italic">
-                                    * O ranking público da escola é exibido de forma anônima para proteger a identidade dos alunos, mas você sempre pode ver sua posição aqui.
+                                    * O ranking público acadêmico é anônimo, mas você pode ver sua posição aqui.
+                                </p>
+                            )}
+                            {rankingMode === 'XP' && (
+                                <p className="text-[10px] text-amber-600 mt-4 font-bold flex items-center justify-center gap-1">
+                                    <Zap size={10}/> Dica: Jogue o 'Modo Sobrevivência' para subir no ranking de XP!
                                 </p>
                             )}
                         </div>

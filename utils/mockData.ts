@@ -1,5 +1,5 @@
 
-import { Tenant, School, SchoolClass, User, UserRole, Item, QuestionType, DifficultyLevel, ItemOrigin, Student, Exam, ExamModel, ExamStatus, ExamRegistration, RegistrationStatus, ExamResult, Announcement, ChatMessage, LessonPlan, StudyPlan, StudentProfile, AppSettings, RiskLevel, UserProfileExtended, AssessmentType, TenantType } from '../types';
+import { Tenant, School, SchoolClass, User, UserRole, Item, QuestionType, DifficultyLevel, ItemOrigin, Student, Exam, ExamModel, ExamStatus, ExamRegistration, RegistrationStatus, ExamResult, Announcement, ChatMessage, LessonPlan, StudyPlan, StudentProfile, AppSettings, RiskLevel, UserProfileExtended, AssessmentType, TenantType, GamifiedEvent, GamifiedEventStatus } from '../types';
 
 // --- 1. TENANTS (REDES) ---
 export const INITIAL_TENANTS: Tenant[] = [
@@ -95,17 +95,64 @@ export const INITIAL_EXAMS: Exam[] = [
     id: 'e2', tenantId: 't2', schoolId: 's2', creatorId: 'u_sec_est',
     title: 'Simulado Estadual (SAEB)', subject: 'Português', model: ExamModel.SOMATIVO, durationMinutes: 90, targetQuestionCount: 40,
     status: ExamStatus.PUBLISHED, items: [], classIds: ['c2'], createdAt: new Date().toISOString(), scheduledDate: new Date().toISOString().split('T')[0]
+  },
+  // Adding a "Trabalho" to test weighted ranking
+  {
+    id: 'e3', tenantId: 't1', schoolId: 's1', creatorId: 'u1',
+    title: 'Trabalho de Pesquisa: Guerra Fria', subject: 'História', model: ExamModel.SOMATIVO, durationMinutes: 0, targetQuestionCount: 1,
+    status: ExamStatus.PUBLISHED, items: [], classIds: ['c1'], createdAt: new Date().toISOString(), scheduledDate: new Date().toISOString().split('T')[0]
   }
+];
+
+// --- 7. GAMIFIED EVENTS (NOVO) ---
+export const INITIAL_GAMIFIED_EVENTS: GamifiedEvent[] = [
+    {
+        id: 'evt_soletrando_24',
+        schoolId: 's1',
+        creatorId: 'u1',
+        title: 'I Soletrando Escolar - Cora Coralina',
+        type: 'SOLETRANDO',
+        subject: 'Português',
+        description: 'Competição de soletração para alunos do 9º Ano. Preparem seus vocabulários!',
+        rules: '1. O aluno deve soletrar a palavra corretamente. 2. Tem 30 segundos para responder. 3. Errou, está eliminado da rodada.',
+        eventDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // +7 dias
+        registrationDeadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+        status: GamifiedEventStatus.OPEN,
+        rewardCoins: 500,
+        participants: [
+            { studentId: 'st_muni', status: 'INSCRITO', score: 0 }
+        ]
+    },
+    {
+        id: 'evt_olimpiada_mat_24',
+        schoolId: 's1',
+        creatorId: 'u1',
+        title: 'Olimpíada Interna de Matemática',
+        type: 'OLIMPIADA',
+        subject: 'Matemática',
+        description: 'Resolva problemas lógicos complexos e concorra a medalhas!',
+        rules: 'Prova individual sem consulta. 2 horas de duração.',
+        eventDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // Passado
+        registrationDeadline: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        status: GamifiedEventStatus.FINISHED,
+        rewardCoins: 1000,
+        participants: [
+            { studentId: 'st_muni', status: 'CONCLUIDO', score: 9.5, rank: 1, feedback: 'Excelente raciocínio lógico.' },
+            { studentId: 'st_5', status: 'CONCLUIDO', score: 7.0, rank: 2, feedback: 'Bom desempenho.' }
+        ]
+    }
 ];
 
 export const INITIAL_REGISTRATIONS: ExamRegistration[] = [
   { id: 'r1', examId: 'e1', studentId: 'st_muni', classId: 'c1', status: RegistrationStatus.INSCRITO },
   { id: 'r2', examId: 'e2', studentId: 'st_state', classId: 'c2', status: RegistrationStatus.INSCRITO },
+  { id: 'r3', examId: 'e3', studentId: 'st_muni', classId: 'c1', status: RegistrationStatus.INSCRITO },
 ];
 
 export const INITIAL_RESULTS: ExamResult[] = [
     { id: 'res_1', examId: 'e1', studentId: 'st_muni', gradedAt: new Date().toISOString(), totalScore: 8.5, answers: [], violationCount: 0 },
-    { id: 'res_2', examId: 'e2', studentId: 'st_state', gradedAt: new Date().toISOString(), totalScore: 7.0, answers: [], violationCount: 0 }
+    { id: 'res_2', examId: 'e2', studentId: 'st_state', gradedAt: new Date().toISOString(), totalScore: 7.0, answers: [], violationCount: 0 },
+    { id: 'res_3', examId: 'e3', studentId: 'st_muni', gradedAt: new Date().toISOString(), totalScore: 9.5, answers: [], violationCount: 0 } // Nota alta no trabalho
 ];
 
 export const INITIAL_ANNOUNCEMENTS: Announcement[] = [
@@ -121,4 +168,29 @@ export const INITIAL_STUDENT_PROFILES: StudentProfile[] = [
     { studentId: 'st_state', learningChannel: 'AUDITIVO', discProfile: 'S', topStrengths: ['Empatia'], lastUpdated: new Date().toISOString() }
 ];
 export const INITIAL_SETTINGS: AppSettings = { rankingEnabled: true, rankingAnonymity: 'NOMINAL' };
-export const INITIAL_USER_PROFILES: UserProfileExtended[] = [];
+
+// Extended Profile with Achievements
+export const INITIAL_USER_PROFILES: UserProfileExtended[] = [
+    {
+        userId: 'st_muni',
+        owlCoins: 120,
+        badges: ['Iniciante', 'Focado'],
+        assessments: [],
+        academicAchievements: [
+            {
+                id: 'ach_1',
+                title: 'Ouro - Olimpíada de Matemática (OBMEP)',
+                type: 'OLIMPIADA',
+                date: new Date().toISOString(),
+                bonusPoints: 0.5
+            },
+            {
+                id: 'ach_2',
+                title: 'Participação - Soletrando Escolar',
+                type: 'EVENTO',
+                date: new Date().toISOString(),
+                bonusPoints: 0.2
+            }
+        ]
+    }
+];

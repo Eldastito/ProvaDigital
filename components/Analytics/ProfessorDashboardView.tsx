@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { BookOpen, FileText, GraduationCap, Users, Plus, Tablet, BarChart, ChevronDown, ChevronUp, Search, AlertCircle, TrendingUp, ArrowRight, Target, Star, ShieldAlert, ClipboardCheck, Brain, Clock, MousePointer2, PenTool, Grip } from 'lucide-react';
 import { AppState, UserRole, ExamStatus } from '../../types';
@@ -72,7 +73,7 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
 
         // Cluster Identification Logic (Mock for Demo)
         let behaviorCluster = 'NORMAL'; // NORMAL, RAPID_PREC, SLOW_PREC, RAPID_ERR, SLOW_ERR
-        const grade = analytics.getStudentStats(s.id)?.averageGrade || 0;
+        const grade = analytics.getStudentStats(s.id)?.idgScore || 0;
         if (grade > 8) behaviorCluster = 'RAPID_PREC';
         else if (grade > 6) behaviorCluster = 'SLOW_PREC';
         else if (grade > 4) behaviorCluster = 'SLOW_ERR';
@@ -85,15 +86,15 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
             lastFlags: lastExamFlags,
             behaviorCluster
         };
-    }).sort((a, b) => (b.stats?.averageGrade || 0) - (a.stats?.averageGrade || 0));
+    }).sort((a, b) => (b.stats?.idgScore || 0) - (a.stats?.idgScore || 0));
 
     // Filter Logic
     const filteredStudents = showIntegrityFilter 
         ? studentStats.filter(s => s.violations > 0) 
         : studentStats;
 
-    const classAverage = studentStats.reduce((acc, s) => acc + (s.stats?.averageGrade || 0), 0) / (studentStats.length || 1);
-    const gradesList = studentStats.map(s => s.stats?.averageGrade || 0);
+    const classAverage = studentStats.reduce((acc, s) => acc + (s.stats?.idgScore || 0), 0) / (studentStats.length || 1);
+    const gradesList = studentStats.map(s => s.stats?.idgScore || 0);
     const cheatingAttempts = studentStats.reduce((acc, s) => acc + s.violations, 0);
     const studentsWithFlags = studentStats.filter(s => s.violations > 0).length;
 
@@ -177,7 +178,7 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
                             {selectedClass && (
                                 <>
                                     <div className="flex items-center justify-between mb-4">
-                                        <h3 className="font-bold text-slate-800">Analytics da Turma</h3>
+                                        <h3 className="font-bold text-slate-800">IDG Médio (Turma)</h3>
                                         <span className={`text-xl font-black ${classAverage >= 6 ? 'text-emerald-600' : 'text-amber-500'}`}>{classAverage.toFixed(1)}</span>
                                     </div>
                                     
@@ -265,7 +266,7 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
                     <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden h-[600px]">
                         <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
                             <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                <Users size={20} className="text-brand-secondary"/> Desempenho Individual
+                                <Users size={20} className="text-brand-secondary"/> Desempenho Individual (IDG)
                             </h3>
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16}/>
@@ -308,10 +309,10 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
                                         
                                         <div className="flex items-center gap-6">
                                             <div className="text-right">
-                                                <div className={`font-black text-lg ${student.stats?.averageGrade && student.stats.averageGrade >= 6 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                                    {student.stats?.averageGrade.toFixed(1)}
+                                                <div className={`font-black text-lg ${student.stats?.idgScore && student.stats.idgScore >= 6 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                    {student.stats?.idgScore.toFixed(1)}
                                                 </div>
-                                                <div className="text-[10px] text-slate-400 uppercase">Média</div>
+                                                <div className="text-[10px] text-slate-400 uppercase">IDG</div>
                                             </div>
                                             {expandedStudentId === student.id ? <ChevronUp size={20} className="text-slate-400"/> : <ChevronDown size={20} className="text-slate-400"/>}
                                         </div>

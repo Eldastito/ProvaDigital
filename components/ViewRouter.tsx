@@ -21,6 +21,8 @@ import { UserProfileView } from './Profile/UserProfileView';
 import { CapabilitiesView } from './Admin/CapabilitiesView';
 import { NeuroScreeningView } from './NeuroScreening/NeuroScreeningView';
 import { StudentBattleView } from './StudentPortal/StudentBattleView';
+import { SurvivalView } from './StudentPortal/SurvivalView';
+import { GamifiedEventsManager } from './GamifiedEvents/GamifiedEventsManager';
 
 interface ViewRouterProps {
     view: string;
@@ -85,6 +87,9 @@ export const ViewRouter = ({
         case 'BATTLE_ARENA':
             return <StudentBattleView state={store} user={currentUser} onUpdateProfile={updateUserProfile} />;
         
+        case 'SURVIVAL_MODE':
+            return <SurvivalView state={store} user={currentUser} onUpdateProfile={updateUserProfile} />;
+        
         case 'ANALYTICS':
             return <SchoolDashboardView state={store} />;
         
@@ -103,6 +108,9 @@ export const ViewRouter = ({
         case 'NEURO_SCREENING':
             return <NeuroScreeningView state={store} onUpdateProfile={updateUserProfile} />;
             
+        case 'GAMIFIED_EVENTS':
+            return <GamifiedEventsManager state={store} user={currentUser} />;
+
         default:
             return <div className="p-8 text-center text-slate-500">View not found: {view}</div>;
     }

@@ -13,10 +13,21 @@ const RESOURCES: { id: Resource; label: string; description: string }[] = [
     { id: 'ANALYTICS', label: 'Analytics', description: 'Ver dashboards e relatórios' },
     { id: 'COMMUNICATION', label: 'Comunicação', description: 'Chat e Mural de Avisos' },
     { id: 'AI_FEATURES', label: 'Ferramentas de IA', description: 'Geração de questões e correção automática' },
+    { id: 'GAMIFIED_EVENTS', label: 'Eventos Gamificados', description: 'Competições, Olimpíadas e Soletrando' },
 ];
 
-// Atualizado com STATE_ADMIN e PAIS
-const ROLES = [UserRole.STATE_ADMIN, UserRole.TENANT_ADMIN, UserRole.DIRETOR, UserRole.SUPERVISOR, UserRole.PROFESSOR, UserRole.PAIS, UserRole.ALUNO];
+// HIERARQUIA ESTRITA DEFINIDA PELO USUÁRIO
+const ROLES = [
+    UserRole.SUPER_ADMIN,   // 1. Gestão SaaS Inteiro
+    UserRole.STATE_ADMIN,   // 2. Secretaria Estadual
+    UserRole.TENANT_ADMIN,  // 3. Secretaria Municipal
+    UserRole.DIRETOR,       // 4. Gestor Escolar
+    UserRole.SUPERVISOR,    // 5. Supervisor Escolar
+    UserRole.PROFESSOR,     // 6. Professores
+    UserRole.ALUNO,         // 7. Alunos
+    UserRole.PAIS           // 8. Pais e Responsáveis
+];
+
 const ACTIONS: Action[] = ['VIEW', 'CREATE', 'EDIT', 'DELETE'];
 
 export const CapabilitiesView = () => {
@@ -27,6 +38,12 @@ export const CapabilitiesView = () => {
     const currentTenant = tenants.find(t => t.id === selectedTenant);
 
     const togglePermission = (role: UserRole, resource: Resource, action: Action) => {
+        // Bloqueia a edição do SUPER_ADMIN para evitar lockout acidental
+        if (role === UserRole.SUPER_ADMIN) {
+            alert("As permissões de Super Admin são absolutas e não podem ser revogadas nesta interface.");
+            return;
+        }
+
         setLocalMatrix(prev => {
             const newMatrix = { ...prev };
             // Initialize role/resource if undefined
@@ -67,9 +84,9 @@ export const CapabilitiesView = () => {
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-bold text-brand-dark flex items-center gap-2">
-                        <Shield className="text-brand-primary"/> Governança de Acessos
+                        <Shield className="text-brand-primary"/> Governança Hierárquica
                     </h1>
-                    <p className="text-slate-500 mt-1">Defina quem pode ver, criar, editar ou excluir dados em cada módulo.</p>
+                    <p className="text-slate-500 mt-1">Defina a cascata de permissões do nível Super Admin até Pais/Responsáveis.</p>
                 </div>
                 <button onClick={saveGlobal} className="btn-gradient px-6 py-3 rounded-lg font-bold flex items-center gap-2 shadow-lg hover:shadow-xl transition">
                     <Save size={20}/> Salvar Alterações Globais
@@ -89,7 +106,10 @@ export const CapabilitiesView = () => {
                             <tr>
                                 <th className="p-4 border border-slate-200 w-64 min-w-[250px] sticky left-0 bg-slate-100 z-10">Funcionalidade / Recurso</th>
                                 {ROLES.map(role => (
-                                    <th key={role} className="p-4 border border-slate-200 text-center min-w-[150px]">{role.replace('_', ' ')}</th>
+                                    <th key={role} className={`p-4 border border-slate-200 text-center min-w-[150px] ${role === UserRole.SUPER_ADMIN ? 'bg-brand-dark text-white' : ''}`}>
+                                        {role.replace('_', ' ')}
+                                        {role === UserRole.SUPER_ADMIN && <span className="block text-[9px] font-normal opacity-70">Nível Máximo</span>}
+                                    </th>
                                 ))}
                             </tr>
                         </thead>
@@ -101,7 +121,7 @@ export const CapabilitiesView = () => {
                                         <div className="text-xs text-slate-500">{res.description}</div>
                                     </td>
                                     {ROLES.map(role => (
-                                        <td key={`${res.id}-${role}`} className="p-2 border border-slate-200">
+                                        <td key={`${res.id}-${role}`} className={`p-2 border border-slate-200 ${role === UserRole.SUPER_ADMIN ? 'bg-slate-50' : ''}`}>
                                             <div className="flex justify-center gap-1 flex-wrap">
                                                 {ACTIONS.map(action => {
                                                     const isActive = localMatrix[role]?.[res.id]?.includes(action);
@@ -113,6 +133,15 @@ export const CapabilitiesView = () => {
                                                         if (action === 'CREATE') colorClass = 'bg-emerald-100 text-emerald-700 border-emerald-300';
                                                         if (action === 'EDIT') colorClass = 'bg-amber-100 text-amber-700 border-amber-300';
                                                         if (action === 'DELETE') colorClass = 'bg-rose-100 text-rose-700 border-rose-300';
+                                                    }
+
+                                                    // Super Admin always visually active but maybe locked
+                                                    if (role === UserRole.SUPER_ADMIN) {
+                                                        return (
+                                                            <div key={action} className={`w-8 h-8 rounded flex items-center justify-center border text-[10px] font-bold ${colorClass} opacity-100 cursor-not-allowed`}>
+                                                                {action[0]}
+                                                            </div>
+                                                        );
                                                     }
 
                                                     return (

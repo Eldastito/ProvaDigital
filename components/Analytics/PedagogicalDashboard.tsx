@@ -279,7 +279,7 @@ export const PedagogicalDashboard = ({ state }: { state: AppState }) => {
                                             <div>
                                                 <div className="font-bold text-slate-800">{s.name}</div>
                                                 <div className="text-xs text-slate-500">
-                                                    Risco: <span className="font-bold text-rose-600">{s.stats?.riskLevel}</span> • Média: {s.stats?.averageGrade.toFixed(1)}
+                                                    Risco: <span className="font-bold text-rose-600">{s.stats?.riskLevel}</span> • Média: {s.stats?.idgScore.toFixed(1)}
                                                 </div>
                                             </div>
                                             {hasPlan ? (

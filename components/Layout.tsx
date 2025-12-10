@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { 
   LayoutDashboard, BookOpen, GraduationCap, Users, FileText, 
-  LogOut, Menu, ChevronRight, Tablet, PieChart, MessageCircle, Bot, Target, UserCircle, Shield, Stethoscope, Map, Home, ChevronDown, Swords
+  LogOut, Menu, ChevronRight, Tablet, PieChart, MessageCircle, Bot, Target, UserCircle, Shield, Stethoscope, Map, Home, ChevronDown, Swords, Flame, Trophy, Cast
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { UserRole, TenantType } from '../types';
@@ -57,10 +57,11 @@ export const Layout = ({ children, currentView, setView }: LayoutProps) => {
   const isParent = currentUser.role === UserRole.PAIS;
   const isStateAdmin = currentUser.role === UserRole.STATE_ADMIN;
   const isTenantAdmin = currentUser.role === UserRole.TENANT_ADMIN;
+  const isSuperAdmin = currentUser.role === UserRole.SUPER_ADMIN;
   
   // Lógica de Visibilidade Baseada em Perfil
-  const isStrategic = isStateAdmin || isTenantAdmin; // Só vê gestão macro
-  const isOperational = currentUser.role === UserRole.PROFESSOR || currentUser.role === UserRole.SUPERVISOR; // Vê provas/itens
+  const isStrategic = isStateAdmin || isTenantAdmin; 
+  const isOperational = currentUser.role === UserRole.PROFESSOR || currentUser.role === UserRole.SUPERVISOR; 
   const isManagement = currentUser.role === UserRole.DIRETOR || isStrategic || currentUser.role === UserRole.SUPER_ADMIN;
 
   const canManageCapabilities = currentUser.role === UserRole.SUPER_ADMIN || isStrategic || currentUser.role === UserRole.DIRETOR;
@@ -74,21 +75,17 @@ export const Layout = ({ children, currentView, setView }: LayoutProps) => {
       }
   }
 
-  // Múltiplos filhos para o Pai
   const myChildren = isParent && currentUser.childrenIds 
       ? students.filter(s => currentUser.childrenIds?.includes(s.id)) 
       : [];
 
   const currentChild = myChildren.find(c => c.id === selectedChildId) || myChildren[0];
-
-  // CLEAN DISPLAY NAME: Remove text inside parentheses (e.g. " (Mãe)")
   const cleanDisplayName = currentUser.name.replace(/\s*\(.*?\)\s*/g, '').trim();
 
   return (
     <div className="flex h-screen bg-[#f8fafc] overflow-hidden font-sans">
       {/* SIDEBAR */}
       <aside className={`${sidebarOpen ? 'w-64' : 'w-0'} bg-brand-dark border-r border-[#1e3a8a] flex-shrink-0 transition-all duration-300 flex flex-col shadow-xl`}>
-        {/* LOGO AREA CLEANED & CENTERED */}
         <div className="h-20 border-b border-[#1e3a8a] flex items-center justify-center gap-3 overflow-hidden px-4">
           <div className="w-8 h-8 bg-brand-secondary rounded-lg flex items-center justify-center text-white font-bold flex-shrink-0 shadow-lg shadow-brand-secondary/20">E</div>
           <div className={`${!sidebarOpen && 'opacity-0'} transition-opacity duration-200`}>
@@ -100,7 +97,6 @@ export const Layout = ({ children, currentView, setView }: LayoutProps) => {
           
           {!isStrategic && <NavItem icon={UserCircle} label="Meu Perfil" target="MY_PROFILE" active={currentView === 'MY_PROFILE'} onClick={() => setView('MY_PROFILE')} />}
           
-          {/* CHILD SWITCHER (PAIS) */}
           {isParent && myChildren.length > 0 && (
               <div className="mb-4 px-2">
                   <div className="bg-[#162a42] rounded-lg overflow-hidden border border-[#1e3a8a]">
@@ -116,7 +112,6 @@ export const Layout = ({ children, currentView, setView }: LayoutProps) => {
                               {myChildren.map(child => {
                                   const childSchool = schools.find(s => s.id === child.schoolId);
                                   const childTenant = tenants.find(t => t.id === child.tenantId);
-                                  
                                   return (
                                       <button
                                         key={child.id}
@@ -139,7 +134,6 @@ export const Layout = ({ children, currentView, setView }: LayoutProps) => {
               </div>
           )}
 
-          {/* MENU PAIS */}
           {isParent && (
               <>
                 <NavItem icon={LayoutDashboard} label="Desempenho" target="STUDENT_PORTAL" active={currentView === 'STUDENT_PORTAL'} onClick={() => setView('STUDENT_PORTAL')} />
@@ -151,52 +145,47 @@ export const Layout = ({ children, currentView, setView }: LayoutProps) => {
               </>
           )}
 
-          {/* MENU ALUNOS */}
           {isStudent && (
               <>
                 <NavItem icon={LayoutDashboard} label="Meu Desempenho" target="STUDENT_PORTAL" active={currentView === 'STUDENT_PORTAL'} onClick={() => setView('STUDENT_PORTAL')} />
                 <NavItem icon={Target} label="Plano de Estudos" target="STUDY_PLANS" active={currentView === 'STUDY_PLANS'} onClick={() => setView('STUDY_PLANS')} />
+                <div className="px-4 pt-6 pb-2 text-[11px] font-bold text-[#48cae4] uppercase tracking-wider opacity-70">Gamificação</div>
                 <NavItem icon={Swords} label="Desafio de Turma" target="BATTLE_ARENA" active={currentView === 'BATTLE_ARENA'} onClick={() => setView('BATTLE_ARENA')} />
+                <NavItem icon={Flame} label="Modo Sobrevivência" target="SURVIVAL_MODE" active={currentView === 'SURVIVAL_MODE'} onClick={() => setView('SURVIVAL_MODE')} />
+                <div className="px-4 pt-6 pb-2 text-[11px] font-bold text-[#48cae4] uppercase tracking-wider opacity-70">Assistente</div>
                 <NavItem icon={Bot} label="Corujão Tutor" target="OWL_TUTOR" active={currentView === 'OWL_TUTOR'} onClick={() => setView('OWL_TUTOR')} />
                 <NavItem icon={MessageCircle} label="Mensagens" target="COMMUNICATION" active={currentView === 'COMMUNICATION'} onClick={() => setView('COMMUNICATION')} />
               </>
           )}
 
-          {/* MENU STAFF/ADMIN */}
           {!isStudent && !isParent && (
             <>
-              {/* Dashboards Diferenciados */}
               {isStrategic ? (
                   <NavItem icon={Map} label="Visão Estratégica" target="DASHBOARD" active={currentView === 'DASHBOARD'} onClick={() => setView('DASHBOARD')} />
               ) : (
                   <NavItem icon={LayoutDashboard} label="Visão Geral" target="DASHBOARD" active={currentView === 'DASHBOARD'} onClick={() => setView('DASHBOARD')} />
               )}
               
-              {/* ACADÊMICO: APENAS PARA OPERACIONAL (Prof/Coord) */}
               {!isStrategic && (
                   <>
                     <div className="px-4 pt-6 pb-2 text-[11px] font-bold text-[#48cae4] uppercase tracking-wider opacity-70">Acadêmico</div>
                     {canView('ITEM_BANK') && <NavItem icon={BookOpen} label="Banco de Itens" target="ITEMS" active={currentView === 'ITEMS' || currentView === 'ITEM_NEW'} onClick={() => setView('ITEMS')} />}
                     {canView('EXAM_MGMT') && <NavItem icon={FileText} label="Provas" target="EXAMS" active={currentView === 'EXAMS' || currentView === 'EXAM_NEW' || currentView === 'RESULTS_ENTRY'} onClick={() => setView('EXAMS')} />}
                     {canView('EXAM_MGMT') && <NavItem icon={Users} label="Alocação" target="ALLOCATION" active={currentView === 'ALLOCATION'} onClick={() => setView('ALLOCATION')} />}
+                    {canView('GAMIFIED_EVENTS') && <NavItem icon={Trophy} label="Eventos & Competições" target="GAMIFIED_EVENTS" active={currentView === 'GAMIFIED_EVENTS'} onClick={() => setView('GAMIFIED_EVENTS')} />}
                     <NavItem icon={Target} label="Planos de Ensino" target="STUDY_PLANS" active={currentView === 'STUDY_PLANS'} onClick={() => setView('STUDY_PLANS')} />
                   </>
               )}
               
-              {/* GESTÃO & BI: PARA TODOS OS NÍVEIS DE STAFF */}
               <div className="px-4 pt-6 pb-2 text-[11px] font-bold text-[#48cae4] uppercase tracking-wider opacity-70">Gestão & BI</div>
               
               {canView('ANALYTICS') && <NavItem icon={PieChart} label="Analytics" target="ANALYTICS" active={currentView === 'ANALYTICS'} onClick={() => setView('ANALYTICS')} />}
-              
-              {/* Comunicação: Todo mundo vê, mas Strategic apenas cria avisos */}
               {canView('COMMUNICATION') && <NavItem icon={MessageCircle} label="Comunicação" target="COMMUNICATION" active={currentView === 'COMMUNICATION'} onClick={() => setView('COMMUNICATION')} />}
               
-              {/* Gestão de Entidades: Vital para Admin */}
               {isManagement && (
                  <NavItem icon={GraduationCap} label="Gestão de Rede" target="MANAGEMENT" active={currentView === 'MANAGEMENT'} onClick={() => setView('MANAGEMENT')} />
               )}
               
-              {/* Triagem: Diretor/Secretaria vê estatísticas, Prof não */}
               {canView('NEURO_SCREENING') && (
                  <NavItem icon={Stethoscope} label="Saúde Mental" target="NEURO_SCREENING" active={currentView === 'NEURO_SCREENING'} onClick={() => setView('NEURO_SCREENING')} />
               )}
@@ -205,7 +194,6 @@ export const Layout = ({ children, currentView, setView }: LayoutProps) => {
                  <NavItem icon={Shield} label="Governança" target="CAPABILITIES" active={currentView === 'CAPABILITIES'} onClick={() => setView('CAPABILITIES')} />
               )}
 
-              {/* OFFLINE: APENAS OPERACIONAL */}
               {!isStrategic && canView('OFFLINE_OPS') && (
                 <>
                   <div className="px-4 pt-6 pb-2 text-[11px] font-bold text-[#48cae4] uppercase tracking-wider opacity-70">Dispositivos</div>
@@ -213,6 +201,13 @@ export const Layout = ({ children, currentView, setView }: LayoutProps) => {
                     <Tablet size={20} strokeWidth={2} /> App Tablet
                   </button>
                 </>
+              )}
+
+              {/* DEMO MODE BUTTON (For Presentation) */}
+              {(isSuperAdmin || isTenantAdmin) && (
+                  <button onClick={() => setView('LIVE_DEMO')} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-yellow-400 hover:bg-[#112336] hover:text-yellow-300 border-l-4 border-transparent transition-all animate-pulse">
+                    <Cast size={20} strokeWidth={2} /> MODO DEMO LIVE
+                  </button>
               )}
             </>
           )}
@@ -232,7 +227,6 @@ export const Layout = ({ children, currentView, setView }: LayoutProps) => {
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-600">
               <Menu size={20} />
             </button>
-            {/* HEADER CLEANED */}
             <h2 className="text-lg font-semibold text-brand-dark">ExamePad</h2>
           </div>
           <div className="flex items-center gap-3">

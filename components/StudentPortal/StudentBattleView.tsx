@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Swords, Trophy, Users, Timer, CheckCircle, XCircle, Brain, Star, Coins, ArrowRight, Zap, Play, UserPlus, Check, User as UserIcon, Shuffle } from 'lucide-react';
+import { Swords, Trophy, Users, Timer, CheckCircle, XCircle, Brain, Star, Coins, ArrowRight, Zap, Play, UserPlus, Check, User as UserIcon, Shuffle, LogOut } from 'lucide-react';
 import { AppState, User, QuestionType, UserProfileExtended, Item, DifficultyLevel, ItemOrigin } from '../../types';
 import { uuidv4 } from '../../utils/helpers';
 
@@ -142,6 +142,12 @@ export const StudentBattleView = ({ state, user, onUpdateProfile }: StudentBattl
             } else {
                 alert("Você pode desafiar no máximo 3 amigos por vez.");
             }
+        }
+    };
+
+    const handleQuit = () => {
+        if (confirm("Tem certeza que deseja abandonar a partida? Todo o progresso será perdido.")) {
+            setGameState('LOBBY');
         }
     };
 
@@ -556,9 +562,19 @@ export const StudentBattleView = ({ state, user, onUpdateProfile }: StudentBattl
     const currentQ = questions[currentQIndex];
 
     return (
-        <div className="h-full flex flex-col max-w-4xl mx-auto p-4">
+        <div className="h-full flex flex-col max-w-4xl mx-auto p-4 relative">
+            
+            {/* QUIT BUTTON */}
+            <button 
+                onClick={handleQuit}
+                className="absolute top-4 right-4 z-20 text-slate-400 hover:text-rose-500 flex items-center gap-1 font-bold text-xs bg-white/80 p-2 rounded-full shadow-sm hover:shadow-md transition"
+                title="Abandonar Partida"
+            >
+                <LogOut size={16} /> <span className="hidden md:inline">Sair</span>
+            </button>
+
             {/* Header: Score & Timer */}
-            <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+            <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200 mt-8">
                 <div className="flex gap-4">
                     {players.map(p => (
                         <div key={p.id} className={`flex flex-col items-center transition-opacity ${p.currentAnswer === null && gameState === 'PLAYING' ? 'opacity-100' : 'opacity-100'}`}>

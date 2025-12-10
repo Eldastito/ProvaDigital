@@ -43,10 +43,10 @@ export const GlobalRankingView = ({ state, onClose }: GlobalRankingViewProps) =>
             name: student.name,
             schoolName: school?.name || 'N/A',
             className: sClass?.name || 'N/A',
-            average: stats?.averageGrade || 0,
+            score: stats?.idgScore || 0, // Utilizando IDG (Índice de Desempenho Global)
             teachers: teachers.map(t => t.name).join(', ')
         };
-    }).sort((a, b) => b.average - a.average); // Maior nota primeiro
+    }).sort((a, b) => b.score - a.score); // Maior nota primeiro
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in">
@@ -58,7 +58,7 @@ export const GlobalRankingView = ({ state, onClose }: GlobalRankingViewProps) =>
                         <h2 className="text-2xl font-bold flex items-center gap-3">
                             <Trophy className="text-yellow-400" size={32}/> Ranking Acadêmico
                         </h2>
-                        <p className="text-slate-400 text-sm mt-1">Visualização consolidada de desempenho de alunos.</p>
+                        <p className="text-slate-400 text-sm mt-1">Visualização consolidada de desempenho de alunos (IDG - Índice Global).</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition"><X size={24}/></button>
                 </div>
@@ -101,7 +101,7 @@ export const GlobalRankingView = ({ state, onClose }: GlobalRankingViewProps) =>
                             <tr>
                                 <th className="p-4 text-center w-16">Pos.</th>
                                 <th className="p-4">Aluno</th>
-                                <th className="p-4">Média Geral</th>
+                                <th className="p-4">IDG (Nota Global)</th>
                                 <th className="p-4">Escola / Turma</th>
                                 <th className="p-4">Professores Responsáveis</th>
                             </tr>
@@ -121,9 +121,10 @@ export const GlobalRankingView = ({ state, onClose }: GlobalRankingViewProps) =>
                                     </td>
                                     <td className="p-4 font-medium text-slate-800 text-sm">{student.name}</td>
                                     <td className="p-4">
-                                        <span className={`font-black text-lg ${student.average >= 8 ? 'text-emerald-600' : student.average >= 6 ? 'text-blue-600' : 'text-rose-600'}`}>
-                                            {student.average.toFixed(1)}
+                                        <span className={`font-black text-lg ${student.score >= 8 ? 'text-emerald-600' : student.score >= 6 ? 'text-blue-600' : 'text-rose-600'}`}>
+                                            {student.score.toFixed(1)}
                                         </span>
+                                        <span className="text-[10px] text-slate-400 block">max 10+</span>
                                     </td>
                                     <td className="p-4">
                                         <div className="text-xs font-bold text-slate-700">{student.schoolName}</div>

@@ -45,7 +45,7 @@ export const OwlTutorView = ({ state, user }: OwlTutorViewProps) => {
         setInputText('');
         setLoading(true);
 
-        const context = `Ponto fraco: ${stats?.weakestSubject}. Média Atual: ${stats?.averageGrade}.`;
+        const context = `Ponto fraco: ${stats?.weakestSubject}. IDG (Nota Global): ${stats?.idgScore}.`;
         
         const responseText = await askOwlTutor(
             messages,

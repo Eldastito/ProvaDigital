@@ -10,10 +10,10 @@ export const SchoolDashboardView = ({ state }: { state: AppState }) => {
     // Calculate overall stats
     const allStats = state.students.map(s => analytics.getStudentStats(s.id)).filter(Boolean) as any[];
     const atRiskCount = allStats.filter(s => s.riskLevel !== RiskLevel.LOW).length;
-    const totalAvg = allStats.reduce((acc, curr) => acc + curr.averageGrade, 0) / (allStats.length || 1);
+    const totalAvg = allStats.reduce((acc, curr) => acc + curr.idgScore, 0) / (allStats.length || 1);
 
     // Ranking Logic
-    const topStudents = [...allStats].sort((a, b) => b.averageGrade - a.averageGrade).slice(0, 5);
+    const topStudents = [...allStats].sort((a, b) => b.idgScore - a.idgScore).slice(0, 5);
 
     // Learning Channel Stats
     const channelCounts = state.studentProfiles?.reduce((acc, curr) => {
@@ -33,7 +33,7 @@ export const SchoolDashboardView = ({ state }: { state: AppState }) => {
                  <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 bg-brand-light rounded-lg text-brand-primary"><BarChart size={20}/></div>
-                        <span className="text-sm font-bold text-slate-500 uppercase">Média Global</span>
+                        <span className="text-sm font-bold text-slate-500 uppercase">Média IDG</span>
                     </div>
                     <div className="text-3xl font-black text-slate-800">{totalAvg.toFixed(1)}</div>
                  </div>
@@ -87,7 +87,7 @@ export const SchoolDashboardView = ({ state }: { state: AppState }) => {
                                                 {displayName}
                                             </div>
                                         </div>
-                                        <div className="font-black text-brand-primary">{stat.averageGrade.toFixed(1)}</div>
+                                        <div className="font-black text-brand-primary">{stat.idgScore.toFixed(1)}</div>
                                     </div>
                                 );
                             })}

@@ -1,6 +1,6 @@
 
 import React, { useRef, useState, useEffect } from 'react';
-import { BarChart2, TrendingUp, AlertTriangle, Printer, Download, School, MapPin, Award, Package, Check, X, Bus, Shield, Snowflake, LayoutGrid, Trophy, Cloud, RefreshCw, Server, Lock, Unlock, CheckCircle, Database, ArrowUp, Sparkles, FileText, Lightbulb, ArrowRight, Target, PieChart, Activity, Calendar, History, ChevronRight, Clock, Zap, Thermometer, FileDigit, MousePointer2, Hourglass, Grip, Coins, Users, PenTool, Music, Dna, ShieldAlert, Filter } from 'lucide-react';
+import { BarChart2, TrendingUp, AlertTriangle, Printer, Download, School, MapPin, Award, Package, Check, X, Bus, Shield, Snowflake, LayoutGrid, Trophy, Cloud, RefreshCw, Server, Lock, Unlock, CheckCircle, Database, ArrowUp, Sparkles, FileText, Lightbulb, ArrowRight, Target, PieChart, Activity, Calendar, History, ChevronRight, Clock, Zap, Thermometer, FileDigit, MousePointer2, Hourglass, Grip, Coins, Users, PenTool, Music, Dna, ShieldAlert, Filter, TrendingDown, Brain } from 'lucide-react';
 import { AppState, RiskLevel, SchoolResources, UserRole } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
 import { Badge } from '../ui/Badge';
@@ -65,13 +65,14 @@ export const NetworkDashboardView = ({ state }: { state: AppState }) => {
     const [isSyncing, setIsSyncing] = useState(false);
     const [syncComplete, setSyncComplete] = useState(false);
     
-    // Post-Processing State
+    // Post-Processing State (Demo Magic)
     const [dataVersion, setDataVersion] = useState(0); 
     const [showSuccessBanner, setShowSuccessBanner] = useState(false);
     const [showImpactReport, setShowImpactReport] = useState(false);
-    
-    // Report Navigation State
     const [selectedReport, setSelectedReport] = useState<any>(HISTORY_REPORTS[0]);
+    
+    // Demo State: Audience Results
+    const [audienceResultsCount, setAudienceResultsCount] = useState(0);
 
     // 1. Filtrar Escolas pelo Tenant Selecionado
     const filteredSchools = state.schools.filter(s => 
@@ -84,13 +85,14 @@ export const NetworkDashboardView = ({ state }: { state: AppState }) => {
         const stats = students.map(s => analytics.getStudentStats(s.id)).filter(Boolean) as any[];
         
         let avgGrade = stats.length > 0 
-            ? stats.reduce((acc, curr) => acc + curr.averageGrade, 0) / stats.length 
+            ? stats.reduce((acc, curr) => acc + curr.idgScore, 0) / stats.length 
             : 0;
         
-        // Mock de variação pós-sync
+        // SIMULATION: If synced, inject random noise to simulate real-time updates from audience
         if (dataVersion > 0) {
-            const factor = index % 2 === 0 ? 1.05 : 0.95; 
-            avgGrade = Math.min(10, Math.max(0, avgGrade * factor));
+            // Random variation based on school index to look organic
+            const variation = (Math.random() * 1.5) - 0.5; // -0.5 to +1.0
+            avgGrade = Math.min(10, Math.max(0, avgGrade + variation));
         }
 
         const riskCount = stats.filter(s => s.riskLevel !== RiskLevel.LOW).length;
@@ -142,13 +144,20 @@ export const NetworkDashboardView = ({ state }: { state: AppState }) => {
 
     const processSync = () => {
         setIsSyncing(true);
+        
+        // Simulation steps
         setTimeout(() => setIncomingPackages(prev => prev.map(p => ({...p, status: 'DECRYPTING'}))), 1000);
         setTimeout(() => setIncomingPackages(prev => prev.map(p => ({...p, status: 'MERGING'}))), 2500);
+        
         setTimeout(() => {
             setIncomingPackages(prev => prev.map(p => ({...p, status: 'COMPLETE'})));
             setIsSyncing(false);
             setSyncComplete(true);
-            setDataVersion(prev => prev + 1);
+            
+            // MAGIC SYNC: Simulate receiving audience data
+            const simulatedAudienceCount = Math.floor(Math.random() * 20) + 10; // 10-30 people
+            setAudienceResultsCount(simulatedAudienceCount + 57); // 57 existing mock
+            setDataVersion(prev => prev + 1); // Trigger re-render of stats
         }, 4000);
     };
 
@@ -172,7 +181,9 @@ export const NetworkDashboardView = ({ state }: { state: AppState }) => {
                         </div>
                         <div>
                             <h3 className="font-bold text-lg">Dados da Rede Atualizados</h3>
-                            <p className="text-emerald-200 text-sm">57 novas avaliações foram integradas e as métricas foram recalculadas com sucesso.</p>
+                            <p className="text-emerald-200 text-sm">
+                                {audienceResultsCount} novas avaliações (incluindo Demo Live) foram integradas e as métricas foram recalculadas com sucesso.
+                            </p>
                         </div>
                     </div>
                     <div className="flex gap-3">
@@ -249,11 +260,11 @@ export const NetworkDashboardView = ({ state }: { state: AppState }) => {
                         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm print:border-black relative overflow-hidden">
                             <div className="flex items-center gap-3 mb-2 relative z-10">
                                 <div className="p-2 bg-blue-50 rounded-lg text-blue-600 print:hidden"><TrendingUp size={24}/></div>
-                                <span className="text-sm font-bold text-slate-500 uppercase">IDEB Simulado</span>
+                                <span className="text-sm font-bold text-slate-500 uppercase">IDEB Simulado (IDG)</span>
                             </div>
                             <div className="text-4xl font-black text-slate-800 relative z-10 flex items-end gap-2">
                                 {networkAvg.toFixed(1)}
-                                {dataVersion > 0 && <span className="text-xs font-bold text-emerald-500 mb-2 flex items-center"><ArrowUp size={12}/> Ajustado</span>}
+                                {dataVersion > 0 && <span className="text-xs font-bold text-emerald-500 mb-2 flex items-center bg-emerald-50 px-2 py-1 rounded-full"><ArrowUp size={12}/> Atualizado</span>}
                             </div>
                             <div className="text-xs text-slate-400 mt-2 relative z-10">Média da rede selecionada</div>
                         </div>
@@ -308,7 +319,7 @@ export const NetworkDashboardView = ({ state }: { state: AppState }) => {
                                                 </div>
                                                 <div className="text-right">
                                                     <div className="font-black text-emerald-700 text-lg">{school.avgGrade.toFixed(1)}</div>
-                                                    <div className="text-[10px] text-slate-400 uppercase">Média</div>
+                                                    <div className="text-[10px] text-slate-400 uppercase">IDG</div>
                                                 </div>
                                             </div>
                                         ))}
@@ -330,7 +341,7 @@ export const NetworkDashboardView = ({ state }: { state: AppState }) => {
                                                     </div>
                                                     <div className="text-right">
                                                         <div className="font-black text-rose-700 text-lg">{school.avgGrade.toFixed(1)}</div>
-                                                        <div className="text-[10px] text-rose-400 uppercase">Média</div>
+                                                        <div className="text-[10px] text-rose-400 uppercase">IDG</div>
                                                     </div>
                                                 </div>
                                             ))}
@@ -394,7 +405,7 @@ export const NetworkDashboardView = ({ state }: { state: AppState }) => {
                 </>
             )}
 
-            {/* MATRIZ DE INFRAESTRUTURA (RESTORED) */}
+            {/* MATRIZ DE INFRAESTRUTURA */}
             {tab === 'RESOURCES' && (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
                     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -435,9 +446,8 @@ export const NetworkDashboardView = ({ state }: { state: AppState }) => {
                 </div>
             )}
 
-            {/* ... (Sync & Reports Modals) ... */}
+            {/* Sync Modal Logic (Existing) */}
             {showSyncModal && (
-                // ... (Existing Sync Modal Content) ...
                 <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden border border-brand-primary">
                         <div className="bg-[#0f1d2e] p-6 text-white flex justify-between items-center">
@@ -516,7 +526,7 @@ export const NetworkDashboardView = ({ state }: { state: AppState }) => {
                                             disabled={isSyncing || incomingPackages.every(p => p.status === 'COMPLETE')}
                                             className="btn-gradient px-8 py-4 rounded-xl font-bold text-lg flex items-center gap-3 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            {isSyncing ? 'Sincronizando...' : <><RefreshCw size={24}/> Processar e Unificar Dados</>}
+                                            {isSyncing ? 'Sincronizando...' : <><RefreshCw size={24}/> Receber Dados da Aula (Live)</>}
                                         </button>
                                     </div>
                                 </>
@@ -527,16 +537,16 @@ export const NetworkDashboardView = ({ state }: { state: AppState }) => {
                                     </div>
                                     <h3 className="text-2xl font-bold text-slate-800 mb-2">Sincronização Concluída com Sucesso!</h3>
                                     <p className="text-slate-500 max-w-md mx-auto mb-8">
-                                        Todos os dados coletados offline pelos coordenadores foram descriptografados, verificados e unificados no banco de dados central da Secretaria.
+                                        Todos os dados coletados offline pelos coordenadores (incluindo a sessão ao vivo da plateia) foram descriptografados, verificados e unificados.
                                     </p>
                                     <div className="grid grid-cols-3 gap-4 w-full max-w-2xl mb-8">
                                         <div className="bg-white p-4 rounded-lg border shadow-sm">
-                                            <div className="text-3xl font-black text-slate-800">57</div>
+                                            <div className="text-3xl font-black text-slate-800">{audienceResultsCount || 57}</div>
                                             <div className="text-xs text-slate-500 uppercase font-bold">Novas Provas</div>
                                         </div>
                                         <div className="bg-white p-4 rounded-lg border shadow-sm">
-                                            <div className="text-3xl font-black text-slate-800">100%</div>
-                                            <div className="text-xs text-slate-500 uppercase font-bold">Integridade</div>
+                                            <div className="text-3xl font-black text-emerald-600">100%</div>
+                                            <div className="text-xs text-slate-500 uppercase font-bold">IA Correção</div>
                                         </div>
                                         <div className="bg-white p-4 rounded-lg border shadow-sm">
                                             <div className="text-3xl font-black text-emerald-600">0s</div>
@@ -551,10 +561,12 @@ export const NetworkDashboardView = ({ state }: { state: AppState }) => {
                 </div>
             )}
 
-            {showImpactReport && (
-               <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-0 md:p-8 backdrop-blur-md animate-in fade-in">
-                    {/* ... Content hidden for brevity ... */}
+            {showImpactReport && selectedReport && (
+               <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-0 md:p-8 backdrop-blur-md animate-in fade-in overflow-y-auto">
+                    {/* ... (Report Modal Code - Mantido igual) ... */}
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-7xl h-full md:h-[95vh] flex flex-col relative overflow-hidden">
+                        
+                        {/* Report Header */}
                         <div className="bg-[#0f1d2e] px-8 py-6 text-white flex justify-between items-start flex-shrink-0">
                             <div className="flex gap-4">
                                 <div className="bg-white/10 p-3 rounded-xl border border-white/20">
@@ -568,8 +580,152 @@ export const NetworkDashboardView = ({ state }: { state: AppState }) => {
                             </div>
                             <button onClick={() => setShowImpactReport(false)} className="p-2 bg-white/10 rounded-full hover:bg-white/20 text-slate-300 hover:text-white transition"><X size={24}/></button>
                         </div>
-                        <div className="flex-1 flex items-center justify-center text-slate-500">
-                            (Conteúdo do Relatório Completo Carregado)
+
+                        {/* Report Content */}
+                        <div className="flex-1 overflow-y-auto p-8 bg-slate-50">
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                
+                                {/* Left Column: Summary & Metrics */}
+                                <div className="space-y-6">
+                                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Target size={20}/> Impacto Estratégico</h3>
+                                        <div className="space-y-4">
+                                            <div className="flex justify-between items-center p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+                                                <span className="text-sm font-bold text-emerald-800">Projeção IDEB</span>
+                                                <div className="flex items-center gap-1 font-black text-emerald-600">
+                                                    <ArrowUp size={16}/> +{selectedReport.metrics.idebDelta}
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between items-center p-3 bg-white border border-slate-200 rounded-lg">
+                                                <span className="text-sm font-bold text-slate-700">Risco Escolar</span>
+                                                <div className="flex items-center gap-1 font-bold text-slate-600">
+                                                    <TrendingDown size={16}/> {selectedReport.metrics.riskDelta}%
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Activity size={20}/> Telemetria Agregada</h3>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <div className="text-xs text-slate-500 uppercase font-bold mb-1">Tempo/Questão</div>
+                                                <div className="text-xl font-bold text-slate-800">{selectedReport.telemetry.avgTimePerQuestion}</div>
+                                            </div>
+                                            <div>
+                                                <div className="text-xs text-slate-500 uppercase font-bold mb-1">Taxa de Chute</div>
+                                                <div className="text-xl font-bold text-amber-600">{selectedReport.telemetry.guessingRate}</div>
+                                            </div>
+                                            <div>
+                                                <div className="text-xs text-slate-500 uppercase font-bold mb-1">Integridade</div>
+                                                <div className="text-xl font-bold text-emerald-600">{selectedReport.telemetry.integrityIndex}</div>
+                                            </div>
+                                            <div>
+                                                <div className="text-xs text-slate-500 uppercase font-bold mb-1">Queda Fadiga</div>
+                                                <div className="text-xl font-bold text-rose-600">{selectedReport.telemetry.fatigueDrop}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Trophy size={20}/> Movimentação no Ranking</h3>
+                                        <div className="space-y-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600"><ArrowUp size={18}/></div>
+                                                <div>
+                                                    <div className="text-xs text-slate-500">Maior Evolução</div>
+                                                    <div className="font-bold text-slate-800">{selectedReport.metrics.rankingChange.up}</div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600"><TrendingDown size={18}/></div>
+                                                <div>
+                                                    <div className="text-xs text-slate-500">Queda Acentuada</div>
+                                                    <div className="font-bold text-slate-800">{selectedReport.metrics.rankingChange.down}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Right Column: Insights & AI */}
+                                <div className="lg:col-span-2 space-y-6">
+                                    
+                                    {/* Correlations */}
+                                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                                        <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2"><Dna size={20}/> Fatores de Correlação (Causa & Efeito)</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            {selectedReport.correlations.map((corr: any, idx: number) => (
+                                                <div key={idx} className={`p-4 rounded-xl border-l-4 ${corr.type === 'positive' ? 'bg-emerald-50 border-emerald-500' : 'bg-rose-50 border-rose-500'}`}>
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div className={`p-2 rounded-lg ${corr.type === 'positive' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                                            {corr.icon === 'PEN' && <PenTool size={18}/>}
+                                                            {corr.icon === 'CLOCK' && <Clock size={18}/>}
+                                                            {corr.icon === 'FOCUS' && <ShieldAlert size={18}/>}
+                                                        </div>
+                                                        <span className={`font-black text-lg ${corr.type === 'positive' ? 'text-emerald-700' : 'text-rose-700'}`}>
+                                                            {corr.type === 'positive' ? '+' : ''}{corr.impact}%
+                                                        </span>
+                                                    </div>
+                                                    <div className="font-bold text-slate-800 text-sm mb-1">{corr.factor}</div>
+                                                    <div className="text-xs text-slate-500">{corr.label}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Insights List */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {selectedReport.insights.map((insight: any, idx: number) => (
+                                            <div key={idx} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition">
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${insight.type === 'ACADEMIC' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                        {insight.type === 'ACADEMIC' ? 'Pedagógico' : 'Infraestrutura'}
+                                                    </span>
+                                                    {insight.bncc && <span className="text-[10px] font-mono bg-slate-100 text-slate-500 px-2 py-1 rounded border">{insight.bncc}</span>}
+                                                </div>
+                                                <h4 className="font-bold text-slate-800 text-lg mb-2 leading-tight">{insight.title}</h4>
+                                                <p className="text-sm text-slate-600 leading-relaxed">{insight.desc}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* AI Action Plan */}
+                                    <div className="bg-gradient-to-br from-indigo-900 to-purple-900 text-white p-8 rounded-xl shadow-lg relative overflow-hidden">
+                                        <div className="relative z-10">
+                                            <h3 className="font-bold text-xl mb-6 flex items-center gap-2">
+                                                <Brain className="text-yellow-400" size={24}/> Plano de Ação Recomendado (IA)
+                                            </h3>
+                                            <div className="space-y-4">
+                                                {selectedReport.aiSuggestions.map((sug: any, idx: number) => (
+                                                    <div key={idx} className="bg-white/10 border border-white/20 p-4 rounded-xl flex gap-4 backdrop-blur-sm">
+                                                        <div className="flex-shrink-0 mt-1">
+                                                            <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center font-bold text-sm">{idx + 1}</div>
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <div className="flex justify-between mb-1">
+                                                                <span className="text-xs font-bold text-purple-200 uppercase">{sug.target} • {sug.area}</span>
+                                                                <span className="text-xs font-bold text-emerald-300 flex items-center gap-1"><ArrowUp size={10}/> {sug.impact_projection}</span>
+                                                            </div>
+                                                            <div className="font-bold text-white mb-1">{sug.action}</div>
+                                                            <div className="text-sm text-indigo-200 opacity-80">Problema: {sug.problem}</div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="absolute top-0 right-0 p-8 opacity-10">
+                                            <Lightbulb size={200}/>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Footer */}
+                        <div className="bg-white p-4 border-t border-slate-200 text-center text-xs text-slate-400">
+                            Relatório gerado em {new Date().toLocaleDateString()} • ExamePad Intelligence v2.4
                         </div>
                     </div>
                </div>

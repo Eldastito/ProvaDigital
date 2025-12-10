@@ -16,43 +16,70 @@ export class AnalyticsService {
         const studentResults = this.state.results.filter(r => r.studentId === studentId);
         const examsTaken = studentResults.length;
 
-        let totalScore = 0;
-        let maxPossibleScore = 0;
+        // --- IDG Calculation Logic ---
+        let sumExamScores = 0;
+        let countExams = 0;
+        let sumProjectScores = 0;
+        let countProjects = 0;
+
         const subjectScores: Record<string, { obtained: number; total: number }> = {};
 
         studentResults.forEach(result => {
             const exam = this.state.exams.find(e => e.id === result.examId);
             if (!exam) return;
 
-            // Calculate max score for this exam
-            const examMax = exam.items.reduce((acc, item) => acc + (item.customScore || 0), 0); // Assuming customScore is hydrated or use logic
-            // Note: In mock data, hydration happens in UI. Here we might need to lookup items.
-            // Simplified: Assume totalScore in result is correct and max is 10 for all exams for MVP.
-            
-            totalScore += result.totalScore;
-            maxPossibleScore += 10; // Mock max
+            // Simple Heuristic: If title contains "Trabalho", "Projeto", "Feira", treat as Project (Weight 30%)
+            // Otherwise treat as Exam (Weight 60%)
+            const isProject = exam.title.toLowerCase().includes('trabalho') || 
+                              exam.title.toLowerCase().includes('projeto') ||
+                              exam.title.toLowerCase().includes('pesquisa');
+
+            if (isProject) {
+                sumProjectScores += result.totalScore; // Assuming score is 0-10
+                countProjects++;
+            } else {
+                sumExamScores += result.totalScore;
+                countExams++;
+            }
 
             // Subject Breakdown
             if (!subjectScores[exam.subject]) subjectScores[exam.subject] = { obtained: 0, total: 0 };
             subjectScores[exam.subject].obtained += result.totalScore;
-            subjectScores[exam.subject].total += 10;
+            subjectScores[exam.subject].total += 10; // Assuming 10 max
         });
 
-        const averageGrade = examsTaken > 0 ? (totalScore / maxPossibleScore) * 10 : 0;
+        const examAverage = countExams > 0 ? sumExamScores / countExams : 0;
+        const projectAverage = countProjects > 0 ? sumProjectScores / countProjects : 0;
 
         // Attendance (Simulated based on Registration Status)
         const registrations = this.state.registrations.filter(r => r.studentId === studentId);
         const absences = registrations.filter(r => r.status === 'AUSENTE').length;
         const attendanceRate = registrations.length > 0 ? ((registrations.length - absences) / registrations.length) * 100 : 100;
+        const attendanceScore = attendanceRate / 10; // Normalize 0-10
+
+        // Bonus Points from Achievements (Profile)
+        const userProfile = this.state.userProfiles?.find(p => p.userId === studentId);
+        const bonusPoints = userProfile?.academicAchievements?.reduce((acc, ach) => acc + ach.bonusPoints, 0) || 0;
+
+        // --- GLOBAL SCORE FORMULA (IDG) ---
+        // (Exam * 0.6) + (Project * 0.3) + (Attendance * 0.1) + Bonus
+        // Base max is 10, bonus can push it higher (e.g., 10.5)
+        let idgScore = (examAverage * 0.6) + (projectAverage * 0.3) + (attendanceScore * 0.1) + bonusPoints;
+        
+        // Simple fallback if no projects yet: Exams count for 90%
+        if (countProjects === 0 && countExams > 0) {
+            idgScore = (examAverage * 0.9) + (attendanceScore * 0.1) + bonusPoints;
+        } else if (countExams === 0 && countProjects === 0) {
+            idgScore = 0;
+        }
 
         // Risk Logic
         let riskLevel = RiskLevel.LOW;
-        if (averageGrade < 5 || attendanceRate < 75) riskLevel = RiskLevel.HIGH;
-        else if (averageGrade < 7 || attendanceRate < 85) riskLevel = RiskLevel.MEDIUM;
+        if (idgScore < 5 || attendanceRate < 75) riskLevel = RiskLevel.HIGH;
+        else if (idgScore < 7 || attendanceRate < 85) riskLevel = RiskLevel.MEDIUM;
 
-        // Projection (Assuming passing grade is 6.0 average)
-        // If AVG is 4.0 after 1 exam, needs 8.0 in next to avg 6.0
-        const missingPointsForApproval = Math.max(0, (6 * (examsTaken + 1)) - totalScore);
+        // Projection
+        const missingPointsForApproval = Math.max(0, 6 - idgScore); // Simplified
 
         // Strongest/Weakest
         let strongest = { subject: '-', score: -1 };
@@ -66,7 +93,10 @@ export class AnalyticsService {
 
         return {
             studentId,
-            averageGrade,
+            idgScore,
+            examAverage,
+            projectAverage,
+            bonusPoints,
             examsTaken,
             attendanceRate,
             riskLevel,
@@ -79,6 +109,6 @@ export class AnalyticsService {
     public getClassRanking(classId: string): StudentStats[] {
         const students = this.state.students.filter(s => s.classId === classId);
         const stats = students.map(s => this.getStudentStats(s.id)).filter(Boolean) as StudentStats[];
-        return stats.sort((a, b) => b.averageGrade - a.averageGrade);
+        return stats.sort((a, b) => b.idgScore - a.idgScore);
     }
 }

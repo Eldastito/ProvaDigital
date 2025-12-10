@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { UserRole } from './types';
 import { useAppStore } from './store/useAppStore';
@@ -14,6 +14,9 @@ import { CoordinatorApp } from './components/TabletApp/CoordinatorApp';
 import { ProfessorApp } from './components/TabletApp/ProfessorApp';
 import { StudentApp } from './components/TabletApp/StudentApp';
 
+// Demo
+import { LiveDemoLobby } from './components/Demo/LiveDemoLobby';
+
 export default function App() {
   const store = useAppStore();
   const { currentUser, setCurrentUser, users, setSelectedChildId } = store;
@@ -25,6 +28,33 @@ export default function App() {
   // Specific Context State
   const [selectedExamIdForPrint, setSelectedExamIdForPrint] = useState<string | null>(null);
   const [selectedExamIdForResults, setSelectedExamIdForResults] = useState<string | null>(null);
+
+  // DEMO MODE: Check URL params on mount
+  useEffect(() => {
+      const params = new URLSearchParams(window.location.search);
+      const isMobileMode = params.get('mode') === 'mobile';
+      const demoRole = params.get('role');
+
+      if (isMobileMode) {
+          // Auto-login as a generic user based on role to bypass login screen for audience
+          if (demoRole === 'STUDENT') {
+              const studentUser = users.find(u => u.role === UserRole.ALUNO);
+              if (studentUser) setCurrentUser(studentUser);
+              setView('TABLET_STUDENT');
+          } else if (demoRole === 'PROFESSOR') {
+              const profUser = users.find(u => u.role === UserRole.PROFESSOR);
+              if (profUser) setCurrentUser(profUser);
+              setView('TABLET_PROF');
+          } else if (demoRole === 'COORDINATOR') {
+              const coordUser = users.find(u => u.role === UserRole.SUPERVISOR);
+              if (coordUser) setCurrentUser(coordUser);
+              setView('TABLET_COORD');
+          } else {
+              // Default launcher
+              setView('TABLET_LAUNCHER');
+          }
+      }
+  }, [users, setCurrentUser]);
 
   const handleLogin = (userId: string) => {
     const user = users.find(u => u.id === userId);
@@ -45,7 +75,7 @@ export default function App() {
   };
 
   // --- 1. LOGIN VIEW ---
-  if (!currentUser) {
+  if (!currentUser && view === 'LOGIN') {
     return (
       <div className="min-h-screen bg-brand-light flex items-center justify-center p-4">
         <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border border-brand-secondary">
@@ -77,11 +107,8 @@ export default function App() {
   }
 
   // --- 2. OFFLINE / TABLET ECOSYSTEM ---
-  // These apps take over the entire screen and do not use the SaaS Sidebar Layout
   const handleCoordinatorSyncUp = (events: any[]) => {
-      // In a real app, this would push to the API/Store
       alert("Simulação: Dados sincronizados com sucesso para a nuvem SaaS.");
-      // Simplified update for demo purposes
       console.log("Synced Events:", events);
   };
 
@@ -101,11 +128,15 @@ export default function App() {
   if (view === 'TABLET_PROF') return <ProfessorApp state={store} onBack={() => setView('TABLET_LAUNCHER')} />;
   if (view === 'TABLET_STUDENT') return <StudentApp state={store} onBack={() => setView('TABLET_LAUNCHER')} />;
 
-  // --- 3. MAIN SAAS APP (DESKTOP LAYOUT) ---
+  // --- 3. DEMO LOBBY (PRESENTATION MODE) ---
+  if (view === 'LIVE_DEMO') {
+      return <LiveDemoLobby onClose={() => setView('DASHBOARD')} />;
+  }
+
+  // --- 4. MAIN SAAS APP (DESKTOP LAYOUT) ---
   const handlePrintExam = (examId: string) => { setSelectedExamIdForPrint(examId); setView('PRINT_PREVIEW'); };
   const handleGradeExam = (examId: string) => { setSelectedExamIdForResults(examId); setView('RESULTS_ENTRY'); };
 
-  // For Printable views, we often want to hide the sidebar (Fullscreen preview)
   if (view === 'PRINT_PREVIEW') {
      return <ViewRouter 
         view={view} 

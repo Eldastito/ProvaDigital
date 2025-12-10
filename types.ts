@@ -49,7 +49,8 @@ export enum UserRole {
     | 'COMMUNICATION'    // Chat, Mural
     | 'AI_FEATURES'      // Geração, Correção
     | 'FINANCIAL'       // Apenas Super Admin
-    | 'NEURO_SCREENING'; // Triagem
+    | 'NEURO_SCREENING' // Triagem
+    | 'GAMIFIED_EVENTS'; // NOVO: Gestão de Eventos
 
   export type Action = 'VIEW' | 'CREATE' | 'EDIT' | 'DELETE';
 
@@ -79,13 +80,22 @@ export enum UserRole {
     weaknesses: string[];
   }
 
+  export interface AcademicAchievement {
+      id: string;
+      title: string; // ex: "Ouro - Olimpíada de Matemática"
+      type: 'OLIMPIADA' | 'CONCURSO' | 'EVENTO' | 'MONITORIA';
+      date: string;
+      bonusPoints: number; // Pontos extras no IDG (ex: 0.5)
+  }
+
   export interface UserProfileExtended {
     userId: string;
     avatarUrl?: string;
     bio?: string;
     assessments: AssessmentResult[];
     owlCoins: number;
-    badges: string[];
+    badges: string[]; // Badges gamificados (visual)
+    academicAchievements?: AcademicAchievement[]; // Conquistas com peso acadêmico
   }
   
   export interface Tenant {
@@ -245,6 +255,40 @@ export enum UserRole {
     gradedAt: string;
     violationCount?: number;
     securityFlags?: string[];
+  }
+
+  // --- NOVO: GAMIFIED EVENTS ---
+  export type GamifiedEventType = 'OLIMPIADA' | 'SOLETRANDO' | 'QUIZ_SHOW' | 'FEIRA_CIENCIAS' | 'DEBATE';
+  
+  export enum GamifiedEventStatus {
+      OPEN = 'INSCRICOES_ABERTAS',
+      CLOSED = 'INSCRICOES_ENCERRADAS',
+      LIVE = 'EM_ANDAMENTO',
+      FINISHED = 'FINALIZADO'
+  }
+
+  export interface GamifiedEventParticipant {
+      studentId: string;
+      status: 'INSCRITO' | 'CONFIRMADO' | 'DESCLASSIFICADO' | 'CONCLUIDO';
+      score: number; // Pontuação no evento
+      rank?: number; // Classificação final
+      feedback?: string; // Feedback individual
+  }
+
+  export interface GamifiedEvent {
+      id: string;
+      schoolId: string;
+      creatorId: string; // Professor responsável
+      title: string;
+      type: GamifiedEventType;
+      subject: string; // Matéria vinculada (ex: Matemática)
+      description: string;
+      rules: string; // Regras para "Dar Ciente"
+      eventDate: string;
+      registrationDeadline: string;
+      status: GamifiedEventStatus;
+      rewardCoins: number; // Prêmio em moedas
+      participants: GamifiedEventParticipant[];
   }
 
   export interface Announcement {
@@ -416,7 +460,10 @@ export enum UserRole {
 
   export interface StudentStats {
     studentId: string;
-    averageGrade: number;
+    idgScore: number; // Índice de Desempenho Global (Ponderado)
+    examAverage: number;
+    projectAverage: number;
+    bonusPoints: number;
     examsTaken: number;
     attendanceRate: number;
     riskLevel: RiskLevel;
@@ -454,6 +501,7 @@ export enum UserRole {
       registrations: ExamRegistration[];
       results: ExamResult[];
       events: ExamEvent[];
+      gamifiedEvents: GamifiedEvent[]; // NOVO
       announcements: Announcement[];
       messages: ChatMessage[];
       chatGroups: ChatGroup[];
