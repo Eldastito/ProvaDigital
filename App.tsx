@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { UserRole } from './types';
 import { useAppStore } from './store/useAppStore';
+import { checkConnection } from './services/supabaseClient';
 
 // Infrastructure
 import { Layout } from './components/Layout';
@@ -19,7 +20,7 @@ import { LiveDemoLobby } from './components/Demo/LiveDemoLobby';
 
 export default function App() {
   const store = useAppStore();
-  const { currentUser, setCurrentUser, users, setSelectedChildId } = store;
+  const { currentUser, setCurrentUser, users, setSelectedChildId, loadRemoteData } = store;
 
   // Global View State
   const [view, setView] = useState('LOGIN');
@@ -28,6 +29,14 @@ export default function App() {
   // Specific Context State
   const [selectedExamIdForPrint, setSelectedExamIdForPrint] = useState<string | null>(null);
   const [selectedExamIdForResults, setSelectedExamIdForResults] = useState<string | null>(null);
+
+  // --- INIT: LOAD DATA FROM SUPABASE ---
+  useEffect(() => {
+      // Verifica conexão e carrega dados reais
+      checkConnection().then(connected => {
+          if(connected) loadRemoteData();
+      });
+  }, []);
 
   // DEMO MODE: Check URL params on mount
   useEffect(() => {
