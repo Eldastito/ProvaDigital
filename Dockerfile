@@ -2,20 +2,19 @@
 FROM node:20-bookworm-slim AS build
 WORKDIR /app
 
-# Instala deps do jeito certo pra CI
+# Instala deps de forma determinística
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 
-# Copia o restante do projeto
+# Copia o código e faz build
 COPY . .
 
-# Build-time env (Vite embute no bundle; isso é PUBLICO)
+# Build-time env (Vite embute VITE_* no bundle)
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 
-# Build
 RUN npm run build
 
 # Serve stage
