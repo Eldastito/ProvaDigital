@@ -1,24 +1,27 @@
 # Build stage
-FROM node:22-alpine AS build
+FROM node:20-alpine AS build
 WORKDIR /app
+
+# (opcional, mas ajuda em CI)
+ENV CI=true
+ENV NPM_CONFIG_FUND=false
+ENV NPM_CONFIG_AUDIT=false
 
 # Install deps first (better caching)
 COPY package.json package-lock.json* ./
-RUN npm install
+
+# npm ci é mais estável e usa 100% o package-lock
+RUN npm ci --no-audit --no-fund
 
 # Copy source
 COPY . .
 
-# Build-time env (Vite embeds these into the build)
-# NOTE: VITE_* variables are meant to be public (supabase anon key is public).
-# DO NOT embed private keys in the frontend build for production.
+# Build-time env (Vite embeds VITE_* into the build)
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
-ARG GEMINI_API_KEY
 
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
-ENV GEMINI_API_KEY=$GEMINI_API_KEY
 
 RUN npm run build
 
