@@ -2,142 +2,71 @@
 // Enums
 export enum UserRole {
     SUPER_ADMIN = 'SUPER_ADMIN',
-    STATE_ADMIN = 'STATE_ADMIN', // Secretaria Estadual
-    TENANT_ADMIN = 'TENANT_ADMIN', // Secretaria Municipal
+    STATE_ADMIN = 'STATE_ADMIN',
+    TENANT_ADMIN = 'TENANT_ADMIN',
     DIRETOR = 'DIRETOR',
     SUPERVISOR = 'SUPERVISOR',
     PROFESSOR = 'PROFESSOR',
     ALUNO = 'ALUNO',
-    PAIS = 'PAIS' // Pais/Responsáveis
-  }
+    PAIS = 'PAIS'
+}
 
-  // NOVO: Classificação da Rede de Ensino
-  export enum TenantType {
-      PUBLIC_MUNICIPAL = 'PUBLIC_MUNICIPAL',
-      PUBLIC_STATE = 'PUBLIC_STATE',
-      PUBLIC_FEDERAL = 'PUBLIC_FEDERAL',
-      PRIVATE = 'PRIVATE'
-  }
-  
-  export enum QuestionType {
+export enum TenantType {
+    PUBLIC_MUNICIPAL = 'PUBLIC_MUNICIPAL',
+    PUBLIC_STATE = 'PUBLIC_STATE',
+    PUBLIC_FEDERAL = 'PUBLIC_FEDERAL',
+    PRIVATE = 'PRIVATE'
+}
+
+export enum QuestionType {
     MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
     TRUE_FALSE = 'TRUE_FALSE',
-    ESSAY = 'ESSAY', // Questão Discursiva
-    REDACTION = 'REDACTION' // Redação
-  }
-  
-  export enum DifficultyLevel {
+    ESSAY = 'ESSAY',
+    REDACTION = 'REDACTION'
+}
+
+export enum DifficultyLevel {
     EASY = 'FACIL',
     MEDIUM = 'MEDIO',
     HARD = 'DIFICIL'
-  }
-  
-  export enum ItemOrigin {
+}
+
+export enum ItemOrigin {
     MANUAL = 'MANUAL',
     IA = 'IA'
-  }
+}
 
-  // --- PERMISSIONS & CAPABILITIES ---
+// Recursos que podem ser controlados via Gestão
+export type Resource = 
+    | 'SCHOOL_DATA'      // Escolas e Turmas
+    | 'USER_DATA'        // Cadastros de Alunos/Staff
+    | 'ITEM_BANK'        // Banco de Itens
+    | 'EXAM_MGMT'        // Provas Digitais
+    | 'ANALYTICS'        // Dashboards e Relatórios
+    | 'COMMUNICATION'    // Chat e Mensagens
+    | 'AI_FEATURES'      // Ferramentas Gemini
+    | 'FINANCIAL'        // Cobranças e Recursos
+    | 'NEURO_SCREENING'  // Triagem Clínica
+    | 'GAMIFIED_EVENTS'  // Olimpíadas e Quiz
+    | 'GOVERNANCE'       // Acesso à própria tela de Permissões
+    | 'OFFLINE_OPS';     // Operações Offline (Tablet)
 
-  export type Resource = 
-    | 'SCHOOL_DATA'      // Escolas, Turmas
-    | 'USER_DATA'        // Alunos, Professores
-    | 'ITEM_BANK'        // Questões
-    | 'EXAM_MGMT'        // Provas, Alocação
-    | 'OFFLINE_OPS'      // App Tablet, Sync
-    | 'ANALYTICS'        // Dashboards
-    | 'COMMUNICATION'    // Chat, Mural
-    | 'AI_FEATURES'      // Geração, Correção
-    | 'FINANCIAL'       // Apenas Super Admin
-    | 'NEURO_SCREENING' // Triagem
-    | 'GAMIFIED_EVENTS'; // NOVO: Gestão de Eventos
+export type Action = 'VIEW' | 'CREATE' | 'EDIT' | 'DELETE';
 
-  export type Action = 'VIEW' | 'CREATE' | 'EDIT' | 'DELETE';
+export interface PermissionMatrix {
+    [role: string]: {
+        [resource in Resource]?: Action[];
+    }
+}
 
-  export interface PermissionMatrix {
-      [role: string]: {
-          [resource in Resource]?: Action[];
-      }
-  }
+export interface AppState {
+    currentUser: User | null;
+    selectedChildId: string | null;
+    settings: AppSettings;
+    globalPermissions: PermissionMatrix;
+}
 
-  export enum AssessmentType {
-    DISC = 'DISC',
-    LEARNING_STYLE = 'ESTILO_APRENDIZAGEM',
-    POSITIVE_PSYCH = 'PSICOLOGIA_POSITIVA',
-    TEMPERAMENT = 'TEMPERAMENTO',
-    TDAH_SCREENING = 'TRIAGEM_TDAH',
-    AUTISM_SCREENING = 'TRIAGEM_AUTISMO',
-    LEARNING_SCREENING = 'TRIAGEM_APRENDIZAGEM'
-  }
-
-  export interface AssessmentResult {
-    id: string;
-    type: AssessmentType;
-    date: string;
-    resultType: string;
-    report: string;
-    strengths: string[];
-    weaknesses: string[];
-  }
-
-  export interface AcademicAchievement {
-      id: string;
-      title: string; // ex: "Ouro - Olimpíada de Matemática"
-      type: 'OLIMPIADA' | 'CONCURSO' | 'EVENTO' | 'MONITORIA';
-      date: string;
-      bonusPoints: number; // Pontos extras no IDG (ex: 0.5)
-  }
-
-  export interface UserProfileExtended {
-    userId: string;
-    avatarUrl?: string;
-    bio?: string;
-    assessments: AssessmentResult[];
-    owlCoins: number;
-    badges: string[]; // Badges gamificados (visual)
-    academicAchievements?: AcademicAchievement[]; // Conquistas com peso acadêmico
-  }
-  
-  export interface Tenant {
-    id: string;
-    name: string;
-    type: TenantType; // NOVO: Tipo de Rede
-    cnpj: string;
-    disabledResources?: Resource[];
-  }
-
-  export interface SchoolResources {
-      funding: boolean;
-      uniforms: boolean;
-      textbooks: boolean;
-      adminMaterials: boolean;
-      extracurricular: boolean;
-      internet: boolean;
-      lab: boolean;
-      accessibility: boolean;
-      food: boolean;
-      transportation: boolean;
-      security: boolean;
-      ac_cooling: boolean;
-  }
-  
-  export interface School {
-    id: string;
-    tenantId: string;
-    name: string;
-    inep: string;
-    resources?: SchoolResources;
-  }
-  
-  export interface SchoolClass {
-    id: string;
-    schoolId: string;
-    name: string;
-    series: string;
-    shift: 'MANHA' | 'TARDE' | 'NOITE';
-  }
-  
-  export interface User {
+export interface User {
     id: string;
     name: string;
     nickname?: string;
@@ -146,66 +75,73 @@ export enum UserRole {
     tenantId: string;
     schoolId?: string;
     classIds?: string[];
-    childrenIds?: string[]; // Array de IDs dos filhos
-  }
-  
-  export interface Student {
+    childrenIds?: string[];
+}
+
+export interface AppSettings {
+    rankingEnabled: boolean;
+    rankingAnonymity: 'NOMINAL' | 'ANONIMO';
+}
+
+export interface Tenant {
+    id: string;
+    name: string;
+    type: TenantType;
+    cnpj: string;
+    disabledResources?: Resource[];
+}
+
+export interface SchoolResources {
+    funding: boolean;
+    uniforms: boolean;
+    textbooks: boolean;
+    adminMaterials: boolean;
+    extracurricular: boolean;
+    internet: boolean;
+    lab: boolean;
+    accessibility: boolean;
+    food: boolean;
+    transportation: boolean;
+    security: boolean;
+    ac_cooling: boolean;
+}
+
+export interface School {
+    id: string;
+    tenantId: string;
+    name: string;
+    inep: string;
+    resources: SchoolResources;
+}
+
+export interface SchoolClass {
+    id: string;
+    schoolId: string;
+    name: string;
+    series: string;
+    shift: string;
+}
+
+export interface Student {
     id: string;
     name: string;
     registrationNumber: string;
     classId: string;
     schoolId: string;
     tenantId: string;
-  }
-  
-  export interface ItemAlternative {
-    id: string;
-    text: string;
-    isCorrect: boolean;
-  }
-  
-  export interface Item {
-    id: string;
-    tenantId: string;
-    schoolId?: string;
-    ownerId: string;
-    knowledgeArea: string;
-    subject: string;
-    type: QuestionType;
-    statement: string;
-    imageUrl?: string;
-    alternatives: ItemAlternative[];
-    correctAnswerJustification: string;
-    difficulty: DifficultyLevel;
-    score: number;
-    origin: ItemOrigin;
-    tags: string[];
-    bnccCode?: string; 
-    minLines?: number;
-    maxLines?: number;
-    showWordCount?: boolean;
-    usageCount: number;
-    createdAt: string;
-  }
+}
 
-  export enum ExamModel {
+export enum ExamModel {
     SOMATIVO = 'SOMATIVO',
     ADAPTADO = 'ADAPTADO'
-  }
+}
 
-  export enum ExamStatus {
+export enum ExamStatus {
     DRAFT = 'RASCUNHO',
-    PUBLISHED = 'PUBLICADA',
-    CLOSED = 'ENCERRADA'
-  }
+    PUBLISHED = 'PUBLICADA'
+}
 
-  export interface ExamItemConfig {
-    itemId: string;
-    order: number;
-    customScore?: number;
-  }
-
-  export interface Exam {
+export interface Exam {
     id: string;
     tenantId: string;
     schoolId: string;
@@ -217,36 +153,59 @@ export enum UserRole {
     durationMinutes: number;
     targetQuestionCount: number;
     status: ExamStatus;
-    items: ExamItemConfig[];
+    items: { itemId: string; order: number; customScore?: number }[];
     classIds: string[];
     createdAt: string;
     scheduledDate?: string;
-  }
+}
 
-  export enum RegistrationStatus {
+export interface Item {
+    id: string;
+    tenantId: string;
+    schoolId?: string;
+    ownerId: string;
+    knowledgeArea: string;
+    subject: string;
+    type: QuestionType;
+    statement: string;
+    imageUrl?: string;
+    alternatives: { id: string; text: string; isCorrect: boolean }[];
+    correctAnswerJustification: string;
+    difficulty: DifficultyLevel;
+    score: number;
+    origin: ItemOrigin;
+    tags: string[];
+    usageCount: number;
+    createdAt: string;
+    bnccCode?: string;
+    minLines?: number;
+    maxLines?: number;
+    showWordCount?: boolean;
+}
+
+export enum RegistrationStatus {
     INSCRITO = 'INSCRITO',
     PRESENTE = 'PRESENTE',
     AUSENTE = 'AUSENTE',
-    FINALIZADO = 'FINALIZADO'
-  }
+    CONCLUIDO = 'CONCLUIDO'
+}
 
-  export interface ExamRegistration {
+export interface ExamRegistration {
     id: string;
     examId: string;
     studentId: string;
     classId: string;
     status: RegistrationStatus;
-  }
+}
 
-  export interface StudentAnswer {
+export interface StudentAnswer {
     itemId: string;
     selectedAlternativeId: string | null;
     isCorrect: boolean;
     scoreObtained: number;
-    essayFeedback?: string;
-  }
+}
 
-  export interface ExamResult {
+export interface ExamResult {
     id: string;
     examId: string;
     studentId: string;
@@ -255,75 +214,33 @@ export enum UserRole {
     gradedAt: string;
     violationCount?: number;
     securityFlags?: string[];
-  }
+}
 
-  // --- NOVO: GAMIFIED EVENTS ---
-  export type GamifiedEventType = 'OLIMPIADA' | 'SOLETRANDO' | 'QUIZ_SHOW' | 'FEIRA_CIENCIAS' | 'DEBATE';
-  
-  export enum GamifiedEventStatus {
-      OPEN = 'INSCRICOES_ABERTAS',
-      CLOSED = 'INSCRICOES_ENCERRADAS',
-      LIVE = 'EM_ANDAMENTO',
-      FINISHED = 'FINALIZADO'
-  }
-
-  export interface GamifiedEventParticipant {
-      studentId: string;
-      status: 'INSCRITO' | 'CONFIRMADO' | 'DESCLASSIFICADO' | 'CONCLUIDO';
-      score: number; // Pontuação no evento
-      rank?: number; // Classificação final
-      feedback?: string; // Feedback individual
-  }
-
-  export interface GamifiedEvent {
-      id: string;
-      schoolId: string;
-      creatorId: string; // Professor responsável
-      title: string;
-      type: GamifiedEventType;
-      subject: string; // Matéria vinculada (ex: Matemática)
-      description: string;
-      rules: string; // Regras para "Dar Ciente"
-      eventDate: string;
-      registrationDeadline: string;
-      status: GamifiedEventStatus;
-      rewardCoins: number; // Prêmio em moedas
-      participants: GamifiedEventParticipant[];
-  }
-
-  export interface Announcement {
+export interface Announcement {
     id: string;
     tenantId: string;
     schoolId: string;
     authorId: string;
     title: string;
     content: string;
-    type: 'AVISO' | 'EVENTO' | 'URGENTE';
+    type: 'EVENTO' | 'AVISO';
     createdAt: string;
     eventDate?: string;
-  }
+}
 
-  export interface ChatAttachment {
-    id: string;
-    name: string;
-    type: 'IMAGE' | 'PDF' | 'DOC' | 'AUDIO';
-    url: string;
-    duration?: number;
-  }
-
-  export interface ChatMessage {
+export interface ChatMessage {
     id: string;
     senderId: string;
     recipientId?: string;
     groupId?: string;
     content: string;
-    attachment?: ChatAttachment;
+    attachment?: string;
     timestamp: string;
     isRead: boolean;
     isReported?: boolean;
-  }
+}
 
-  export interface ChatGroup {
+export interface ChatGroup {
     id: string;
     name: string;
     schoolId: string;
@@ -331,16 +248,16 @@ export enum UserRole {
     moderatorId: string;
     memberIds: string[];
     createdAt: string;
-  }
+}
 
-  export interface OwlSession {
+export interface OwlSession {
     id: string;
     studentId: string;
-    messages: { role: 'user' | 'model', text: string }[];
+    messages: { role: 'user' | 'model'; text: string }[];
     startedAt: string;
-  }
+}
 
-  export interface LessonPlan {
+export interface LessonPlan {
     id: string;
     professorId: string;
     classId: string;
@@ -349,118 +266,149 @@ export enum UserRole {
     objectives: string;
     content: string;
     date: string;
-  }
+}
 
-  export interface StudyPlan {
+export interface StudyPlan {
     id: string;
     studentId: string;
-    generatedBy: string;
+    generatedBy: 'IA' | 'PROFESSOR';
     title: string;
-    tasks: { id: string, description: string, completed: boolean }[];
+    tasks: string[];
     createdAt: string;
-  }
+}
 
-  export interface StudentProfile {
+export interface StudentProfile {
     studentId: string;
-    learningChannel: string;
+    learningChannel: 'VISUAL' | 'AUDITIVO' | 'CINESTESICO';
     discProfile: string;
     topStrengths: string[];
     lastUpdated: string;
-  }
+}
 
-  export interface AppSettings {
-    rankingEnabled: boolean;
-    rankingAnonymity: 'NOMINAL' | 'ANONIMO';
-  }
+export enum RiskLevel {
+    LOW = 'BAIXO',
+    MEDIUM = 'MEDIO',
+    HIGH = 'ALTO'
+}
 
-  export type MeshRole = 'SERVER' | 'COORDINATOR' | 'PROFESSOR' | 'STUDENT' | 'UNASSIGNED';
-  export type MeshMessageType = 'ANNOUNCE' | 'PROVISION_CMD' | 'SYNC_DATA' | 'HEARTBEAT' | 'ALERT';
+export enum AssessmentType {
+    DISC = 'DISC',
+    LEARNING_STYLE = 'ESTILO_APRENDIZAGEM',
+    POSITIVE_PSYCH = 'PSICOLOGIA_POSITIVA',
+    TEMPERAMENT = 'TEMPERAMENTO',
+    TDAH_SCREENING = 'TRIAGEM_TDAH',
+    AUTISM_SCREENING = 'TRIAGEM_AUTISMO',
+    LEARNING_SCREENING = 'TRIAGEM_APRENDIZAGEM'
+}
 
-  export interface MeshPeer {
+export interface AssessmentResult {
+    id: string;
+    type: AssessmentType;
+    date: string;
+    resultType: string;
+    report: string;
+    strengths: string[];
+    weaknesses: string[];
+}
+
+export interface UserProfileExtended {
+    userId: string;
+    avatarUrl?: string;
+    bio?: string;
+    assessments: AssessmentResult[];
+    owlCoins: number;
+    badges: string[];
+    academicAchievements?: {
+        id: string;
+        title: string;
+        type: 'OLIMPIADA' | 'EVENTO';
+        date: string;
+        bonusPoints: number;
+    }[];
+}
+
+export enum GamifiedEventStatus {
+    OPEN = 'ABERTO',
+    ONGOING = 'EM_ANDAMENTO',
+    FINISHED = 'FINALIZADO'
+}
+
+export type GamifiedEventType = 'OLIMPIADA' | 'SOLETRANDO' | 'QUIZ_SHOW';
+
+export interface GamifiedEvent {
+    id: string;
+    schoolId: string;
+    creatorId: string;
+    title: string;
+    type: GamifiedEventType;
+    subject: string;
+    description: string;
+    rules: string;
+    eventDate: string;
+    registrationDeadline: string;
+    status: GamifiedEventStatus;
+    rewardCoins: number;
+    participants: {
+        studentId: string;
+        status: 'INSCRITO' | 'CONCLUIDO';
+        score: number;
+        rank?: number;
+        feedback?: string;
+    }[];
+}
+
+export interface EncryptedPackage {
+    iv: string;
+    data: string;
+}
+
+export interface EventKey {
+    eventId: string;
+    keyMaterial: JsonWebKey;
+}
+
+export enum EventStatus {
+    PENDING = 'PENDENTE',
+    ACTIVE = 'ATIVO',
+    FINISHED = 'FINALIZADO'
+}
+
+export interface ExamEvent {
+    eventId: string;
+    examId: string;
+    classId: string;
+    status: EventStatus;
+    date: string;
+}
+
+export enum MeshRole {
+    COORDINATOR = 'COORDINATOR',
+    PROFESSOR = 'PROFESSOR',
+    STUDENT = 'STUDENT',
+    UNASSIGNED = 'UNASSIGNED'
+}
+
+export type MeshMessageType = 'ANNOUNCE' | 'PROVISION_CMD' | 'ALERT' | 'SYNC_RESULTS';
+
+export interface MeshPeer {
     id: string;
     name: string;
-    role: MeshRole;
+    role: MeshRole | 'UNASSIGNED';
     isOnline: boolean;
     lastSeen: number;
-  }
+}
 
-  export interface MeshMessage {
+export interface MeshMessage {
     type: MeshMessageType;
     sender: MeshPeer;
     targetId?: string;
     payload: any;
     timestamp: number;
-  }
+}
 
-  export interface ProvisioningPayload {
-      targetRole: MeshRole;
-      assignedName?: string;
-      killNetworkAfter: boolean;
-  }
-
-  export enum EventStatus {
-    DOWNLOADED = 'DOWNLOADED',
-    DISTRIBUTED = 'DISTRIBUTED',
-    IN_PROGRESS = 'IN_PROGRESS',
-    FINISHED = 'FINISHED',
-    SYNCED = 'SYNCED'
-  }
-
-  export interface ExamEvent {
-      eventId: string;
-      examTitle: string;
-      className: string;
-      date: string;
-      status: EventStatus;
-      keyMaterial: JsonWebKey;
-      packages: {
-          exam: EncryptedPackage;
-          allocation: EncryptedPackage;
-      };
-      studentPackages?: { studentId: string, package: EncryptedPackage }[];
-      stats: { expected: number, present: number };
-  }
-
-  export interface EncryptedPackage {
-      iv: string;
-      data: string;
-  }
-
-  export interface EventKey {
-      eventId: string;
-      keyMaterial: JsonWebKey;
-  }
-
-  export interface ExamPackageDecrypted {
-      examId: string;
-      title: string;
-      items: Item[];
-      duration: number;
-  }
-
-  export interface AllocationPackageDecrypted {
-      examId: string;
-      classId: string;
-      students: { id: string, name: string, registrationNumber: string }[];
-  }
-
-  export interface SessionStudent {
-      studentId: string;
-      name: string;
-      registrationNumber: string;
-      status: 'DISCONNECTED' | 'CONNECTED' | 'FINISHED';
-      encryptedAnswers?: EncryptedPackage;
-  }
-
-  export enum RiskLevel {
-    LOW = 'BAIXO',
-    MEDIUM = 'MEDIO',
-    HIGH = 'ALTO'
-  }
-
-  export interface StudentStats {
+export interface StudentStats {
     studentId: string;
-    idgScore: number; // Índice de Desempenho Global (Ponderado)
+    idgScore: number;
     examAverage: number;
     projectAverage: number;
     bonusPoints: number;
@@ -470,46 +418,24 @@ export enum UserRole {
     missingPointsForApproval: number;
     strongestSubject: string;
     weakestSubject: string;
-  }
+}
 
-  export interface SecurityEvent {
-      timestamp: string;
-      type: 'FOCUS_LOST' | 'ALT_TAB' | 'FULLSCREEN_EXIT' | 'KEYBOARD_VIOLATION' | 'MOUSE_VIOLATION';
-      details: string;
-  }
+export interface StoredSession {
+    sessionId: string;
+    studentId: string;
+    eventId: string;
+    synced: boolean;
+    data: any;
+}
 
-  export interface StoredSession {
-      sessionId: string;
-      studentId: string;
-      studentName: string;
-      eventId: string;
-      encryptedData: string;
-      timestamp: string;
-      synced: boolean;
-  }
+export interface SecurityEvent {
+    timestamp: string;
+    type: 'FOCUS_LOST' | 'KEYBOARD_VIOLATION' | 'FULLSCREEN_EXIT';
+    details: string;
+}
 
-  export interface AppState {
-      currentUser: User | null;
-      selectedChildId: string | null;
-      tenants: Tenant[];
-      schools: School[];
-      classes: SchoolClass[];
-      users: User[];
-      students: Student[];
-      items: Item[];
-      exams: Exam[];
-      registrations: ExamRegistration[];
-      results: ExamResult[];
-      events: ExamEvent[];
-      gamifiedEvents: GamifiedEvent[]; // NOVO
-      announcements: Announcement[];
-      messages: ChatMessage[];
-      chatGroups: ChatGroup[];
-      owlSessions: OwlSession[];
-      lessonPlans: LessonPlan[];
-      studyPlans: StudyPlan[];
-      studentProfiles: StudentProfile[];
-      userProfiles: UserProfileExtended[];
-      settings: AppSettings;
-      globalPermissions: PermissionMatrix;
-  }
+export interface ProvisioningPayload {
+    targetRole: MeshRole;
+    assignedName: string;
+    killNetworkAfter: boolean;
+}

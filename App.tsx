@@ -1,9 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Sparkles, User, Globe, ShieldCheck, GraduationCap, Tablet, BookOpen } from 'lucide-react';
 import { UserRole } from './types';
 import { useAppStore } from './store/useAppStore';
-import { checkConnection } from './services/supabaseClient';
+import { checkConnection, supabase } from './services/supabaseClient';
+import { useQuery } from '@tanstack/react-query';
+import { fetchUsers } from './services/supabaseClient';
+import { INITIAL_USERS } from './utils/mockData';
 
 // Infrastructure
 import { Layout } from './components/Layout';
@@ -20,61 +23,56 @@ import { LiveDemoLobby } from './components/Demo/LiveDemoLobby';
 
 export default function App() {
   const store = useAppStore();
-  const { currentUser, setCurrentUser, users, setSelectedChildId, loadRemoteData } = store;
+  const { currentUser, setCurrentUser, setSelectedChildId } = store;
 
-  // Global View State
   const [view, setView] = useState('LOGIN');
   const [tabletPayload, setTabletPayload] = useState<any>(null);
   
-  // Specific Context State
   const [selectedExamIdForPrint, setSelectedExamIdForPrint] = useState<string | null>(null);
   const [selectedExamIdForResults, setSelectedExamIdForResults] = useState<string | null>(null);
 
-  // --- INIT: LOAD DATA FROM SUPABASE ---
   useEffect(() => {
-      // Verifica conexão e carrega dados reais
-      checkConnection().then(connected => {
-          if(connected) loadRemoteData();
-      });
+      checkConnection(); 
   }, []);
 
-  // DEMO MODE: Check URL params on mount
   useEffect(() => {
       const params = new URLSearchParams(window.location.search);
       const isMobileMode = params.get('mode') === 'mobile';
       const demoRole = params.get('role');
 
-      if (isMobileMode) {
-          // Auto-login as a generic user based on role to bypass login screen for audience
-          if (demoRole === 'STUDENT') {
-              const studentUser = users.find(u => u.role === UserRole.ALUNO);
-              if (studentUser) setCurrentUser(studentUser);
-              setView('TABLET_STUDENT');
-          } else if (demoRole === 'PROFESSOR') {
-              const profUser = users.find(u => u.role === UserRole.PROFESSOR);
-              if (profUser) setCurrentUser(profUser);
-              setView('TABLET_PROF');
-          } else if (demoRole === 'COORDINATOR') {
-              const coordUser = users.find(u => u.role === UserRole.SUPERVISOR);
-              if (coordUser) setCurrentUser(coordUser);
-              setView('TABLET_COORD');
-          } else {
-              // Default launcher
-              setView('TABLET_LAUNCHER');
+      const fetchInitialUsers = async () => {
+          const { data } = await supabase.from('users').select('*');
+          if (isMobileMode) {
+              const usersToSearch = (data && data.length > 0) ? data : INITIAL_USERS;
+              if (demoRole === 'STUDENT') {
+                  const studentUser = usersToSearch?.find((u:any) => u.role === UserRole.ALUNO);
+                  if (studentUser) setCurrentUser(studentUser);
+                  setView('TABLET_STUDENT');
+              } else if (demoRole === 'PROFESSOR') {
+                  const profUser = usersToSearch?.find((u:any) => u.role === UserRole.PROFESSOR);
+                  if (profUser) setCurrentUser(profUser);
+                  setView('TABLET_PROF');
+              } else if (demoRole === 'COORDINATOR') {
+                  const coordUser = usersToSearch?.find((u:any) => u.role === UserRole.SUPERVISOR);
+                  if (coordUser) setCurrentUser(coordUser);
+                  setView('TABLET_COORD');
+              } else {
+                  setView('TABLET_LAUNCHER');
+              }
           }
-      }
-  }, [users, setCurrentUser]);
+      };
+      fetchInitialUsers();
+  }, [setCurrentUser]);
 
-  const handleLogin = (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    if (user) {
-      setCurrentUser(user);
-      if (user.role === UserRole.ALUNO) {
-          setView('STUDENT_PORTAL');
-      } else if (user.role === UserRole.PAIS) {
-          // Auto-select first child
-          if (user.childrenIds && user.childrenIds.length > 0) {
-              setSelectedChildId(user.childrenIds[0]);
+  const handleLogin = async (userId: string) => {
+    const { data: user } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
+    let finalUser = user || INITIAL_USERS.find(u => u.id === userId);
+
+    if (finalUser) {
+      setCurrentUser(finalUser);
+      if (finalUser.role === UserRole.ALUNO || finalUser.role === UserRole.PAIS) {
+          if (finalUser.role === UserRole.PAIS && finalUser.childrenIds?.length) {
+              setSelectedChildId(finalUser.childrenIds[0]);
           }
           setView('STUDENT_PORTAL');
       } else {
@@ -83,42 +81,110 @@ export default function App() {
     }
   };
 
-  // --- 1. LOGIN VIEW ---
+  const { data: dbUsers, isLoading: loadingUsers } = useQuery({
+      queryKey: ['users'], 
+      queryFn: fetchUsers,
+      initialData: []
+  });
+
+  const loginUsers = (dbUsers && dbUsers.length > 0) ? dbUsers : INITIAL_USERS;
+
   if (!currentUser && view === 'LOGIN') {
     return (
-      <div className="min-h-screen bg-brand-light flex items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border border-brand-secondary">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-brand-dark">ExamePad</h1>
-            <p className="text-brand-primary text-sm">Plataforma Educacional</p>
-          </div>
-          <div className="space-y-3">
-            {users.map(u => (
-              <button 
-                key={u.id} 
-                onClick={() => handleLogin(u.id)} 
-                className="w-full flex items-center p-3 border rounded-lg hover:bg-brand-light group transition-all"
-              >
-                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold mr-3 text-brand-primary group-hover:bg-white group-hover:shadow-sm">
-                  {u.name.charAt(0)}
+      <div className="min-h-screen flex flex-col md:flex-row font-sans">
+        
+        {/* LADO ESQUERDO: CONCEITUAL (PAPEL PARA DIGITAL) */}
+        <div className="hidden md:flex md:w-1/2 bg-slate-100 relative overflow-hidden items-center justify-center p-12">
+            {/* Background Image representativa */}
+            <div className="absolute inset-0 z-0">
+                <img 
+                    src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=2070&auto=format&fit=crop" 
+                    alt="Educação Híbrida" 
+                    className="w-full h-full object-cover opacity-20 grayscale"
+                />
+            </div>
+            
+            <div className="relative z-10 space-y-8 max-w-lg">
+                <div className="flex items-center gap-6">
+                    <div className="p-6 bg-white shadow-xl rounded-2xl border border-slate-200 transform -rotate-3">
+                        <BookOpen size={48} className="text-slate-400" />
+                        <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-tighter">Fase Impressa</p>
+                    </div>
+                    <div className="h-px w-12 bg-slate-300"></div>
+                    <div className="p-6 bg-brand-primary shadow-2xl rounded-2xl transform rotate-3">
+                        <Tablet size={48} className="text-white" />
+                        <p className="text-[10px] font-bold text-white/70 mt-2 uppercase tracking-tighter">Fase Digital</p>
+                    </div>
                 </div>
-                <div className="text-left">
-                  <div className="font-bold text-slate-800">{u.name}</div>
-                  <div className="text-xs text-slate-500 uppercase">{u.role}</div>
+                
+                <div>
+                    <h2 className="text-4xl font-black text-slate-800 leading-tight">O futuro das avaliações começa aqui.</h2>
+                    <p className="text-slate-600 text-lg mt-4 leading-relaxed">
+                        ExamePad une a tradição pedagógica com a inteligência de dados, transformando o papel em progresso real.
+                    </p>
                 </div>
-                <ChevronRight className="ml-auto text-slate-300 group-hover:text-brand-primary" size={18}/>
-              </button>
-            ))}
+                
+                <div className="flex gap-4">
+                    <div className="flex -space-x-2">
+                        {[1,2,3,4].map(i => (
+                            <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-slate-300 flex items-center justify-center text-[10px] font-bold overflow-hidden">
+                                <img src={`https://i.pravatar.cc/100?img=${i+10}`} alt="User" />
+                            </div>
+                        ))}
+                    </div>
+                    <p className="text-sm text-slate-500 font-medium self-center">Junte-se a mais de 500 escolas.</p>
+                </div>
+            </div>
+        </div>
+
+        {/* LADO DIREITO: FORMULÁRIO DE LOGIN */}
+        <div className="flex-1 bg-white flex items-center justify-center p-8 lg:p-24">
+          <div className="w-full max-w-md fade-up">
+            <div className="mb-12 text-center md:text-left">
+              <div className="w-16 h-16 bg-brand-primary rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-brand-primary/20">
+                 <Sparkles className="text-white" size={32} />
+              </div>
+              <h1 className="text-4xl font-black text-slate-900 tracking-tight">Portal de Acesso</h1>
+              <p className="text-slate-500 font-medium mt-2">Selecione seu perfil institucional abaixo.</p>
+            </div>
+
+            <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+              {loginUsers?.map((u:any) => (
+                <button 
+                  key={u.id} 
+                  onClick={() => handleLogin(u.id)} 
+                  className="w-full group flex items-center p-4 bg-slate-50 border border-slate-200 rounded-xl hover:bg-brand-primary hover:border-brand-primary transition-all duration-200 transform hover:-translate-y-0.5 active:scale-95"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center font-black mr-4 text-brand-primary border border-slate-200 group-hover:bg-brand-primary group-hover:text-white group-hover:border-white/20 transition-all shadow-sm">
+                    {u.name.charAt(0)}
+                  </div>
+                  <div className="text-left flex-1">
+                    <div className="font-bold text-slate-800 text-base group-hover:text-white transition-colors">{u.name}</div>
+                    <div className="text-[10px] text-slate-400 uppercase font-black tracking-widest group-hover:text-white/60">{u.role.replace('_', ' ')}</div>
+                  </div>
+                  <ChevronRight size={20} className="text-slate-300 group-hover:text-white transition-colors" />
+                </button>
+              ))}
+              {loginUsers.length === 0 && !loadingUsers && (
+                  <div className="text-slate-400 text-center py-10 italic">Nenhum perfil sincronizado.</div>
+              )}
+            </div>
+            
+            <div className="mt-12 pt-8 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4">
+               <div className="flex items-center gap-2 text-slate-400">
+                  <ShieldCheck size={16} className="text-emerald-500"/>
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Acesso Governamental Seguro</span>
+               </div>
+               <p className="text-slate-300 text-[10px] font-black uppercase tracking-widest">v2.5.0 SaaS</p>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  // --- 2. OFFLINE / TABLET ECOSYSTEM ---
   const handleCoordinatorSyncUp = (events: any[]) => {
       alert("Simulação: Dados sincronizados com sucesso para a nuvem SaaS.");
-      console.log("Synced Events:", events);
   };
 
   if (view === 'TABLET_LAUNCHER') {
@@ -137,25 +203,12 @@ export default function App() {
   if (view === 'TABLET_PROF') return <ProfessorApp state={store} onBack={() => setView('TABLET_LAUNCHER')} />;
   if (view === 'TABLET_STUDENT') return <StudentApp state={store} onBack={() => setView('TABLET_LAUNCHER')} />;
 
-  // --- 3. DEMO LOBBY (PRESENTATION MODE) ---
   if (view === 'LIVE_DEMO') {
       return <LiveDemoLobby onClose={() => setView('DASHBOARD')} />;
   }
 
-  // --- 4. MAIN SAAS APP (DESKTOP LAYOUT) ---
   const handlePrintExam = (examId: string) => { setSelectedExamIdForPrint(examId); setView('PRINT_PREVIEW'); };
   const handleGradeExam = (examId: string) => { setSelectedExamIdForResults(examId); setView('RESULTS_ENTRY'); };
-
-  if (view === 'PRINT_PREVIEW') {
-     return <ViewRouter 
-        view={view} 
-        setView={setView} 
-        selectedExamIdForPrint={selectedExamIdForPrint} 
-        selectedExamIdForResults={null}
-        onPrintExam={handlePrintExam}
-        onGradeExam={handleGradeExam}
-     />;
-  }
 
   return (
     <Layout currentView={view} setView={setView}>
