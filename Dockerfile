@@ -1,28 +1,21 @@
-# Build stage
-FROM node:20-alpine AS build
+# Build stage (mais estável que alpine)
+FROM node:20-bookworm-slim AS build
 WORKDIR /app
 
-# (opcional, mas ajuda em CI)
-ENV CI=true
-ENV NPM_CONFIG_FUND=false
-ENV NPM_CONFIG_AUDIT=false
-
-# Install deps first (better caching)
-COPY package.json package-lock.json* ./
-
-# npm ci é mais estável e usa 100% o package-lock
+# Instala deps do jeito certo pra CI
+COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 
-# Copy source
+# Copia o restante do projeto
 COPY . .
 
-# Build-time env (Vite embeds VITE_* into the build)
+# Build-time env (Vite embute no bundle; isso é PUBLICO)
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
-
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 
+# Build
 RUN npm run build
 
 # Serve stage
