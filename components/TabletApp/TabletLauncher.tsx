@@ -2,9 +2,11 @@
 import React, { useState } from 'react';
 import { QrCode, ArrowLeft, ShieldCheck, Users, GraduationCap, Scan, Search, School, User, Lock, ChevronRight, LogIn } from 'lucide-react';
 import { UserRole, AppState, School as SchoolType, User as UserType } from '../../types';
+import { useQuery } from '@tanstack/react-query';
+import { fetchSchools, fetchUsers } from '../../services/supabaseClient';
 
 interface TabletLauncherProps {
-    state: AppState;
+    state: AppState; // Still needed for overall AppState context (e.g. currentUser role logic from global state if ever needed)
     onSelectApp: (app: 'COORDINATOR' | 'PROFESSOR' | 'STUDENT', payload?: any) => void;
     onBack: () => void;
 }
@@ -21,6 +23,12 @@ export const TabletLauncher = ({ state, onSelectApp, onBack }: TabletLauncherPro
     const [password, setPassword] = useState('');
     const [targetRole, setTargetRole] = useState<UserRole | null>(null);
     const [scanProgress, setScanProgress] = useState(0);
+
+    // Fetch data using useQuery
+    // @-fix: useQuery was called with the wrong syntax. Switched to object syntax.
+    const { data: schools } = useQuery<SchoolType[]>({ queryKey: ['schools'], queryFn: fetchSchools, initialData: [] });
+    // @-fix: useQuery was called with the wrong syntax. Switched to object syntax.
+    const { data: users } = useQuery<UserType[]>({ queryKey: ['users'], queryFn: fetchUsers, initialData: [] });
 
     // --- QR SCANNER LOGIC (Legacy for Prof/Student) ---
     const startScan = (role: UserRole) => {
@@ -76,12 +84,12 @@ export const TabletLauncher = ({ state, onSelectApp, onBack }: TabletLauncherPro
     };
 
     // Filters
-    const filteredSchools = state.schools.filter(s => 
+    const filteredSchools = schools.filter(s => 
         s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
         s.inep.includes(searchTerm)
     );
 
-    const availableCoordinators = state.users.filter(u => 
+    const availableCoordinators = users.filter(u => 
         u.schoolId === selectedSchool?.id && 
         (u.role === UserRole.SUPERVISOR || u.role === UserRole.DIRETOR)
     );

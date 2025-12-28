@@ -52,27 +52,27 @@ const base64ToArrayBuffer = (base64: string): ArrayBuffer => {
     return bytes.buffer;
 };
 
-// 3. Criptografar Objeto (JSON) -> Pacote
-export const encryptPackage = async (data: any, keyJwk: JsonWebKey): Promise<EncryptedPackage> => {
-    const key = await importKey(keyJwk);
-    const iv = window.crypto.getRandomValues(new Uint8Array(12)); // 12 bytes standard for GCM IV
+// 3. Criptografar Objeto (JSON) -> Pacote - REMOVED AS UNUSED
+// export const encryptPackage = async (data: any, keyJwk: JsonWebKey): Promise<EncryptedPackage> => {
+//     const key = await importKey(keyJwk);
+//     const iv = window.crypto.getRandomValues(new Uint8Array(12)); // 12 bytes standard for GCM IV
     
-    const encodedData = new TextEncoder().encode(JSON.stringify(data));
+//     const encodedData = new TextEncoder().encode(JSON.stringify(data));
 
-    const encryptedBuffer = await window.crypto.subtle.encrypt(
-        {
-            name: "AES-GCM",
-            iv: iv
-        },
-        key,
-        encodedData
-    );
+//     const encryptedBuffer = await window.crypto.subtle.encrypt(
+//         {
+//             name: "AES-GCM",
+//             iv: iv
+//         },
+//         key,
+//         encodedData
+//     );
 
-    return {
-        iv: arrayBufferToBase64(iv.buffer),
-        data: arrayBufferToBase64(encryptedBuffer)
-    };
-};
+//     return {
+//         iv: arrayBufferToBase64(iv.buffer),
+//         data: arrayBufferToBase64(encryptedBuffer)
+//     };
+// };
 
 // 4. Descriptografar Pacote -> Objeto
 export const decryptPackage = async (pkg: EncryptedPackage, keyJwk: JsonWebKey): Promise<any> => {

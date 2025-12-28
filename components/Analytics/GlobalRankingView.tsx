@@ -1,8 +1,10 @@
 
 import React, { useState } from 'react';
 import { Award, Trophy, Users, School, MapPin, ChevronRight, X, Filter } from 'lucide-react';
-import { AppState, UserRole } from '../../types';
+import { AppState, UserRole, Student, ExamResult, Exam, ExamRegistration, UserProfileExtended, School as SchoolType, SchoolClass, User } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
+import { useQuery } from '@tanstack/react-query'; // Import useQuery
+import { fetchStudents, fetchResults, fetchExams, fetchRegistrations, fetchUserProfiles, fetchSchools, fetchClasses, fetchUsers } from '../../services/supabaseClient'; // Import fetching functions
 
 interface GlobalRankingViewProps {
     state: AppState;
@@ -10,33 +12,49 @@ interface GlobalRankingViewProps {
 }
 
 export const GlobalRankingView = ({ state, onClose }: GlobalRankingViewProps) => {
-    const analytics = new AnalyticsService(state);
     const { currentUser } = state;
     
+    // Fetch all necessary data via React Query
+    // @fix: Updated useQuery calls to use object-based syntax (v5+)
+    const { data: allStudents } = useQuery<Student[]>({ queryKey: ['students'], queryFn: fetchStudents, initialData: [] });
+    const { data: allResults } = useQuery<ExamResult[]>({ queryKey: ['results'], queryFn: fetchResults, initialData: [] });
+    const { data: allExams } = useQuery<Exam[]>({ queryKey: ['exams'], queryFn: fetchExams, initialData: [] });
+    const { data: allRegistrations } = useQuery<ExamRegistration[]>({ queryKey: ['registrations'], queryFn: fetchRegistrations, initialData: [] });
+    const { data: allUserProfiles } = useQuery<UserProfileExtended[]>({ queryKey: ['userProfiles'], queryFn: fetchUserProfiles, initialData: [] });
+    const { data: allSchools } = useQuery<SchoolType[]>({ queryKey: ['schools'], queryFn: fetchSchools, initialData: [] });
+    const { data: allClasses } = useQuery<SchoolClass[]>({ queryKey: ['classes'], queryFn: fetchClasses, initialData: [] });
+    const { data: allUsers } = useQuery<User[]>({ queryKey: ['users'], queryFn: fetchUsers, initialData: [] });
+
+    const analytics = new AnalyticsService(); // Instantiate without state
+
     // Filtros
     const [selectedSchool, setSelectedSchool] = useState<string>(currentUser?.schoolId || 'ALL');
     const [selectedClass, setSelectedClass] = useState<string>('ALL');
 
     const isTenantAdmin = currentUser?.role === UserRole.TENANT_ADMIN || currentUser?.role === UserRole.SUPER_ADMIN;
-    const availableSchools = isTenantAdmin ? state.schools : state.schools.filter(s => s.id === currentUser?.schoolId);
+    // @fix: Added optional chaining and fallback array
+    const availableSchools = isTenantAdmin ? (allSchools || []) : (allSchools || []).filter(s => s.id === currentUser?.schoolId);
     
-    const availableClasses = state.classes.filter(c => selectedSchool === 'ALL' ? true : c.schoolId === selectedSchool);
+    // @fix: Added optional chaining and fallback array
+    const availableClasses = (allClasses || []).filter(c => selectedSchool === 'ALL' ? true : c.schoolId === selectedSchool);
 
     // Processamento de Dados
-    const allStudents = state.students.filter(s => {
+    // @fix: Added optional chaining and fallback array
+    const filteredStudents = (allStudents || []).filter(s => {
         if (selectedSchool !== 'ALL' && s.schoolId !== selectedSchool) return false;
         if (selectedClass !== 'ALL' && s.classId !== selectedClass) return false;
         if (!isTenantAdmin && s.schoolId !== currentUser?.schoolId) return false;
         return true;
     });
 
-    const rankedStudents = allStudents.map(student => {
-        const stats = analytics.getStudentStats(student.id);
-        const school = state.schools.find(s => s.id === student.schoolId);
-        const sClass = state.classes.find(c => c.id === student.classId);
+    const rankedStudents = filteredStudents.map(student => {
+        // @fix: Provided fallbacks for analytics parameters
+        const stats = analytics.getStudentStats(student.id, allStudents || [], allResults || [], allExams || [], allRegistrations || [], allUserProfiles || []);
+        const school = (allSchools || []).find(s => s.id === student.schoolId);
+        const sClass = (allClasses || []).find(c => c.id === student.classId);
         
         // Encontrar professores da turma
-        const teachers = state.users.filter(u => u.role === UserRole.PROFESSOR && u.classIds?.includes(student.classId));
+        const teachers = (allUsers || []).filter(u => u.role === UserRole.PROFESSOR && u.classIds?.includes(student.classId));
 
         return {
             id: student.id,

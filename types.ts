@@ -92,18 +92,7 @@ export interface Tenant {
 }
 
 export interface SchoolResources {
-    funding: boolean;
-    uniforms: boolean;
-    textbooks: boolean;
-    adminMaterials: boolean;
-    extracurricular: boolean;
-    internet: boolean;
-    lab: boolean;
-    accessibility: boolean;
-    food: boolean;
-    transportation: boolean;
-    security: boolean;
-    ac_cooling: boolean;
+    [key: string]: boolean; // Permite campos dinâmicos adicionados pelo usuário
 }
 
 export interface School {
@@ -120,6 +109,7 @@ export interface SchoolClass {
     name: string;
     series: string;
     shift: string;
+    capacity?: number; // Lotação máxima da turma
 }
 
 export interface Student {
@@ -129,6 +119,16 @@ export interface Student {
     classId: string;
     schoolId: string;
     tenantId: string;
+}
+
+export interface DailyAttendance {
+    id: string;
+    studentId: string;
+    classId: string;
+    professorId: string;
+    date: string; // ISO Date YYYY-MM-DD
+    status: 'PRESENT' | 'ABSENT';
+    timestamp: string; // Exact check-in time
 }
 
 export enum ExamModel {

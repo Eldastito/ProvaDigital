@@ -1,86 +1,80 @@
 
 import React from 'react';
-import { Plus, MoreHorizontal, Clock, FileText, Printer, ClipboardCheck, Globe, School } from 'lucide-react';
-import { AppState, ExamStatus } from '../types';
+import { Plus, MoreHorizontal, Clock, FileText, Printer, ClipboardCheck, Globe, School, Trash2 } from 'lucide-react';
+import { AppState, ExamStatus, Exam, School as SchoolType } from '../types';
 import { Badge } from './ui/Badge';
+import { useAppStore } from '../store/useAppStore'; 
+import { useQuery, useMutation } from '@tanstack/react-query'; 
+import { fetchExams, fetchSchools, deleteExam } from '../services/supabaseClient';
+import { usePermissions } from '../hooks/usePermissions';
 
-export const ExamsListView = ({ state, onNew, onPrint, onGrade }: { state: AppState, onNew: () => void, onPrint: (id: string) => void, onGrade: (id: string) => void }) => {
-    const { currentUser } = state;
+export const ExamsListView = ({ onNew, onPrint, onGrade }: { state: AppState, onNew: () => void, onPrint: (id: string) => void, onGrade: (id: string) => void }) => {
+    const { currentUser } = useAppStore();
+    const { canCreate, canDelete } = usePermissions();
     const userTenantId = currentUser?.tenantId;
-    const userSchoolId = currentUser?.schoolId;
 
-    // GLOBAL ACCESS: Filter by Tenant (SaaS Level), show School Name in card
-    const filteredExams = state.exams.filter(e => e.tenantId === userTenantId);
+    const { data: exams, isLoading: examsLoading } = useQuery<Exam[]>({ queryKey: ['exams'], queryFn: fetchExams });
+    const { data: schools } = useQuery<SchoolType[]>({ queryKey: ['schools'], queryFn: fetchSchools });
+
+    const delExamMutation = useMutation({
+        mutationFn: deleteExam,
+        onSuccess: () => alert("Prova removida com sucesso.")
+    });
+
+    const filteredExams = exams?.filter(e => e.tenantId === userTenantId) || [];
+
+    if (examsLoading) return <div className="p-8 text-center text-slate-500 font-bold">Sincronizando Banco de Provas...</div>;
 
     return (
       <div className="space-y-6 max-w-7xl mx-auto">
         <div className="flex justify-between items-center">
             <div>
-                <h1 className="text-2xl font-bold text-brand-dark flex items-center gap-2">
-                    Banco de Provas (Rede)
-                </h1>
-                <p className="text-sm text-slate-500">Visualize e reutilize provas de toda a rede de ensino.</p>
+                <h1 className="text-3xl font-black text-slate-900 tracking-tight">Banco de Provas</h1>
+                <p className="text-slate-500 font-medium">Gestão centralizada de avaliações da rede.</p>
             </div>
-            <button onClick={onNew} className="btn-gradient px-4 py-2 rounded-lg flex items-center gap-2 font-medium">
-                <Plus size={18} /> Nova Prova
-            </button>
+            {canCreate('EXAM_MGMT') && (
+                <button onClick={onNew} className="btn-premium px-6 py-3 rounded-xl flex items-center gap-2 font-bold shadow-lg">
+                    <Plus size={18} /> Nova Prova
+                </button>
+            )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredExams.map(exam => {
-                const schoolName = state.schools.find(s => s.id === exam.schoolId)?.name || 'Escola Desconhecida';
-                const isMySchool = exam.schoolId === userSchoolId;
+                const schoolName = schools?.find(s => s.id === exam.schoolId)?.name || 'Escola Desconhecida';
+                const isMySchool = exam.schoolId === currentUser?.schoolId;
 
                 return (
-                    <div key={exam.id} className={`bg-white p-6 rounded-xl border shadow-sm flex flex-col hover:shadow-md transition group ${isMySchool ? 'border-brand-secondary/30' : 'border-slate-200'}`}>
-                        <div className="flex justify-between items-start mb-4">
+                    <div key={exam.id} className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col hover:shadow-xl transition-all group">
+                        <div className="flex justify-between items-start mb-6">
                             <Badge color={exam.status === ExamStatus.PUBLISHED ? 'green' : 'gray'}>{exam.status}</Badge>
-                            <div className={`text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center gap-1 ${isMySchool ? 'bg-brand-light text-brand-primary' : 'bg-slate-100 text-slate-400'}`}>
-                                {isMySchool ? <School size={10}/> : <Globe size={10}/>}
-                                <span className="truncate max-w-[120px]" title={schoolName}>{isMySchool ? 'Minha Escola' : schoolName}</span>
+                            <div className="flex items-center gap-1 text-[9px] font-black uppercase text-slate-400 tracking-widest">
+                                <School size={12}/> {schoolName}
                             </div>
                         </div>
-                        <h3 className="font-bold text-lg text-slate-900 mb-1">{exam.title}</h3>
-                        <p className="text-sm text-slate-500 mb-4 line-clamp-2">{exam.description || 'Sem descrição.'}</p>
                         
-                        <div className="mt-auto space-y-3">
-                            <div className="flex items-center text-sm text-slate-600 gap-2">
-                                <Clock size={16} className="text-slate-400"/> {exam.durationMinutes} min
+                        <h3 className="font-black text-xl text-slate-800 mb-2 leading-tight">{exam.title}</h3>
+                        <p className="text-sm text-slate-500 mb-6 line-clamp-2 font-medium">{exam.description || 'Instruções padrão de aplicação ExamePad.'}</p>
+                        
+                        <div className="mt-auto space-y-4">
+                            <div className="flex items-center text-xs font-bold text-slate-400 gap-6">
+                                <span className="flex items-center gap-1"><Clock size={14}/> {exam.durationMinutes} MIN</span>
+                                <span className="flex items-center gap-1"><FileText size={14}/> {exam.items.length} QUESTÕES</span>
                             </div>
-                            <div className="flex items-center text-sm text-slate-600 gap-2">
-                                <FileText size={16} className="text-slate-400"/> {exam.items.length} questões
-                            </div>
-                            <div className="pt-4 border-t flex justify-between items-center gap-2">
-                                <span className="text-xs text-slate-400 flex-1">Criada em {new Date(exam.createdAt).toLocaleDateString()}</span>
-                                
-                                <div className="flex gap-3">
-                                    <button 
-                                        onClick={() => onPrint(exam.id)}
-                                        className="text-slate-500 font-medium text-sm hover:text-brand-primary flex items-center gap-1 transition"
-                                        title="Imprimir / Visualizar"
-                                    >
-                                        <Printer size={18} />
-                                    </button>
-                                    {exam.status === ExamStatus.PUBLISHED && (
-                                        <button 
-                                            onClick={() => onGrade(exam.id)}
-                                            className="text-brand-secondary font-medium text-sm hover:text-cyan-700 flex items-center gap-1 transition"
-                                            title="Lançar Notas"
-                                        >
-                                            <ClipboardCheck size={18} />
-                                        </button>
-                                    )}
+                            
+                            <div className="pt-6 border-t border-slate-100 flex justify-between items-center">
+                                <div className="flex gap-2">
+                                    <button onClick={() => onPrint(exam.id)} className="p-2.5 bg-slate-50 text-slate-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm" title="Imprimir"><Printer size={18} /></button>
+                                    <button onClick={() => onGrade(exam.id)} className="p-2.5 bg-slate-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm" title="Lançar Notas"><ClipboardCheck size={18} /></button>
                                 </div>
+                                {canDelete('EXAM_MGMT') && (
+                                    <button onClick={() => confirm("Excluir esta prova permanentemente?") && delExamMutation.mutate(exam.id)} className="p-2.5 text-slate-300 hover:text-rose-600 transition-colors" title="Excluir"><Trash2 size={18}/></button>
+                                )}
                             </div>
                         </div>
                     </div>
                 );
             })}
-            {filteredExams.length === 0 && (
-                <div className="col-span-3 py-12 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-                    <p className="text-slate-400 font-medium">Nenhuma prova encontrada nesta rede.</p>
-                </div>
-            )}
         </div>
       </div>
     );

@@ -1,12 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { QrCode, ArrowLeft, Users, Server, FileText, CheckCircle, X, AlertTriangle, Layers, Scan, MapPin, User } from 'lucide-react';
-import { AppState, ExamEvent, EventStatus } from '../../types';
-import { encryptPackage, generateEventKey } from '../../services/cryptoService';
+import { AppState, ExamEvent, EventStatus, School as SchoolType, SchoolClass, Exam, Student } from '../../types';
+// @-fix: Removed unused import 'encryptPackage'.
+import { generateEventKey } from '../../services/cryptoService';
 import { QRDataTransfer } from '../../services/qrCodecService';
+import { useQuery } from '@tanstack/react-query'; // Import useQuery
+import { fetchSchools, fetchClasses, fetchExams, fetchStudents } from '../../services/supabaseClient'; // Import fetching functions
 
 interface CoordinatorAppProps {
-    state: AppState;
+    state: AppState; // Keep state prop for currentUser access if needed in future
     initialPayload?: any; // Contains schoolId, userId, userName
     onBack: () => void;
     onSyncUp: (events: ExamEvent[]) => void;
@@ -18,12 +21,23 @@ interface RoundData {
     absent: number;
 }
 
-export const CoordinatorApp = ({ state, initialPayload, onBack, onSyncUp }: CoordinatorAppProps) => {
+export const CoordinatorApp = ({ state, initialPayload, onBack, onSyncUp }: CoordinatorAppProps) => { // Keep state prop
     // Extract data passed from Launcher
     const coordinatorSchoolId = initialPayload?.schoolId || 's1'; // Fallback only for dev
     const coordinatorName = initialPayload?.userName || 'Coordenador';
     
-    const school = state.schools.find(s => s.id === coordinatorSchoolId);
+    // Fetch data using useQuery
+    // @-fix: useQuery was called with the wrong syntax. Switched to object syntax.
+    const { data: schools } = useQuery<SchoolType[]>({ queryKey: ['schools'], queryFn: fetchSchools });
+    // @-fix: useQuery was called with the wrong syntax. Switched to object syntax.
+    const { data: classes } = useQuery<SchoolClass[]>({ queryKey: ['classes'], queryFn: fetchClasses });
+    // @-fix: useQuery was called with the wrong syntax. Switched to object syntax.
+    const { data: exams } = useQuery<Exam[]>({ queryKey: ['exams'], queryFn: fetchExams });
+    // @-fix: useQuery was called with the wrong syntax. Switched to object syntax.
+    const { data: students } = useQuery<Student[]>({ queryKey: ['students'], queryFn: fetchStudents });
+
+    // @-fix: Added optional chaining to safely call .find() on data from useQuery.
+    const school = schools?.find(s => s.id === coordinatorSchoolId);
     
     const [view, setView] = useState<'LIST' | 'ROUNDS' | 'DISTRIBUTE_QR' | 'SCAN_ATTENDANCE'>('LIST');
     const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
@@ -31,8 +45,9 @@ export const CoordinatorApp = ({ state, initialPayload, onBack, onSyncUp }: Coor
     const [currentQrIndex, setCurrentQrIndex] = useState(0);
 
     // Filter data for THIS school only
-    const schoolClasses = state.classes.filter(c => c.schoolId === coordinatorSchoolId);
-    const schoolExams = state.exams.filter(e => e.schoolId === coordinatorSchoolId);
+    // @-fix: Added optional chaining and a fallback array to safely call .filter() on data from useQuery.
+    const schoolClasses = classes?.filter(c => c.schoolId === coordinatorSchoolId) || [];
+    const schoolExams = exams?.filter(e => e.schoolId === coordinatorSchoolId) || [];
 
     // Attendance Tracking State
     const [roundsData, setRoundsData] = useState<Record<string, RoundData>>({});
@@ -44,7 +59,7 @@ export const CoordinatorApp = ({ state, initialPayload, onBack, onSyncUp }: Coor
             initRounds[c.id] = { checked: false, surplus: 0, absent: 0 };
         });
         setRoundsData(initRounds);
-    }, [coordinatorSchoolId]); // Reset if school changes (unlikely in session but good practice)
+    }, [schoolClasses]); // Reset if school changes (unlikely in session but good practice)
 
     useEffect(() => {
         // QR Loop Animation
@@ -68,7 +83,8 @@ export const CoordinatorApp = ({ state, initialPayload, onBack, onSyncUp }: Coor
         const keyPair = await generateEventKey(eventId);
 
         // 2. Create Payload for Professor Tablet
-        const students = state.students.filter(s => s.classId === classId);
+        // @-fix: Added optional chaining and a fallback array to safely call .filter() on data from useQuery.
+        const studentsInClass = students?.filter(s => s.classId === classId) || []; // Use students from useQuery
         
         const payload = {
             type: 'CLASS_PACKAGE',
@@ -76,7 +92,7 @@ export const CoordinatorApp = ({ state, initialPayload, onBack, onSyncUp }: Coor
             className: targetClass.name,
             eventId: eventId,
             key: keyPair.keyMaterial, // Professor gets the key to distribute
-            students: students.map(s => ({ id: s.id, name: s.name, reg: s.registrationNumber })),
+            students: studentsInClass.map(s => ({ id: s.id, name: s.name, reg: s.registrationNumber })),
             examContent: exam // In real scenario, this might be encrypted too or just config
         };
 

@@ -48,16 +48,3 @@ export const getEventsFromDb = async (): Promise<ExamEvent[]> => {
         return [];
     }
 };
-
-export const getStoredSessionsCount = async (): Promise<number> => {
-    try {
-        return await db.studentSessions.count();
-    } catch (e) {
-        return 0;
-    }
-};
-
-export const clearDb = async () => {
-    await db.examEvents.clear();
-    await db.studentSessions.clear();
-};

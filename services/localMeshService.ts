@@ -78,17 +78,18 @@ class LocalMeshService {
         this.channel.postMessage(msg);
     }
 
-    public sendTo(targetId: string, type: MeshMessageType, payload: any) {
-        if (!this.channel) return;
-        const msg: MeshMessage = {
-            type,
-            sender: this.peer,
-            targetId,
-            payload,
-            timestamp: Date.now()
-        };
-        this.channel.postMessage(msg);
-    }
+    // REMOVED as unused
+    // public sendTo(targetId: string, type: MeshMessageType, payload: any) {
+    //     if (!this.channel) return;
+    //     const msg: MeshMessage = {
+    //         type,
+    //         sender: this.peer,
+    //         targetId,
+    //         payload,
+    //         timestamp: Date.now()
+    //     };
+    //     this.channel.postMessage(msg);
+    // }
 
     private announce() {
         if (!this.peer.isOnline || !this.channel) return;

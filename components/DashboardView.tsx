@@ -19,7 +19,7 @@ export const DashboardView = ({ state, setView }: { state: AppState, setView: (v
   if (currentUser?.role === UserRole.PAIS) {
       // Em um app real, o pai selecionaria qual filho visualizar.
       // Para este MVP, assumimos o vinculo com o primeiro estudante do mock ou passamos o user do pai e o componente resolve.
-      return <StudentDashboardView state={state} user={currentUser} />;
+      return <StudentDashboardView state={state} user={currentUser} setView={setView} />;
   }
 
   // --- 3. DASHBOARD DE GESTÃO (DIRETOR) ---

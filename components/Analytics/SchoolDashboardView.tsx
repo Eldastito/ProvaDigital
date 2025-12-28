@@ -1,27 +1,75 @@
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { BarChart, Users, AlertTriangle, Award, Brain, Lock } from 'lucide-react';
-import { AppState, RiskLevel } from '../../types';
+import { AppState, RiskLevel, Student, ExamResult, Exam, ExamRegistration, UserProfileExtended, StudentStats, StudentProfile } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
+import { GlobalRankingView } from './GlobalRankingView';
+import { useQuery } from '@tanstack/react-query';
+import { fetchStudents, fetchResults, fetchExams, fetchRegistrations, fetchUserProfiles, fetchStudentProfiles } from '../../services/supabaseClient';
 
 export const SchoolDashboardView = ({ state }: { state: AppState }) => {
-    const analytics = new AnalyticsService(state);
+    const { currentUser } = state;
+    const schoolId = currentUser?.schoolId;
+
+    // Fetch all necessary data via React Query
+    const { data: allStudents } = useQuery<Student[]>({ queryKey: ['students'], queryFn: fetchStudents, initialData: [] });
+    const { data: allResults } = useQuery<ExamResult[]>({ queryKey: ['results'], queryFn: fetchResults, initialData: [] });
+    const { data: allExams } = useQuery<Exam[]>({ queryKey: ['exams'], queryFn: fetchExams, initialData: [] });
+    const { data: allRegistrations } = useQuery<ExamRegistration[]>({ queryKey: ['registrations'], queryFn: fetchRegistrations, initialData: [] });
+    const { data: allUserProfiles } = useQuery<UserProfileExtended[]>({ queryKey: ['userProfiles'], queryFn: fetchUserProfiles, initialData: [] });
+    const { data: allStudentProfiles } = useQuery<StudentProfile[]>({ queryKey: ['studentProfiles'], queryFn: fetchStudentProfiles, initialData: [] });
+
+    // Initialize AnalyticsService with fetched data
+    const analytics = useMemo(() => new AnalyticsService(), []);
+
+    // Filter data for the current school
+    const schoolStudents = allStudents?.filter(s => s.schoolId === schoolId) || [];
 
     // Calculate overall stats
-    const allStats = state.students.map(s => analytics.getStudentStats(s.id)).filter(Boolean) as any[];
-    const atRiskCount = allStats.filter(s => s.riskLevel !== RiskLevel.LOW).length;
+    const allStats = schoolStudents.map(s => analytics.getStudentStats(s.id, allStudents || [], allResults || [], allExams || [], allRegistrations || [], allUserProfiles || [])).filter(Boolean) as StudentStats[];
+    const atRiskCount: number = allStats.filter(s => s.riskLevel !== RiskLevel.LOW).length;
     const totalAvg = allStats.reduce((acc, curr) => acc + curr.idgScore, 0) / (allStats.length || 1);
 
     // Ranking Logic
     const topStudents = [...allStats].sort((a, b) => b.idgScore - a.idgScore).slice(0, 5);
 
-    // Learning Channel Stats
-    const channelCounts = state.studentProfiles?.reduce((acc, curr) => {
-        acc[curr.learningChannel] = (acc[curr.learningChannel] || 0) + 1;
-        return acc;
-    }, {} as Record<string, number>) || {};
+    // --- DYNAMIC LEARNING PROFILE STATS ---
+    const schoolStudentProfiles = useMemo(() => {
+        const schoolStudentIds = new Set(schoolStudents.map(s => s.id));
+        return (allStudentProfiles || []).filter(p => schoolStudentIds.has(p.studentId));
+    }, [schoolStudents, allStudentProfiles]);
+
+    const channelCounts = useMemo(() => {
+        const initialValue: Record<string, number> = {};
+        return schoolStudentProfiles.reduce((acc, profile) => {
+            if (profile.learningChannel) {
+                acc[profile.learningChannel] = (acc[profile.learningChannel] || 0) + 1;
+            }
+            return acc;
+        }, initialValue);
+    }, [schoolStudentProfiles]);
+
+    const dominantProfile = useMemo(() => {
+        const totalWithChannel = schoolStudentProfiles.filter(p => p.learningChannel).length;
+        const channelNames = Object.keys(channelCounts);
+
+        if (totalWithChannel === 0 || channelNames.length === 0) {
+            return { name: 'N/A', percentage: 0 };
+        }
+
+        const dominantName = channelNames.reduce((a, b) => channelCounts[a] > channelCounts[b] ? a : b);
+        
+        const dominantCount = channelCounts[dominantName];
+        const percentage = (dominantCount / totalWithChannel) * 100;
+
+        return { name: dominantName, percentage };
+    }, [channelCounts, schoolStudentProfiles]);
 
     const { rankingEnabled, rankingAnonymity } = state.settings;
+
+    const totalStudentsInSchool = allStats.length;
+    // FIX: Renamed variable and calculation logic for clarity as per user feedback
+    const atRiskPercentage: number = totalStudentsInSchool > 0 ? (atRiskCount / totalStudentsInSchool) * 100 : 0;
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto">
@@ -38,13 +86,14 @@ export const SchoolDashboardView = ({ state }: { state: AppState }) => {
                     <div className="text-3xl font-black text-slate-800">{totalAvg.toFixed(1)}</div>
                  </div>
 
-                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                 <div className="bg-white p-6 rounded-xl border border-rose-200 shadow-sm">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 bg-rose-50 rounded-lg text-rose-600"><AlertTriangle size={20}/></div>
                         <span className="text-sm font-bold text-slate-500 uppercase">Alunos em Risco</span>
                     </div>
                     <div className="text-3xl font-black text-slate-800">{atRiskCount}</div>
-                    <div className="text-xs text-rose-600 mt-1 font-bold">{((atRiskCount / (allStats.length || 1))*100).toFixed(0)}% da escola</div>
+                    {/* FIX: Corrected label to accurately reflect the calculated percentage */}
+                    <div className="text-xs text-rose-600 mt-1 font-bold">{`${atRiskPercentage.toFixed(0)}% da escola em risco`}</div>
                  </div>
 
                  <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
@@ -52,8 +101,13 @@ export const SchoolDashboardView = ({ state }: { state: AppState }) => {
                         <div className="p-2 bg-purple-50 rounded-lg text-purple-600"><Brain size={20}/></div>
                         <span className="text-sm font-bold text-slate-500 uppercase">Perfil Dominante</span>
                     </div>
-                    <div className="text-3xl font-black text-slate-800">Visual</div>
-                    <div className="text-xs text-purple-600 mt-1 font-bold">45% dos alunos</div>
+                    {/* FIX: Made dominant profile dynamic */}
+                    <div className="text-3xl font-black text-slate-800 capitalize">
+                        {dominantProfile.name !== 'N/A' ? dominantProfile.name.toLowerCase() : 'Nenhum'}
+                    </div>
+                    <div className="text-xs text-purple-600 mt-1 font-bold">
+                        {dominantProfile.name !== 'N/A' ? `${dominantProfile.percentage.toFixed(0)}% dos alunos` : 'Sem dados de perfil'}
+                    </div>
                  </div>
             </div>
 
@@ -72,7 +126,7 @@ export const SchoolDashboardView = ({ state }: { state: AppState }) => {
                     {rankingEnabled ? (
                         <div className="space-y-4">
                             {topStudents.map((stat, idx) => {
-                                const student = state.students.find(s => s.id === stat.studentId);
+                                const student = allStudents?.find(s => s.id === stat.studentId);
                                 const displayName = rankingAnonymity === 'NOMINAL' 
                                     ? student?.name 
                                     : `Aluno ${student?.registrationNumber?.slice(-4) || '****'}`;
@@ -84,7 +138,7 @@ export const SchoolDashboardView = ({ state }: { state: AppState }) => {
                                                 {idx + 1}
                                             </div>
                                             <div className="font-bold text-slate-700">
-                                                {displayName}
+                                                {displayName as React.ReactNode}
                                             </div>
                                         </div>
                                         <div className="font-black text-brand-primary">{stat.idgScore.toFixed(1)}</div>
@@ -106,7 +160,8 @@ export const SchoolDashboardView = ({ state }: { state: AppState }) => {
                     <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2"><Brain size={20} className="text-purple-500"/> Canais de Aprendizagem (Psicopedagogia)</h3>
                     <div className="space-y-4">
                         {Object.entries(channelCounts).map(([channel, count]) => {
-                            const percentage = (count / (state.studentProfiles?.length || 1)) * 100;
+                            // FIX: Corrected percentage calculation to be based on school-specific profiles
+                            const percentage = (Number(count) / (schoolStudentProfiles.filter(p => p.learningChannel).length || 1)) * 100;
                             return (
                                 <div key={channel}>
                                     <div className="flex justify-between text-xs mb-1 font-bold text-slate-600">
@@ -122,7 +177,7 @@ export const SchoolDashboardView = ({ state }: { state: AppState }) => {
                                 </div>
                             )
                         })}
-                        {(!state.studentProfiles || state.studentProfiles.length === 0) && <p className="text-slate-400 text-sm">Nenhum perfil cadastrado.</p>}
+                        {schoolStudentProfiles.length === 0 && <p className="text-slate-400 text-sm">Nenhum perfil cadastrado.</p>}
                     </div>
                 </div>
 
@@ -131,8 +186,9 @@ export const SchoolDashboardView = ({ state }: { state: AppState }) => {
                     <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2"><AlertTriangle size={20} className="text-rose-500"/> Atenção Necessária</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-80 overflow-y-auto">
                         {allStats.filter(s => s.riskLevel !== RiskLevel.LOW).map(stat => {
-                            const student = state.students.find(s => s.id === stat.studentId);
-                            const profile = state.studentProfiles?.find(p => p.studentId === stat.studentId);
+                            const student = allStudents?.find(s => s.id === stat.studentId);
+                            // FIX: use school-specific profiles here too
+                            const profile = schoolStudentProfiles.find(p => p.studentId === stat.studentId);
                             return (
                                 <div key={stat.studentId} className="flex justify-between items-center p-3 bg-slate-50 border border-slate-100 rounded-lg">
                                     <div>

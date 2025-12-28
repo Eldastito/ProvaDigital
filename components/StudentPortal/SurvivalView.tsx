@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Heart, Shield, Zap, Flame, Trophy, Coins, SkipForward, AlertTriangle, ArrowRight, CheckCircle, XCircle, LogOut } from 'lucide-react';
 import { AppState, User, QuestionType, UserProfileExtended, Item, DifficultyLevel, ItemOrigin } from '../../types';
+import { useQuery } from '@tanstack/react-query';
+import { fetchItems, fetchUserProfiles } from '../../services/supabaseClient';
 
 interface SurvivalViewProps {
     state: AppState;
@@ -19,8 +21,14 @@ const SURVIVAL_MOCK_QUESTIONS: Item[] = [
 ];
 
 export const SurvivalView = ({ state, user, onUpdateProfile }: SurvivalViewProps) => {
+    // Fetch necessary data via React Query
+    // @fix: Updated useQuery to new object syntax
+    const { data: allItems } = useQuery<Item[]>({ queryKey: ['items'], queryFn: fetchItems, initialData: [] });
+    const { data: allUserProfiles } = useQuery<UserProfileExtended[]>({ queryKey: ['userProfiles'], queryFn: fetchUserProfiles, initialData: [] });
+
     // User Profile for Coins
-    const userProfile: UserProfileExtended = state.userProfiles?.find(p => p.userId === user.id) || {
+    // @fix: Use optional chaining to safely access find
+    const userProfile: UserProfileExtended = (allUserProfiles || [])?.find(p => p.userId === user.id) || {
         userId: user.id,
         avatarUrl: '',
         bio: '',
@@ -42,10 +50,14 @@ export const SurvivalView = ({ state, user, onUpdateProfile }: SurvivalViewProps
     const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
     const [eliminatedAlts, setEliminatedAlts] = useState<string[]>([]); // For 50/50 power-up
 
+    // @fix: Hoist currentQ to be accessible in the entire render scope
+    const currentQ = questionsQueue[currentQIndex];
+
     // Init Game
     const startGame = () => {
         // Mix real items with mocks to ensure infinite play feel
-        const pool = [...state.items.filter(i => i.type === QuestionType.MULTIPLE_CHOICE), ...SURVIVAL_MOCK_QUESTIONS];
+        // @fix: Use optional chaining to safely access filter
+        const pool = [...(allItems || [])?.filter(i => i.type === QuestionType.MULTIPLE_CHOICE), ...SURVIVAL_MOCK_QUESTIONS];
         // Shuffle pool
         const shuffled = pool.sort(() => 0.5 - Math.random());
         
@@ -70,7 +82,6 @@ export const SurvivalView = ({ state, user, onUpdateProfile }: SurvivalViewProps
         if (selectedAlt) return; // Prevent double click
         
         setSelectedAlt(altId);
-        const currentQ = questionsQueue[currentQIndex];
         const correctAlt = currentQ.alternatives.find((a: any) => a.isCorrect);
         const correct = correctAlt?.id === altId;
 
@@ -127,7 +138,8 @@ export const SurvivalView = ({ state, user, onUpdateProfile }: SurvivalViewProps
         if (userProfile.owlCoins < 40) return alert("Moedas insuficientes!");
         if (eliminatedAlts.length > 0) return; // Already active
 
-        const currentQ = questionsQueue[currentQIndex];
+        // @fix: Ensure currentQ is available
+        if (!currentQ) return;
         const correctId = currentQ.alternatives.find((a: any) => a.isCorrect)?.id;
         const wrongIds = currentQ.alternatives.filter((a: any) => a.id !== correctId).map((a: any) => a.id);
         
@@ -143,13 +155,11 @@ export const SurvivalView = ({ state, user, onUpdateProfile }: SurvivalViewProps
         onUpdateProfile(newProfile);
     };
 
-    const currentQ = questionsQueue[currentQIndex];
-
     // --- RENDER ---
 
     if (gameState === 'START') {
         return (
-            <div className="h-full flex flex-col items-center justify-center p-6 animate-in zoom-in-95">
+            <div className="h-full flex flex-col items-center justify-center p-6 animate-in zoom-in-95 overflow-y-auto">
                 <div className="max-w-md w-full bg-slate-900 text-white rounded-3xl shadow-2xl border-4 border-slate-700 p-8 text-center relative overflow-hidden">
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>
                     <div className="relative z-10">
@@ -208,6 +218,14 @@ export const SurvivalView = ({ state, user, onUpdateProfile }: SurvivalViewProps
                 </button>
             </div>
         );
+    }
+
+    if (!currentQ) {
+        return (
+            <div className="h-full flex flex-col items-center justify-center">
+                <p className="text-slate-500">Carregando questões...</p>
+            </div>
+        )
     }
 
     return (
@@ -271,7 +289,7 @@ export const SurvivalView = ({ state, user, onUpdateProfile }: SurvivalViewProps
                         let btnClass = "bg-white border-2 border-slate-200 text-slate-600 hover:border-slate-400 hover:bg-slate-50"; // Default
                         
                         if (isEliminated) {
-                            btnClass = "bg-slate-100 border-slate-200 text-slate-300 opacity-50 cursor-not-allowed";
+                            btnClass = "bg-slate-100 border-2 border-slate-200 text-slate-300 opacity-50 cursor-not-allowed";
                         } else if (selectedAlt) {
                             if (alt.isCorrect) btnClass = "bg-emerald-500 border-emerald-600 text-white shadow-md scale-[1.02]";
                             else if (isSelected && !alt.isCorrect) btnClass = "bg-rose-500 border-rose-600 text-white opacity-80 shake";

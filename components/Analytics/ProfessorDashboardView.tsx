@@ -1,404 +1,421 @@
 
-import React, { useState } from 'react';
-import { BookOpen, FileText, GraduationCap, Users, Plus, Tablet, BarChart, ChevronDown, ChevronUp, Search, AlertCircle, TrendingUp, ArrowRight, Target, Star, ShieldAlert, ClipboardCheck, Brain, Clock, MousePointer2, PenTool, Grip } from 'lucide-react';
-import { AppState, UserRole, ExamStatus } from '../../types';
+import React, { useState, useMemo } from 'react';
+import { FileText, Plus, Tablet, Users, Brain, ClipboardCheck, ArrowRight, Search, ShieldAlert, Clock, Star, Target, Activity, AlertTriangle, CheckSquare, Zap, ShieldCheck, Sparkles, X, Loader2, Download, Info, Check, XCircle, Calendar, MapPin, School as SchoolIcon } from 'lucide-react';
+import { AppState, UserRole, ExamStatus, Student, SchoolClass, ExamResult, Exam, ExamRegistration, UserProfileExtended, RiskLevel, DailyAttendance } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { fetchStudents, fetchClasses, fetchExams, fetchResults, fetchRegistrations, fetchUserProfiles, insertLessonPlan, fetchAttendance, upsertAttendance } from '../../services/supabaseClient';
+import { generateLessonPlanSuggestions } from '../../services/geminiService';
+import { uuidv4 } from '../../utils/helpers';
 
-interface ProfessorDashboardViewProps {
-    state: AppState;
-    setView: (view: string) => void;
-}
-
-// Componente de Gráfico de Distribuição Simples (SVG)
-const DistributionChart = ({ grades }: { grades: number[] }) => {
-    const buckets = [0, 0, 0, 0, 0]; // 0-2, 2-4, 4-6, 6-8, 8-10
-    grades.forEach(g => {
-        const idx = Math.min(4, Math.floor(g / 2));
-        buckets[idx]++;
-    });
-    const maxVal = Math.max(...buckets, 1);
-
-    return (
-        <div className="h-40 flex items-end justify-between gap-2 w-full">
-            {buckets.map((count, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center group">
-                    <div className="relative w-full flex items-end justify-center h-full">
-                        <div 
-                            className={`w-full rounded-t-md transition-all duration-500 ${i < 2 ? 'bg-rose-400' : i === 2 ? 'bg-amber-400' : 'bg-emerald-400'} group-hover:opacity-80`}
-                            style={{ height: `${(count / maxVal) * 100}%` }}
-                        >
-                            {count > 0 && <span className="block text-center text-[10px] font-bold text-white mt-1">{count}</span>}
-                        </div>
-                    </div>
-                    <span className="text-[10px] text-slate-500 mt-1 font-medium">{i*2}-{(i+1)*2}</span>
-                </div>
-            ))}
-        </div>
-    );
-};
-
-export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardViewProps) => {
+export const ProfessorDashboardView = ({ state, setView }: { state: AppState, setView: (v: string) => void }) => {
     const { currentUser } = state;
-    const analytics = new AnalyticsService(state);
-    const isProfessor = currentUser?.role === UserRole.PROFESSOR;
-    const [selectedClassId, setSelectedClassId] = useState<string>('');
-    const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
-    const [showIntegrityFilter, setShowIntegrityFilter] = useState(false);
+    const analytics = useMemo(() => new AnalyticsService(), []);
 
-    // Data
-    const professorClasses = isProfessor 
-        ? state.classes.filter(c => currentUser.classIds?.includes(c.id))
-        : [];
+    const [activeSection, setActiveSection] = useState<'ANALYTICS' | 'ATTENDANCE'>('ANALYTICS');
 
-    // Initial selection
-    if (isProfessor && professorClasses.length > 0 && !selectedClassId) {
-        setSelectedClassId(professorClasses[0].id);
-    }
-
-    // My Exams (Active/Recent)
-    const myExams = state.exams.filter(e => e.creatorId === currentUser?.id || (e.classIds.some(c => currentUser?.classIds?.includes(c))));
-
-    const selectedClass = state.classes.find(c => c.id === selectedClassId);
-    const classStudents = state.students.filter(s => s.classId === selectedClassId);
+    const { data: allStudents } = useQuery<Student[]>({ queryKey: ['students'], queryFn: fetchStudents, initialData: [] });
+    const { data: allClasses } = useQuery<SchoolClass[]>({ queryKey: ['classes'], queryFn: fetchClasses, initialData: [] });
+    const { data: allExams } = useQuery<Exam[]>({ queryKey: ['exams'], queryFn: fetchExams, initialData: [] });
+    const { data: allResults } = useQuery<ExamResult[]>({ queryKey: ['results'], queryFn: fetchResults, initialData: [] });
+    const { data: allRegistrations } = useQuery<ExamRegistration[]>({ queryKey: ['registrations'], queryFn: fetchRegistrations, initialData: [] });
+    const { data: allUserProfiles } = useQuery<UserProfileExtended[]>({ queryKey: ['userProfiles'], queryFn: fetchUserProfiles, initialData: [] });
     
-    // Process Stats for Class (Include Cheating Flags from Last Exam)
-    const studentStats = classStudents.map(s => {
-        const results = state.results
-            .filter(r => r.studentId === s.id)
-            .sort((a, b) => new Date(b.gradedAt).getTime() - new Date(a.gradedAt).getTime());
-            
-        const totalViolations = results.reduce((acc, r) => acc + (r.violationCount || 0), 0);
-        // Use the most recent exam for detailed flags
-        const lastExamFlags = results.length > 0 ? results[0].securityFlags : [];
+    const todayStr = new Date().toISOString().split('T')[0];
+    const { data: todayAttendance } = useQuery<DailyAttendance[]>({ 
+        queryKey: ['attendance', todayStr], 
+        queryFn: () => fetchAttendance(todayStr),
+        initialData: [] 
+    });
 
-        // Cluster Identification Logic (Mock for Demo)
-        let behaviorCluster = 'NORMAL'; // NORMAL, RAPID_PREC, SLOW_PREC, RAPID_ERR, SLOW_ERR
-        const grade = analytics.getStudentStats(s.id)?.idgScore || 0;
-        if (grade > 8) behaviorCluster = 'RAPID_PREC';
-        else if (grade > 6) behaviorCluster = 'SLOW_PREC';
-        else if (grade > 4) behaviorCluster = 'SLOW_ERR';
-        else behaviorCluster = 'RAPID_ERR';
+    const [selectedClassId, setSelectedClassId] = useState<string>('');
+    const [isLessonPlanModalOpen, setIsLessonPlanModalOpen] = useState(false);
+    const [lessonPlanTopic, setLessonPlanTopic] = useState('');
+    const [generatedPlan, setGeneratedPlan] = useState<string | null>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
 
-        return {
-            ...s,
-            stats: analytics.getStudentStats(s.id),
-            violations: totalViolations,
-            lastFlags: lastExamFlags,
-            behaviorCluster
+    // Filtra apenas as turmas que o professor logado tem aula
+    const professorClasses = useMemo(() => 
+        (allClasses || []).filter(c => currentUser?.classIds?.includes(c.id)),
+    [allClasses, currentUser]);
+
+    React.useEffect(() => {
+        if (professorClasses.length > 0 && !selectedClassId) {
+            setSelectedClassId(professorClasses[0].id);
+        }
+    }, [professorClasses, selectedClassId]);
+
+    const studentStats = useMemo(() => {
+        const classStudents = (allStudents || []).filter(s => s.classId === selectedClassId);
+        return classStudents.map(s => {
+            const stats = analytics.getStudentStats(s.id, allStudents || [], allResults || [], allExams || [], allRegistrations || [], allUserProfiles || []);
+            const rankings = analytics.getRankings(s.id, allStudents || [], allResults || [], allExams || [], allRegistrations || [], allUserProfiles || []);
+            const results = (allResults || []).filter(r => r.studentId === s.id);
+            const violations = results.reduce((acc, r) => acc + (r.violationCount || 0), 0);
+            const presence = todayAttendance?.find(a => a.studentId === s.id);
+            return { ...s, stats, rankings, violations, presence };
+        });
+    }, [selectedClassId, allStudents, allResults, allExams, allRegistrations, allUserProfiles, todayAttendance, analytics]);
+
+    const metrics = useMemo(() => {
+        if (studentStats.length === 0) return { avg: 0, risk: 0, violations: 0 };
+        const avg = studentStats.reduce((acc, s) => acc + (s.stats?.idgScore || 0), 0) / studentStats.length;
+        const risk = studentStats.filter(s => s.stats?.riskLevel !== RiskLevel.LOW).length;
+        const violations = studentStats.reduce((acc, s) => acc + s.violations, 0);
+        return { avg, risk, violations };
+    }, [studentStats]);
+
+    const attendanceMutation = useMutation({
+        mutationFn: upsertAttendance,
+        onSuccess: () => {
+            // Sucesso silencioso para feedback fluido
+        }
+    });
+
+    const togglePresence = (studentId: string, currentStatus: 'PRESENT' | 'ABSENT' | undefined) => {
+        const nextStatus = currentStatus === 'PRESENT' ? 'ABSENT' : 'PRESENT';
+        const attendance: DailyAttendance = {
+            id: `${todayStr}_${studentId}`,
+            studentId,
+            classId: selectedClassId,
+            professorId: currentUser?.id || '',
+            date: todayStr,
+            status: nextStatus,
+            timestamp: new Date().toISOString()
         };
-    }).sort((a, b) => (b.stats?.idgScore || 0) - (a.stats?.idgScore || 0));
-
-    // Filter Logic
-    const filteredStudents = showIntegrityFilter 
-        ? studentStats.filter(s => s.violations > 0) 
-        : studentStats;
-
-    const classAverage = studentStats.reduce((acc, s) => acc + (s.stats?.idgScore || 0), 0) / (studentStats.length || 1);
-    const gradesList = studentStats.map(s => s.stats?.idgScore || 0);
-    const cheatingAttempts = studentStats.reduce((acc, s) => acc + s.violations, 0);
-    const studentsWithFlags = studentStats.filter(s => s.violations > 0).length;
-
-    const getAiSuggestion = (studentName: string, weakSubject: string) => {
-        return `Sugerir revisão do capítulo 4 de ${weakSubject}. O aluno apresenta dificuldade em conceitos base.`;
+        attendanceMutation.mutate([attendance]);
     };
 
-    // Cluster Stats
-    const clusterCounts = {
-        RAPID_PREC: studentStats.filter(s => s.behaviorCluster === 'RAPID_PREC').length,
-        SLOW_PREC: studentStats.filter(s => s.behaviorCluster === 'SLOW_PREC').length,
-        SLOW_ERR: studentStats.filter(s => s.behaviorCluster === 'SLOW_ERR').length,
-        RAPID_ERR: studentStats.filter(s => s.behaviorCluster === 'RAPID_ERR').length
+    const handleGenerateLessonPlan = async () => {
+        if (!lessonPlanTopic.trim()) return;
+        setIsGenerating(true);
+        try {
+            const currentClass = professorClasses.find(c => c.id === selectedClassId);
+            const plan = await generateLessonPlanSuggestions(
+                lessonPlanTopic,
+                "Disciplina Geral",
+                currentClass?.series || "Ensino Fundamental",
+                "" 
+            );
+            setGeneratedPlan(plan);
+        } catch (error) {
+            console.error(error);
+            alert("Erro ao gerar plano de aula.");
+        } finally {
+            setIsGenerating(false);
+        }
     };
 
     return (
-        <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-500">
-            
-            {/* Top Header & Actions */}
-            <div className="flex items-center justify-between">
+        <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-500 pb-12">
+            {/* Header com Ações Rápidas */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-brand-dark">Painel do Professor</h1>
-                    <p className="text-slate-500 mt-1">Gestão de turmas, provas e acompanhamento individualizado.</p>
+                    <h1 className="text-4xl font-black text-brand-dark tracking-tighter uppercase italic">Painel Pedagógico</h1>
+                    <p className="text-slate-500 font-medium text-lg mt-1">Gestão de turmas e monitoramento de aprendizagem.</p>
                 </div>
-                <div className="flex gap-3">
-                    <button onClick={() => setView('TABLET_LAUNCHER')} className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium text-sm transition shadow-md">
-                        <Tablet size={18} /> Aplicar Prova (Offline)
+                <div className="flex flex-wrap gap-3">
+                    <button onClick={() => setView('TABLET_LAUNCHER')} className="bg-emerald-600 text-white px-6 py-4 rounded-[1.5rem] flex items-center gap-3 hover:bg-emerald-700 transition shadow-xl shadow-emerald-600/20 font-black text-sm uppercase tracking-wider">
+                        <Tablet size={20}/> Iniciar Prova
                     </button>
-                    <button onClick={() => setView('ITEM_NEW')} className="btn-gradient px-4 py-2 rounded-lg flex items-center gap-2 font-medium text-sm">
-                        <Plus size={18} /> Criar Questão
+                    <button onClick={() => setIsLessonPlanModalOpen(true)} className="btn-premium px-6 py-4 rounded-[1.5rem] flex items-center gap-3 shadow-xl font-black text-sm uppercase tracking-wider">
+                        <Sparkles size={20}/> Gerar Aula IA
                     </button>
                 </div>
             </div>
 
-            {/* OPERATIONAL SECTION: My Exams */}
-            {isProfessor && (
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-8">
-                    <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
-                        <h3 className="font-bold text-slate-800 flex items-center gap-2"><FileText size={18} className="text-brand-secondary"/> Minhas Provas Ativas</h3>
-                        <button onClick={() => setView('EXAM_NEW')} className="text-xs text-brand-primary font-bold hover:underline">+ Nova Prova</button>
+            {/* Abas Superiores */}
+            <div className="flex gap-4 border-b border-slate-200">
+                <button 
+                    onClick={() => setActiveSection('ANALYTICS')}
+                    className={`pb-4 text-xs font-black uppercase tracking-widest border-b-4 transition-all ${activeSection === 'ANALYTICS' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'}`}
+                >
+                    Saúde da Turma (Analytics)
+                </button>
+                <button 
+                    onClick={() => setActiveSection('ATTENDANCE')}
+                    className={`pb-4 text-xs font-black uppercase tracking-widest border-b-4 transition-all flex items-center gap-2 ${activeSection === 'ATTENDANCE' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-400'}`}
+                >
+                    <CheckSquare size={16}/> Diário de Classe (Presença)
+                </button>
+            </div>
+
+            {/* Seletor de Turma Fixo */}
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-6">
+                <div className="flex-1">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 px-1">Minhas Turmas Ativas</label>
+                    <div className="relative">
+                        <select className="w-full border-2 border-slate-50 rounded-2xl p-4 font-black text-brand-dark focus:ring-4 focus:ring-brand-primary/10 outline-none bg-slate-50 appearance-none transition-all" value={selectedClassId} onChange={e => setSelectedClassId(e.target.value)}>
+                            {professorClasses.map(c => <option key={c.id} value={c.id}>{c.name} - {c.series}</option>)}
+                            {professorClasses.length === 0 && <option>Sem turmas atribuídas</option>}
+                        </select>
+                        <ArrowRight size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 rotate-90 pointer-events-none"/>
                     </div>
-                    <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {myExams.slice(0, 3).map(exam => (
-                            <div key={exam.id} className="p-4 border rounded-lg hover:border-brand-primary transition group bg-white shadow-sm">
-                                <div className="flex justify-between mb-2">
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${exam.status === ExamStatus.PUBLISHED ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{exam.status}</span>
-                                    <span className="text-[10px] text-slate-400">{new Date(exam.createdAt).toLocaleDateString()}</span>
-                                </div>
-                                <h4 className="font-bold text-slate-800 text-sm mb-1 truncate">{exam.title}</h4>
-                                <p className="text-xs text-slate-500 mb-3">{exam.classIds.length} turmas alocadas</p>
-                                <div className="flex gap-2">
-                                    <button onClick={() => setView('EXAMS')} className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded hover:bg-slate-200 flex-1">Gerenciar</button>
-                                    {exam.status === ExamStatus.PUBLISHED && (
-                                        <button onClick={() => { /* Navigate to grading */ }} className="text-xs bg-brand-light text-brand-primary px-3 py-1 rounded hover:bg-brand-secondary hover:text-white transition flex items-center gap-1">
-                                            <ClipboardCheck size={12}/> Notas
-                                        </button>
-                                    )}
+                </div>
+                <div className="flex-shrink-0 bg-indigo-50 p-5 rounded-2xl text-center border border-indigo-100">
+                     <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Total Alunos</div>
+                     <div className="text-2xl font-black text-indigo-600">{studentStats.length}</div>
+                </div>
+            </div>
+
+            {activeSection === 'ANALYTICS' ? (
+                <>
+                    {/* KPIs Operacionais */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl text-center flex flex-col justify-center group hover:border-brand-primary transition-colors">
+                            <div className="flex items-center justify-center gap-2 text-slate-400 mb-2">
+                                <Star size={16} className="text-amber-500" fill="currentColor"/>
+                                <span className="text-[10px] font-black uppercase tracking-widest">Média Turma (IDG)</span>
+                            </div>
+                            <div className="text-5xl font-black text-brand-dark tracking-tighter">{metrics.avg.toFixed(1)}</div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-[2rem] border border-rose-100 shadow-xl text-center flex flex-col justify-center group hover:bg-rose-50 transition-colors">
+                            <div className="flex items-center justify-center gap-2 text-slate-400 mb-2">
+                                <AlertTriangle size={16} className="text-rose-500"/>
+                                <span className="text-[10px] font-black uppercase tracking-widest">Alunos em Risco</span>
+                            </div>
+                            <div className="text-5xl font-black text-rose-600 tracking-tighter">{metrics.risk}</div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-[2rem] border border-amber-100 shadow-xl text-center flex flex-col justify-center group hover:bg-amber-50 transition-colors">
+                            <div className="flex items-center justify-center gap-2 text-slate-400 mb-2">
+                                <ShieldAlert size={16} className="text-amber-600"/>
+                                <span className="text-[10px] font-black uppercase tracking-widest">Incidentes Anti-Cola</span>
+                            </div>
+                            <div className="text-5xl font-black text-amber-600 tracking-tighter">{metrics.violations}</div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Lista de Alunos e Saúde Acadêmica */}
+                        <div className="lg:col-span-2 bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl overflow-hidden flex flex-col">
+                            <div className="p-8 bg-slate-50/50 border-b flex justify-between items-center">
+                                <h3 className="font-black text-slate-800 flex items-center gap-3 uppercase tracking-tighter text-lg">
+                                    <div className="p-3 bg-white rounded-2xl shadow-sm text-brand-primary"><Users size={20}/></div>
+                                    Monitoramento da Turma
+                                </h3>
+                                <span className="text-[10px] font-black text-brand-primary uppercase bg-brand-light px-4 py-2 rounded-full shadow-sm">{studentStats.length} Alunos</span>
+                            </div>
+                            <div className="flex-1 overflow-y-auto max-h-[600px] divide-y divide-slate-50">
+                                {studentStats.map(s => (
+                                    <div key={s.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-all group cursor-pointer">
+                                        <div className="flex items-center gap-5">
+                                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl shadow-lg transform group-hover:rotate-6 transition-transform ${s.stats?.riskLevel === RiskLevel.HIGH ? 'bg-rose-100 text-rose-600' : 'bg-brand-light text-indigo-600'}`}>
+                                                {s.name.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <div className="font-black text-slate-800 text-lg leading-none mb-1">{s.name}</div>
+                                                <div className="text-[10px] text-slate-400 uppercase font-black tracking-[0.2em]">RM: {s.registrationNumber}</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-10">
+                                            <div className="text-center">
+                                                <div className="text-[10px] text-slate-400 font-black uppercase tracking-tighter mb-1">IDG</div>
+                                                <div className={`font-black text-2xl ${s.stats?.idgScore! >= 6 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                    {s.stats?.idgScore.toFixed(1)}
+                                                </div>
+                                            </div>
+                                            {s.violations > 0 && (
+                                                <div className="bg-amber-100 p-3 rounded-2xl text-amber-600 animate-pulse" title="Possui violações de segurança">
+                                                    <ShieldAlert size={20}/>
+                                                </div>
+                                            )}
+                                            <button className="p-3 text-slate-300 hover:text-brand-primary hover:bg-white rounded-2xl transition shadow-none hover:shadow-xl group-hover:translate-x-1">
+                                                <ArrowRight size={24}/>
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Sidebar: IA */}
+                        <div className="space-y-6">
+                            <div className="bg-[#0f1d2e] p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden border-2 border-brand-primary/20">
+                                <Brain size={180} className="absolute -right-16 -bottom-16 opacity-5 rotate-12"/>
+                                <h3 className="font-black text-xl mb-8 flex items-center gap-3">
+                                    <div className="p-3 bg-brand-primary/20 rounded-2xl text-brand-secondary"><Zap size={24} className="animate-pulse"/></div>
+                                    Corujão IA
+                                </h3>
+                                <div className="space-y-4 relative z-10">
+                                    <div className="p-5 bg-white/5 border border-white/10 rounded-3xl text-sm leading-relaxed backdrop-blur-xl">
+                                        <strong className="text-emerald-400 block mb-2 uppercase text-[10px] tracking-widest">Destaque do Dia:</strong> 
+                                        {studentStats.length > 0 && studentStats[0].name} lidera o ranking de performance da escola nesta semana.
+                                    </div>
                                 </div>
                             </div>
-                        ))}
-                        {myExams.length === 0 && <div className="col-span-3 text-center text-slate-400 py-4 text-sm">Você não tem provas recentes. Clique em "Nova Prova".</div>}
+
+                            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl">
+                                <h3 className="font-black text-slate-800 mb-8 flex items-center gap-3 uppercase tracking-tighter">
+                                    <div className="p-3 bg-slate-50 rounded-2xl text-brand-secondary shadow-sm"><CheckSquare size={20}/></div>
+                                    Ações
+                                </h3>
+                                <div className="space-y-4">
+                                    <div onClick={() => setView('EXAMS')} className="flex items-center gap-5 p-5 bg-slate-50 rounded-[1.5rem] hover:bg-slate-100 transition cursor-pointer group border border-slate-100">
+                                        <div className="p-4 bg-white rounded-2xl shadow-sm text-blue-600 group-hover:scale-110 transition-transform"><ClipboardCheck size={24}/></div>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="text-sm font-black text-slate-800 leading-tight">Lançar Notas</div>
+                                            <div className="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-1">Correções pendentes</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </>
+            ) : (
+                /* SEÇÃO DE PRESENÇA (DIÁRIO DE CLASSE) */
+                <div className="animate-in slide-in-from-right-4 duration-500 space-y-8">
+                    <div className="bg-white rounded-[3rem] border border-slate-100 shadow-2xl overflow-hidden">
+                        <div className="p-8 bg-slate-50/50 border-b flex justify-between items-center">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl shadow-sm"><Calendar size={24}/></div>
+                                <div>
+                                    <h3 className="font-black text-slate-800 text-xl tracking-tighter uppercase italic">Chamada Diária</h3>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Sessão: {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-6">
+                                <div className="text-right">
+                                    <div className="text-[9px] font-black text-slate-400 uppercase">Confirmados</div>
+                                    <div className="text-xl font-black text-emerald-600">{studentStats.filter(s => s.presence?.status === 'PRESENT').length}</div>
+                                </div>
+                                <div className="w-px h-8 bg-slate-200"></div>
+                                <div className="text-right">
+                                    <div className="text-[9px] font-black text-slate-400 uppercase">Ausentes</div>
+                                    <div className="text-xl font-black text-rose-500">{studentStats.filter(s => s.presence?.status === 'ABSENT').length}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
+                                        <th className="px-8 py-6">Estudante</th>
+                                        <th className="px-6 py-6">Rankings Acadêmicos</th>
+                                        <th className="px-6 py-6">IDG</th>
+                                        <th className="px-8 py-6 text-center">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {studentStats.map(s => (
+                                        <tr key={s.id} className="hover:bg-slate-50/50 transition-colors group">
+                                            <td className="px-8 py-6">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-white shadow-lg transition-all ${s.presence?.status === 'PRESENT' ? 'bg-emerald-500 scale-110' : s.presence?.status === 'ABSENT' ? 'bg-rose-500' : 'bg-slate-200'}`}>
+                                                        {s.name.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-black text-slate-800 text-base">{s.name}</div>
+                                                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">RM: {s.registrationNumber}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-6">
+                                                <div className="flex gap-2">
+                                                    <div className="px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-[9px] font-black uppercase tracking-tighter border border-blue-100 flex items-center gap-1" title="Posição na Turma">
+                                                        <Users size={10}/> T: #{s.rankings.class}
+                                                    </div>
+                                                    <div className="px-2 py-1 bg-amber-50 text-amber-600 rounded-lg text-[9px] font-black uppercase tracking-tighter border border-amber-100 flex items-center gap-1" title="Posição na Escola">
+                                                        <SchoolIcon size={10}/> E: #{s.rankings.school}
+                                                    </div>
+                                                    <div className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[9px] font-black uppercase tracking-tighter border border-indigo-100 flex items-center gap-1" title="Posição na Rede/Estado">
+                                                        <MapPin size={10}/> M: #{s.rankings.global}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-6">
+                                                <div className={`text-lg font-black ${s.stats?.idgScore! >= 6 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                    {s.stats?.idgScore.toFixed(1)}
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <div className="flex justify-center gap-3">
+                                                    <button 
+                                                        onClick={() => togglePresence(s.id, s.presence?.status)}
+                                                        className={`p-3 rounded-xl transition-all shadow-sm ${s.presence?.status === 'PRESENT' ? 'bg-emerald-600 text-white shadow-emerald-200' : 'bg-white border-2 border-slate-100 text-slate-300 hover:border-emerald-200 hover:text-emerald-500'}`}
+                                                        title="Marcar como Presente"
+                                                    >
+                                                        <Check size={20} strokeWidth={3}/>
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => togglePresence(s.id, s.presence?.status)}
+                                                        className={`p-3 rounded-xl transition-all shadow-sm ${s.presence?.status === 'ABSENT' ? 'bg-rose-600 text-white shadow-rose-200' : 'bg-white border-2 border-slate-100 text-slate-300 hover:border-rose-200 hover:text-rose-500'}`}
+                                                        title="Marcar como Ausente"
+                                                    >
+                                                        <XCircle size={20} strokeWidth={3}/>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             )}
 
-            {isProfessor ? (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    
-                    {/* Left Column: Class Selection & Overview */}
-                    <div className="space-y-6">
-                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Selecione a Turma</label>
-                            <select 
-                                className="w-full border border-slate-300 rounded-lg p-3 font-medium text-slate-700 mb-6 focus:ring-2 focus:ring-brand-primary outline-none"
-                                value={selectedClassId}
-                                onChange={(e) => setSelectedClassId(e.target.value)}
-                            >
-                                {professorClasses.map(c => <option key={c.id} value={c.id}>{c.name} - {c.series}</option>)}
-                            </select>
-
-                            {selectedClass && (
-                                <>
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h3 className="font-bold text-slate-800">IDG Médio (Turma)</h3>
-                                        <span className={`text-xl font-black ${classAverage >= 6 ? 'text-emerald-600' : 'text-amber-500'}`}>{classAverage.toFixed(1)}</span>
-                                    </div>
-                                    
-                                    <div className="mb-6">
-                                        <div className="text-xs text-slate-400 mb-2 text-center">Distribuição de Notas (0-10)</div>
-                                        <DistributionChart grades={gradesList} />
-                                    </div>
-
-                                    {/* CLUSTERIZATION PANEL */}
-                                    <div className="mb-6 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                                        <div className="text-xs font-bold text-slate-500 uppercase mb-3 flex items-center gap-1"><Brain size={14}/> Clusters Comportamentais</div>
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between items-center text-xs">
-                                                <span className="text-emerald-700 font-bold">Domínio (Rápido/Preciso)</span>
-                                                <span className="bg-emerald-100 px-2 py-0.5 rounded">{clusterCounts.RAPID_PREC}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center text-xs">
-                                                <span className="text-blue-700 font-bold">Esforçado (Lento/Preciso)</span>
-                                                <span className="bg-blue-100 px-2 py-0.5 rounded">{clusterCounts.SLOW_PREC}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center text-xs">
-                                                <span className="text-amber-700 font-bold">Dificuldade (Lento/Errado)</span>
-                                                <span className="bg-amber-100 px-2 py-0.5 rounded">{clusterCounts.SLOW_ERR}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center text-xs">
-                                                <span className="text-rose-700 font-bold">Chute/Desengajado</span>
-                                                <span className="bg-rose-100 px-2 py-0.5 rounded">{clusterCounts.RAPID_ERR}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 text-center">
-                                            <div className="text-2xl font-bold text-slate-800">{studentStats.length}</div>
-                                            <div className="text-[10px] text-slate-500 uppercase">Alunos</div>
-                                        </div>
-                                        <div className="bg-rose-50 p-3 rounded-lg border border-rose-100 text-center">
-                                            <div className="text-2xl font-bold text-rose-600">{studentStats.filter(s => (s.stats?.riskLevel || 'LOW') !== 'LOW').length}</div>
-                                            <div className="text-[10px] text-rose-600 uppercase">Em Risco</div>
-                                        </div>
-                                    </div>
-
-                                    {/* Integrity Alert Card */}
-                                    {cheatingAttempts > 0 && (
-                                        <div 
-                                            onClick={() => setShowIntegrityFilter(!showIntegrityFilter)}
-                                            className={`mt-4 p-4 rounded-xl border cursor-pointer transition ${showIntegrityFilter ? 'bg-rose-100 border-rose-300 shadow-inner' : 'bg-rose-50 border-rose-200 hover:bg-rose-100'}`}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-rose-200 rounded-full text-rose-700 animate-pulse">
-                                                    <ShieldAlert size={20} />
-                                                </div>
-                                                <div>
-                                                    <div className="font-bold text-rose-800 text-sm">Monitoramento de Fraude</div>
-                                                    <div className="text-xs text-rose-600">
-                                                        <strong>{studentsWithFlags} alunos</strong> geraram {cheatingAttempts} alertas de segurança.
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="mt-2 text-center text-[10px] font-bold text-rose-500 uppercase tracking-wide">
-                                                {showIntegrityFilter ? 'Mostrar Todos' : 'Filtrar Incidentes'}
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
-                            )}
-                        </div>
-
-                        {/* AI Insight for Class */}
-                        <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl p-6 text-white shadow-lg relative overflow-hidden">
-                            <div className="relative z-10">
-                                <h3 className="font-bold flex items-center gap-2 mb-2"><Brain size={20} className="text-yellow-300"/> Insight da IA</h3>
-                                <p className="text-sm text-indigo-100 leading-relaxed">
-                                    A turma <strong>{selectedClass?.name}</strong> teve uma queda de 15% em interpretação de texto na última semana. Sugiro focar em exercícios de leitura ativa.
-                                </p>
-                                <button className="mt-4 bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-2 rounded-lg transition flex items-center gap-2">
-                                    Ver Plano de Aula Sugerido <ArrowRight size={14}/>
-                                </button>
+            {/* Modal de Plano de Aula IA */}
+            {isLessonPlanModalOpen && (
+                <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-in fade-in">
+                    <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden">
+                        <div className="p-8 border-b border-slate-100 flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <div className="p-3 bg-indigo-100 text-indigo-600 rounded-2xl"><Brain size={24}/></div>
+                                <div>
+                                    <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase italic">Gerador de Plano de Aula</h2>
+                                    <p className="text-xs text-slate-500 font-bold uppercase">Assistente Gemini IA</p>
+                                </div>
                             </div>
-                            <Brain size={100} className="absolute -right-4 -bottom-4 opacity-10 text-white"/>
-                        </div>
-                    </div>
-
-                    {/* Right Column: Students List & Detail */}
-                    <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden h-[600px]">
-                        <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
-                            <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                <Users size={20} className="text-brand-secondary"/> Desempenho Individual (IDG)
-                            </h3>
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16}/>
-                                <input placeholder="Buscar aluno..." className="pl-9 pr-4 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-brand-primary outline-none"/>
-                            </div>
+                            <button onClick={() => { setIsLessonPlanModalOpen(false); setGeneratedPlan(null); }} className="p-2 hover:bg-slate-100 rounded-full transition"><X/></button>
                         </div>
                         
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50">
-                            {filteredStudents.length === 0 && (
-                                <div className="text-center py-12 text-slate-400">Nenhum aluno encontrado com os filtros atuais.</div>
-                            )}
-                            {filteredStudents.map((student, idx) => (
-                                <div key={student.id} className={`bg-white border rounded-xl overflow-hidden shadow-sm transition hover:shadow-md ${student.violations > 0 ? 'border-rose-200' : 'border-slate-200'}`}>
-                                    <div 
-                                        className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50"
-                                        onClick={() => setExpandedStudentId(expandedStudentId === student.id ? null : student.id)}
+                        <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+                            {!generatedPlan ? (
+                                <div className="space-y-6">
+                                    <div className="p-6 bg-indigo-50 border border-indigo-100 rounded-3xl text-sm text-indigo-700 leading-relaxed">
+                                        <Info size={18} className="mb-2"/>
+                                        Diga-me o tema da aula e eu estruturarei Objetivos, Desenvolvimento, Materiais e códigos da BNCC para você.
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Tema / Tópico da Aula</label>
+                                        <textarea 
+                                            className="w-full border-2 border-slate-100 rounded-2xl p-4 font-bold text-slate-700 focus:border-brand-primary outline-none transition-all h-32"
+                                            placeholder="Ex: Introdução à Trigonometria no Triângulo Retângulo"
+                                            value={lessonPlanTopic}
+                                            onChange={e => setLessonPlanTopic(e.target.value)}
+                                        />
+                                    </div>
+                                    <button 
+                                        onClick={handleGenerateLessonPlan}
+                                        disabled={isGenerating || !lessonPlanTopic.trim()}
+                                        className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl hover:bg-indigo-700 transition flex items-center justify-center gap-2 disabled:opacity-50"
                                     >
-                                        <div className="flex items-center gap-4">
-                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white ${idx < 3 && !showIntegrityFilter ? 'bg-yellow-500' : 'bg-slate-400'}`}>
-                                                {idx + 1}
-                                            </div>
-                                            <div>
-                                                <div className="font-bold text-slate-800 flex items-center gap-2">
-                                                    {student.name}
-                                                    {student.violations > 0 && (
-                                                        <span className="bg-rose-100 text-rose-700 text-[10px] px-2 py-0.5 rounded flex items-center gap-1 border border-rose-200" title="Violações de segurança detectadas">
-                                                            <ShieldAlert size={10}/> {student.violations}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="text-xs text-slate-500 flex gap-2">
-                                                    <span>Mat: {student.registrationNumber}</span>
-                                                    <span className="text-slate-300">|</span>
-                                                    <span className={`font-bold ${student.behaviorCluster.includes('ERR') ? 'text-amber-600' : 'text-emerald-600'}`}>
-                                                        Cluster: {student.behaviorCluster}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="flex items-center gap-6">
-                                            <div className="text-right">
-                                                <div className={`font-black text-lg ${student.stats?.idgScore && student.stats.idgScore >= 6 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                                    {student.stats?.idgScore.toFixed(1)}
-                                                </div>
-                                                <div className="text-[10px] text-slate-400 uppercase">IDG</div>
-                                            </div>
-                                            {expandedStudentId === student.id ? <ChevronUp size={20} className="text-slate-400"/> : <ChevronDown size={20} className="text-slate-400"/>}
+                                        {isGenerating ? <Loader2 className="animate-spin"/> : <Sparkles size={20}/>}
+                                        {isGenerating ? "Consultando Gemini..." : "Gerar Plano Estruturado"}
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="space-y-8 animate-in slide-in-from-bottom-4">
+                                    <div className="prose prose-slate max-w-none bg-slate-50 p-8 rounded-3xl border border-slate-100">
+                                        <h3 className="font-black text-indigo-600 uppercase tracking-widest text-xs mb-4">Sugestão Gemini IA</h3>
+                                        <div className="text-slate-700 font-medium whitespace-pre-wrap leading-relaxed text-sm">
+                                            {generatedPlan}
                                         </div>
                                     </div>
-
-                                    {/* Expanded Detail */}
-                                    {expandedStudentId === student.id && (
-                                        <div className="border-t border-slate-100 bg-slate-50 p-4 animate-in slide-in-from-top-2">
-                                            
-                                            {/* Integrity Report Panel (Only if violations exist) */}
-                                            {student.violations > 0 && (
-                                                <div className="mb-4 bg-rose-50 border border-rose-100 rounded-lg p-3 flex gap-3 items-start">
-                                                    <ShieldAlert size={18} className="text-rose-600 mt-0.5 flex-shrink-0"/>
-                                                    <div>
-                                                        <div className="text-sm font-bold text-rose-800">Alerta de Integridade da Prova</div>
-                                                        <p className="text-xs text-rose-600 mt-1">
-                                                            O sistema detectou {student.violations} eventos suspeitos durante a última avaliação.
-                                                        </p>
-                                                        <div className="flex gap-2 mt-2">
-                                                            {student.lastFlags?.includes('FOCUS_LOST') && <span className="text-[10px] bg-white border border-rose-200 px-2 py-1 rounded text-rose-600 font-bold">Fuga de Tela</span>}
-                                                            {student.lastFlags?.includes('ALT_TAB') && <span className="text-[10px] bg-white border border-rose-200 px-2 py-1 rounded text-rose-600 font-bold">Alt+Tab</span>}
-                                                            {student.lastFlags?.includes('FULLSCREEN_EXIT') && <span className="text-[10px] bg-white border border-rose-200 px-2 py-1 rounded text-rose-600 font-bold">Minimizar</span>}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Telemetry Data */}
-                                            <div className="grid grid-cols-3 gap-3 mb-4">
-                                                <div className="p-2 bg-white border rounded text-center">
-                                                    <div className="text-[10px] text-slate-400 uppercase flex justify-center gap-1"><Clock size={10}/> Tempo Médio</div>
-                                                    <div className="font-bold text-slate-800">3m 12s</div>
-                                                </div>
-                                                <div className="p-2 bg-white border rounded text-center">
-                                                    <div className="text-[10px] text-slate-400 uppercase flex justify-center gap-1"><MousePointer2 size={10}/> Trocas Resp.</div>
-                                                    <div className="font-bold text-slate-800">2.1</div>
-                                                </div>
-                                                <div className="p-2 bg-white border rounded text-center">
-                                                    <div className="text-[10px] text-slate-400 uppercase flex justify-center gap-1"><PenTool size={10}/> Rascunho</div>
-                                                    <div className="font-bold text-emerald-600">Usado</div>
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-4 mb-4">
-                                                <div className="bg-white p-3 rounded-lg border border-slate-200">
-                                                    <div className="text-xs font-bold text-slate-400 uppercase mb-1">Ponto Forte</div>
-                                                    <div className="text-sm font-bold text-emerald-700 flex items-center gap-1">
-                                                        <Star size={14}/> {student.stats?.strongestSubject}
-                                                    </div>
-                                                </div>
-                                                <div className="bg-white p-3 rounded-lg border border-slate-200">
-                                                    <div className="text-xs font-bold text-slate-400 uppercase mb-1">Ponto de Atenção</div>
-                                                    <div className="text-sm font-bold text-rose-600 flex items-center gap-1">
-                                                        <Target size={14}/> {student.stats?.weakestSubject}
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="bg-brand-light/30 border border-brand-primary/20 rounded-lg p-4">
-                                                <h4 className="text-sm font-bold text-brand-dark flex items-center gap-2 mb-2">
-                                                    <Brain size={16} className="text-brand-primary"/> Sugestão da IA para Recuperação
-                                                </h4>
-                                                <p className="text-sm text-slate-700 mb-3 leading-relaxed">
-                                                    {getAiSuggestion(student.name, student.stats?.weakestSubject || 'Geral')}
-                                                </p>
-                                                <div className="flex gap-2">
-                                                    <button className="text-xs bg-white border border-brand-primary text-brand-primary px-3 py-1.5 rounded font-bold hover:bg-brand-primary hover:text-white transition">
-                                                        Gerar Tarefa Personalizada
-                                                    </button>
-                                                    <button className="text-xs bg-white border border-slate-300 text-slate-600 px-3 py-1.5 rounded font-bold hover:bg-slate-100 transition">
-                                                        Enviar Mensagem aos Pais
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
+                                    <div className="flex gap-4">
+                                        <button onClick={() => setGeneratedPlan(null)} className="flex-1 py-4 border-2 border-slate-100 text-slate-500 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition">Voltar</button>
+                                        <button className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition flex items-center justify-center gap-2">
+                                            <Download size={16}/> Salvar PDF
+                                        </button>
+                                    </div>
                                 </div>
-                            ))}
+                            )}
                         </div>
                     </div>
-                </div>
-            ) : (
-                <div className="text-center py-20 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                    <Users size={48} className="mx-auto text-slate-300 mb-4"/>
-                    <h3 className="text-xl font-bold text-slate-500">Visão restrita a Professores</h3>
-                    <p className="text-slate-400">Acesse como professor para ver os dados detalhados da turma.</p>
                 </div>
             )}
         </div>

@@ -1,19 +1,22 @@
 
-import { AppState, RiskLevel, StudentStats, ExamResult, Exam, Student } from "../types";
+import { RiskLevel, StudentStats, ExamResult, Exam, Student, ExamRegistration, UserProfileExtended } from "../types";
 
 export class AnalyticsService {
     
-    private state: AppState;
+    constructor() {}
 
-    constructor(state: AppState) {
-        this.state = state;
-    }
-
-    public getStudentStats(studentId: string): StudentStats | null {
-        const student = this.state.students.find(s => s.id === studentId);
+    public getStudentStats(
+        studentId: string,
+        allStudents: Student[],
+        allResults: ExamResult[],
+        allExams: Exam[],
+        allRegistrations: ExamRegistration[],
+        allUserProfiles: UserProfileExtended[]
+    ): StudentStats | null {
+        const student = allStudents.find(s => s.id === studentId);
         if (!student) return null;
 
-        const studentResults = this.state.results.filter(r => r.studentId === studentId);
+        const studentResults = allResults.filter(r => r.studentId === studentId);
         const examsTaken = studentResults.length;
 
         // --- IDG Calculation Logic ---
@@ -25,63 +28,51 @@ export class AnalyticsService {
         const subjectScores: Record<string, { obtained: number; total: number }> = {};
 
         studentResults.forEach(result => {
-            const exam = this.state.exams.find(e => e.id === result.examId);
+            const exam = allExams.find(e => e.id === result.examId);
             if (!exam) return;
 
-            // Simple Heuristic: If title contains "Trabalho", "Projeto", "Feira", treat as Project (Weight 30%)
-            // Otherwise treat as Exam (Weight 60%)
             const isProject = exam.title.toLowerCase().includes('trabalho') || 
                               exam.title.toLowerCase().includes('projeto') ||
                               exam.title.toLowerCase().includes('pesquisa');
 
             if (isProject) {
-                sumProjectScores += result.totalScore; // Assuming score is 0-10
+                sumProjectScores += result.totalScore;
                 countProjects++;
             } else {
                 sumExamScores += result.totalScore;
                 countExams++;
             }
 
-            // Subject Breakdown
             if (!subjectScores[exam.subject]) subjectScores[exam.subject] = { obtained: 0, total: 0 };
             subjectScores[exam.subject].obtained += result.totalScore;
-            subjectScores[exam.subject].total += 10; // Assuming 10 max
+            subjectScores[exam.subject].total += 10;
         });
 
         const examAverage = countExams > 0 ? sumExamScores / countExams : 0;
         const projectAverage = countProjects > 0 ? sumProjectScores / countProjects : 0;
 
-        // Attendance (Simulated based on Registration Status)
-        const registrations = this.state.registrations.filter(r => r.studentId === studentId);
+        const registrations = allRegistrations.filter(r => r.studentId === studentId);
         const absences = registrations.filter(r => r.status === 'AUSENTE').length;
         const attendanceRate = registrations.length > 0 ? ((registrations.length - absences) / registrations.length) * 100 : 100;
-        const attendanceScore = attendanceRate / 10; // Normalize 0-10
+        const attendanceScore = attendanceRate / 10;
 
-        // Bonus Points from Achievements (Profile)
-        const userProfile = this.state.userProfiles?.find(p => p.userId === studentId);
+        const userProfile = allUserProfiles?.find(p => p.userId === studentId);
         const bonusPoints = userProfile?.academicAchievements?.reduce((acc, ach) => acc + ach.bonusPoints, 0) || 0;
 
-        // --- GLOBAL SCORE FORMULA (IDG) ---
-        // (Exam * 0.6) + (Project * 0.3) + (Attendance * 0.1) + Bonus
-        // Base max is 10, bonus can push it higher (e.g., 10.5)
         let idgScore = (examAverage * 0.6) + (projectAverage * 0.3) + (attendanceScore * 0.1) + bonusPoints;
         
-        // Simple fallback if no projects yet: Exams count for 90%
         if (countProjects === 0 && countExams > 0) {
             idgScore = (examAverage * 0.9) + (attendanceScore * 0.1) + bonusPoints;
         } else if (countExams === 0 && countProjects === 0) {
             idgScore = 0;
         }
 
-        // Risk Logic
         let riskLevel = RiskLevel.LOW;
         if (idgScore < 5 || attendanceRate < 75) riskLevel = RiskLevel.HIGH;
         else if (idgScore < 7 || attendanceRate < 85) riskLevel = RiskLevel.MEDIUM;
 
-        // Projection
-        const missingPointsForApproval = Math.max(0, 6 - idgScore); // Simplified
+        const missingPointsForApproval = Math.max(0, 6 - idgScore);
 
-        // Strongest/Weakest
         let strongest = { subject: '-', score: -1 };
         let weakest = { subject: '-', score: 11 };
 
@@ -106,9 +97,54 @@ export class AnalyticsService {
         };
     }
 
-    public getClassRanking(classId: string): StudentStats[] {
-        const students = this.state.students.filter(s => s.classId === classId);
-        const stats = students.map(s => this.getStudentStats(s.id)).filter(Boolean) as StudentStats[];
+    public getRankings(
+        studentId: string,
+        allStudents: Student[],
+        allResults: ExamResult[],
+        allExams: Exam[],
+        allRegistrations: ExamRegistration[],
+        allUserProfiles: UserProfileExtended[]
+    ) {
+        const student = allStudents.find(s => s.id === studentId);
+        if (!student) return { class: 0, school: 0, global: 0 };
+
+        const computeScore = (sid: string) => this.getStudentStats(sid, allStudents, allResults, allExams, allRegistrations, allUserProfiles)?.idgScore || 0;
+
+        // Class Rank
+        const classRanking = allStudents
+            .filter(s => s.classId === student.classId)
+            .map(s => ({ id: s.id, score: computeScore(s.id) }))
+            .sort((a, b) => b.score - a.score);
+        
+        // School Rank
+        const schoolRanking = allStudents
+            .filter(s => s.schoolId === student.schoolId)
+            .map(s => ({ id: s.id, score: computeScore(s.id) }))
+            .sort((a, b) => b.score - a.score);
+
+        // Global (Tenant) Rank
+        const globalRanking = allStudents
+            .filter(s => s.tenantId === student.tenantId)
+            .map(s => ({ id: s.id, score: computeScore(s.id) }))
+            .sort((a, b) => b.score - a.score);
+
+        return {
+            class: classRanking.findIndex(r => r.id === studentId) + 1,
+            school: schoolRanking.findIndex(r => r.id === studentId) + 1,
+            global: globalRanking.findIndex(r => r.id === studentId) + 1
+        };
+    }
+
+    public getClassRanking(
+        classId: string,
+        allStudents: Student[],
+        allResults: ExamResult[],
+        allExams: Exam[],
+        allRegistrations: ExamRegistration[],
+        allUserProfiles: UserProfileExtended[]
+    ): StudentStats[] {
+        const students = allStudents.filter(s => s.classId === classId);
+        const stats = students.map(s => this.getStudentStats(s.id, allStudents, allResults, allExams, allRegistrations, allUserProfiles)).filter(Boolean) as StudentStats[];
         return stats.sort((a, b) => b.idgScore - a.idgScore);
     }
 }

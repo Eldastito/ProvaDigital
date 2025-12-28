@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { useAppStore } from '../store/useAppStore';
+import { usePermissions } from '../hooks/usePermissions';
 
 // Views
 import { DashboardView } from './DashboardView';
@@ -14,23 +15,21 @@ import { PrintableExamView } from './PrintableExamView';
 import { ResultsEntryView } from './ResultsEntryView';
 import { StudentDashboardView } from './StudentPortal/StudentDashboardView';
 import { OwlTutorView } from './StudentPortal/OwlTutorView';
-import { SchoolDashboardView } from './Analytics/SchoolDashboardView';
 import { CommunicationView } from './Communication/CommunicationView';
-import { StudyPlansView } from './Academic/StudyPlansView';
+import { LearningPathView } from './Academic/LearningPathView';
 import { UserProfileView } from './Profile/UserProfileView';
 import { CapabilitiesView } from './Admin/CapabilitiesView';
 import { NeuroScreeningView } from './NeuroScreening/NeuroScreeningView';
 import { StudentBattleView } from './StudentPortal/StudentBattleView';
 import { SurvivalView } from './StudentPortal/SurvivalView';
 import { GamifiedEventsManager } from './GamifiedEvents/GamifiedEventsManager';
+import { LiveDemoLobby } from './Demo/LiveDemoLobby';
 
 interface ViewRouterProps {
     view: string;
     setView: (v: string) => void;
-    // Specific ID states for views that require them
     selectedExamIdForPrint: string | null;
     selectedExamIdForResults: string | null;
-    // Handlers
     onPrintExam: (id: string) => void;
     onGradeExam: (id: string) => void;
 }
@@ -43,9 +42,7 @@ export const ViewRouter = ({
     const store = useAppStore();
     const { 
         currentUser, addItem, addExam, updateExamAllocation, 
-        updateResults, addSchool, addClass, addStudent, addUser, 
-        updateSettings, updateMessages, updateChatGroups, updateCurrentUser, updateUserProfile,
-        updatePermissions, updateTenantFeatures 
+        updateResults, insertChatMessage, updateChatGroups, updateCurrentUser, updateUserProfile
     } = store;
 
     if (!currentUser) return null;
@@ -58,19 +55,19 @@ export const ViewRouter = ({
             return <ItemsListView state={store} onNew={() => setView('ITEM_NEW')} />;
         
         case 'ITEM_NEW':
-            return <ItemEditorView state={store} onSave={(i) => { addItem(i); setView('ITEMS'); }} onCancel={() => setView('ITEMS')} />;
+            return <ItemEditorView state={store} onSave={() => setView('ITEMS')} onCancel={() => setView('ITEMS')} />;
         
         case 'EXAMS':
             return <ExamsListView state={store} onNew={() => setView('EXAM_NEW')} onPrint={onPrintExam} onGrade={onGradeExam} />;
         
         case 'EXAM_NEW':
-            return <ExamBuilderView state={store} onSave={(e) => { addExam(e); setView('EXAMS'); }} onCancel={() => setView('EXAMS')} />;
+            return <ExamBuilderView state={store} onSave={() => setView('EXAMS')} onCancel={() => setView('EXAMS')} />;
         
         case 'ALLOCATION':
             return <AllocationView state={store} onUpdate={updateExamAllocation} />;
         
         case 'MANAGEMENT':
-            return <ManagementView state={store} onAddSchool={addSchool} onAddClass={addClass} onAddStudent={addStudent} onAddUser={addUser} onUpdateSettings={updateSettings} />;
+            return <ManagementView state={store} />;
         
         case 'PRINT_PREVIEW':
             return selectedExamIdForPrint ? <PrintableExamView state={store} examId={selectedExamIdForPrint} onBack={() => setView('EXAMS')} /> : null;
@@ -79,7 +76,7 @@ export const ViewRouter = ({
             return selectedExamIdForResults ? <ResultsEntryView state={store} examId={selectedExamIdForResults} onBack={() => setView('EXAMS')} onSaveResults={updateResults} /> : null;
         
         case 'STUDENT_PORTAL':
-            return <StudentDashboardView state={store} user={currentUser} />;
+            return <StudentDashboardView state={store} user={currentUser} setView={setView} />;
         
         case 'OWL_TUTOR':
             return <OwlTutorView state={store} user={currentUser} />;
@@ -90,17 +87,14 @@ export const ViewRouter = ({
         case 'SURVIVAL_MODE':
             return <SurvivalView state={store} user={currentUser} onUpdateProfile={updateUserProfile} />;
         
-        case 'ANALYTICS':
-            return <SchoolDashboardView state={store} />;
-        
         case 'COMMUNICATION':
-            return <CommunicationView state={store} user={currentUser} onUpdateMessages={updateMessages} onUpdateGroups={updateChatGroups} onUpdateUser={updateCurrentUser} />;
+            return <CommunicationView state={store} user={currentUser} onUpdateMessages={insertChatMessage as any} onUpdateGroups={updateChatGroups} onUpdateUser={updateCurrentUser} />;
         
-        case 'STUDY_PLANS':
-            return <StudyPlansView state={store} user={currentUser} />;
+        case 'LEARNING_PATH':
+            return <LearningPathView state={store} user={currentUser} />;
         
         case 'MY_PROFILE':
-            return <UserProfileView state={store} user={currentUser} onUpdateProfile={updateUserProfile} />;
+            return <UserProfileView state={store} user={currentUser} onUpdateProfile={updateUserProfile} setView={setView} />;
         
         case 'CAPABILITIES':
             return <CapabilitiesView />;
@@ -110,6 +104,9 @@ export const ViewRouter = ({
             
         case 'GAMIFIED_EVENTS':
             return <GamifiedEventsManager state={store} user={currentUser} />;
+
+        case 'LIVE_DEMO':
+            return <LiveDemoLobby onClose={() => setView('DASHBOARD')} />;
 
         default:
             return <div className="p-8 text-center text-slate-500">View not found: {view}</div>;

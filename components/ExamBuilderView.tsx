@@ -1,34 +1,46 @@
-
 import React, { useState } from 'react';
-import { X, ChevronRight, Search, Plus, Tablet, ChevronLeft, ArrowRight } from 'lucide-react';
+import { X, ChevronRight, Search, Plus, Tablet, ChevronLeft, ArrowRight, Brain, Target, Star } from 'lucide-react';
 import { AppState, Exam, Item, ExamModel, ExamStatus, QuestionType } from '../types';
 import { Badge } from './ui/Badge';
 import { uuidv4 } from '../utils/helpers';
+import { useAppStore } from '../store/useAppStore';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { fetchItems, insertExam } from '../services/supabaseClient';
 
-export const ExamBuilderView = ({ state, onSave, onCancel }: { state: AppState, onSave: (e: Exam) => void, onCancel: () => void }) => {
+export const ExamBuilderView = ({ onSave, onCancel }: { state?: AppState, onSave: (e: Exam) => void, onCancel: () => void }) => {
+    const { currentUser } = useAppStore();
+    
     const [step, setStep] = useState(1);
     const [config, setConfig] = useState({
         title: '',
         description: '',
         duration: 60,
         subject: '',
+        knowledgeArea: 'Geral',
         model: ExamModel.SOMATIVO
     });
     const [selectedItems, setSelectedItems] = useState<Item[]>([]);
+    const [itemScores, setItemScores] = useState<Record<string, number>>({});
     const [filter, setFilter] = useState('');
-    
-    // Preview State for "Tablet Simulator"
-    const [previewIndex, setPreviewIndex] = useState(0);
+
+    const { data: availableItems, isLoading: itemsLoading } = useQuery<Item[]>({ queryKey: ['items'], queryFn: fetchItems });
+
+    const addExamMutation = useMutation({
+        mutationFn: insertExam,
+        onSuccess: (data) => {
+            onSave(data as any);
+            alert('Avaliação criada e pronta para distribuição!');
+        }
+    });
 
     const handleSave = (publish = false) => {
-        if (!config.title) return alert('Título obrigatório');
-        if (selectedItems.length === 0) return alert('Selecione ao menos 1 questão');
+        if (!currentUser || !config.title || selectedItems.length === 0) return alert('Preencha os campos obrigatórios.');
         
         const newExam: Exam = {
             id: uuidv4(),
-            tenantId: state.currentUser?.tenantId || 't1',
-            schoolId: state.currentUser?.schoolId || 's1',
-            creatorId: state.currentUser?.id || '',
+            tenantId: currentUser.tenantId || 't1',
+            schoolId: currentUser.schoolId || 's1',
+            creatorId: currentUser.id,
             title: config.title,
             description: config.description,
             subject: config.subject,
@@ -39,256 +51,154 @@ export const ExamBuilderView = ({ state, onSave, onCancel }: { state: AppState, 
             items: selectedItems.map((item, idx) => ({
                 itemId: item.id,
                 order: idx + 1,
-                customScore: item.score
+                customScore: itemScores[item.id] || item.score
             })),
             classIds: [],
             createdAt: new Date().toISOString()
         };
-        onSave(newExam);
+        addExamMutation.mutate(newExam);
     };
 
     const toggleItem = (item: Item) => {
         if (selectedItems.find(i => i.id === item.id)) {
-            const newItems = selectedItems.filter(i => i.id !== item.id);
-            setSelectedItems(newItems);
-            if (previewIndex >= newItems.length && newItems.length > 0) {
-                setPreviewIndex(newItems.length - 1);
-            }
+            setSelectedItems(selectedItems.filter(i => i.id !== item.id));
         } else {
             setSelectedItems([...selectedItems, item]);
+            if (!itemScores[item.id]) setItemScores(prev => ({...prev, [item.id]: item.score}));
         }
     };
 
-    const filteredAvailableItems = state.items.filter(i => 
+    const filteredAvailableItems = availableItems?.filter(i => 
         !selectedItems.find(s => s.id === i.id) &&
         (i.statement.toLowerCase().includes(filter.toLowerCase()) || i.subject.toLowerCase().includes(filter.toLowerCase()))
-    );
+    ) || [];
 
-    const currentPreviewItem = selectedItems[previewIndex];
+    // @-fix: Explicitly cast Object.values(itemScores) to number[] to resolve 'unknown' type assignment error.
+    const totalPoints: number = (Object.values(itemScores) as number[]).reduce((acc: number, val: number): number => acc + (Number(val) || 0), 0);
+
+    if (itemsLoading) return <div className="p-20 text-center font-black text-slate-400 uppercase animate-pulse">Acessando Banco de Itens...</div>;
 
     return (
-        <div className="bg-white rounded-xl shadow-lg border border-brand-primary flex flex-col h-[calc(100vh-120px)]">
-             <div className="p-6 border-b flex justify-between items-center bg-slate-50">
+        <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-100 flex flex-col h-[calc(100vh-120px)] overflow-hidden">
+             <div className="p-8 border-b bg-slate-50/50 flex justify-between items-center">
                 <div>
-                    <h2 className="text-xl font-bold text-slate-900">Montar Prova</h2>
-                    <p className="text-sm text-slate-500">Passo {step} de 2: {step === 1 ? 'Configurações' : 'Seleção e Revisão'}</p>
+                    <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase italic flex items-center gap-3">
+                        <Plus className="text-indigo-600" size={24}/> Montar Avaliação
+                    </h2>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Passo {step} de 2: {step === 1 ? 'Definições Técnicas' : 'Seleção de Itens'}</p>
                 </div>
                 <div className="flex gap-3">
-                    {step === 2 && <button onClick={() => setStep(1)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium">Voltar</button>}
-                    <button onClick={onCancel} className="text-slate-400 hover:text-slate-600"><X size={20}/></button>
+                    {step === 2 && <button onClick={() => setStep(1)} className="px-6 py-2 bg-white border border-slate-200 rounded-xl font-black text-[10px] uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition">Voltar</button>}
+                    <button onClick={onCancel} className="text-slate-400 hover:text-slate-600 p-2"><X size={24}/></button>
                 </div>
              </div>
 
-             <div className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
+             <div className="flex-1 overflow-y-auto p-10 bg-slate-50/30">
                 {step === 1 ? (
-                    <div className="max-w-2xl mx-auto space-y-6 bg-white p-8 rounded-xl shadow-sm border border-slate-200">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Título da Prova</label>
-                            <input className="w-full border rounded-lg p-2" value={config.title} onChange={e => setConfig({...config, title: e.target.value})} placeholder="Ex: Avaliação Bimestral de História" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-6">
+                    <div className="max-w-3xl mx-auto space-y-8 animate-in slide-in-from-bottom-4">
+                        <div className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Disciplina</label>
-                                <input className="w-full border rounded-lg p-2" value={config.subject} onChange={e => setConfig({...config, subject: e.target.value})} />
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Título da Prova</label>
+                                <input className="w-full border-2 border-slate-50 rounded-2xl p-4 font-bold text-slate-700 focus:border-brand-primary outline-none transition-all" value={config.title} onChange={e => setConfig({...config, title: e.target.value})} placeholder="Ex: Avaliação Trimestral de Ciências" />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Duração (minutos)</label>
-                                <input type="number" className="w-full border rounded-lg p-2" value={config.duration} onChange={e => setConfig({...config, duration: parseInt(e.target.value)})} />
+                            <div className="grid grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Área de Conhecimento</label>
+                                    <select className="w-full border-2 border-slate-50 rounded-2xl p-4 font-bold text-slate-700 bg-slate-50 outline-none" value={config.knowledgeArea} onChange={e => setConfig({...config, knowledgeArea: e.target.value})}>
+                                        <option value="Linguagens">Linguagens</option>
+                                        <option value="Matemática">Matemática</option>
+                                        <option value="Ciências Natureza">Ciências Natureza</option>
+                                        <option value="Ciências Humanas">Ciências Humanas</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Disciplina Específica</label>
+                                    <input className="w-full border-2 border-slate-50 rounded-2xl p-4 font-bold text-slate-700 outline-none" value={config.subject} onChange={e => setConfig({...config, subject: e.target.value})} placeholder="Ex: Física" />
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Modelo de Avaliação</label>
-                            <select className="w-full border rounded-lg p-2" value={config.model} onChange={e => setConfig({...config, model: e.target.value as ExamModel})}>
-                                <option value="SOMATIVO">Somativo</option>
-                                <option value="ADAPTADO">Adaptado</option>
-                            </select>
-                        </div>
-                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Descrição/Instruções</label>
-                            <textarea className="w-full border rounded-lg p-2 h-24" value={config.description} onChange={e => setConfig({...config, description: e.target.value})} />
-                        </div>
-                        <div className="flex justify-end pt-4">
-                            <button onClick={() => setStep(2)} className="btn-gradient px-6 py-3 rounded-lg flex items-center gap-2 font-bold shadow-lg">
-                                Próximo: Selecionar Questões <ChevronRight size={18}/>
-                            </button>
+                            <div className="grid grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Tempo (minutos)</label>
+                                    <input type="number" className="w-full border-2 border-slate-50 rounded-2xl p-4 font-bold text-slate-700 outline-none" value={config.duration} onChange={e => setConfig({...config, duration: parseInt(e.target.value) || 0})} />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Modelo</label>
+                                    <select className="w-full border-2 border-slate-50 rounded-2xl p-4 font-bold text-slate-700 bg-slate-50 outline-none" value={config.model} onChange={e => setConfig({...config, model: e.target.value as ExamModel})}>
+                                        <option value="SOMATIVO">Somativo (Fixo)</option>
+                                        <option value="ADAPTADO">Adaptado (IA)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="flex justify-end pt-4">
+                                <button onClick={() => setStep(2)} className="btn-premium px-10 py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center gap-3 shadow-xl">
+                                    Próximo <ArrowRight size={20}/>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 ) : (
-                    <div className="flex h-full gap-8">
-                        {/* Left: Available Items (List) */}
-                        <div className="flex-1 flex flex-col bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                            <div className="p-4 border-b bg-slate-50">
-                                <h3 className="font-bold text-slate-800 mb-3">Banco de Itens Disponível</h3>
+                    <div className="flex h-full gap-10">
+                        {/* Banco de Itens */}
+                        <div className="flex-1 flex flex-col bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden">
+                            <div className="p-6 bg-slate-50/50 border-b">
                                 <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-secondary" size={16}/>
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400" size={18}/>
                                     <input 
-                                        className="w-full border rounded-lg pl-9 p-2 text-sm shadow-sm" 
-                                        placeholder="Filtrar questões..."
+                                        className="w-full border-2 border-white rounded-2xl pl-12 p-3 font-bold text-sm shadow-sm outline-none focus:border-brand-primary transition-all" 
+                                        placeholder="Pesquisar questões..."
                                         value={filter}
                                         onChange={e => setFilter(e.target.value)}
                                     />
                                 </div>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                            <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                                 {filteredAvailableItems.map(item => (
-                                    <div key={item.id} className="p-3 border border-slate-200 rounded-lg hover:border-brand-secondary bg-white cursor-pointer group transition-all hover:shadow-sm" onClick={() => toggleItem(item)}>
-                                        <div className="flex justify-between items-start mb-1">
-                                            <span className="text-xs font-bold text-slate-500 uppercase">{item.subject}</span>
+                                    <div key={item.id} className="p-5 border-2 border-slate-50 rounded-2xl hover:border-brand-primary bg-white cursor-pointer group transition-all" onClick={() => toggleItem(item)}>
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{item.subject}</span>
                                             <Badge color={item.difficulty === 'FACIL' ? 'green' : 'yellow'}>{item.difficulty}</Badge>
                                         </div>
-                                        <p className="text-sm text-slate-800 line-clamp-2 mb-2">{item.statement}</p>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-xs text-slate-400">ID: {item.id.slice(0,6)}</span>
-                                            <button className="text-brand-primary text-xs font-bold opacity-0 group-hover:opacity-100 flex items-center gap-1 bg-brand-light px-2 py-1 rounded">Adicionar <Plus size={12}/></button>
-                                        </div>
+                                        <p className="text-sm font-bold text-slate-700 line-clamp-2">{item.statement}</p>
                                     </div>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Right: Tablet Simulator (Preview) */}
-                        <div className="w-[500px] flex flex-col">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-bold text-slate-800 flex items-center gap-2"><Tablet size={20}/> Simulação do Aluno</h3>
-                                <span className="text-xs font-bold bg-brand-primary text-white px-3 py-1 rounded-full">{selectedItems.length} questões selecionadas</span>
-                            </div>
-                            
-                            {/* Tablet Device Frame */}
-                            <div className="flex-1 bg-slate-900 rounded-[2rem] p-3 shadow-2xl relative border-4 border-slate-800 flex flex-col min-h-[600px]">
-                                {/* Camera Dot */}
-                                <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 rounded-full"></div>
-                                
-                                {/* Screen Content */}
-                                <div className="flex-1 bg-slate-100 rounded-[1.5rem] overflow-hidden flex flex-col relative">
-                                    {selectedItems.length === 0 ? (
-                                        <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center">
-                                            <Plus size={48} className="mb-4 opacity-50"/>
-                                            <p>Adicione questões do banco ao lado para visualizar como elas aparecerão na prova.</p>
+                        {/* Configuração da Prova e Pontos */}
+                        <div className="w-[450px] flex flex-col gap-6">
+                            <div className="bg-[#0f1d2e] p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden">
+                                <Target size={120} className="absolute -right-8 -bottom-8 opacity-5"/>
+                                <h3 className="text-xs font-black uppercase tracking-widest mb-6 border-b border-white/10 pb-4">Itens Selecionados ({selectedItems.length})</h3>
+                                <div className="space-y-3 max-h-64 overflow-y-auto custom-scrollbar pr-2">
+                                    {selectedItems.map((item, idx) => (
+                                        <div key={item.id} className="bg-white/5 p-4 rounded-xl border border-white/10 flex justify-between items-center group">
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-indigo-400 font-black text-xs">Q{idx+1}</span>
+                                                <div className="text-xs font-medium truncate w-32">{item.statement}</div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Star size={12} className="text-amber-400"/>
+                                                <input 
+                                                    type="number" 
+                                                    className="w-12 bg-transparent border-b border-white/20 text-center font-black text-xs outline-none focus:border-amber-400"
+                                                    value={itemScores[item.id] || 0}
+                                                    onChange={e => setItemScores({...itemScores, [item.id]: parseFloat(e.target.value) || 0})}
+                                                />
+                                                <button onClick={() => toggleItem(item)} className="p-1 text-rose-400 opacity-0 group-hover:opacity-100 transition"><X size={14}/></button>
+                                            </div>
                                         </div>
-                                    ) : (
-                                        <>
-                                            {/* Header Inside Tablet */}
-                                            <div className="bg-white p-4 border-b border-slate-200 flex justify-between items-center shadow-sm z-10">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-8 h-8 rounded-full bg-brand-light text-brand-primary flex items-center justify-center font-bold text-xs">
-                                                        {previewIndex + 1}
-                                                    </div>
-                                                    <span className="text-xs font-bold text-slate-500 uppercase">Questão {previewIndex + 1} de {selectedItems.length}</span>
-                                                </div>
-                                                <span className="text-[10px] font-mono bg-slate-100 px-2 py-1 rounded text-slate-600">00:45:00</span>
-                                            </div>
-
-                                            {/* Scrollable Question Content */}
-                                            <div className="flex-1 overflow-y-auto p-5 bg-[#f8fafc]">
-                                                {currentPreviewItem && (
-                                                    <div className="animate-in slide-in-from-right-4 duration-300">
-                                                        <div className="text-sm text-slate-800 font-medium leading-relaxed mb-4">
-                                                            {currentPreviewItem.statement}
-                                                        </div>
-                                                        
-                                                        {currentPreviewItem.imageUrl && (
-                                                            <div className="mb-4 rounded-lg overflow-hidden border border-slate-200">
-                                                                <img src={currentPreviewItem.imageUrl} alt="Questão" className="w-full object-cover"/>
-                                                            </div>
-                                                        )}
-
-                                                        <div className="space-y-3">
-                                                            {(currentPreviewItem.type === QuestionType.MULTIPLE_CHOICE || currentPreviewItem.type === QuestionType.TRUE_FALSE) && (
-                                                                currentPreviewItem.alternatives.map((alt, idx) => (
-                                                                    <button key={idx} className="w-full text-left p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-brand-primary hover:bg-sky-50 transition flex items-start gap-3 group">
-                                                                        <div className="w-6 h-6 rounded-full border border-slate-300 text-slate-500 text-xs flex items-center justify-center group-hover:border-brand-primary group-hover:text-brand-primary font-bold">
-                                                                            {String.fromCharCode(65 + idx)}
-                                                                        </div>
-                                                                        <span className="text-sm text-slate-600 group-hover:text-slate-900 pt-0.5">{alt.text}</span>
-                                                                    </button>
-                                                                ))
-                                                            )}
-
-                                                            {/* VISUAL DE CADERNO / REDAÇÃO */}
-                                                            {(currentPreviewItem.type === QuestionType.ESSAY || currentPreviewItem.type === QuestionType.REDACTION) && (
-                                                                <div className="mt-4">
-                                                                    <div className="text-xs font-bold text-slate-500 mb-1 uppercase flex justify-between">
-                                                                        <span>Folha de Resposta Oficial</span>
-                                                                        <span>Max: {currentPreviewItem.maxLines || 30} linhas</span>
-                                                                    </div>
-                                                                    
-                                                                    {/* NOTEBOOK MASK */}
-                                                                    <div className="w-full bg-white border border-slate-300 shadow-sm flex relative overflow-hidden rounded-md" style={{height: '400px'}}>
-                                                                        {/* Numbered Column + Red Margin */}
-                                                                        <div className="w-8 bg-slate-100 flex-shrink-0 flex flex-col items-center pt-1 border-r-2 border-red-400/50 text-slate-400 font-mono text-xs select-none leading-[32px]">
-                                                                            {Array.from({length: currentPreviewItem.maxLines || 30}).map((_, i) => (
-                                                                                <div key={i} style={{height: '32px'}}>{i+1}</div>
-                                                                            ))}
-                                                                        </div>
-                                                                        
-                                                                        {/* Lined Paper Background + Transparent Input */}
-                                                                        <div className="flex-1 relative overflow-y-auto custom-scrollbar">
-                                                                            <div 
-                                                                                className="absolute inset-0 pointer-events-none"
-                                                                                style={{
-                                                                                    backgroundImage: 'linear-gradient(transparent 31px, #cbd5e1 32px)',
-                                                                                    backgroundSize: '100% 32px',
-                                                                                    marginTop: '0px' // Adjust alignment
-                                                                                }}
-                                                                            ></div>
-                                                                            <textarea 
-                                                                                className="w-full h-full bg-transparent outline-none resize-none p-0 pl-2 text-slate-800 text-base leading-[32px] font-sans relative z-10"
-                                                                                placeholder="Escreva sua redação aqui..."
-                                                                                spellCheck={false}
-                                                                                style={{ lineHeight: '32px' }}
-                                                                                disabled
-                                                                            />
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Tablet Footer Navigation */}
-                                            <div className="p-4 bg-white border-t border-slate-200 flex justify-between items-center z-10">
-                                                <button 
-                                                    onClick={() => setPreviewIndex(Math.max(0, previewIndex - 1))}
-                                                    disabled={previewIndex === 0}
-                                                    className="p-2 rounded-full hover:bg-slate-100 disabled:opacity-30 text-slate-600 transition"
-                                                >
-                                                    <ChevronLeft size={24}/>
-                                                </button>
-                                                
-                                                {/* Question Dots */}
-                                                <div className="flex gap-1 overflow-hidden max-w-[200px] justify-center px-2">
-                                                    {selectedItems.map((_, i) => (
-                                                        <div 
-                                                            key={i} 
-                                                            onClick={() => setPreviewIndex(i)}
-                                                            className={`w-2 h-2 rounded-full cursor-pointer transition-all ${i === previewIndex ? 'bg-brand-primary w-4' : 'bg-slate-300 hover:bg-slate-400'}`} 
-                                                        />
-                                                    ))}
-                                                </div>
-
-                                                <button 
-                                                    onClick={() => setPreviewIndex(Math.min(selectedItems.length - 1, previewIndex + 1))}
-                                                    disabled={previewIndex === selectedItems.length - 1}
-                                                    className="p-2 rounded-full hover:bg-slate-100 disabled:opacity-30 text-slate-600 transition"
-                                                >
-                                                    <ArrowRight size={24}/>
-                                                </button>
-                                            </div>
-                                        </>
-                                    )}
+                                    ))}
+                                    {selectedItems.length === 0 && <div className="text-slate-500 text-xs italic text-center py-8">Nenhuma questão adicionada.</div>}
+                                </div>
+                                <div className="mt-8 pt-6 border-t border-white/10 flex justify-between items-center">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase">Total de Pontos</span>
+                                    <span className="text-2xl font-black text-emerald-400">{totalPoints.toFixed(1)}</span>
                                 </div>
                             </div>
 
-                            {/* Action Buttons below Simulator */}
-                            <div className="mt-6 grid grid-cols-2 gap-4">
-                                <button onClick={() => handleSave(false)} className="py-3 bg-white border border-slate-300 text-slate-700 rounded-lg font-bold text-sm hover:bg-slate-50 transition shadow-sm">
-                                    Salvar Rascunho
-                                </button>
-                                <button onClick={() => handleSave(true)} className="btn-gradient py-3 rounded-lg font-bold text-sm transition shadow-md">
-                                    Publicar Prova
-                                </button>
+                            <div className="grid grid-cols-1 gap-3">
+                                <button onClick={() => handleSave(false)} className="py-4 bg-white border-2 border-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition">Salvar Rascunho</button>
+                                <button onClick={() => handleSave(true)} className="py-5 bg-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-2xl hover:bg-indigo-700 transition">Publicar Avaliação</button>
                             </div>
                         </div>
                     </div>

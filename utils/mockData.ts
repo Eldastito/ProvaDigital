@@ -5,7 +5,7 @@ import { Tenant, School, SchoolClass, User, UserRole, Item, QuestionType, Diffic
 export const INITIAL_TENANTS: Tenant[] = [
   { id: 't1', name: 'Secretaria Mun. de Educação', type: TenantType.PUBLIC_MUNICIPAL, cnpj: '00.000.000/0001-00' },
   { id: 't2', name: 'Secretaria Estadual de Educação', type: TenantType.PUBLIC_STATE, cnpj: '11.111.111/0001-11' },
-  { id: 't3', name: 'Instituto Federal (MEC)', type: TenantType.PUBLIC_FEDERAL, cnpj: '22.222.222/0001-22' },
+  { id: 't3', name: 'Ministério da Educação (MEC)', type: TenantType.PUBLIC_FEDERAL, cnpj: '22.222.222/0001-22' },
   { id: 't4', name: 'Rede Privada Elite', type: TenantType.PRIVATE, cnpj: '33.333.333/0001-33' }
 ];
 
@@ -54,6 +54,7 @@ export const INITIAL_USERS: User[] = [
   { id: 'u3', name: 'Diretora Marta', email: 'marta.dir@escola.com', role: UserRole.DIRETOR, tenantId: 't1', schoolId: 's1' },
   
   // GESTORES DE REDE (MACRO)
+  { id: 'u_mec', name: 'Ministro da Educação', email: 'ministro@mec.gov.br', role: UserRole.SUPER_ADMIN, tenantId: 't3' }, // PERFIL NACIONAL
   { id: 'u_sec_mun', name: 'Sec. Municipal', email: 'admin@sme.gov.br', role: UserRole.TENANT_ADMIN, tenantId: 't1' },
   { id: 'u_sec_est', name: 'Sec. Estadual', email: 'gov@estado.gov.br', role: UserRole.STATE_ADMIN, tenantId: 't2' },
   { id: 'u_super', name: 'Super Admin', email: 'root@examepad.com', role: UserRole.SUPER_ADMIN, tenantId: 't1' },

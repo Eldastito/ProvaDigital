@@ -1,31 +1,45 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Send, Brain, Sparkles, Bot, ShieldAlert } from 'lucide-react';
-import { AppState, User, OwlSession, ExamStatus } from '../../types';
+import { AppState, User, OwlSession, ExamStatus, Student, Exam, ExamRegistration, UserProfileExtended, ExamResult } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
 import { askOwlTutor } from '../../services/geminiService';
 import { uuidv4 } from '../../utils/helpers';
+import { useQuery } from '@tanstack/react-query';
+import { fetchStudents, fetchExams, fetchRegistrations, fetchUserProfiles, fetchResults } from '../../services/supabaseClient';
 
 interface OwlTutorViewProps {
-    state: AppState;
+    state: AppState; // Still needed for overall AppState context if ever needed
     user: User;
 }
 
 export const OwlTutorView = ({ state, user }: OwlTutorViewProps) => {
-    const student = state.students.find(s => s.id === user.id) || state.students[0];
-    const analytics = new AnalyticsService(state);
-    const stats = analytics.getStudentStats(student.id);
+    // Fetch all necessary data via React Query
+    // @fix: Updated useQuery calls to new object syntax
+    const { data: allStudents } = useQuery<Student[]>({ queryKey: ['students'], queryFn: fetchStudents, initialData: [] });
+    const { data: allExams } = useQuery<Exam[]>({ queryKey: ['exams'], queryFn: fetchExams, initialData: [] });
+    const { data: allRegistrations } = useQuery<ExamRegistration[]>({ queryKey: ['registrations'], queryFn: fetchRegistrations, initialData: [] });
+    const { data: allUserProfiles } = useQuery<UserProfileExtended[]>({ queryKey: ['userProfiles'], queryFn: fetchUserProfiles, initialData: [] });
+    const { data: allResults } = useQuery<ExamResult[]>({ queryKey: ['results'], queryFn: fetchResults, initialData: [] });
+
+    const student = allStudents?.find(s => s.id === user.id) || allStudents?.[0];
+    
+    // Initialize AnalyticsService with fetched data
+    const analytics = useMemo(() => new AnalyticsService(), []);
+    // @fix: Pass empty arrays as fallbacks to getStudentStats
+    const stats = student ? analytics.getStudentStats(student.id, allStudents || [], allResults || [], allExams || [], allRegistrations || [], allUserProfiles || []) : null;
 
     // Identify Active Exams (Today + Published)
-    const activeExams = state.exams.filter(e => 
+    // @fix: Use optional chaining to safely access filter
+    const activeExams = allExams?.filter(e => 
         e.status === ExamStatus.PUBLISHED && 
         e.scheduledDate === new Date().toISOString().split('T')[0]
-    );
+    ) || [];
     const forbiddenTopics = activeExams.map(e => e.subject);
 
     // Session State
     const [messages, setMessages] = useState<{role: 'user'|'model', text: string}[]>([
-        { role: 'model', text: `Olá ${student.name.split(' ')[0]}! Sou o Corujão 🦉. Vi que seu ponto forte é ${stats?.strongestSubject} e podemos melhorar em ${stats?.weakestSubject}. Como posso ajudar hoje?` }
+        { role: 'model', text: `Olá ${student?.name.split(' ')[0]}! Sou o Corujão 🦉. Vi que seu ponto forte é ${stats?.strongestSubject} e podemos melhorar em ${stats?.weakestSubject}. Como posso ajudar hoje?` }
     ]);
     const [inputText, setInputText] = useState('');
     const [loading, setLoading] = useState(false);
@@ -50,7 +64,7 @@ export const OwlTutorView = ({ state, user }: OwlTutorViewProps) => {
         const responseText = await askOwlTutor(
             messages,
             inputText,
-            student.name,
+            student?.name || 'Aluno', // Provide fallback
             context,
             forbiddenTopics // Pass Active Exam Subjects to Block Cheating
         );

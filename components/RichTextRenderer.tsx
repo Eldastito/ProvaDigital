@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 
 interface RichTextRendererProps {
@@ -24,6 +23,11 @@ export const RichTextRenderer = ({ content, className = '' }: RichTextRendererPr
 
     const parseContent = (text: string) => {
         if (!text) return '';
+        
+        // FASE 2 - XSS SANITIZATION: Remove tags e atributos perigosos antes de processar.
+        const sanitizedText = text
+            .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove <script> tags
+            .replace(/ on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^>\s]+)/gi, ''); // Remove on... event handlers
 
         const placeholders: string[] = [];
         const pushPlaceholder = (str: string) => {
@@ -31,7 +35,7 @@ export const RichTextRenderer = ({ content, className = '' }: RichTextRendererPr
             return `%%%PLACEHOLDER_${placeholders.length - 1}%%%`;
         };
 
-        let processed = text;
+        let processed = sanitizedText;
 
         // 1. Extract Code Blocks (``` ... ```)
         processed = processed.replace(/```([\s\S]*?)```/g, (match, codeContent) => {

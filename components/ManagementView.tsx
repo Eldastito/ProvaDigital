@@ -1,536 +1,279 @@
 
-import React, { useState, useRef } from 'react';
-import { GraduationCap, Briefcase, Users, Settings, Plus, X, School as SchoolIcon, Upload, Radio, FileText, Download, Network, GitMerge, ArrowRight, ShieldCheck, Link, Database } from 'lucide-react';
-import { AppState, School, SchoolClass, Student, User, UserRole, AppSettings, SchoolResources } from '../types';
+import React, { useState, useEffect } from 'react';
+import { GraduationCap, Users, Plus, X, School as SchoolIcon, ArrowRight, BookOpen, ShieldCheck, MapPin, Hash, UserPlus, Trash2 } from 'lucide-react';
+import { AppState, School, SchoolClass, Student, User, UserRole } from '../types';
 import { uuidv4 } from '../utils/helpers';
-import { CommandCenter } from './Management/CommandCenter';
+import { useAppStore } from '../store/useAppStore';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { 
+    fetchSchools, fetchClasses, fetchStudents, fetchUsers,
+    insertSchool, updateSchool, insertClass, insertStudent, insertUser
+} from '../services/supabaseClient';
 import { ManagementForms } from './Management/ManagementForms';
 
-type ManagementTab = 'SCHOOLS' | 'CLASSES' | 'STUDENTS' | 'USERS' | 'COMMAND_CENTER' | 'SETTINGS' | 'BATCH_IMPORT' | 'HIERARCHY';
+type ManagementTab = 'SCHOOLS' | 'CLASSES' | 'STUDENTS' | 'USERS';
 
-interface ManagementViewProps {
-    state: AppState;
-    onAddSchool: (s: School) => void;
-    onAddClass: (c: SchoolClass) => void;
-    onAddStudent: (s: Student) => void;
-    onAddUser: (u: User) => void;
-    onUpdateSettings?: (s: AppSettings) => void;
-}
-
-export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, onAddUser, onUpdateSettings }: ManagementViewProps) => {
+export const ManagementView = ({ state }: { state: AppState }) => {
+    const { currentUser } = useAppStore();
     const [activeTab, setActiveTab] = useState<ManagementTab>('SCHOOLS'); 
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const csvInputRef = useRef<HTMLInputElement>(null);
-    const batchSchoolInputRef = useRef<HTMLInputElement>(null);
     
-    const currentUser = state.currentUser;
-    const userSchoolId = currentUser?.schoolId;
+    const { data: schools = [] } = useQuery<School[]>({ queryKey: ['schools'], queryFn: fetchSchools });
+    const { data: classes = [] } = useQuery<SchoolClass[]>({ queryKey: ['classes'], queryFn: fetchClasses });
+    const { data: students = [] } = useQuery<Student[]>({ queryKey: ['students'], queryFn: fetchStudents });
+    const { data: users = [] } = useQuery<User[]>({ queryKey: ['users'], queryFn: fetchUsers });
+
     const isTenantAdmin = currentUser?.role === UserRole.TENANT_ADMIN || currentUser?.role === UserRole.SUPER_ADMIN;
     const isDirector = currentUser?.role === UserRole.DIRETOR;
 
-    // --- DATA FILTERING (ISOLATION) ---
-    const visibleSchools = isTenantAdmin ? state.schools : state.schools.filter(s => s.id === userSchoolId);
-    const visibleClasses = isTenantAdmin ? state.classes : state.classes.filter(c => c.schoolId === userSchoolId);
-    const visibleStudents = isTenantAdmin ? state.students : state.students.filter(s => s.schoolId === userSchoolId);
-    const visibleUsers = isTenantAdmin ? state.users : state.users.filter(u => u.schoolId === userSchoolId);
+    const visibleSchools = isTenantAdmin ? schools : schools.filter(s => s.id === currentUser?.schoolId);
+    const visibleClasses = isTenantAdmin ? classes : classes.filter(c => c.schoolId === currentUser?.schoolId);
+    const visibleStudents = isTenantAdmin ? students : students.filter(s => s.schoolId === currentUser?.schoolId);
 
     // Form States
-    const [schoolForm, setSchoolForm] = useState<{name: string, inep: string, resources: SchoolResources}>({ 
-        name: '', 
-        inep: '',
-        resources: {
-            funding: false, uniforms: false, textbooks: false, adminMaterials: false,
-            extracurricular: false, internet: false, lab: false, accessibility: false, food: false,
-            transportation: false, security: false, ac_cooling: false
-        }
-    });
-    const [classForm, setClassForm] = useState({ name: '', series: '', shift: 'MANHA', schoolId: userSchoolId || '' });
-    const [studentForm, setStudentForm] = useState({ name: '', reg: '', classId: '' });
-    const [userForm, setUserForm] = useState({ name: '', email: '', role: UserRole.PROFESSOR, schoolId: userSchoolId || '' });
+    const [schoolForm, setSchoolForm] = useState<any>({ name: '', inep: '', resources: { funding: true, uniforms: false, textbooks: true } });
+    const [classForm, setClassForm] = useState<any>({ name: '', series: '', shift: 'MANHA', schoolId: currentUser?.schoolId || '', capacity: 35 });
+    const [studentForm, setStudentForm] = useState<any>({ name: '', reg: '', classId: '', schoolId: currentUser?.schoolId || '' });
+    const [userForm, setUserForm] = useState<any>({ name: '', email: '', role: UserRole.PROFESSOR, schoolId: currentUser?.schoolId || '' });
 
-    const currentTenantId = currentUser?.tenantId || 't1';
-
-    // --- BATCH UPLOAD SCHOOLS ---
-    const handleBatchSchoolImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const text = event.target?.result as string;
-            const lines = text.split('\n');
-            let successCount = 0;
+    // --- AUTO MATRÍCULA LOGIC ---
+    useEffect(() => {
+        if (activeTab === 'STUDENTS' && studentForm.classId) {
+            const targetClass = classes.find(c => c.id === studentForm.classId);
+            const schoolStudents = students.filter(s => s.schoolId === targetClass?.schoolId);
             
-            lines.forEach((line, idx) => {
-                if (idx === 0) return; // Skip Header
-                const parts = line.split(';');
-                if (parts.length >= 2) {
-                    const schoolName = parts[0]?.trim();
-                    const inep = parts[1]?.trim();
-                    
-                    if (schoolName && inep) {
-                        const newSchoolId = uuidv4();
-                        // 1. Create School (Default resources false)
-                        onAddSchool({
-                            id: newSchoolId,
-                            tenantId: currentTenantId,
-                            name: schoolName,
-                            inep: inep,
-                            resources: { funding: false, uniforms: false, textbooks: false, adminMaterials: false, extracurricular: false, internet: false, lab: false, accessibility: false, food: false, transportation: false, security: false, ac_cooling: false }
-                        });
-                        successCount++;
-                    }
+            let suggestion = '';
+            if (schoolStudents.length > 0) {
+                // Tenta detectar o padrão da última matrícula
+                const lastReg = schoolStudents[schoolStudents.length - 1].registrationNumber;
+                const match = lastReg.match(/^(.*?)(\d+)$/);
+                if (match) {
+                    const prefix = match[1];
+                    const num = parseInt(match[2]);
+                    suggestion = `${prefix}${(num + 1).toString().padStart(match[2].length, '0')}`;
+                } else {
+                    suggestion = `REG-${(schoolStudents.length + 1).toString().padStart(3, '0')}`;
                 }
-            });
-            alert(`Processamento concluído! ${successCount} escolas importadas.`);
-        };
-        reader.readAsText(file);
-        if (batchSchoolInputRef.current) batchSchoolInputRef.current.value = '';
-    };
-
-    const downloadTemplate = () => {
-        const content = "NOME_ESCOLA;INEP;NOME_GESTOR;EMAIL_GESTOR;FUNCAO_GESTOR\nEscola Municipal Exemplo;12345678;Joao Silva;joao@escola.com;DIRETOR";
-        const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        if (link.download !== undefined) {
-            const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", "modelo_carga_escolas.csv");
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            } else {
+                // Padrão default baseado no ano
+                suggestion = `${new Date().getFullYear()}-${visibleClasses.find(c=>c.id===studentForm.classId)?.name}-001`;
+            }
+            setStudentForm(prev => ({ ...prev, reg: suggestion }));
         }
-    };
+    }, [studentForm.classId, activeTab, students, classes]);
 
-    // --- STANDARD CRUD LOGIC ---
+    const addSchoolMutation = useMutation({ mutationFn: insertSchool, onSuccess: () => { alert('Unidade cadastrada!'); setIsModalOpen(false); } });
+    const addClassMutation = useMutation({ mutationFn: insertClass, onSuccess: () => { alert('Turma criada!'); setIsModalOpen(false); } });
+    const addStudentMutation = useMutation({ mutationFn: insertStudent, onSuccess: () => { alert('Matrícula realizada!'); setIsModalOpen(false); } });
+    const addUserMutation = useMutation({ mutationFn: insertUser, onSuccess: () => { alert('Usuário cadastrado!'); setIsModalOpen(false); } });
 
     const handleSubmit = () => {
+        if (!currentUser) return;
+        
         if (activeTab === 'SCHOOLS') {
-            if (!schoolForm.name) return alert('Nome obrigatório');
-            onAddSchool({
-                id: uuidv4(), // In a real app, this would handle Update ID if editing
-                tenantId: currentTenantId,
-                name: schoolForm.name,
-                inep: schoolForm.inep,
-                resources: schoolForm.resources
+            addSchoolMutation.mutate({ 
+                id: uuidv4(), 
+                tenantId: currentUser.tenantId, 
+                name: schoolForm.name, 
+                inep: schoolForm.inep, 
+                resources: schoolForm.resources 
             });
-        } else if (activeTab === 'CLASSES') {
-            if (!classForm.name || !classForm.schoolId) return alert('Campos obrigatórios');
-            onAddClass({
-                id: uuidv4(),
-                schoolId: classForm.schoolId,
-                name: classForm.name,
-                series: classForm.series,
-                shift: classForm.shift as any
+        }
+        if (activeTab === 'CLASSES') {
+            addClassMutation.mutate({ 
+                id: uuidv4(), 
+                schoolId: classForm.schoolId || currentUser.schoolId || '', 
+                name: classForm.name, 
+                series: classForm.series, 
+                shift: classForm.shift,
+                capacity: classForm.capacity
             });
-        } else if (activeTab === 'STUDENTS') {
-            if (!studentForm.name || !studentForm.classId) return alert('Campos obrigatórios');
-            const selectedClass = state.classes.find(c => c.id === studentForm.classId);
-            onAddStudent({
+        }
+        if (activeTab === 'STUDENTS') {
+            const targetClass = classes.find(c => c.id === studentForm.classId);
+            addStudentMutation.mutate({
                 id: uuidv4(),
-                tenantId: currentTenantId,
-                schoolId: selectedClass?.schoolId || '',
+                tenantId: currentUser.tenantId,
+                schoolId: targetClass?.schoolId || currentUser.schoolId || '',
                 classId: studentForm.classId,
                 name: studentForm.name,
                 registrationNumber: studentForm.reg
             });
-        } else if (activeTab === 'USERS') {
-            if (!userForm.name || !userForm.email) return alert('Campos obrigatórios');
-            onAddUser({
+        }
+        if (activeTab === 'USERS') {
+            addUserMutation.mutate({
                 id: uuidv4(),
-                tenantId: currentTenantId,
-                schoolId: userForm.schoolId || undefined,
+                tenantId: currentUser.tenantId,
+                schoolId: userForm.schoolId || currentUser.schoolId || '',
                 name: userForm.name,
                 email: userForm.email,
                 role: userForm.role
             });
         }
-        setIsModalOpen(false);
-        resetForms();
-    };
-
-    const handleCsvImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        if (activeTab !== 'STUDENTS') return alert('Importação via CSV disponível apenas para Alunos neste momento.');
-
-        const targetClassId = prompt("Digite o ID da Turma para importar estes alunos (copie da lista de turmas):");
-        if (!targetClassId) return;
-        const targetClass = visibleClasses.find(c => c.id === targetClassId);
-        if (!targetClass) return alert("Turma não encontrada ou você não tem acesso a ela.");
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const text = event.target?.result as string;
-            const lines = text.split('\n');
-            let count = 0;
-            lines.forEach(line => {
-                const parts = line.split(',');
-                if (parts.length >= 2) {
-                    const name = parts[0].trim();
-                    const reg = parts[1].trim();
-                    if (name && reg) {
-                        onAddStudent({
-                            id: uuidv4(),
-                            tenantId: currentTenantId,
-                            schoolId: targetClass.schoolId,
-                            classId: targetClass.id,
-                            name: name,
-                            registrationNumber: reg
-                        });
-                        count++;
-                    }
-                }
-            });
-            alert(`Sucesso! ${count} alunos importados para a turma ${targetClass.name}.`);
-        };
-        reader.readAsText(file);
-        if (csvInputRef.current) csvInputRef.current.value = '';
-    };
-
-    const resetForms = () => {
-        setSchoolForm({ 
-            name: '', 
-            inep: '',
-            resources: { funding: false, uniforms: false, textbooks: false, adminMaterials: false, extracurricular: false, internet: false, lab: false, accessibility: false, food: false, transportation: false, security: false, ac_cooling: false } 
-        });
-        setClassForm({ name: '', series: '', shift: 'MANHA', schoolId: userSchoolId || '' });
-        setStudentForm({ name: '', reg: '', classId: '' });
-        setUserForm({ name: '', email: '', role: UserRole.PROFESSOR, schoolId: userSchoolId || '' });
-    };
-
-    const openModal = (existingSchool?: School) => {
-        if (activeTab === 'SCHOOLS' && existingSchool) {
-            setSchoolForm({
-                name: existingSchool.name,
-                inep: existingSchool.inep,
-                resources: existingSchool.resources || { funding: false, uniforms: false, textbooks: false, adminMaterials: false, extracurricular: false, internet: false, lab: false, accessibility: false, food: false, transportation: false, security: false, ac_cooling: false }
-            });
-        } else {
-            resetForms();
-        }
-        setIsModalOpen(true);
     };
 
     return (
-        <div className="space-y-6 max-w-7xl mx-auto">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-brand-dark flex items-center gap-2">
-                    <GraduationCap /> Gestão Escolar
-                    {!isTenantAdmin && (
-                        <span className="text-sm font-normal bg-brand-light text-brand-primary px-3 py-1 rounded-full">
-                            {state.schools.find(s => s.id === userSchoolId)?.name}
-                        </span>
-                    )}
-                </h1>
-                <div className="flex gap-2">
-                    {activeTab === 'STUDENTS' && (
-                        <>
-                            <input type="file" accept=".csv" className="hidden" ref={csvInputRef} onChange={handleCsvImport} />
-                            <button onClick={() => csvInputRef.current?.click()} className="bg-white text-slate-600 border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-50 transition flex items-center gap-2 text-sm font-medium">
-                                <Upload size={18} /> Importar CSV
-                            </button>
-                        </>
-                    )}
-                    {/* Hide Add button for Schools if Director (they can only edit) */}
-                    {activeTab !== 'COMMAND_CENTER' && activeTab !== 'SETTINGS' && activeTab !== 'BATCH_IMPORT' && activeTab !== 'HIERARCHY' && (isTenantAdmin || activeTab !== 'SCHOOLS') && (
-                        <button onClick={() => openModal()} className="btn-gradient px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm text-sm font-medium">
-                            <Plus size={18} /> 
-                            Adicionar {activeTab === 'SCHOOLS' ? 'Escola' : activeTab === 'CLASSES' ? 'Turma' : activeTab === 'STUDENTS' ? 'Aluno' : 'Usuário'}
-                        </button>
-                    )}
+        <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div>
+                    <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic flex items-center gap-3">
+                        <GraduationCap className="text-indigo-600" size={40}/> Unidades e Matrículas
+                    </h1>
+                    <p className="text-slate-500 font-medium text-lg mt-1">Gestão de infraestrutura, turmas e cadastro de alunos da rede.</p>
                 </div>
-            </div>
-
-            {/* Tabs */}
-            <div className="border-b border-slate-200 flex gap-6 overflow-x-auto pb-1">
-                {isTenantAdmin && (
-                    <>
-                        <button onClick={() => setActiveTab('HIERARCHY')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'HIERARCHY' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
-                            <GitMerge size={18}/> Organograma
-                        </button>
-                        <button onClick={() => setActiveTab('BATCH_IMPORT')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'BATCH_IMPORT' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
-                            <FileText size={18}/> Carga em Lote
-                        </button>
-                    </>
-                )}
-                <button onClick={() => setActiveTab('SCHOOLS')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'SCHOOLS' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
-                    <Briefcase size={18}/> {isDirector ? 'Minha Escola / Infra' : 'Escolas'}
-                </button>
-                <button onClick={() => setActiveTab('CLASSES')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'CLASSES' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
-                    <SchoolIcon size={18}/> Turmas
-                </button>
-                <button onClick={() => setActiveTab('STUDENTS')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'STUDENTS' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
-                    <Users size={18}/> Alunos
-                </button>
-                <button onClick={() => setActiveTab('USERS')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'USERS' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
-                    <Settings size={18}/> Usuários
-                </button>
-                <button onClick={() => setActiveTab('COMMAND_CENTER')} className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'COMMAND_CENTER' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-500'}`}>
-                    <Radio size={18}/> Centro de Comando
-                </button>
-                 <button onClick={() => setActiveTab('SETTINGS')} className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'SETTINGS' ? 'border-brand-dark text-brand-dark' : 'border-transparent text-slate-500'}`}>
-                    <ShieldCheck size={18}/> Governança & LGPD
+                <button onClick={() => setIsModalOpen(true)} className="btn-premium px-8 py-4 rounded-2xl flex items-center gap-3 font-black text-sm uppercase tracking-widest shadow-xl">
+                    <Plus size={20} /> Novo Registro
                 </button>
             </div>
 
-            {/* Content */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm min-h-[400px]">
-                
-                {activeTab === 'HIERARCHY' && (
-                    <div className="p-8">
-                        <div className="flex flex-col items-center">
-                            {/* Root: Secretaria */}
-                            <div className="bg-brand-dark text-white p-4 rounded-xl shadow-lg border-2 border-brand-primary w-64 text-center z-10">
-                                <div className="flex justify-center mb-2"><Network size={32}/></div>
-                                <div className="font-bold text-lg">Secretaria de Educação</div>
-                                <div className="text-xs text-brand-light">{state.schools.length} Escolas Vinculadas</div>
-                            </div>
-                            
-                            {/* Connector Line */}
-                            <div className="h-12 w-0.5 bg-slate-300 my-0"></div>
-                            
-                            {/* Schools Row */}
-                            <div className="flex flex-wrap justify-center gap-8 relative">
-                                {/* Horizontal Line connecting schools */}
-                                <div className="absolute top-0 left-10 right-10 h-0.5 bg-slate-300 -z-0"></div>
+            <div className="flex gap-6 border-b border-slate-200 mb-8 overflow-x-auto no-scrollbar">
+                <button onClick={() => setActiveTab('SCHOOLS')} className={`pb-4 text-sm font-black uppercase tracking-widest border-b-4 transition-all whitespace-nowrap ${activeTab === 'SCHOOLS' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'}`}>Escolas / Unidades</button>
+                <button onClick={() => setActiveTab('CLASSES')} className={`pb-4 text-sm font-black uppercase tracking-widest border-b-4 transition-all whitespace-nowrap ${activeTab === 'CLASSES' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'}`}>Turmas / Séries</button>
+                <button onClick={() => setActiveTab('STUDENTS')} className={`pb-4 text-sm font-black uppercase tracking-widest border-b-4 transition-all whitespace-nowrap ${activeTab === 'STUDENTS' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'}`}>Estudantes</button>
+                <button onClick={() => setActiveTab('USERS')} className={`pb-4 text-sm font-black uppercase tracking-widest border-b-4 transition-all whitespace-nowrap ${activeTab === 'USERS' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'}`}>Staff / Equipe</button>
+            </div>
 
-                                {state.schools.map(school => (
-                                    <div key={school.id} className="flex flex-col items-center mt-0 relative z-10">
-                                        <div className="h-6 w-0.5 bg-slate-300 mb-0"></div>
-                                        
-                                        {/* School Node */}
-                                        <div className="bg-white border-2 border-brand-secondary p-3 rounded-lg shadow-sm w-56 hover:shadow-md transition-all cursor-pointer group">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <SchoolIcon size={18} className="text-brand-primary"/>
-                                                <div className="font-bold text-sm text-slate-800 truncate">{school.name}</div>
-                                            </div>
-                                            <div className="flex justify-between text-xs text-slate-500 bg-slate-50 p-1 rounded">
-                                                <span className="flex gap-1 items-center"><Users size={10}/> {state.students.filter(s=>s.schoolId===school.id).length}</span>
-                                                <span className="flex gap-1 items-center"><Briefcase size={10}/> {state.users.filter(u=>u.schoolId===school.id && u.role==='PROFESSOR').length}</span>
-                                            </div>
-                                            
-                                            {/* Expanded Classes on Hover */}
-                                            <div className="mt-2 pt-2 border-t border-dashed border-slate-200 hidden group-hover:block animate-in fade-in">
-                                                {state.classes.filter(c => c.schoolId === school.id).map(cls => (
-                                                    <div key={cls.id} className="text-xs text-slate-600 flex items-center gap-1 py-0.5">
-                                                        <ArrowRight size={10} className="text-slate-300"/> {cls.name} ({cls.series})
-                                                    </div>
-                                                ))}
-                                                {state.classes.filter(c => c.schoolId === school.id).length === 0 && <span className="text-xs italic text-slate-300">Sem turmas</span>}
-                                            </div>
+            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-2xl overflow-hidden">
+                {activeTab === 'SCHOOLS' && (
+                    <div className="divide-y divide-slate-50">
+                        {visibleSchools.map(s => (
+                            <div key={s.id} className="p-8 flex justify-between items-center hover:bg-slate-50/50 transition-colors group">
+                                <div className="flex items-center gap-6">
+                                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-indigo-600 shadow-inner group-hover:bg-white transition-all">
+                                        <SchoolIcon size={32}/>
+                                    </div>
+                                    <div>
+                                        <div className="font-black text-slate-800 text-xl tracking-tight">{s.name}</div>
+                                        <div className="flex items-center gap-3 mt-1">
+                                            <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest flex items-center gap-1"><Hash size={12}/> INEP: {s.inep}</span>
+                                            <span className="text-slate-200">|</span>
+                                            <span className="text-[10px] text-indigo-600 font-black uppercase tracking-widest flex items-center gap-1">
+                                                <Users size={12}/> {students.filter(st => st.schoolId === s.id).length} Alunos
+                                            </span>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="mt-12 text-center text-xs text-slate-400">
-                            Visualização hierárquica da rede municipal. Passe o mouse sobre a escola para ver as turmas.
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'BATCH_IMPORT' && (
-                    <div className="p-8 max-w-4xl mx-auto">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {/* Import Schools & Directors */}
-                            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className="bg-brand-primary text-white p-2 rounded-lg"><SchoolIcon size={24}/></div>
-                                    <div>
-                                        <h3 className="font-bold text-slate-800">Carga de Escolas</h3>
-                                        <p className="text-xs text-slate-500">Importar Escolas via CSV</p>
-                                    </div>
                                 </div>
-                                <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-                                    Utilize esta ferramenta para cadastrar múltiplas escolas de uma vez. O arquivo deve conter nome e INEP.
-                                </p>
-                                <div className="space-y-3">
-                                    <button onClick={downloadTemplate} className="w-full py-2 border border-slate-300 bg-white text-slate-700 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-slate-100">
-                                        <Download size={16}/> Baixar Modelo CSV
-                                    </button>
-                                    <div className="relative">
-                                        <input type="file" accept=".csv" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" ref={batchSchoolInputRef} onChange={handleBatchSchoolImport}/>
-                                        <button className="w-full py-3 bg-brand-primary text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 shadow-md">
-                                            <Upload size={18}/> Selecionar Arquivo (.csv)
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Import Students (Mock) */}
-                            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 opacity-70">
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className="bg-emerald-600 text-white p-2 rounded-lg"><Users size={24}/></div>
-                                    <div>
-                                        <h3 className="font-bold text-slate-800">Carga de Alunos (Global)</h3>
-                                        <p className="text-xs text-slate-500">Em breve</p>
-                                    </div>
-                                </div>
-                                <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-                                    Para importação de alunos, utilize a aba "Alunos" e selecione a turma específica, ou aguarde a integração via API com o sistema legado.
-                                </p>
-                                <button disabled className="w-full py-3 bg-slate-200 text-slate-400 rounded-lg text-sm font-bold flex items-center justify-center gap-2 cursor-not-allowed">
-                                    <Link size={18}/> Configurar Integração API
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="mt-8 bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3">
-                            <Database size={24} className="text-blue-600 flex-shrink-0 mt-1"/>
-                            <div>
-                                <h4 className="font-bold text-blue-800 text-sm">Log de Processamento</h4>
-                                <ul className="text-xs text-blue-700 mt-1 space-y-1 list-disc pl-4">
-                                    <li>Nenhum processamento em lote recente.</li>
-                                    <li>O sistema valida duplicidade de INEP automaticamente.</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'SETTINGS' && (
-                    <div className="p-8 max-w-3xl mx-auto">
-                        <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-6">
-                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Settings size={18}/> Preferências da Escola</h3>
-                            
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between p-3 bg-white border rounded-lg">
-                                    <div>
-                                        <div className="font-bold text-sm text-slate-800">Ranking de Alunos</div>
-                                        <div className="text-xs text-slate-500">Permitir que alunos vejam sua posição na turma</div>
-                                    </div>
-                                    <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
-                                        <input type="checkbox" name="toggle" id="ranking-toggle" checked={state.settings.rankingEnabled} onChange={() => onUpdateSettings && onUpdateSettings({ ...state.settings, rankingEnabled: !state.settings.rankingEnabled })} className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
-                                        <label htmlFor="ranking-toggle" className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${state.settings.rankingEnabled ? 'bg-brand-primary' : 'bg-slate-300'}`}></label>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center justify-between p-3 bg-white border rounded-lg">
-                                    <div>
-                                        <div className="font-bold text-sm text-slate-800">Anonimato no Ranking</div>
-                                        <div className="text-xs text-slate-500">Se ativo, exibe apenas matrícula em vez do nome</div>
-                                    </div>
-                                    <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
-                                        <input type="checkbox" name="toggle" id="anon-toggle" checked={state.settings.rankingAnonymity === 'ANONIMO'} onChange={() => onUpdateSettings && onUpdateSettings({ ...state.settings, rankingAnonymity: state.settings.rankingAnonymity === 'NOMINAL' ? 'ANONIMO' : 'NOMINAL' })} className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
-                                        <label htmlFor="anon-toggle" className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${state.settings.rankingAnonymity === 'ANONIMO' ? 'bg-brand-primary' : 'bg-slate-300'}`}></label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div className="p-4 border border-slate-200 rounded-xl text-center text-slate-500 text-sm">
-                            <ShieldCheck className="mx-auto mb-2 text-emerald-500" size={24}/>
-                            Todas as alterações de cadastro são auditadas e registradas conforme LGPD.
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'COMMAND_CENTER' && (
-                    <CommandCenter state={state} userSchoolId={userSchoolId} />
-                )}
-                
-                {activeTab === 'SCHOOLS' && (
-                    <div className="divide-y divide-slate-100">
-                        {visibleSchools.map(s => (
-                            <div key={s.id} className="p-4 flex justify-between items-center hover:bg-slate-50">
-                                <div>
-                                    <div className="font-bold text-slate-800">{s.name}</div>
-                                    <div className="text-xs text-slate-500">INEP: {s.inep}</div>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">ID: {s.id.slice(0,6)}</span>
-                                    {isDirector && (
-                                        <button onClick={() => openModal(s)} className="text-xs font-bold bg-brand-light text-brand-primary px-3 py-1 rounded hover:bg-brand-secondary hover:text-white transition">
-                                            Atualizar Infraestrutura
-                                        </button>
-                                    )}
-                                    {isTenantAdmin && (
-                                        <button onClick={() => openModal(s)} className="text-xs font-bold border text-slate-500 px-3 py-1 rounded hover:bg-slate-100">
-                                            Editar
-                                        </button>
-                                    )}
-                                </div>
+                                <ArrowRight className="text-slate-300 group-hover:text-indigo-600 transition-all group-hover:translate-x-1" size={24} />
                             </div>
                         ))}
-                        {visibleSchools.length === 0 && <div className="p-8 text-center text-slate-400">Nenhuma escola cadastrada ou acessível.</div>}
                     </div>
                 )}
 
                 {activeTab === 'CLASSES' && (
-                    <div className="divide-y divide-slate-100">
+                    <div className="divide-y divide-slate-50">
                         {visibleClasses.map(c => (
-                            <div key={c.id} className="p-4 flex justify-between items-center hover:bg-slate-50">
-                                <div>
-                                    <div className="font-bold text-slate-800">{c.name} <span className="text-slate-400 text-xs font-normal">({c.series})</span></div>
-                                    <div className="text-xs text-slate-500">{c.shift} • {state.schools.find(s=>s.id===c.schoolId)?.name}</div>
+                            <div key={c.id} className="p-8 flex justify-between items-center hover:bg-slate-50/50 transition-colors group">
+                                <div className="flex items-center gap-6">
+                                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-emerald-600 shadow-inner group-hover:bg-white transition-all">
+                                        <BookOpen size={32}/>
+                                    </div>
+                                    <div>
+                                        <div className="font-black text-slate-800 text-xl tracking-tight">{c.name}</div>
+                                        <div className="flex items-center gap-3 mt-1">
+                                            <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{c.series}</span>
+                                            <span className="text-slate-200">|</span>
+                                            <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{c.shift}</span>
+                                            <span className="text-slate-200">|</span>
+                                            <span className="text-[10px] text-emerald-600 font-black uppercase tracking-widest flex items-center gap-1">
+                                                <Users size={12}/> {students.filter(st => st.classId === c.id).length} / {c.capacity || 'N/A'} Lotação
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
+                                <ArrowRight className="text-slate-300 group-hover:text-emerald-600 transition-all group-hover:translate-x-1" size={24} />
                             </div>
                         ))}
-                        {visibleClasses.length === 0 && <div className="p-8 text-center text-slate-400">Nenhuma turma cadastrada.</div>}
                     </div>
                 )}
 
                 {activeTab === 'STUDENTS' && (
-                    <div className="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
+                    <div className="divide-y divide-slate-50">
                         {visibleStudents.map(s => (
-                            <div key={s.id} className="p-4 flex justify-between items-center hover:bg-slate-50">
-                                <div>
-                                    <div className="font-bold text-slate-800">{s.name}</div>
-                                    <div className="text-xs text-slate-500">Mat: {s.registrationNumber}</div>
+                            <div key={s.id} className="p-6 px-8 flex justify-between items-center hover:bg-slate-50/50 transition-colors group">
+                                <div className="flex items-center gap-6">
+                                    <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all shadow-sm">
+                                        {s.name.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <div className="font-black text-slate-800 text-lg tracking-tight">{s.name}</div>
+                                        <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest flex items-center gap-2">
+                                            <MapPin size={10}/> {classes.find(c => c.id === s.classId)?.name || 'Sem Turma'} 
+                                            <span className="text-slate-200">•</span>
+                                            RM: {s.registrationNumber}
+                                        </div>
+                                    </div>
                                 </div>
-                                <span className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-500">{state.classes.find(c=>c.id===s.classId)?.name}</span>
+                                <button className="p-3 text-slate-300 hover:text-rose-500 transition-colors">
+                                    <Trash2 size={18}/>
+                                </button>
                             </div>
                         ))}
-                        {visibleStudents.length === 0 && <div className="p-8 text-center text-slate-400">Nenhum aluno cadastrado.</div>}
                     </div>
                 )}
 
                 {activeTab === 'USERS' && (
-                    <div className="divide-y divide-slate-100">
-                        {visibleUsers.map(u => (
-                            <div key={u.id} className="p-4 flex justify-between items-center hover:bg-slate-50">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-xs font-bold">{u.name.charAt(0)}</div>
+                    <div className="divide-y divide-slate-50">
+                        {users.filter(u => isTenantAdmin ? true : u.schoolId === currentUser?.schoolId).map(u => (
+                            <div key={u.id} className="p-6 px-8 flex justify-between items-center hover:bg-slate-50/50 transition-colors group">
+                                <div className="flex items-center gap-6">
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-white shadow-lg ${u.role === UserRole.PROFESSOR ? 'bg-indigo-500' : 'bg-slate-800'}`}>
+                                        {u.name.charAt(0)}
+                                    </div>
                                     <div>
-                                        <div className="font-bold text-slate-800">{u.name}</div>
-                                        <div className="text-xs text-slate-500">{u.email}</div>
+                                        <div className="font-black text-slate-800 text-lg tracking-tight">{u.name}</div>
+                                        <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest flex items-center gap-2">
+                                            <ShieldCheck size={10} className="text-indigo-500"/> {u.role.replace('_', ' ')}
+                                            <span className="text-slate-200">•</span>
+                                            {u.email}
+                                        </div>
                                     </div>
                                 </div>
-                                <span className="text-xs font-bold bg-brand-light text-brand-primary px-2 py-1 rounded uppercase">{u.role}</span>
+                                <ArrowRight className="text-slate-300 group-hover:text-slate-600 transition-all" size={20} />
                             </div>
                         ))}
                     </div>
                 )}
+
+                {visibleSchools.length === 0 && activeTab === 'SCHOOLS' && (
+                    <div className="p-32 text-center text-slate-300 flex flex-col items-center">
+                        <SchoolIcon size={80} className="mb-4 opacity-10"/>
+                        <p className="font-black uppercase tracking-widest text-xs italic">Nenhuma unidade escolar encontrada.</p>
+                    </div>
+                )}
             </div>
 
-            {/* Generic Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-                    <div className={`bg-white rounded-xl shadow-2xl w-full overflow-hidden border border-brand-primary/20 ${activeTab === 'SCHOOLS' ? 'max-w-2xl' : 'max-w-md'}`}>
-                        <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
-                            <h3 className="font-bold text-slate-800">
-                                {activeTab === 'SCHOOLS' ? (isDirector ? 'Atualizar Censo Escolar' : 'Gerenciar Escola') : `Adicionar ${activeTab === 'CLASSES' ? 'Turma' : activeTab === 'STUDENTS' ? 'Aluno' : 'Usuário'}`}
-                            </h3>
-                            <button onClick={() => setIsModalOpen(false)}><X size={20} className="text-slate-400 hover:text-slate-600"/></button>
-                        </div>
-                        
-                        <div className="p-6 overflow-y-auto max-h-[80vh]">
-                            <ManagementForms 
+                <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden">
+                         <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+                             <div>
+                                <h2 className="text-3xl font-black text-slate-800 tracking-tight uppercase italic flex items-center gap-3">
+                                    {activeTab === 'SCHOOLS' ? 'Nova Unidade' : activeTab === 'CLASSES' ? 'Nova Turma' : activeTab === 'STUDENTS' ? 'Nova Matrícula' : 'Novo Usuário'}
+                                </h2>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Preencha os dados oficiais do registro</p>
+                             </div>
+                             <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-2"><X size={32}/></button>
+                         </div>
+                         
+                         <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+                            <ManagementForms
                                 activeTab={activeTab}
                                 isTenantAdmin={isTenantAdmin}
                                 isDirector={isDirector}
-                                userSchoolId={userSchoolId}
-                                schools={state.schools}
-                                classes={state.classes}
-                                schoolForm={schoolForm} setSchoolForm={setSchoolForm}
-                                classForm={classForm} setClassForm={setClassForm}
-                                studentForm={studentForm} setStudentForm={setStudentForm}
-                                userForm={userForm} setUserForm={setUserForm}
+                                userSchoolId={currentUser?.schoolId}
+                                schools={schools}
+                                classes={classes}
+                                schoolForm={schoolForm}
+                                setSchoolForm={setSchoolForm}
+                                classForm={classForm}
+                                setClassForm={setClassForm}
+                                studentForm={studentForm}
+                                setStudentForm={setStudentForm}
+                                userForm={userForm}
+                                setUserForm={setUserForm}
                                 onSubmit={handleSubmit}
                             />
-                        </div>
+                         </div>
                     </div>
                 </div>
             )}

@@ -3,34 +3,30 @@ import { useAppStore } from '../store/useAppStore';
 import { Action, Resource, UserRole } from '../types';
 
 export const usePermissions = () => {
-    const { currentUser, globalPermissions, tenants } = useAppStore();
+    const { currentUser, globalPermissions } = useAppStore();
 
     const can = (action: Action, resource: Resource): boolean => {
         if (!currentUser) return false;
 
-        // 1. Check SUPER_ADMIN override
+        // 1. Super Admin tem bypass total (segurança de infraestrutura)
         if (currentUser.role === UserRole.SUPER_ADMIN) return true;
 
-        // 2. Check Tenant Level Restrictions (Feature Flags)
-        // Se o tenant desativou a feature, ninguém (exceto super admin) pode usar.
-        const tenant = tenants.find(t => t.id === currentUser.tenantId);
-        if (tenant?.disabledFeatures?.includes(resource)) {
-            return false;
-        }
-
-        // 3. Check Role Matrix
+        // 2. Verificar na Matriz de Permissões configurada pelos gestores
         const rolePerms = globalPermissions[currentUser.role];
         if (!rolePerms) return false;
 
         const allowedActions = rolePerms[resource];
-        return allowedActions?.includes(action) || false;
+        if (!allowedActions) return false;
+
+        return allowedActions.includes(action);
     };
 
-    // Helper simples para verificar apenas visualização
-    const canView = (resource: Resource) => can('VIEW', resource);
-    const canEdit = (resource: Resource) => can('EDIT', resource);
-    const canCreate = (resource: Resource) => can('CREATE', resource);
-    const canDelete = (resource: Resource) => can('DELETE', resource);
-
-    return { can, canView, canEdit, canCreate, canDelete };
+    // Helpers utilitários de alta legibilidade
+    return {
+        can,
+        canView: (res: Resource) => can('VIEW', res),
+        canCreate: (res: Resource) => can('CREATE', res),
+        canEdit: (res: Resource) => can('EDIT', res),
+        canDelete: (res: Resource) => can('DELETE', res),
+    };
 };

@@ -1,31 +1,54 @@
 
-import React, { useState } from 'react';
-import { Users, TrendingUp, AlertTriangle, Calendar, Printer, School, GraduationCap, ClipboardList, ArrowDownRight, ArrowUpRight, Package, Check, X, Bus, Shield, Snowflake, Award, BarChart2, LayoutGrid, Edit, Trophy, Target, Activity, ShieldAlert, Zap } from 'lucide-react';
-import { AppState, RiskLevel, SchoolResources } from '../../types';
+import React, { useState, useMemo } from 'react';
+// @fix: Renamed lucide-react School import to SchoolIcon to avoid conflict with the School interface
+import { Users, TrendingUp, AlertTriangle, Calendar, Printer, School as SchoolIcon, GraduationCap, ClipboardList, ArrowDownRight, ArrowUpRight, Package, Check, X, Bus, Shield, Snowflake, Award, BarChart2, LayoutGrid, Edit, Trophy, Target, Activity, ShieldAlert, Zap } from 'lucide-react';
+// @fix: Explicitly import School from types
+import { AppState, RiskLevel, SchoolResources, Student, ExamResult, Exam, ExamRegistration, UserProfileExtended, SchoolClass, User, LessonPlan, School } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
 import { GlobalRankingView } from './GlobalRankingView';
+import { useQuery } from '@tanstack/react-query';
+import { fetchSchools, fetchStudents, fetchClasses, fetchUsers, fetchResults, fetchExams, fetchRegistrations, fetchUserProfiles, fetchLessonPlans } from '../../services/supabaseClient';
 
 export const SchoolPrincipalDashboard = ({ state }: { state: AppState }) => {
     const { currentUser } = state;
-    const analytics = new AnalyticsService(state);
     const schoolId = currentUser?.schoolId;
-    const school = state.schools.find(s => s.id === schoolId);
+
+    // Fetch all necessary data via React Query
+    // @fix: Updated useQuery to object-based syntax (v5+)
+    const { data: allSchools } = useQuery<School[]>({ queryKey: ['schools'], queryFn: fetchSchools, initialData: [] });
+    const { data: allStudents } = useQuery<Student[]>({ queryKey: ['students'], queryFn: fetchStudents, initialData: [] });
+    const { data: allClasses } = useQuery<SchoolClass[]>({ queryKey: ['classes'], queryFn: fetchClasses, initialData: [] });
+    const { data: allUsers } = useQuery<User[]>({ queryKey: ['users'], queryFn: fetchUsers, initialData: [] });
+    const { data: allResults } = useQuery<ExamResult[]>({ queryKey: ['results'], queryFn: fetchResults, initialData: [] });
+    const { data: allExams } = useQuery<Exam[]>({ queryKey: ['exams'], queryFn: fetchExams, initialData: [] });
+    const { data: allRegistrations } = useQuery<ExamRegistration[]>({ queryKey: ['registrations'], queryFn: fetchRegistrations, initialData: [] });
+    const { data: allUserProfiles } = useQuery<UserProfileExtended[]>({ queryKey: ['userProfiles'], queryFn: fetchUserProfiles, initialData: [] });
+    const { data: allLessonPlans } = useQuery<LessonPlan[]>({ queryKey: ['lessonPlans'], queryFn: fetchLessonPlans, initialData: [] });
+
+    // Initialize AnalyticsService with fetched data
+    const analytics = useMemo(() => new AnalyticsService(), []);
+
+    // @fix: Added optional chaining for data access
+    const school = (allSchools || []).find(s => s.id === schoolId);
     const [tab, setTab] = useState<'PERFORMANCE' | 'INFRASTRUCTURE'>('PERFORMANCE');
     const [showRanking, setShowRanking] = useState(false);
 
     // Filtrar dados da escola
-    const schoolStudents = state.students.filter(s => s.schoolId === schoolId);
-    const schoolClasses = state.classes.filter(c => c.schoolId === schoolId);
-    const schoolTeachers = state.users.filter(u => u.schoolId === schoolId && u.role === 'PROFESSOR');
+    // @fix: Added fallback array and optional chaining
+    const schoolStudents = (allStudents || []).filter(s => s.schoolId === schoolId);
+    const schoolClasses = (allClasses || []).filter(c => c.schoolId === schoolId);
+    const schoolTeachers = (allUsers || []).filter(u => u.schoolId === schoolId && u.role === 'PROFESSOR');
 
     // Cálculos de Métricas
-    const studentsStats = schoolStudents.map(s => analytics.getStudentStats(s.id)).filter(Boolean) as any[];
+    // @fix: Provided fallbacks for analytics parameters
+    const studentsStats = schoolStudents.map(s => analytics.getStudentStats(s.id, allStudents || [], allResults || [], allExams || [], allRegistrations || [], allUserProfiles || [])).filter(Boolean) as any[];
     const totalAvg = studentsStats.reduce((acc, curr) => acc + curr.idgScore, 0) / (studentsStats.length || 1);
     const riskCount = studentsStats.filter(s => s.riskLevel !== RiskLevel.LOW).length;
     const attendanceAvg = studentsStats.reduce((acc, curr) => acc + curr.attendanceRate, 0) / (studentsStats.length || 1);
 
     // INTEGRIDADE / FRAUDE
-    const schoolResults = state.results.filter(r => schoolStudents.some(s => s.id === r.studentId));
+    // @fix: Added fallback array and optional chaining
+    const schoolResults = (allResults || []).filter(r => schoolStudents.some(s => s.id === r.studentId));
     const fraudAttempts = schoolResults.reduce((acc, r) => acc + (r.violationCount || 0), 0);
     const cleanExams = schoolResults.filter(r => (r.violationCount || 0) === 0).length;
     const integrityPercentage = schoolResults.length > 0 ? (cleanExams / schoolResults.length) * 100 : 100;
@@ -50,7 +73,8 @@ export const SchoolPrincipalDashboard = ({ state }: { state: AppState }) => {
     // Comparativo de Turmas
     const classPerformance = schoolClasses.map(cls => {
         const studentsInClass = schoolStudents.filter(s => s.classId === cls.id);
-        const statsInClass = studentsInClass.map(s => analytics.getStudentStats(s.id)).filter(Boolean) as any[];
+        // @fix: Provided fallbacks for analytics parameters
+        const statsInClass = studentsInClass.map(s => analytics.getStudentStats(s.id, allStudents || [], allResults || [], allExams || [], allRegistrations || [], allUserProfiles || [])).filter(Boolean) as any[];
         const classAvg = statsInClass.reduce((acc, curr) => acc + curr.idgScore, 0) / (statsInClass.length || 1);
         const classRisk = statsInClass.filter(s => s.riskLevel !== RiskLevel.LOW).length;
         
@@ -85,6 +109,61 @@ export const SchoolPrincipalDashboard = ({ state }: { state: AppState }) => {
     // SVG Chart for Class Comparison
     const maxAvg = 10;
 
+    const renderLineChart = () => {
+        const height = 150;
+        const width = 300;
+        const padding = 20;
+        const maxY = 8;
+        
+        const idebData = [ // Using mock IDEB data for consistency
+            { year: '2020', value: 4.8 },
+            { year: '2021', value: 5.1 },
+            { year: '2022', value: 5.3 },
+            { year: '2023', value: 5.9 },
+            { year: '2024', value: 6.2 },
+            { year: '2025', value: 6.8 }, // Projeção
+        ];
+
+        const points = idebData.map((d, i) => {
+            const x = padding + (i / (idebData.length - 1)) * (width - 2 * padding);
+            const y = height - padding - (d.value / maxY) * (height - 2 * padding);
+            return `${x},${y}`;
+        }).join(' ');
+
+        return (
+            <div className="w-full h-48 relative">
+                <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
+                    {/* Gradient Definition */}
+                    <defs>
+                        <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.5" />
+                            <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
+                        </linearGradient>
+                    </defs>
+                    
+                    {/* Area Fill */}
+                    <path d={`${points} L ${width-padding},${height-padding} L ${padding},${height-padding} Z`} fill="url(#lineGradient)" />
+                    
+                    {/* Line */}
+                    <polyline points={points} fill="none" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-lg"/>
+                    
+                    {/* Dots */}
+                    {idebData.map((d, i) => {
+                        const x = padding + (i / (idebData.length - 1)) * (width - 2 * padding);
+                        const y = height - padding - (d.value / maxY) * (height - 2 * padding);
+                        return (
+                            <g key={i} className="group">
+                                <circle cx={x} cy={y} r="4" fill="#fff" stroke="#f59e0b" strokeWidth="2" className="group-hover:r-6 transition-all cursor-pointer"/>
+                                <text x={x} y={y - 12} textAnchor="middle" fontSize="10" fill="#64748b" fontWeight="bold">{d.value}</text>
+                                <text x={x} y={height + 10} textAnchor="middle" fontSize="10" fill="#94a3b8">{d.year}</text>
+                            </g>
+                        );
+                    })}
+                </svg>
+            </div>
+        );
+    };
+
     return (
         <div className="space-y-8 max-w-[1600px] mx-auto">
             {showRanking && <GlobalRankingView state={state} onClose={() => setShowRanking(false)} />}
@@ -93,7 +172,7 @@ export const SchoolPrincipalDashboard = ({ state }: { state: AppState }) => {
             <div className="flex justify-between items-end border-b border-slate-200 pb-6 print:border-black">
                 <div>
                     <h1 className="text-3xl font-bold text-brand-dark flex items-center gap-3">
-                        <School size={32} className="text-brand-primary"/> 
+                        <SchoolIcon size={32} className="text-brand-primary"/> 
                         Gestão Escolar
                     </h1>
                     <p className="text-slate-500 mt-2 text-lg font-medium">{school?.name || 'Escola não identificada'} • Visão do Diretor</p>
@@ -249,7 +328,8 @@ export const SchoolPrincipalDashboard = ({ state }: { state: AppState }) => {
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm text-slate-600">Planos de Aula (Mês)</span>
-                                    <span className="font-bold text-brand-primary">{state.lessonPlans.filter(lp => schoolTeachers.some(t => t.id === lp.professorId)).length}</span>
+                                    {/* @fix: Added optional chaining and fallback array */}
+                                    <span className="font-bold text-brand-primary">{(allLessonPlans || []).filter(lp => schoolTeachers.some(t => t.id === lp.professorId)).length}</span>
                                 </div>
                             </div>
 

@@ -1,20 +1,28 @@
 
 import React, { useState, useEffect } from 'react';
-import { Users, ArrowLeft, Monitor, UserCheck, QrCode, CheckCircle, Lock, UserPlus, XSquare, Layers, AlertTriangle, Unlock, Play, Smartphone, KeyRound, BarChart2 } from 'lucide-react';
-import { AppState } from '../../types';
+import { Users, ArrowLeft, Monitor, UserCheck, QrCode, CheckCircle, Lock, UserPlus, XSquare, Layers, AlertTriangle, Unlock, Play, Smartphone, KeyRound, BarChart2, ClipboardCheck, Pause, Trophy } from 'lucide-react';
+import { AppState, Student, ExamResult, SchoolClass } from '../../types';
 import { QRDataTransfer } from '../../services/qrCodecService';
 import { supabase } from '../../services/supabaseClient';
+import { useQuery } from '@tanstack/react-query'; // Import useQuery
+import { fetchStudents, fetchClasses, fetchResults } from '../../services/supabaseClient'; // Import fetching functions
 
 interface ProfessorAppProps {
-    state: AppState;
+    state: AppState; // Keep state prop for currentUser access if needed in future
     onBack: () => void;
 }
 
-export const ProfessorApp = ({ state, onBack }: ProfessorAppProps) => {
+export const ProfessorApp = ({ state, onBack }: ProfessorAppProps) => { // Keep state prop
     // Check URL params for Live Controller Mode
     const params = new URLSearchParams(window.location.search);
     const isLiveController = params.get('action') === 'CONTROL';
     const liveClassId = params.get('classId');
+
+    // Fetch data using useQuery
+    // @fix: Updated useQuery to use object-based syntax
+    const { data: allStudents } = useQuery<Student[]>({ queryKey: ['students'], queryFn: fetchStudents, initialData: [] });
+    const { data: allClasses } = useQuery<SchoolClass[]>({ queryKey: ['classes'], queryFn: fetchClasses, initialData: [] });
+    const { data: allResults } = useQuery<ExamResult[]>({ queryKey: ['results'], queryFn: fetchResults, initialData: [] });
 
     // Dados recebidos do Coordenador (Modo Normal)
     const [classData, setClassData] = useState<any>(null);
@@ -27,8 +35,8 @@ export const ProfessorApp = ({ state, onBack }: ProfessorAppProps) => {
     
     // Live Controller States
     const [liveStatus, setLiveStatus] = useState<'WAITING' | 'OPEN' | 'FINISHED'>('WAITING');
-    const [liveStudents, setLiveStudents] = useState<any[]>([]);
-    const [liveResultsCount, setLiveResultsCount] = useState(0);
+    const [liveStudents, setLiveStudents] = useState<any[]>([]); // This will be updated by Supabase Realtime
+    const [liveResultsCount, setLiveResultsCount] = useState(0); // This will be updated by Supabase Realtime
     const [pinInput, setPinInput] = useState('');
     const [isAuthenticated, setIsAuthenticated] = useState(false); // Novo: Proteção por PIN
     
@@ -64,11 +72,13 @@ export const ProfessorApp = ({ state, onBack }: ProfessorAppProps) => {
             };
         } else {
             // Mock reception of Class 9A data (Normal Mode)
+            // This would normally come from a QR code scan by the coordinator
             setTimeout(() => {
                 const mockData = {
                     classId: 'c1',
                     className: 'Turma 9A',
-                    students: state.students.filter(s => s.classId === 'c1').map(s => ({ id: s.id, name: s.name, reg: s.registrationNumber })),
+                    // @-fix: Added optional chaining and a fallback array to safely call .filter() on data from useQuery.
+                    students: allStudents?.filter(s => s.classId === 'c1').map(s => ({ id: s.id, name: s.name, reg: s.registrationNumber })) || [], // Use allStudents
                     examTitle: 'Avaliação de História',
                     key: 'mock_key_123'
                 };
@@ -82,7 +92,7 @@ export const ProfessorApp = ({ state, onBack }: ProfessorAppProps) => {
                 setStudentStatuses(st);
             }, 500);
         }
-    }, [isLiveController, liveClassId]);
+    }, [isLiveController, liveClassId, allStudents]); // Add allStudents to dependencies
 
     // QR Animation Loop
     useEffect(() => {
@@ -158,267 +168,287 @@ export const ProfessorApp = ({ state, onBack }: ProfessorAppProps) => {
             setIsAuthenticated(true);
         } else {
             alert("PIN Incorreto. Olhe para o telão do evento.");
-            setPinInput('');
         }
     };
 
-    const handleUnlockClass = async () => {
+    const handleLiveControl = async (action: 'OPEN' | 'PAUSE' | 'FINISHED') => {
         if (!liveClassId) return;
-        await supabase.from('classes').update({ status: 'OPEN' }).eq('id', liveClassId);
-        setLiveStatus('OPEN');
+
+        const { error } = await supabase.from('classes').update({ status: action }).eq('id', liveClassId);
+        if (error) {
+            console.error("Erro ao atualizar status da turma ao vivo:", error);
+            alert("Erro no controle ao vivo: " + error.message);
+        } else {
+            // @-fix: Typo 'FINISH' corrected to 'FINISHED' to match state type.
+            setLiveStatus(action === 'PAUSE' ? 'WAITING' : action); // Assuming PAUSE sets it to WAITING
+        }
     };
 
-    const handleFinishSession = async () => {
-        if (!liveClassId) return;
-        if (!confirm("Isso encerrará a prova para todos e exibirá o pódio no telão. Confirmar?")) return;
+    const calculateLiveResults = async () => {
+        if (!liveClassId || !allResults) return;
+
+        // @fix: Changed student_id to studentId to match ExamResult interface
+        const resultsForClass = allResults.filter(r => liveStudents.some(s => s.id === r.studentId));
+        if (resultsForClass.length === 0) {
+            alert("Nenhum resultado para calcular ainda.");
+            return;
+        }
         
-        await supabase.from('classes').update({ status: 'FINISHED' }).eq('id', liveClassId);
-        setLiveStatus('FINISHED');
+        // This is where you'd trigger the lobby to show results based on `liveClassId`
+        // For this demo, we'll just log and suggest manually navigating the lobby
+        console.log("Resultados ao vivo para cálculo:", resultsForClass);
+        alert("Resultados coletados! O Lobby de Demo irá processar e exibir. Sugira ao operador do Lobby para 'Finalizar Sessão'.");
     };
 
-    // --- VIEW: LIVE CONTROLLER ---
-    if (view === 'LIVE_CONTROLLER') {
-        if (!isAuthenticated) {
-            return (
-                <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-center font-sans">
-                    <div className="max-w-sm w-full bg-white rounded-3xl p-8 shadow-2xl">
-                        <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <KeyRound size={32} className="text-purple-600"/>
-                        </div>
-                        <h2 className="text-2xl font-bold text-slate-800 mb-2">Segurança do Professor</h2>
-                        <p className="text-slate-500 text-sm mb-6">Digite o PIN exibido no telão para confirmar que você é o apresentador.</p>
-                        
-                        <input 
-                            type="tel" 
-                            maxLength={4}
-                            className="w-full text-center text-3xl font-mono tracking-[0.5em] border-2 border-slate-200 rounded-xl py-4 mb-6 focus:border-purple-600 outline-none text-slate-800"
-                            value={pinInput}
-                            onChange={e => setPinInput(e.target.value)}
-                            placeholder="0000"
-                        />
-                        
-                        <button 
-                            onClick={handleAuth}
-                            className="w-full py-4 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition"
-                        >
-                            Confirmar Identidade
-                        </button>
-                    </div>
-                </div>
-            );
-        }
 
+    if (!classData && !isLiveController) {
         return (
-            <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-center font-sans">
-                <div className="max-w-md w-full">
-                    <div className="mb-8">
-                        <div className="w-20 h-20 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-purple-500/50">
-                            <Smartphone size={40} className="text-white"/>
-                        </div>
-                        <h1 className="text-2xl font-black text-white mb-2">Controle Remoto</h1>
-                        <p className="text-slate-400">Comando da Sessão Ao Vivo</p>
-                    </div>
-
-                    {liveStatus === 'WAITING' ? (
-                        <div className="bg-white/10 border border-white/20 p-8 rounded-3xl backdrop-blur-md animate-in zoom-in">
-                            <Lock size={64} className="mx-auto text-white/50 mb-6"/>
-                            <h2 className="text-xl font-bold text-white mb-4">A sala está bloqueada</h2>
-                            <p className="text-slate-300 text-sm mb-8">
-                                A plateia está vendo seu QR Code. Pressione o botão para liberar o acesso.
-                            </p>
-                            <button 
-                                onClick={handleUnlockClass}
-                                className="w-full py-5 bg-emerald-500 hover:bg-emerald-400 text-white rounded-2xl font-black text-xl shadow-lg shadow-emerald-500/30 transition-all transform active:scale-95 flex items-center justify-center gap-3"
-                            >
-                                <Unlock size={28}/> LIBERAR PLATEIA
-                            </button>
-                        </div>
-                    ) : liveStatus === 'OPEN' ? (
-                        <div className="bg-emerald-900/50 border border-emerald-500/30 p-6 rounded-3xl backdrop-blur-md h-[60vh] flex flex-col animate-in fade-in">
-                            <div className="flex justify-between items-start mb-6">
-                                <div className="text-left">
-                                    <div className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-2">
-                                        <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span> Ao Vivo
-                                    </div>
-                                    <div className="text-3xl font-black text-white">{liveStudents.length} Alunos</div>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Entregas</div>
-                                    <div className="text-3xl font-black text-white">{liveResultsCount}</div>
-                                </div>
-                            </div>
-                            
-                            <div className="flex-1 overflow-y-auto bg-black/20 rounded-xl p-4 space-y-2 text-left custom-scrollbar border border-white/5 mb-6">
-                                {liveStudents.map((s, idx) => (
-                                    <div key={idx} className="flex items-center gap-3 text-white border-b border-white/10 pb-2 mb-2 last:mb-0 last:pb-0 animate-in slide-in-from-bottom-2">
-                                        <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center font-bold text-xs">{s.name.charAt(0)}</div>
-                                        <span className="font-medium truncate">{s.name}</span>
-                                        <CheckCircle size={14} className="ml-auto text-emerald-400"/>
-                                    </div>
-                                ))}
-                                {liveStudents.length === 0 && <p className="text-white/30 text-center text-sm mt-10">Aguardando leituras...</p>}
-                            </div>
-
-                            <button 
-                                onClick={handleFinishSession}
-                                className="w-full py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold text-lg shadow-lg shadow-rose-500/30 transition flex items-center justify-center gap-2"
-                            >
-                                <BarChart2 size={24}/> ENCERRAR & CORRIGIR
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="bg-slate-800 p-8 rounded-3xl animate-in zoom-in">
-                            <CheckCircle size={64} className="mx-auto text-emerald-500 mb-4"/>
-                            <h2 className="text-2xl font-bold text-white mb-2">Sessão Finalizada</h2>
-                            <p className="text-slate-400">Os resultados estão sendo exibidos no telão principal.</p>
-                        </div>
-                    )}
-                </div>
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
+                <QrCode size={64} className="mb-4 opacity-20"/>
+                <p>Aguardando dados da turma. Escaneie o QR Code do Coordenador.</p>
             </div>
         );
     }
 
-    if (!classData) return <div className="flex items-center justify-center h-screen text-white bg-slate-900">Carregando dados da turma...</div>;
+    // --- LIVE CONTROLLER MODE ---
+    if (isLiveController) {
+        return (
+            <div className="min-h-screen bg-slate-900 flex flex-col font-sans text-white">
+                <header className="bg-[#0f1d2e] p-4 shadow-md flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                        <Monitor size={24} className="text-brand-primary"/>
+                        <h2 className="font-bold text-lg leading-tight">Controle de Sala Ao Vivo</h2>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-mono text-slate-400">Turma: {liveClassId?.slice(0, 6)}</span>
+                        <button onClick={onBack} className="p-2 hover:bg-white/10 rounded-full"><ArrowLeft size={20}/></button>
+                    </div>
+                </header>
+                
+                {!isAuthenticated ? (
+                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+                        <Lock size={64} className="text-red-500 mb-6 animate-shake"/>
+                        <h1 className="text-3xl font-bold mb-4">Acesso Restrito</h1>
+                        <p className="text-slate-400 mb-8">Digite o PIN de segurança para assumir o controle da sessão.</p>
+                        <div className="relative w-full max-w-sm">
+                            <KeyRound size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"/>
+                            <input 
+                                type="password" 
+                                className="w-full bg-slate-800 border border-slate-700 rounded-xl py-4 pl-10 pr-4 text-white text-lg focus:border-brand-primary outline-none"
+                                placeholder="Sua senha do SaaS"
+                                value={pinInput}
+                                onChange={e => setPinInput(e.target.value)}
+                                onKeyPress={e => e.key === 'Enter' && handleAuth()}
+                            />
+                        </div>
+                        <button onClick={handleAuth} className="mt-8 bg-brand-primary text-white py-4 px-8 rounded-xl font-bold text-lg hover:bg-brand-dark transition shadow-lg">
+                            Autenticar
+                        </button>
+                        <p className="text-xs text-slate-500 mt-4">O PIN é exibido no Telão da Sessão.</p>
+                    </div>
+                ) : (
+                    <main className="flex-1 p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                            <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center">
+                                <div className="text-slate-400 text-xs uppercase font-bold mb-2">Alunos Conectados</div>
+                                <div className="text-5xl font-black text-emerald-400 flex items-center justify-center gap-2">
+                                    {liveStudents.length} <Smartphone size={32} className="text-emerald-500"/>
+                                </div>
+                            </div>
+                            <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center">
+                                <div className="text-slate-400 text-xs uppercase font-bold mb-2">Provas Entregues</div>
+                                <div className="text-5xl font-black text-white flex items-center justify-center gap-2">
+                                    {liveResultsCount} <ClipboardCheck size={32} className="text-blue-400"/>
+                                </div>
+                            </div>
+                            <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center">
+                                <div className="text-slate-400 text-xs uppercase font-bold mb-2">Status Atual</div>
+                                <div className={`text-4xl font-black mt-1 ${liveStatus === 'OPEN' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                    {liveStatus === 'OPEN' ? 'AO VIVO' : 'PAUSADO'}
+                                </div>
+                            </div>
+                        </div>
 
-    const stats = getStats();
+                        <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 mb-8">
+                            <h3 className="font-bold text-lg text-white mb-4 flex items-center gap-2">
+                                <Play size={20} className="text-brand-primary"/> Controles da Sessão
+                            </h3>
+                            <div className="grid grid-cols-3 gap-4">
+                                <button 
+                                    onClick={() => handleLiveControl('OPEN')} 
+                                    disabled={liveStatus === 'OPEN'}
+                                    className="py-4 bg-emerald-600 text-white rounded-xl font-bold text-lg hover:bg-emerald-700 transition disabled:opacity-50 flex items-center justify-center gap-3"
+                                >
+                                    <Play size={20} fill="white"/> Iniciar / Liberar
+                                </button>
+                                <button 
+                                    onClick={() => handleLiveControl('PAUSE')} 
+                                    disabled={liveStatus !== 'OPEN'}
+                                    className="py-4 bg-amber-600 text-white rounded-xl font-bold text-lg hover:bg-amber-700 transition disabled:opacity-50 flex items-center justify-center gap-3"
+                                >
+                                    <Pause size={20} fill="white"/> Pausar
+                                </button>
+                                <button 
+                                    onClick={() => handleLiveControl('FINISHED')} 
+                                    disabled={liveStatus === 'FINISHED'}
+                                    className="py-4 bg-rose-600 text-white rounded-xl font-bold text-lg hover:bg-rose-700 transition disabled:opacity-50 flex items-center justify-center gap-3"
+                                >
+                                    <XSquare size={20} fill="white"/> Encerrar Prova
+                                </button>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-4 text-center">
+                                Clicar em 'Encerrar Prova' irá coletar todos os resultados e finalizar a sessão.
+                            </p>
+                        </div>
 
+                        <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700">
+                            <h3 className="font-bold text-lg text-white mb-4 flex items-center gap-2">
+                                <BarChart2 size={20} className="text-yellow-400"/> Análise Rápida
+                            </h3>
+                            <p className="text-slate-400 text-sm">
+                                Após encerrar, clique abaixo para ver um painel de resultados detalhado no Telão.
+                            </p>
+                            <button onClick={calculateLiveResults} className="mt-4 bg-blue-600 text-white py-3 px-6 rounded-xl font-bold text-md hover:bg-blue-700 transition flex items-center gap-2">
+                                <Trophy size={18}/> Ver Pódio & Estatísticas
+                            </button>
+                        </div>
+                    </main>
+                )}
+            </div>
+        );
+    }
+
+    // --- NORMAL PROFESSOR APP MODE ---
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-            <header className="bg-purple-800 text-white p-4 flex justify-between items-center shadow-md">
+        <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-900">
+            <header className="bg-[#0f1d2e] text-white p-4 shadow-md flex justify-between items-center">
                 <div className="flex items-center gap-4">
                      <button onClick={onBack} className="p-2 hover:bg-white/10 rounded-full"><ArrowLeft size={20}/></button>
                      <div>
-                         <h2 className="font-bold text-lg">{classData.className}</h2>
-                         <p className="text-xs opacity-80">{classData.examTitle}</p>
+                         <h2 className="font-bold text-lg leading-tight">{classData.className}</h2>
+                         <div className="flex items-center gap-1 text-xs text-slate-400">
+                            <Users size={12} /> Professor (Sessão Online)
+                         </div>
                      </div>
                 </div>
-                <div className="flex gap-3">
-                    <button onClick={() => setView('DASHBOARD')} className={`px-4 py-2 rounded-lg font-bold text-sm transition ${view === 'DASHBOARD' ? 'bg-white text-purple-900' : 'bg-purple-900/50 hover:bg-purple-700'}`}>
-                        Aplicação
-                    </button>
-                    <button onClick={() => setView('ATTENDANCE')} className={`px-4 py-2 rounded-lg font-bold text-sm transition flex items-center gap-2 ${view === 'ATTENDANCE' ? 'bg-white text-purple-900' : 'bg-purple-900/50 hover:bg-purple-700'}`}>
-                        <UserCheck size={16}/> Chamada {attendanceLocked && <Lock size={12}/>}
-                    </button>
-                </div>
+                {attendanceLocked && (
+                    <span className="text-xs font-bold bg-amber-500/20 text-amber-300 px-3 py-1 rounded-full border border-amber-500/30 flex items-center gap-1 animate-pulse">
+                        <Lock size={12}/> CHAMADA BLOQUEADA
+                    </span>
+                )}
             </header>
 
-            <main className="flex-1 p-6 max-w-5xl mx-auto w-full">
+            {/* Tab Bar */}
+            <div className="bg-white border-b flex">
+                <button onClick={() => setView('DASHBOARD')} className={`flex-1 py-4 font-bold text-sm border-b-4 transition ${view === 'DASHBOARD' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
+                    Dashboard
+                </button>
+                <button onClick={() => setView('ATTENDANCE')} className={`flex-1 py-4 font-bold text-sm border-b-4 transition ${view === 'ATTENDANCE' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-slate-500'}`}>
+                    Chamada
+                </button>
+            </div>
+
+            <main className="flex-1 p-6 max-w-4xl mx-auto w-full">
                 {view === 'DASHBOARD' && (
-                    <>
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="font-bold text-slate-800 text-xl flex items-center gap-2"><Users className="text-purple-600"/> Distribuição de Tablets</h3>
-                            <div className="flex gap-2">
-                                <span className="text-xs font-bold text-slate-500 bg-white px-3 py-2 rounded border">
-                                    Ativos: {stats.present} / {classData.students.length}
-                                </span>
+                    <div className="space-y-6">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm text-center">
+                                <div className="text-slate-400 text-xs uppercase font-bold mb-2">Alunos Conectados</div>
+                                <div className="text-5xl font-black text-emerald-600">{getStats().present}</div>
+                            </div>
+                            <div className="bg-white p-6 rounded-xl border border-rose-200 shadow-sm text-center">
+                                <div className="text-slate-400 text-xs uppercase font-bold mb-2">Alunos Ausentes</div>
+                                <div className="text-5xl font-black text-rose-600">{getStats().absent}</div>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            {classData.students.map((s: any) => {
-                                const status = studentStatuses[s.id];
-                                return (
-                                    <div key={s.id} className={`p-4 rounded-xl border-2 flex flex-col gap-3 transition-all ${status === 'ACTIVE' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-white'}`}>
-                                        <div>
-                                            <div className="font-bold text-slate-800">{s.name}</div>
-                                            <div className="text-xs text-slate-500">{s.reg}</div>
+                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Users size={20}/> Lista de Alunos</h3>
+                            <div className="space-y-2">
+                                {classData.students.map((student: any) => (
+                                    <div key={student.id} className={`p-4 border rounded-xl flex justify-between items-center transition ${studentStatuses[student.id] === 'ACTIVE' ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'}`}>
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${studentStatuses[student.id] === 'ACTIVE' ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                                                {studentStatuses[student.id] === 'ACTIVE' ? <UserCheck size={18}/> : <UserPlus size={18}/>}
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-slate-800">{student.name}</div>
+                                                <div className="text-xs text-slate-500">Matrícula: {student.reg}</div>
+                                            </div>
                                         </div>
-                                        {status === 'PENDING' && (
+                                        {studentStatuses[student.id] === 'PENDING' ? (
                                             <button 
-                                                onClick={() => handleDeliverToStudent(s.id)}
-                                                className="w-full py-2 bg-purple-600 text-white rounded-lg font-bold text-sm flex items-center justify-center gap-2 hover:bg-purple-700"
+                                                onClick={() => handleDeliverToStudent(student.id)}
+                                                className="bg-brand-primary text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-brand-dark"
                                             >
-                                                <UserPlus size={16}/> Entregar Tablet
+                                                Entregar Prova
                                             </button>
-                                        )}
-                                        {status === 'ACTIVE' && (
-                                            <div className="flex items-center justify-center gap-2 text-emerald-700 font-bold text-sm py-2 bg-emerald-100 rounded-lg">
-                                                <Monitor size={16}/> Em Prova
-                                            </div>
+                                        ) : (
+                                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${studentStatuses[student.id] === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                {studentStatuses[student.id] === 'ACTIVE' ? 'PROVA ATIVA' : 'FINALIZADO'}
+                                            </span>
                                         )}
                                     </div>
-                                );
-                            })}
-                        </div>
-                    </>
-                )}
-
-                {view === 'ATTENDANCE' && (
-                    <div className="flex flex-col h-full">
-                        <div className="flex justify-between items-center mb-6">
-                            <div>
-                                <h3 className="font-bold text-slate-800 text-xl">Conferência Automática</h3>
-                                <p className="text-slate-500 text-sm">Presença detectada via ativação dos tablets.</p>
-                            </div>
-                            <div className="flex gap-4 text-sm">
-                                <div className="px-4 py-2 bg-emerald-100 text-emerald-800 rounded-lg font-bold">Presentes: {stats.present}</div>
-                                <div className="px-4 py-2 bg-rose-100 text-rose-800 rounded-lg font-bold">Ausentes: {stats.absent}</div>
+                                ))}
                             </div>
                         </div>
-
-                        {!attendanceLocked ? (
-                            <>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8 max-h-[400px] overflow-y-auto">
-                                    {classData.students.map((s: any) => {
-                                        const status = studentStatuses[s.id];
-                                        const isPresent = status === 'ACTIVE' || status === 'FINISHED';
-                                        return (
-                                            <div key={s.id} className={`p-4 rounded-xl border flex justify-between items-center transition-all ${isPresent ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200 opacity-70'}`}>
-                                                <div>
-                                                    <div className={`font-bold ${!isPresent ? 'text-rose-800' : 'text-slate-800'}`}>{s.name}</div>
-                                                    <div className="text-xs text-slate-500">{s.reg}</div>
-                                                </div>
-                                                <div>
-                                                    {isPresent ? (
-                                                        <div className="flex items-center gap-2 text-emerald-700 font-bold text-sm"><Monitor size={16}/> Ativo</div>
-                                                    ) : (
-                                                        <div className="flex items-center gap-2 text-rose-700 font-bold text-sm"><XSquare size={16}/> Ausente</div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-                                <button onClick={handleFinalizeAttendance} className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold text-lg shadow-lg hover:bg-slate-800 flex items-center justify-center gap-2">
-                                    <Lock size={20}/> Confirmar Chamada
-                                </button>
-                            </>
-                        ) : (
-                            <div className="flex-1 flex flex-col items-center justify-center bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
-                                <div className="text-center mb-6">
-                                    <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full mb-4">
-                                        <CheckCircle size={32}/>
-                                    </div>
-                                    <h2 className="text-2xl font-bold text-slate-800">Chamada Finalizada</h2>
-                                    <p className="text-slate-500 mt-2">QR Code de sincronização gerado.</p>
-                                </div>
-                                {attendanceQrChunks.length > 0 && (
-                                    <div className="bg-white p-4 rounded-xl border-4 border-slate-900 shadow-2xl mb-4">
-                                        <QrCode size={250} className="text-slate-900"/>
-                                    </div>
-                                )}
-                                <div className="font-mono font-bold text-slate-400 mb-8">Parte {currentQrIndex + 1} / {attendanceQrChunks.length}</div>
-                            </div>
-                        )}
                     </div>
                 )}
 
-                {/* Modal de Entrega de Tablet */}
-                {view === 'DISTRIBUTE_STUDENT_QR' && selectedStudentId && (
-                    <div className="fixed inset-0 bg-slate-900/95 z-50 flex flex-col items-center justify-center p-6">
-                        <div className="text-white text-center mb-6">
-                            <h2 className="text-3xl font-bold mb-2">Entregando para:</h2>
-                            <h1 className="text-4xl font-black text-brand-secondary">
-                                {classData.students.find((s: any) => s.id === selectedStudentId)?.name}
-                            </h1>
+                {view === 'ATTENDANCE' && (
+                    <div className="space-y-6">
+                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><UserCheck size={20}/> Resumo da Chamada</h3>
+                            <div className="grid grid-cols-3 gap-4 text-center mb-6">
+                                <div className="bg-emerald-50 p-4 rounded-lg">
+                                    <div className="text-xl font-bold text-emerald-700">{getStats().present}</div>
+                                    <div className="text-xs text-emerald-600 uppercase">Presentes</div>
+                                </div>
+                                <div className="bg-rose-50 p-4 rounded-lg">
+                                    <div className="text-xl font-bold text-rose-700">{getStats().absent}</div>
+                                    <div className="text-xs text-rose-600 uppercase">Ausentes</div>
+                                </div>
+                                <div className="bg-blue-50 p-4 rounded-lg">
+                                    <div className="text-xl font-bold text-blue-700">{getStats().surplus}</div>
+                                    <div className="text-xs text-blue-600 uppercase">Tablets de Sobra</div>
+                                </div>
+                            </div>
+                            
+                            <button 
+                                onClick={handleFinalizeAttendance}
+                                disabled={attendanceLocked}
+                                className="w-full bg-slate-800 text-white py-3 rounded-lg font-bold text-sm hover:bg-slate-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {attendanceLocked ? 'Chamada Finalizada' : <><CheckCircle size={16}/> Finalizar Chamada</>}
+                            </button>
+                            {attendanceLocked && attendanceQrChunks.length > 0 && (
+                                <div className="mt-4 p-4 bg-slate-50 rounded-lg border text-center">
+                                    <h4 className="text-sm font-bold text-slate-800 mb-2">QR de Coleta para Coordenador</h4>
+                                    <div className="bg-white p-4 rounded-xl border-4 border-slate-900 inline-block shadow-lg">
+                                        <QrCode size={150} className="text-slate-900"/>
+                                    </div>
+                                    <div className="font-mono font-bold mt-2">Parte {currentQrIndex + 1} / {attendanceQrChunks.length}</div>
+                                    <p className="text-xs text-slate-400 mt-1">Coordenador deve escanear este QR</p>
+                                </div>
+                            )}
                         </div>
-                        <div className="bg-white p-4 rounded-xl shadow-2xl mb-8">
-                            <QrCode size={320} className="text-black"/>
+                    </div>
+                )}
+
+                {view === 'DISTRIBUTE_STUDENT_QR' && (
+                    <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center p-6">
+                        <h2 className="text-2xl font-bold text-slate-800 mb-2">Entregar Prova para Aluno</h2>
+                        <p className="text-slate-500 mb-8 text-center max-w-md">Aluno <strong>{classData.students.find((s:any)=>s.id===selectedStudentId)?.name}</strong> deve escanear este QR com o tablet dele.</p>
+                        
+                        <div className="bg-white p-4 rounded-xl border-4 border-slate-900 shadow-2xl">
+                            <QrCode size={300} className="text-slate-900"/>
                         </div>
-                        <div className="flex gap-4">
-                            <button onClick={() => setView('DASHBOARD')} className="px-6 py-3 rounded-lg border border-white/20 text-white hover:bg-white/10 font-bold">Cancelar</button>
-                            <button onClick={handleStudentReceived} className="px-8 py-3 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-500 shadow-lg">Confirmar Entrega</button>
-                        </div>
+                        <div className="font-mono font-bold mt-4 text-lg">Parte {currentQrIndex + 1} / {qrChunks.length}</div>
+                        <p className="text-xs text-slate-400 mt-2">Mantenha a tela brilhante</p>
+
+                        <button onClick={handleStudentReceived} className="mt-12 px-8 py-4 bg-slate-200 text-slate-800 rounded-xl font-bold flex items-center gap-2">
+                            <XSquare size={20}/> Concluído
+                        </button>
                     </div>
                 )}
             </main>

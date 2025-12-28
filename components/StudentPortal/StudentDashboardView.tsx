@@ -1,49 +1,44 @@
 
-import React, { useState } from 'react';
-import { TrendingUp, AlertTriangle, BookOpen, CheckCircle, Calendar, Clock, Brain, Award, ChevronLeft, ChevronRight, Trophy, X, FileText, Check, Eye, User as UserIcon, List, ArrowUp, ArrowDown, Coins, Star, Activity, Zap, Medal, Sparkles } from 'lucide-react';
-import { AppState, RiskLevel, User, Exam, ExamResult, QuestionType, UserRole, GamifiedEventStatus } from '../../types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { 
+  TrendingUp, Calendar, Brain, Trophy, Star, ArrowRight, Sparkles, Medal, 
+  Target, School, MapPin, FileText, Activity, AlertCircle, Info, 
+  GraduationCap, Stethoscope, Award, BarChart3, Clock, Zap, Swords, Flame, CheckCircle, Timer, BookOpen, Bot
+} from 'lucide-react';
+import { AppState, RiskLevel, User, Exam, ExamResult, UserRole, Student, ExamRegistration, UserProfileExtended, AssessmentResult } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
 import { useAppStore } from '../../store/useAppStore';
+import { useQuery } from '@tanstack/react-query';
+import { fetchStudents, fetchResults, fetchUserProfiles, fetchExams, fetchRegistrations, fetchSchools } from '../../services/supabaseClient';
+import { ScreeningReportModal } from '../NeuroScreening/ScreeningReportModal';
+import { INITIAL_STUDENTS, INITIAL_RESULTS, INITIAL_EXAMS, INITIAL_REGISTRATIONS, INITIAL_USER_PROFILES } from '../../utils/mockData';
 
-interface StudentDashboardViewProps {
-    state: AppState;
-    user: User;
-}
-
-// Simple SVG Line Chart Component
 const EvolutionChart = ({ data }: { data: { label: string, value: number }[] }) => {
-    if (data.length < 2) return <div className="h-40 flex items-center justify-center text-slate-400 text-sm">Dados insuficientes para gráfico de evolução.</div>;
-
-    const height = 150;
-    const width = 300;
-    const padding = 20;
-
-    const maxY = 10; // Grades are 0-10
+    if (data.length < 2) return <div className="h-40 flex items-center justify-center text-slate-400 text-sm italic font-medium">Você ainda não tem avaliações suficientes para o gráfico.</div>;
+    const height = 150; const width = 300; const padding = 20; const maxY = 10;
     const points = data.map((d, i) => {
         const x = padding + (i / (data.length - 1)) * (width - 2 * padding);
         const y = height - padding - (d.value / maxY) * (height - 2 * padding);
         return `${x},${y}`;
     }).join(' ');
-
     return (
         <div className="w-full overflow-hidden">
             <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full">
-                {/* Grid Lines */}
-                <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#e2e8f0" strokeWidth="1" />
-                <line x1={padding} y1={padding} x2={width - padding} y2={padding} stroke="#e2e8f0" strokeWidth="1" strokeDasharray="4" />
-                
-                {/* Path */}
-                <polyline points={points} fill="none" stroke="#0077b6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                
-                {/* Dots and Labels */}
+                <defs>
+                    <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style={{stopColor:'#4f46e5', stopOpacity:0.3}} />
+                        <stop offset="100%" style={{stopColor:'#4f46e5', stopOpacity:0}} />
+                    </linearGradient>
+                </defs>
+                <path d={`M ${padding},${height-padding} L ${points} L ${width-padding},${height-padding} Z`} fill="url(#grad)" />
+                <polyline points={points} fill="none" stroke="#4f46e5" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                 {data.map((d, i) => {
                     const x = padding + (i / (data.length - 1)) * (width - 2 * padding);
                     const y = height - padding - (d.value / maxY) * (height - 2 * padding);
                     return (
                         <g key={i}>
-                            <circle cx={x} cy={y} r="4" fill="white" stroke="#0077b6" strokeWidth="2" />
-                            <text x={x} y={y - 10} textAnchor="middle" fontSize="10" fill="#0f1d2e" fontWeight="bold">{d.value.toFixed(1)}</text>
-                            <text x={x} y={height - 2} textAnchor="middle" fontSize="8" fill="#64748b">{d.label.slice(0, 6)}</text>
+                            <circle cx={x} cy={y} r="4" fill="white" stroke="#4f46e5" strokeWidth="2" />
+                            <text x={x} y={y - 10} textAnchor="middle" fontSize="10" fill="#1e293b" fontWeight="bold">{d.value.toFixed(1)}</text>
                         </g>
                     );
                 })}
@@ -52,799 +47,269 @@ const EvolutionChart = ({ data }: { data: { label: string, value: number }[] }) 
     );
 };
 
-export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps) => {
+interface StudentDashboardViewProps {
+    state: AppState;
+    user: User;
+    setView: (v: string) => void;
+}
+
+export const StudentDashboardView = ({ state, user, setView }: StudentDashboardViewProps) => {
     const isParent = user.role === UserRole.PAIS;
-    const { registerStudentToEvent } = useAppStore();
+    const { selectedChildId } = state;
+
+    const { data: allStudents } = useQuery<Student[]>({ queryKey: ['students'], queryFn: fetchStudents, initialData: [] });
+    const { data: allResults } = useQuery<ExamResult[]>({ queryKey: ['results'], queryFn: fetchResults, initialData: [] });
+    const { data: allUserProfiles } = useQuery<UserProfileExtended[]>({ queryKey: ['userProfiles'], queryFn: fetchUserProfiles, initialData: [] });
+    const { data: allExams } = useQuery<Exam[]>({ queryKey: ['exams'], queryFn: fetchExams, initialData: [] });
+    const { data: allRegistrations } = useQuery<ExamRegistration[]>({ queryKey: ['registrations'], queryFn: fetchRegistrations, initialData: [] });
+    const { data: allSchools } = useQuery<any[]>({ queryKey: ['schools'], queryFn: fetchSchools, initialData: [] });
+
+    // Lógica para encontrar o estudante, mesmo em mocks onde o user.id pode ser diferente do student.id
+    const student = useMemo(() => {
+        if (isParent) return (allStudents && allStudents.length > 0) ? allStudents.find(s => s.id === selectedChildId) : INITIAL_STUDENTS.find(s => s.id === selectedChildId);
+        const found = allStudents?.find(s => s.id === user.id);
+        return found || (allStudents && allStudents.length > 0 ? allStudents[0] : INITIAL_STUDENTS[0]); 
+    }, [allStudents, user.id, isParent, selectedChildId]);
+
+    const studentSchool = allSchools?.find(s => s.id === student?.schoolId);
+
+    const analytics = useMemo(() => new AnalyticsService(), []);
     
-    // Se for pai, pega o filho selecionado na store (selectedChildId)
-    // Se não houver seleção, fallback para o primeiro filho disponível
-    let studentIdToView = user.id;
+    // Garantir que temos dados para o analytics (fallback para mocks se Supabase estiver vazio)
+    const effectiveStudents = allStudents && allStudents.length > 0 ? allStudents : INITIAL_STUDENTS;
+    const effectiveResults = allResults && allResults.length > 0 ? allResults : INITIAL_RESULTS;
+    const effectiveExams = allExams && allExams.length > 0 ? allExams : INITIAL_EXAMS;
+    const effectiveRegistrations = allRegistrations && allRegistrations.length > 0 ? allRegistrations : INITIAL_REGISTRATIONS;
+    const effectiveProfiles = allUserProfiles && allUserProfiles.length > 0 ? allUserProfiles : INITIAL_USER_PROFILES;
+
+    const stats = student ? analytics.getStudentStats(student.id, effectiveStudents, effectiveResults, effectiveExams, effectiveRegistrations, effectiveProfiles) : null;
+    const extendedProfile = student ? effectiveProfiles.find(p => p.userId === student.id) : null;
     
-    if (isParent) {
-        if (state.selectedChildId) {
-            studentIdToView = state.selectedChildId;
-        } else if (user.childrenIds && user.childrenIds.length > 0) {
-            studentIdToView = user.childrenIds[0];
-        }
-    }
+    const rankingPosition = useMemo(() => {
+        if (!student) return null;
+        const classRanking = analytics.getClassRanking(student.classId, effectiveStudents, effectiveResults, effectiveExams, effectiveRegistrations, effectiveProfiles);
+        const pos = classRanking.findIndex(r => r.studentId === student.id) + 1;
+        return { pos, total: classRanking.length };
+    }, [student, effectiveStudents, effectiveResults, effectiveExams, effectiveRegistrations, effectiveProfiles]);
 
-    const student = state.students.find(s => s.id === studentIdToView);
+    const [selectedReport, setSelectedReport] = useState<AssessmentResult | null>(null);
 
-    const analytics = new AnalyticsService(state);
-    const stats = student ? analytics.getStudentStats(student.id) : null;
-    const profile = student ? state.studentProfiles?.find(p => p.studentId === student.id) : null;
-    
-    // Buscar perfil estendido (para moedas e badges)
-    const extendedProfile = student ? state.userProfiles?.find(p => p.userId === student.id) : null;
-    
-    // Calendar State
-    const [currentMonth, setCurrentMonth] = useState(new Date());
-    // Ranking Modal State
-    const [showRankingModal, setShowRankingModal] = useState(false);
-    const [rankingMode, setRankingMode] = useState<'ACADEMIC' | 'XP'>('ACADEMIC');
+    if (!student || !stats) return <div className="p-20 text-center flex flex-col items-center">
+        <Activity size={48} className="animate-spin text-indigo-500 mb-4"/>
+        <p className="font-black text-slate-400 uppercase tracking-widest">Sincronizando prontuário acadêmico...</p>
+    </div>;
 
-    // Result Modal State
-    const [selectedResult, setSelectedResult] = useState<ExamResult | null>(null);
-    // Agenda Modal State
-    const [showAgendaModal, setShowAgendaModal] = useState(false);
-    
-    // Event Modal
-    const [showEventRules, setShowEventRules] = useState<string | null>(null);
-
-    if (!student || !stats) return (
-        <div className="p-8 text-center text-slate-500">
-            Nenhum aluno selecionado ou dados não encontrados.
-        </div>
-    );
-
-    const getRiskColor = (level: RiskLevel) => {
-        if (level === RiskLevel.HIGH) return 'bg-rose-100 text-rose-700 border-rose-200';
-        if (level === RiskLevel.MEDIUM) return 'bg-amber-100 text-amber-700 border-amber-200';
-        return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-    };
-
-    const recentResults = state.results
-        .filter(r => r.studentId === student.id)
-        .sort((a, b) => new Date(b.gradedAt).getTime() - new Date(a.gradedAt).getTime());
-
-    // Prepare Chart Data
-    const chartData = state.results
+    const chartData = effectiveResults
         .filter(r => r.studentId === student.id)
         .sort((a, b) => new Date(a.gradedAt).getTime() - new Date(b.gradedAt).getTime())
-        .map(r => {
-            const exam = state.exams.find(e => e.id === r.examId);
-            return {
-                label: exam?.subject.slice(0,3) || 'Av',
-                value: r.totalScore
-            };
-        });
+        .map(r => ({
+            label: effectiveExams?.find(e => e.id === r.examId)?.subject.slice(0,3) || 'Av',
+            value: r.totalScore
+        })).slice(-6);
 
-    // Trend Logic
-    const lastTwoResults = chartData.slice(-2);
-    const trend = lastTwoResults.length === 2 ? lastTwoResults[1].value - lastTwoResults[0].value : 0;
-
-    // --- EVENTS LOGIC ---
-    const availableEvents = state.gamifiedEvents.filter(e => 
-        e.schoolId === student.schoolId && 
-        e.status === GamifiedEventStatus.OPEN &&
-        !e.participants.some(p => p.studentId === student.id)
-    );
-
-    const myActiveEvents = state.gamifiedEvents.filter(e => 
-        e.participants.some(p => p.studentId === student.id) &&
-        e.status !== GamifiedEventStatus.FINISHED
-    );
-
-    const handleAcceptEvent = (eventId: string) => {
-        if (confirm("Você leu as regras e deseja se inscrever?")) {
-            registerStudentToEvent(eventId, student.id);
-            setShowEventRules(null);
-        }
-    };
-
-    // --- RANKING CALCULATION LOGIC ---
-    const calculateRanks = () => {
-        const getMetric = (sId: string) => {
-            if (rankingMode === 'ACADEMIC') {
-                return analytics.getStudentStats(sId)?.idgScore || 0; // Usando IDG Ponderado
-            } else {
-                // XP Ranking (Coins)
-                const p = state.userProfiles?.find(up => up.userId === sId);
-                return p?.owlCoins || 0;
-            }
-        };
-
-        // 1. Class Rank
-        const classStudents = state.students.filter(s => s.classId === student.classId);
-        const sortedClass = classStudents.sort((a, b) => getMetric(b.id) - getMetric(a.id));
-        const classRank = sortedClass.findIndex(s => s.id === student.id) + 1;
-
-        // 2. School Rank
-        const schoolStudents = state.students.filter(s => s.schoolId === student.schoolId);
-        const sortedSchool = schoolStudents.sort((a, b) => getMetric(b.id) - getMetric(a.id));
-        const schoolRank = sortedSchool.findIndex(s => s.id === student.id) + 1;
-
-        // 3. General (Tenant) Rank
-        const allStudents = state.students.filter(s => s.tenantId === student.tenantId);
-        const sortedGeneral = allStudents.sort((a, b) => getMetric(b.id) - getMetric(a.id));
-        const generalRank = sortedGeneral.findIndex(s => s.id === student.id) + 1;
-
-        return { classRank, schoolRank, generalRank, totalClass: classStudents.length, totalSchool: schoolStudents.length, totalGeneral: allStudents.length };
-    };
-
-    const ranks = calculateRanks();
-
-    // Calendar Logic (Reuse existing logic)
-    const getDaysInMonth = (date: Date) => {
-        const year = date.getFullYear();
-        const month = date.getMonth();
-        const days = new Date(year, month + 1, 0).getDate();
-        const firstDay = new Date(year, month, 1).getDay();
-        return { days, firstDay };
-    };
-
-    const { days, firstDay } = getDaysInMonth(currentMonth);
-    
-    const myExams = state.registrations
-        .filter(r => r.studentId === student.id)
-        .map(r => state.exams.find(e => e.id === r.examId))
-        .filter(Boolean) as Exam[];
-
-    const getEventsForDay = (day: number) => {
-        const dateStr = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toISOString().split('T')[0];
-        const exams = myExams.filter(e => e.scheduledDate === dateStr);
-        const announcements = state.announcements.filter(a => a.eventDate === dateStr);
-        
-        // Add Gamified Events to Calendar
-        const gameEvents = state.gamifiedEvents.filter(e => 
-            e.participants.some(p => p.studentId === student.id) &&
-            e.eventDate.startsWith(dateStr)
-        );
-
-        const mappedEvents = [
-            ...exams.map(e => ({ 
-                type: e.title.toLowerCase().includes('trabalho') ? 'TRABALHO' : 'PROVA', 
-                title: e.title,
-                date: e.scheduledDate 
-            })),
-            ...announcements.map(a => ({ 
-                type: a.type === 'AVISO' ? 'OUTRO' : 'EVENTO', 
-                title: a.title,
-                date: a.eventDate
-            })),
-            ...gameEvents.map(e => ({
-                type: 'COMPETICAO',
-                title: e.title,
-                date: e.eventDate
-            }))
-        ];
-
-        return mappedEvents;
-    };
-
-    const getAllMonthEvents = () => {
-        const events = [];
-        for(let i=1; i<=days; i++) {
-            const dayEvents = getEventsForDay(i);
-            if(dayEvents.length > 0) events.push(...dayEvents.map(e => ({...e, day: i})));
-        }
-        return events;
-    };
-
-    const changeMonth = (delta: number) => {
-        const newDate = new Date(currentMonth);
-        newDate.setMonth(newDate.getMonth() + delta);
-        setCurrentMonth(newDate);
-    };
-
-    const getEventColor = (type: string) => {
-        switch(type) {
-            case 'PROVA': return 'bg-rose-500 border-rose-600 text-white';
-            case 'TRABALHO': return 'bg-blue-500 border-blue-600 text-white';
-            case 'EVENTO': return 'bg-emerald-500 border-emerald-600 text-white';
-            case 'COMPETICAO': return 'bg-amber-500 border-amber-600 text-white';
-            default: return 'bg-slate-400 border-slate-500 text-white';
-        }
-    };
-
-    const getEventLabel = (type: string) => {
-        switch(type) {
-            case 'PROVA': return 'Prova/Avaliação';
-            case 'TRABALHO': return 'Trabalho/Pesquisa';
-            case 'EVENTO': return 'Evento Escolar';
-            case 'COMPETICAO': return 'Competição';
-            default: return 'Comunicado Geral';
-        }
-    };
-
-    const renderCorrectionModal = () => {
-        if (!selectedResult) return null;
-        const exam = state.exams.find(e => e.id === selectedResult.examId);
-        if (!exam) return null;
-
-        return (
-            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in">
-                <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl h-[90vh] flex flex-col">
-                    <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
-                         <div>
-                             <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2"><FileText size={20}/> Correção: {exam.title}</h3>
-                             <p className="text-xs text-slate-500">Nota Final: <strong className="text-brand-primary text-sm">{selectedResult.totalScore.toFixed(1)}</strong></p>
-                         </div>
-                         <button onClick={() => setSelectedResult(null)} className="p-2 hover:bg-slate-200 rounded-full text-slate-500"><X size={20}/></button>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-8 bg-slate-100">
-                        <div className="bg-white shadow-sm p-8 max-w-2xl mx-auto min-h-full">
-                             <div className="text-center border-b pb-6 mb-6">
-                                 <h1 className="text-2xl font-bold uppercase tracking-wide">{exam.title}</h1>
-                                 <div className="flex justify-center gap-4 text-sm text-slate-500 mt-2">
-                                     <span>Aluno: {student.name}</span>
-                                     <span>Data: {new Date(selectedResult.gradedAt).toLocaleDateString()}</span>
-                                 </div>
-                             </div>
-                             <div className="space-y-8">
-                                 {exam.items.map((conf, idx) => {
-                                     const item = state.items.find(i => i.id === conf.itemId);
-                                     const answer = selectedResult.answers.find(a => a.itemId === conf.itemId);
-                                     if (!item) return null;
-
-                                     return (
-                                         <div key={item.id} className={`p-4 border rounded-lg ${answer?.isCorrect ? 'border-emerald-200 bg-emerald-50/30' : 'border-rose-200 bg-rose-50/30'}`}>
-                                             <div className="flex gap-3 mb-2">
-                                                 <span className="font-bold text-slate-700">{idx+1}.</span>
-                                                 <div className="flex-1 font-medium text-slate-800">{item.statement}</div>
-                                                 <div className="font-bold text-xs">
-                                                     {answer?.scoreObtained}/{conf.customScore || item.score} pts
-                                                 </div>
-                                             </div>
-                                             
-                                             {item.type !== QuestionType.ESSAY ? (
-                                                 <div className="pl-7 space-y-1">
-                                                     {item.alternatives.map((alt, i) => {
-                                                         const isSelected = answer?.selectedAlternativeId === alt.id;
-                                                         const isKey = alt.isCorrect;
-                                                         
-                                                         let rowClass = "text-sm p-1 rounded flex justify-between ";
-                                                         if (isSelected && isKey) rowClass += "bg-emerald-100 text-emerald-800 font-bold";
-                                                         else if (isSelected && !isKey) rowClass += "bg-rose-100 text-rose-800 font-bold line-through decoration-rose-500";
-                                                         else if (!isSelected && isKey) rowClass += "bg-sky-50 text-sky-700 font-bold border border-sky-200";
-                                                         else rowClass += "text-slate-500";
-
-                                                         return (
-                                                             <div key={i} className={rowClass}>
-                                                                 <span>{String.fromCharCode(97+i)}) {alt.text}</span>
-                                                                 {isKey && <Check size={14} className="text-emerald-600"/>}
-                                                             </div>
-                                                         );
-                                                     })}
-                                                 </div>
-                                             ) : (
-                                                 <div className="pl-7 mt-2">
-                                                     <div className="text-xs font-bold text-slate-500 uppercase">Sua Resposta:</div>
-                                                     <div className="p-2 bg-white border border-slate-200 rounded text-sm text-slate-600 italic">
-                                                         (Resposta discursiva avaliada pelo professor)
-                                                     </div>
-                                                 </div>
-                                             )}
-                                         </div>
-                                     );
-                                 })}
-                             </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    };
+    const screeningResults = extendedProfile?.assessments.filter(a => a.type.includes('SCREENING')) || [];
 
     return (
-        <div className="space-y-6 max-w-7xl mx-auto">
-            {isParent && (
-                <div className="bg-sky-50 border border-sky-200 p-4 rounded-lg flex items-center gap-3 text-sky-800 mb-4 animate-in slide-in-from-top-2">
-                    <UserIcon size={24} className="p-1 bg-sky-200 rounded-full"/>
-                    <div>
-                        <span className="font-bold text-xs uppercase">Modo Responsável</span>
-                        <p className="text-sm">Visualizando o desempenho acadêmico de <strong>{student.name}</strong>.</p>
-                    </div>
+        <div className="space-y-8 max-w-7xl mx-auto pb-16 animate-in fade-in duration-700">
+            
+            {/* Boas Vindas */}
+            <div className="bg-[#0f172a] p-10 rounded-[3rem] shadow-2xl relative overflow-hidden border-t-4 border-indigo-500">
+                <div className="absolute top-0 right-0 p-12 opacity-[0.05] rotate-12">
+                    <Trophy size={200} className="text-white" />
                 </div>
-            )}
-
-            <div className="mb-6 flex justify-between items-end">
-                <div>
-                    <h1 className="text-2xl font-bold text-brand-dark">Olá, {user.name.split(' ')[0]}! 🦉</h1>
-                    <p className="text-slate-500">Acompanhamento em Tempo Real.</p>
-                </div>
-                <div className="flex gap-3">
-                    {state.settings.rankingEnabled && (
-                        <button onClick={() => setShowRankingModal(true)} className="bg-amber-100 text-amber-700 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-amber-200 transition shadow-sm border border-amber-200">
-                            <Trophy size={18}/> Ver Ranking
-                        </button>
-                    )}
-                    <button onClick={() => setShowAgendaModal(true)} className="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-slate-50 transition shadow-sm">
-                        <List size={18}/> Ver Agenda Completa
-                    </button>
-                </div>
-            </div>
-
-            {/* EVENT INVITATIONS (NEW) */}
-            {availableEvents.length > 0 && !isParent && (
-                <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6 rounded-xl shadow-lg mb-6 relative overflow-hidden animate-in slide-in-from-top-4">
-                    <div className="relative z-10">
-                        <h3 className="text-xl font-bold mb-2 flex items-center gap-2"><Sparkles className="text-yellow-400"/> Convites Especiais ({availableEvents.length})</h3>
-                        <div className="flex gap-4 overflow-x-auto pb-2">
-                            {availableEvents.map(evt => (
-                                <div key={evt.id} className="min-w-[280px] bg-white/10 border border-white/20 p-4 rounded-lg hover:bg-white/20 transition">
-                                    <div className="text-xs font-bold text-purple-200 uppercase mb-1">{evt.type.replace('_', ' ')}</div>
-                                    <h4 className="font-bold text-lg leading-tight mb-2">{evt.title}</h4>
-                                    <div className="flex items-center gap-2 text-xs text-purple-100 mb-3">
-                                        <Calendar size={12}/> {new Date(evt.eventDate).toLocaleDateString()}
-                                        <span className="opacity-50">|</span>
-                                        <Coins size={12} className="text-yellow-400"/> Prémio: {evt.rewardCoins}
-                                    </div>
-                                    <button 
-                                        onClick={() => setShowEventRules(evt.id)}
-                                        className="w-full bg-white text-purple-700 py-2 rounded font-bold text-sm hover:bg-purple-50 transition"
-                                    >
-                                        Inscrever-se
-                                    </button>
-                                </div>
-                            ))}
+                
+                <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
+                    <div className="flex items-center gap-8">
+                        <div className="relative">
+                            <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl flex items-center justify-center font-black text-4xl text-white shadow-xl rotate-3">
+                                {student.name.charAt(0)}
+                            </div>
+                            <div className="absolute -bottom-2 -right-2 bg-amber-400 text-slate-900 w-10 h-10 rounded-full flex items-center justify-center border-4 border-[#0f172a] font-black text-xs">
+                                Lvl 5
+                            </div>
+                        </div>
+                        <div>
+                            <h2 className="text-4xl font-black text-white tracking-tight mb-2">
+                                {isParent ? `Painel de ${student.name.split(' ')[0]}` : `E aí, ${student.name.split(' ')[0]}!`}
+                            </h2>
+                            <div className="flex flex-wrap gap-3">
+                                <span className="bg-white/10 text-indigo-300 text-[10px] font-black uppercase px-3 py-1.5 rounded-full border border-white/5 tracking-widest">RM: {student.registrationNumber}</span>
+                                <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase px-3 py-1.5 rounded-full border border-emerald-500/30 tracking-widest">{studentSchool?.name || 'Rede ExamePad'}</span>
+                            </div>
                         </div>
                     </div>
-                    <Trophy size={150} className="absolute -right-4 -bottom-4 text-white/10 rotate-12"/>
-                </div>
-            )}
-
-            {/* My Active Events */}
-            {myActiveEvents.length > 0 && !isParent && (
-                <div className="bg-white border-l-4 border-amber-500 p-4 rounded-xl shadow-sm mb-6 flex items-center justify-between">
-                    <div>
-                        <h4 className="font-bold text-slate-800 flex items-center gap-2"><Award className="text-amber-500"/> Suas Competições</h4>
-                        <p className="text-sm text-slate-500">Você está inscrito em {myActiveEvents.length} evento(s). Prepare-se!</p>
+                    
+                    <div className="flex gap-4">
+                        <div className="bg-white/5 border border-white/10 p-5 rounded-3xl text-center min-w-[120px]">
+                            <div className="text-amber-400 mb-1 flex justify-center"><Star size={20} fill="currentColor"/></div>
+                            <div className="text-2xl font-black text-white">{extendedProfile?.owlCoins || 0}</div>
+                            <div className="text-[9px] font-black text-slate-400 uppercase">Moedas</div>
+                        </div>
+                        <div className="bg-indigo-600 p-5 rounded-3xl text-center min-w-[120px] shadow-lg shadow-indigo-600/20">
+                            <div className="text-white mb-1 flex justify-center"><Trophy size={20}/></div>
+                            <div className="text-2xl font-black text-white">{rankingPosition?.pos}º</div>
+                            <div className="text-[9px] font-black text-indigo-200 uppercase">Ranking</div>
+                        </div>
                     </div>
-                    <div className="flex gap-2">
-                        {myActiveEvents.map(e => (
-                            <span key={e.id} className="text-xs font-bold bg-amber-50 text-amber-700 px-2 py-1 rounded border border-amber-200">
-                                {e.title}
-                            </span>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* Top Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-slate-400 uppercase">Índice Global (IDG)</span>
-                        <TrendingUp size={20} className="text-brand-primary"/>
-                    </div>
-                    <div className="flex items-baseline gap-2">
-                        <div className="text-3xl font-black text-slate-800">{stats.idgScore.toFixed(1)}</div>
-                        {trend !== 0 && (
-                            <div className={`flex items-center text-xs font-bold ${trend > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                {trend > 0 ? <ArrowUp size={12}/> : <ArrowDown size={12}/>}
-                                {Math.abs(trend).toFixed(1)}
-                            </div>
-                        )}
-                    </div>
-                    <div className="text-xs text-slate-500 mt-1">Média Ponderada (Provas + Trabalhos)</div>
-                </div>
-
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-slate-400 uppercase">Frequência</span>
-                        <CheckCircle size={20} className={stats.attendanceRate > 85 ? "text-emerald-500" : "text-rose-500"}/>
-                    </div>
-                    <div className="text-3xl font-black text-slate-800">{stats.attendanceRate}%</div>
-                    <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden">
-                        <div 
-                            className={`h-full ${stats.attendanceRate > 85 ? 'bg-emerald-500' : 'bg-rose-500'}`} 
-                            style={{width: `${stats.attendanceRate}%`}}
-                        ></div>
-                    </div>
-                </div>
-
-                <div className={`p-5 rounded-xl border shadow-sm ${getRiskColor(stats.riskLevel)}`}>
-                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold uppercase opacity-70">Status de Risco</span>
-                        <AlertTriangle size={20}/>
-                    </div>
-                    <div className="text-xl font-black">
-                        {stats.riskLevel === RiskLevel.LOW ? 'Zona Segura' : stats.riskLevel === RiskLevel.MEDIUM ? 'Atenção' : 'Crítico'}
-                    </div>
-                    <div className="text-xs mt-1 opacity-80">
-                        {stats.riskLevel === RiskLevel.LOW ? 'Continue assim!' : 'Procure o Corujão.'}
-                    </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-brand-dark to-brand-primary text-white p-5 rounded-xl border border-brand-dark shadow-sm">
-                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-sky-200 uppercase">Meta Próxima Prova</span>
-                        <BookOpen size={20} className="text-white"/>
-                    </div>
-                    <div className="text-3xl font-black text-white">
-                        {Math.min(10, stats.missingPointsForApproval).toFixed(1)}
-                    </div>
-                    <div className="text-xs text-sky-100 mt-1">Para manter média 6.0</div>
                 </div>
             </div>
 
-            {/* Middle Section: Learning Profile & Gamification */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Learning Profile Card */}
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                    <div>
-                        <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
-                            <Brain size={20} className="text-purple-600"/> Perfil e Conquistas
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Lado Esquerdo: Métricas e Gráficos */}
+                <div className="lg:col-span-2 space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm text-center group hover:scale-[1.02] transition-all">
+                            <div className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-4">Poder Acadêmico (IDG)</div>
+                            <div className="text-6xl font-black text-slate-900 tracking-tighter">{stats.idgScore.toFixed(1)}</div>
+                            <div className="w-full bg-slate-100 h-2 rounded-full mt-6 overflow-hidden">
+                                <div className="bg-indigo-500 h-full transition-all duration-1000" style={{width: `${stats.idgScore * 10}%`}}></div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm text-center group hover:scale-[1.02] transition-all">
+                            <div className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-4">Frequência</div>
+                            <div className="text-6xl font-black text-emerald-600 tracking-tighter">{stats.attendanceRate}%</div>
+                            <p className="text-[10px] text-slate-400 mt-6 font-black uppercase">Participação Ativa</p>
+                        </div>
+
+                        <div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-8 rounded-3xl shadow-xl text-center text-white relative overflow-hidden group hover:scale-[1.02] transition-all">
+                            <div className="absolute -right-4 -bottom-4 opacity-20"><Zap size={100}/></div>
+                            <div className="text-indigo-200 text-[10px] font-black uppercase tracking-[0.2em] mb-4">Insígnias</div>
+                            <div className="text-6xl font-black tracking-tighter">{extendedProfile?.badges?.length || 0}</div>
+                            <div className="mt-6 flex justify-center -space-x-2">
+                                {[1,2,3].map(i => (
+                                    <div key={i} className="w-8 h-8 rounded-full bg-white/20 border-2 border-indigo-400 flex items-center justify-center">
+                                        <Award size={14}/>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Evolução */}
+                    <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                        <div className="flex justify-between items-center mb-10">
+                            <h3 className="font-black text-slate-800 flex items-center gap-3 uppercase tracking-tighter">
+                                <div className="p-3 bg-indigo-50 rounded-2xl text-indigo-600"><TrendingUp size={24}/></div>
+                                Evolução das Notas
+                            </h3>
+                            <button className="text-[10px] font-black text-indigo-600 uppercase tracking-widest border-b-2 border-indigo-600">Ver Boletim Completo</button>
+                        </div>
+                        <div className="h-64">
+                            <EvolutionChart data={chartData} />
+                        </div>
+                        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="p-5 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center gap-4">
+                                <div className="p-3 bg-white rounded-xl text-emerald-600 shadow-sm"><Sparkles size={20}/></div>
+                                <div>
+                                    <div className="text-[9px] font-black text-emerald-600 uppercase mb-0.5">Destaque</div>
+                                    <div className="font-black text-slate-800 uppercase">{stats.strongestSubject}</div>
+                                </div>
+                            </div>
+                            <div className="p-5 bg-amber-50 rounded-2xl border border-amber-100 flex items-center gap-4">
+                                <div className="p-3 bg-white rounded-xl text-amber-600 shadow-sm"><Target size={20}/></div>
+                                <div>
+                                    <div className="text-[9px] font-black text-amber-600 uppercase mb-0.5">Focar Estudos</div>
+                                    <div className="font-black text-slate-800 uppercase">{stats.weakestSubject}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Sidebar do Dashboard */}
+                <div className="space-y-8">
+                    {/* Acesso Rápido - Ferramentas de Apoio (FIX: Added setView actions) */}
+                    <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                        <h3 className="font-black text-slate-800 mb-6 flex items-center gap-3 uppercase text-xs tracking-wider">
+                            <Zap size={20} className="text-amber-500"/> Apoio ao Estudo
+                        </h3>
+                        <div className="grid grid-cols-2 gap-3">
+                             <div onClick={() => setView('LEARNING_PATH')} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-center hover:bg-indigo-50 transition cursor-pointer group">
+                                <Timer size={24} className="mx-auto mb-2 text-indigo-500 group-hover:scale-110 transition"/>
+                                <span className="text-[9px] font-black uppercase text-slate-400">Pomodoro</span>
+                             </div>
+                             <div onClick={() => setView('LEARNING_PATH')} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-center hover:bg-emerald-50 transition cursor-pointer group">
+                                <BookOpen size={24} className="mx-auto mb-2 text-emerald-500 group-hover:scale-110 transition"/>
+                                <span className="text-[9px] font-black uppercase text-slate-400">Materiais</span>
+                             </div>
+                             <div onClick={() => setView('OWL_TUTOR')} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-center hover:bg-purple-50 transition cursor-pointer group">
+                                <Bot size={24} className="mx-auto mb-2 text-purple-500 group-hover:scale-110 transition"/>
+                                <span className="text-[9px] font-black uppercase text-slate-400">Tutor IA</span>
+                             </div>
+                             <div onClick={() => setView('LEARNING_PATH')} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-center hover:bg-rose-50 transition cursor-pointer group">
+                                <Target size={24} className="mx-auto mb-2 text-rose-500 group-hover:scale-110 transition"/>
+                                <span className="text-[9px] font-black uppercase text-slate-400">Plano IA</span>
+                             </div>
+                        </div>
+                    </div>
+
+                    {/* Próximas Atividades */}
+                    <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                        <h3 className="font-black text-slate-800 mb-6 flex items-center gap-3 uppercase text-xs tracking-wider">
+                            <Calendar size={20} className="text-indigo-600"/> Agenda de Provas
                         </h3>
                         <div className="space-y-4">
-                            {/* Academic Achievements List */}
-                            {extendedProfile?.academicAchievements && extendedProfile.academicAchievements.length > 0 && (
-                                <div className="mb-4">
-                                    <div className="text-xs text-slate-500 uppercase font-bold mb-2">Conquistas Acadêmicas</div>
-                                    <div className="space-y-2">
-                                        {extendedProfile.academicAchievements.map(ach => (
-                                            <div key={ach.id} className="flex items-center gap-2 bg-yellow-50 p-2 rounded border border-yellow-200 text-sm text-yellow-800">
-                                                <Medal size={16}/>
-                                                <span className="font-bold">{ach.title}</span>
-                                                <span className="text-xs bg-white px-1 rounded ml-auto border border-yellow-300">+{ach.bonusPoints} pts</span>
-                                            </div>
-                                        ))}
+                            {effectiveExams?.filter(e => e.classIds.includes(student.classId) && new Date(e.scheduledDate || '') >= new Date()).slice(0, 2).map(exam => (
+                                <div key={exam.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:border-indigo-500 transition-all cursor-pointer">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{exam.subject}</div>
+                                        <div className="text-[10px] font-black text-indigo-600 bg-white px-2 py-0.5 rounded-lg border border-indigo-100">
+                                            {new Date(exam.scheduledDate!).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'})}
+                                        </div>
                                     </div>
+                                    <div className="font-black text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors">{exam.title}</div>
                                 </div>
-                            )}
-
-                            {profile ? (
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-xl">
-                                        {profile.learningChannel.charAt(0)}
-                                    </div>
-                                    <div>
-                                        <div className="text-sm text-slate-500 uppercase font-bold">Canal Principal</div>
-                                        <div className="text-lg font-bold text-slate-800">{profile.learningChannel}</div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="text-center py-6 text-slate-400">
-                                    <Activity size={32} className="mx-auto mb-2 opacity-50"/>
-                                    <p className="text-sm">Triagem de perfil ainda não realizada.</p>
-                                </div>
-                            )}
+                            ))}
+                            {effectiveExams?.length === 0 && <p className="text-[10px] text-slate-400 italic">Nenhuma prova agendada.</p>}
                         </div>
                     </div>
-                </div>
 
-                {/* Gamification / Coins Card */}
-                <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-6 rounded-xl border border-amber-200 shadow-sm flex flex-col justify-between relative overflow-hidden">
-                    <div className="relative z-10">
-                        <h3 className="font-bold text-amber-800 flex items-center gap-2 mb-4">
-                            <Coins size={20} className="text-amber-600"/> Liga de XP & Conquistas
+                    {/* Saúde e Desenvolvimento */}
+                    <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                        <h3 className="font-black text-slate-800 mb-6 flex items-center gap-3 uppercase text-xs tracking-wider">
+                            <Stethoscope size={20} className="text-rose-500"/> Desenvolvimento
                         </h3>
-                        <div className="flex items-end gap-2 mb-2">
-                            <span className="text-4xl font-black text-amber-600">{extendedProfile?.owlCoins || 0}</span>
-                            <span className="text-sm font-bold text-amber-700 mb-1">Owl Coins</span>
-                        </div>
-                        <p className="text-xs text-amber-800/70 mb-4">
-                            Você subiu <strong>{ranks.schoolRank}º</strong> no Ranking de Engajamento!
-                        </p>
-                        
-                        <div className="flex gap-2">
-                            {(extendedProfile?.badges || ['Iniciante']).map((badge, idx) => (
-                                <div key={idx} className="bg-white/60 px-2 py-1 rounded text-xs font-bold text-amber-800 flex items-center gap-1 border border-amber-200">
-                                    <Star size={10} fill="orange" className="text-orange-400"/> {badge}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                    <Coins size={100} className="absolute -right-4 -bottom-4 text-amber-200 opacity-50 rotate-12"/>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column: Calendar & Evolution */}
-                <div className="space-y-6">
-                     {/* Evolution Chart Card */}
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><TrendingUp size={18}/> Evolução de Notas</h3>
-                        <EvolutionChart data={chartData} />
-                    </div>
-
-                    {/* Quick Agenda Widget */}
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                        <div className="flex justify-between items-center mb-4">
-                             <h3 className="font-bold text-slate-800 flex items-center gap-2"><Calendar size={18}/> Agenda Rápida</h3>
-                             <button onClick={() => setShowAgendaModal(true)} className="text-xs text-brand-primary hover:underline">Expandir</button>
-                        </div>
-                        <div className="space-y-2">
-                            {getAllMonthEvents().slice(0, 3).map((ev, i) => (
-                                <div key={i} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded transition">
-                                    <div className={`w-2 h-8 rounded-full ${getEventColor(ev.type).split(' ')[0]}`}></div>
-                                    <div>
-                                        <div className="text-xs font-bold text-slate-500 uppercase">{new Date(ev.date || '').toLocaleDateString()}</div>
-                                        <div className="text-sm font-bold text-slate-800 line-clamp-1">{ev.title}</div>
-                                    </div>
-                                </div>
-                            ))}
-                            {getAllMonthEvents().length === 0 && <p className="text-slate-400 text-sm text-center py-4">Sem eventos próximos.</p>}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Center/Right Column: Results & Announcements */}
-                <div className="lg:col-span-2 space-y-6">
-                    {/* Grades History */}
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Clock size={18}/> Histórico de Provas</h3>
                         <div className="space-y-3">
-                            {recentResults.length === 0 && <p className="text-slate-400 text-sm">Nenhuma prova realizada ainda.</p>}
-                            {recentResults.map(result => {
-                                const exam = state.exams.find(e => e.id === result.examId);
-                                return (
-                                    <div key={result.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 transition">
-                                        <div>
-                                            <div className="font-bold text-slate-800">{exam?.title}</div>
-                                            <div className="text-xs text-slate-500">{exam?.subject} • {new Date(result.gradedAt).toLocaleDateString()}</div>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            <button 
-                                                onClick={() => setSelectedResult(result)}
-                                                className="text-xs font-bold text-brand-primary bg-brand-light px-3 py-1.5 rounded-lg hover:bg-brand-secondary hover:text-white transition flex items-center gap-1"
-                                            >
-                                                Ver Correção <Eye size={12}/>
-                                            </button>
-                                            <div className={`font-bold text-lg ${result.totalScore >= 6 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                                {result.totalScore.toFixed(1)}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Mural Announcements */}
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Calendar size={18}/> Mural da Escola</h3>
-                        <div className="space-y-4">
-                            {state.announcements.map(ann => (
-                                <div key={ann.id} className={`p-3 rounded-lg border-l-4 ${ann.type === 'URGENTE' ? 'border-rose-500 bg-rose-50' : 'border-brand-secondary bg-slate-50'}`}>
-                                    <div className="text-xs font-bold text-slate-500 mb-1 flex justify-between">
-                                        <span>{ann.type}</span>
-                                        <span>{new Date(ann.createdAt).toLocaleDateString()}</span>
-                                    </div>
-                                    <div className="font-bold text-slate-800 text-sm mb-1">{ann.title}</div>
-                                    <p className="text-xs text-slate-600 line-clamp-3">{ann.content}</p>
-                                </div>
-                            ))}
-                            {state.announcements.length === 0 && <p className="text-slate-400 text-sm">Nenhum aviso.</p>}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* AGENDA MODAL */}
-            {showAgendaModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full h-[80vh] flex flex-col border-2 border-brand-primary relative overflow-hidden">
-                        <div className="bg-slate-50 p-6 border-b flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Calendar className="text-brand-primary"/> Agenda Escolar</h2>
-                            <button onClick={() => setShowAgendaModal(false)}><X size={24} className="text-slate-400 hover:text-slate-600"/></button>
-                        </div>
-                        
-                        <div className="flex flex-1 overflow-hidden">
-                            {/* Calendar Sidebar */}
-                            <div className="w-1/3 bg-slate-50 border-r border-slate-200 p-6 overflow-y-auto">
-                                <div className="flex justify-between items-center mb-6">
-                                     <button onClick={() => changeMonth(-1)} className="p-1 hover:bg-slate-200 rounded"><ChevronLeft size={20}/></button>
-                                     <span className="font-bold text-lg">{currentMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span>
-                                     <button onClick={() => changeMonth(1)} className="p-1 hover:bg-slate-200 rounded"><ChevronRight size={20}/></button>
-                                </div>
-                                <div className="grid grid-cols-7 gap-1 text-center mb-2 text-xs font-bold text-slate-400">
-                                    <div>D</div><div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div>
-                                </div>
-                                <div className="grid grid-cols-7 gap-1 text-sm">
-                                    {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
-                                    {Array.from({ length: days }).map((_, i) => {
-                                        const day = i + 1;
-                                        const events = getEventsForDay(day);
-                                        const hasEvent = events.length > 0;
-                                        return (
-                                            <div key={day} className={`h-10 flex flex-col items-center justify-center rounded-lg relative ${hasEvent ? 'bg-white border border-slate-200 font-bold shadow-sm' : 'text-slate-400'}`}>
-                                                {day}
-                                                {hasEvent && (
-                                                    <div className="flex gap-0.5 mt-1">
-                                                        {events.slice(0, 3).map((e, idx) => (
-                                                            <div key={idx} className={`w-1.5 h-1.5 rounded-full ${getEventColor(e.type).split(' ')[0]}`}></div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-
-                                <div className="mt-8 border-t pt-4">
-                                    <h4 className="text-xs font-bold text-slate-500 uppercase mb-3">Legenda de Atividades</h4>
-                                    <div className="space-y-2 text-xs">
-                                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-rose-500"></div> Prova / Avaliação</div>
-                                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500"></div> Trabalho / Pesquisa</div>
-                                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500"></div> Evento Escolar</div>
-                                        <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-amber-500"></div> Competição</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Event Details */}
-                            <div className="flex-1 p-8 overflow-y-auto bg-white">
-                                <h3 className="font-bold text-slate-800 text-lg mb-6">Eventos do Mês</h3>
-                                <div className="space-y-4">
-                                    {getAllMonthEvents().map((ev, i) => (
-                                        <div key={i} className={`p-4 rounded-xl border-l-4 flex gap-4 shadow-sm ${getEventColor(ev.type).replace('text-white', 'bg-slate-50')}`}>
-                                            <div className="flex flex-col items-center justify-center px-4 border-r border-slate-200">
-                                                <span className="text-2xl font-black text-slate-700">{new Date(ev.date || '').getDate()}</span>
-                                                <span className="text-xs uppercase font-bold text-slate-400">{new Date(ev.date || '').toLocaleDateString('pt-BR', {month: 'short'})}</span>
+                            {screeningResults.length > 0 ? (
+                                screeningResults.map(res => (
+                                    <button 
+                                        key={res.id}
+                                        onClick={() => setSelectedReport(res)}
+                                        className="w-full text-left p-4 bg-slate-50 hover:bg-rose border border-slate-100 rounded-2xl transition group flex items-center justify-between"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-white rounded-xl shadow-sm text-rose-500">
+                                                <FileText size={18}/>
                                             </div>
                                             <div>
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded text-white ${getEventColor(ev.type).split(' ')[0]}`}>
-                                                        {getEventLabel(ev.type)}
-                                                    </span>
-                                                </div>
-                                                <div className="font-bold text-slate-800 text-lg">{ev.title}</div>
-                                                <div className="text-xs text-slate-500 mt-1">Clique para ver detalhes (se disponível).</div>
+                                                <div className="text-xs font-black text-slate-800 uppercase truncate max-w-[120px]">{res.type.replace('TRIAGEM_', '')}</div>
+                                                <div className="text-[10px] text-slate-400 font-bold uppercase">{new Date(res.date).toLocaleDateString()}</div>
                                             </div>
                                         </div>
-                                    ))}
-                                    {getAllMonthEvents().length === 0 && (
-                                        <div className="text-center py-20 text-slate-400">
-                                            <Calendar size={48} className="mx-auto mb-4 opacity-20"/>
-                                            <p>Nenhum evento agendado para este mês.</p>
-                                        </div>
-                                    )}
+                                        <ArrowRight size={16} className="text-slate-300 group-hover:text-rose-600" />
+                                    </button>
+                                ))
+                            ) : (
+                                <div className="p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                                    <Info size={24} className="mx-auto mb-2 text-slate-300"/>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase leading-tight">Nenhum laudo clínico para visualizar.</p>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* EVENT RULES MODAL */}
-            {showEventRules && (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-purple-200">
-                        <div className="bg-purple-900 p-6 text-white">
-                            <h2 className="text-xl font-bold flex items-center gap-2"><Trophy size={24} className="text-yellow-400"/> Regras do Evento</h2>
-                        </div>
-                        <div className="p-6">
-                            <h3 className="font-bold text-lg text-slate-800 mb-2">{availableEvents.find(e=>e.id===showEventRules)?.title}</h3>
-                            <p className="text-sm text-slate-600 mb-4 italic">{availableEvents.find(e=>e.id===showEventRules)?.description}</p>
-                            
-                            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-sm text-slate-700 leading-relaxed font-medium mb-6">
-                                {availableEvents.find(e=>e.id===showEventRules)?.rules}
-                            </div>
-
-                            <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 p-2 rounded mb-6 border border-amber-100">
-                                <AlertTriangle size={14}/> Ao aceitar, você se compromete a participar no dia do evento.
-                            </div>
-
-                            <div className="flex gap-4">
-                                <button onClick={() => setShowEventRules(null)} className="flex-1 py-3 border border-slate-300 rounded-lg font-bold text-slate-600 hover:bg-slate-50">Cancelar</button>
-                                <button onClick={() => handleAcceptEvent(showEventRules)} className="flex-1 py-3 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700">Aceitar & Inscrever</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* RANKING MODAL */}
-            {showRankingModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border-2 border-brand-primary relative">
-                        {/* Confetti Effect Background */}
-                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/confetti.png')] opacity-10 pointer-events-none"></div>
-                        
-                        <div className="p-6 text-center relative">
-                            <button 
-                                onClick={() => setShowRankingModal(false)}
-                                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
-                            >
-                                <X size={20}/>
-                            </button>
-
-                            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border-4 shadow-inner ${rankingMode === 'ACADEMIC' ? 'bg-yellow-100 border-yellow-200' : 'bg-amber-100 border-amber-300'}`}>
-                                {rankingMode === 'ACADEMIC' ? <Trophy size={40} className="text-yellow-600 drop-shadow-sm" /> : <Coins size={40} className="text-amber-600 drop-shadow-sm"/>}
-                            </div>
-
-                            <h2 className="text-2xl font-black text-slate-800 mb-2">
-                                {rankingMode === 'ACADEMIC' ? 'Ranking Ponderado' : 'Liga de Engajamento'}
-                            </h2>
-                            <p className="text-slate-500 text-sm mb-4">
-                                {rankingMode === 'ACADEMIC' ? 'Critérios: Provas (60%) + Trabalhos (30%) + Extras.' : 'Baseado em Owl Coins ganhas nos jogos.'}
-                            </p>
-
-                            {/* TOGGLE */}
-                            <div className="flex justify-center gap-2 mb-6">
-                                <button 
-                                    onClick={() => setRankingMode('ACADEMIC')}
-                                    className={`px-4 py-1 rounded-full text-xs font-bold transition ${rankingMode === 'ACADEMIC' ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500'}`}
-                                >
-                                    Acadêmico (IDG)
-                                </button>
-                                <button 
-                                    onClick={() => setRankingMode('XP')}
-                                    className={`px-4 py-1 rounded-full text-xs font-bold transition ${rankingMode === 'XP' ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-500'}`}
-                                >
-                                    XP / Moedas
-                                </button>
-                            </div>
-
-                            {/* Score Breakdown (New Feature) */}
-                            {rankingMode === 'ACADEMIC' && (
-                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-4 text-left">
-                                    <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Composição da sua Nota Global ({stats.idgScore.toFixed(1)})</h4>
-                                    
-                                    <div className="space-y-2 text-sm">
-                                        <div className="flex justify-between items-center">
-                                            <span>📘 Médias de Provas (60%)</span>
-                                            <span className="font-bold">{stats.examAverage.toFixed(1)}</span>
-                                        </div>
-                                        <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                                            <div className="bg-blue-500 h-full" style={{width: `${stats.examAverage * 10}%`}}></div>
-                                        </div>
-
-                                        <div className="flex justify-between items-center mt-1">
-                                            <span>📙 Médias de Trabalhos (30%)</span>
-                                            <span className="font-bold">{stats.projectAverage.toFixed(1)}</span>
-                                        </div>
-                                        <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                                            <div className="bg-orange-500 h-full" style={{width: `${stats.projectAverage * 10}%`}}></div>
-                                        </div>
-
-                                        {stats.bonusPoints > 0 && (
-                                            <div className="flex justify-between items-center text-emerald-700 font-bold bg-emerald-50 px-2 py-1 rounded mt-2">
-                                                <span className="flex items-center gap-1"><Medal size={12}/> Bônus Extra (Olimpíadas/Eventos)</span>
-                                                <span>+{stats.bonusPoints.toFixed(1)}</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="space-y-3">
-                                <div className="flex items-center justify-between p-4 bg-white shadow-sm rounded-xl border border-slate-200">
-                                    <div className="text-left">
-                                        <div className="font-bold text-slate-700">Na Turma</div>
-                                        <div className="text-xs text-slate-400">Entre {ranks.totalClass} alunos</div>
-                                    </div>
-                                    <div className={`text-2xl font-black ${rankingMode === 'XP' ? 'text-amber-600' : 'text-brand-primary'}`}>#{ranks.classRank}</div>
-                                </div>
-
-                                <div className="flex items-center justify-between p-4 bg-white shadow-sm rounded-xl border border-slate-200">
-                                    <div className="text-left">
-                                        <div className="font-bold text-slate-700">Na Escola</div>
-                                        <div className="text-xs text-slate-400">Entre {ranks.totalSchool} alunos</div>
-                                    </div>
-                                    <div className={`text-2xl font-black ${rankingMode === 'XP' ? 'text-amber-700' : 'text-brand-secondary'}`}>#{ranks.schoolRank}</div>
-                                </div>
-                            </div>
-
-                            {state.settings.rankingAnonymity === 'ANONIMO' && rankingMode === 'ACADEMIC' && (
-                                <p className="text-[10px] text-slate-400 mt-4 italic">
-                                    * O ranking público acadêmico é anônimo, mas você pode ver sua posição aqui.
-                                </p>
-                            )}
-                            {rankingMode === 'XP' && (
-                                <p className="text-[10px] text-amber-600 mt-4 font-bold flex items-center justify-center gap-1">
-                                    <Zap size={10}/> Dica: Jogue o 'Modo Sobrevivência' para subir no ranking de XP!
-                                </p>
                             )}
                         </div>
                     </div>
                 </div>
-            )}
+            </div>
 
-            {/* RESULT PDF-LIKE MODAL */}
-            {renderCorrectionModal()}
+            {/* Modal de Laudo */}
+            {selectedReport && student && (
+                <ScreeningReportModal 
+                    report={selectedReport}
+                    studentName={student.name}
+                    studentId={student.registrationNumber}
+                    onClose={() => setSelectedReport(null)}
+                />
+            )}
         </div>
     );
 };

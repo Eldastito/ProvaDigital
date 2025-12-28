@@ -1,216 +1,199 @@
 
-import React, { useState } from 'react';
-import { Shield, Check, X, Save, AlertTriangle, Building } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Shield, Check, Save, AlertCircle, Eye, Plus, Edit3, Trash2, ChevronRight, Lock, Zap, HardDrive, DollarSign } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { Action, Resource, UserRole, PermissionMatrix } from '../../types';
 
-const RESOURCES: { id: Resource; label: string; description: string }[] = [
-    { id: 'SCHOOL_DATA', label: 'Gestão de Escolas', description: 'Gerir escolas, turmas e matrículas' },
-    { id: 'USER_DATA', label: 'Gestão de Usuários', description: 'Cadastrar alunos e staff' },
-    { id: 'ITEM_BANK', label: 'Banco de Itens', description: 'Acessar e criar questões' },
-    { id: 'EXAM_MGMT', label: 'Gestão de Provas', description: 'Criar, agendar e corrigir provas' },
-    { id: 'OFFLINE_OPS', label: 'Ecossistema Offline', description: 'App Tablet e Sincronização' },
-    { id: 'ANALYTICS', label: 'Analytics', description: 'Ver dashboards e relatórios' },
-    { id: 'COMMUNICATION', label: 'Comunicação', description: 'Chat e Mural de Avisos' },
-    { id: 'AI_FEATURES', label: 'Ferramentas de IA', description: 'Geração de questões e correção automática' },
-    { id: 'GAMIFIED_EVENTS', label: 'Eventos Gamificados', description: 'Competições, Olimpíadas e Soletrando' },
+const RESOURCES: { id: Resource; label: string; description: string; icon?: any }[] = [
+    { id: 'SCHOOL_DATA', label: 'Gestão de Unidades', description: 'Escolas, prédios e turmas' },
+    { id: 'USER_DATA', label: 'Matrículas e Staff', description: 'Cadastro de alunos, pais e equipe' },
+    { id: 'ITEM_BANK', label: 'Banco de Itens', description: 'Criação e curadoria de questões' },
+    { id: 'EXAM_MGMT', label: 'Provas Digitais', description: 'Montagem, agendamento e correção' },
+    { id: 'ANALYTICS', label: 'Dashboards IDG', description: 'Monitoramento de rendimento e evasão' },
+    { id: 'COMMUNICATION', label: 'Comunicação Digital', description: 'Mural, chat e avisos oficiais' },
+    { id: 'AI_FEATURES', label: 'Inteligência Artificial', description: 'Geração e correção assistida' },
+    { id: 'NEURO_SCREENING', label: 'Triagem Neuropsic.', description: 'Laudos e rastreio de TEA/TDAH' },
+    { id: 'GAMIFIED_EVENTS', label: 'Gamificação', description: 'Olimpíadas e Quiz Show' },
+    { id: 'FINANCIAL', label: 'Financeiro', description: 'Contratos e cobranças de mensalidades', icon: DollarSign },
+    { id: 'OFFLINE_OPS', label: 'Operações Tablet', description: 'Sincronização e logística de dispositivos', icon: HardDrive },
+    { id: 'GOVERNANCE', label: 'Gestão do Sistema', description: 'Acesso a esta tela de governança' },
 ];
 
-// HIERARQUIA ESTRITA DEFINIDA PELO USUÁRIO
-const ROLES = [
-    UserRole.SUPER_ADMIN,   // 1. Gestão SaaS Inteiro
-    UserRole.STATE_ADMIN,   // 2. Secretaria Estadual
-    UserRole.TENANT_ADMIN,  // 3. Secretaria Municipal
-    UserRole.DIRETOR,       // 4. Gestor Escolar
-    UserRole.SUPERVISOR,    // 5. Supervisor Escolar
-    UserRole.PROFESSOR,     // 6. Professores
-    UserRole.ALUNO,         // 7. Alunos
-    UserRole.PAIS           // 8. Pais e Responsáveis
+const ROLES_HIERARCHY = [
+    UserRole.SUPER_ADMIN,
+    UserRole.STATE_ADMIN,
+    UserRole.TENANT_ADMIN,
+    UserRole.DIRETOR,
+    UserRole.SUPERVISOR,
+    UserRole.PROFESSOR,
+    UserRole.ALUNO,
+    UserRole.PAIS
 ];
 
-const ACTIONS: Action[] = ['VIEW', 'CREATE', 'EDIT', 'DELETE'];
+const ACTIONS: { id: Action; icon: any; color: string; bg: string }[] = [
+    { id: 'VIEW', icon: Eye, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { id: 'CREATE', icon: Plus, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { id: 'EDIT', icon: Edit3, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { id: 'DELETE', icon: Trash2, color: 'text-rose-600', bg: 'bg-rose-50' }
+];
 
 export const CapabilitiesView = () => {
-    const { globalPermissions, updatePermissions, tenants, updateTenantFeatures } = useAppStore();
-    const [localMatrix, setLocalMatrix] = useState<PermissionMatrix>(JSON.parse(JSON.stringify(globalPermissions)));
-    const [selectedTenant, setSelectedTenant] = useState<string>(tenants[0].id);
-    
-    const currentTenant = tenants.find(t => t.id === selectedTenant);
+    const { globalPermissions, updatePermissions } = useAppStore();
+    // Inicializa com uma cópia profunda para evitar referências compartilhadas
+    const [localMatrix, setLocalMatrix] = useState<PermissionMatrix>(() => JSON.parse(JSON.stringify(globalPermissions)));
+    const [selectedRole, setSelectedRole] = useState<UserRole>(UserRole.PROFESSOR);
+    const [isDirty, setIsDirty] = useState(false);
 
-    const togglePermission = (role: UserRole, resource: Resource, action: Action) => {
-        // Bloqueia a edição do SUPER_ADMIN para evitar lockout acidental
-        if (role === UserRole.SUPER_ADMIN) {
-            alert("As permissões de Super Admin são absolutas e não podem ser revogadas nesta interface.");
-            return;
-        }
+    // Sincroniza se as permissões globais mudarem externamente
+    useEffect(() => {
+        setLocalMatrix(JSON.parse(JSON.stringify(globalPermissions)));
+    }, [globalPermissions]);
 
+    const togglePermission = (resource: Resource, action: Action) => {
+        setIsDirty(true);
         setLocalMatrix(prev => {
+            // Cópia profunda manual para garantir imutabilidade correta no React
             const newMatrix = { ...prev };
-            // Initialize role/resource if undefined
-            if (!newMatrix[role]) newMatrix[role] = {};
             
-            const currentActions = newMatrix[role][resource] || [];
+            // 1. Garantir que o objeto do perfil existe
+            const rolePerms = { ...(newMatrix[selectedRole] || {}) };
             
-            if (currentActions.includes(action)) {
-                newMatrix[role][resource] = currentActions.filter(a => a !== action);
+            // 2. Garantir que a lista de ações do recurso existe
+            const resourceActions = [...(rolePerms[resource] || [])];
+            
+            // 3. Toggle da ação
+            if (resourceActions.includes(action)) {
+                rolePerms[resource] = resourceActions.filter(a => a !== action);
             } else {
-                newMatrix[role][resource] = [...currentActions, action];
+                rolePerms[resource] = [...resourceActions, action];
             }
+            
+            newMatrix[selectedRole] = rolePerms;
             return newMatrix;
         });
     };
 
-    const toggleTenantFeature = (resource: Resource) => {
-        if (!currentTenant) return;
-        const currentDisabled = currentTenant.disabledResources || [];
-        const isDisabled = currentDisabled.includes(resource);
-        
-        let newDisabled;
-        if (isDisabled) {
-            newDisabled = currentDisabled.filter(r => r !== resource);
-        } else {
-            newDisabled = [...currentDisabled, resource];
-        }
-        updateTenantFeatures(currentTenant.id, newDisabled);
-    };
-
-    const saveGlobal = () => {
+    const handleSave = () => {
         updatePermissions(localMatrix);
-        alert("Matriz global de permissões atualizada com sucesso!");
+        setIsDirty(false);
+        alert("Matriz de governança aplicada! As alterações de visibilidade de menus e botões foram propagadas para todos os usuários logados.");
     };
 
     return (
-        <div className="space-y-8 max-w-[1600px] mx-auto pb-12">
-            <div className="flex justify-between items-center">
+        <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-brand-dark flex items-center gap-2">
-                        <Shield className="text-brand-primary"/> Governança Hierárquica
-                    </h1>
-                    <p className="text-slate-500 mt-1">Defina a cascata de permissões do nível Super Admin até Pais/Responsáveis.</p>
+                    <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">Governança SaaS</h1>
+                    <p className="text-slate-500 font-medium text-lg mt-1">Configuração mestre de visibilidade e ações por perfil.</p>
                 </div>
-                <button onClick={saveGlobal} className="btn-gradient px-6 py-3 rounded-lg font-bold flex items-center gap-2 shadow-lg hover:shadow-xl transition">
-                    <Save size={20}/> Salvar Alterações Globais
-                </button>
-            </div>
-
-            {/* GLOBAL MATRIX */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="p-6 border-b bg-slate-50">
-                    <h2 className="font-bold text-lg text-slate-800">Matriz de Capacidades (Padrão Global)</h2>
-                    <p className="text-xs text-slate-500">Estas regras aplicam-se a toda a hierarquia.</p>
-                </div>
-                
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left border-collapse">
-                        <thead className="bg-slate-100 text-slate-600 font-bold">
-                            <tr>
-                                <th className="p-4 border border-slate-200 w-64 min-w-[250px] sticky left-0 bg-slate-100 z-10">Funcionalidade / Recurso</th>
-                                {ROLES.map(role => (
-                                    <th key={role} className={`p-4 border border-slate-200 text-center min-w-[150px] ${role === UserRole.SUPER_ADMIN ? 'bg-brand-dark text-white' : ''}`}>
-                                        {role.replace('_', ' ')}
-                                        {role === UserRole.SUPER_ADMIN && <span className="block text-[9px] font-normal opacity-70">Nível Máximo</span>}
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {RESOURCES.map(res => (
-                                <tr key={res.id} className="hover:bg-slate-50">
-                                    <td className="p-4 border border-slate-200 bg-white sticky left-0 z-10">
-                                        <div className="font-bold text-slate-800">{res.label}</div>
-                                        <div className="text-xs text-slate-500">{res.description}</div>
-                                    </td>
-                                    {ROLES.map(role => (
-                                        <td key={`${res.id}-${role}`} className={`p-2 border border-slate-200 ${role === UserRole.SUPER_ADMIN ? 'bg-slate-50' : ''}`}>
-                                            <div className="flex justify-center gap-1 flex-wrap">
-                                                {ACTIONS.map(action => {
-                                                    const isActive = localMatrix[role]?.[res.id]?.includes(action);
-                                                    
-                                                    // Visual styling based on action type
-                                                    let colorClass = 'bg-slate-100 text-slate-400 border-slate-200';
-                                                    if (isActive) {
-                                                        if (action === 'VIEW') colorClass = 'bg-sky-100 text-sky-700 border-sky-300';
-                                                        if (action === 'CREATE') colorClass = 'bg-emerald-100 text-emerald-700 border-emerald-300';
-                                                        if (action === 'EDIT') colorClass = 'bg-amber-100 text-amber-700 border-amber-300';
-                                                        if (action === 'DELETE') colorClass = 'bg-rose-100 text-rose-700 border-rose-300';
-                                                    }
-
-                                                    // Super Admin always visually active but maybe locked
-                                                    if (role === UserRole.SUPER_ADMIN) {
-                                                        return (
-                                                            <div key={action} className={`w-8 h-8 rounded flex items-center justify-center border text-[10px] font-bold ${colorClass} opacity-100 cursor-not-allowed`}>
-                                                                {action[0]}
-                                                            </div>
-                                                        );
-                                                    }
-
-                                                    return (
-                                                        <button
-                                                            key={action}
-                                                            onClick={() => togglePermission(role, res.id, action)}
-                                                            className={`w-8 h-8 rounded flex items-center justify-center border text-[10px] font-bold transition-all ${colorClass} ${!isActive && 'opacity-50 hover:opacity-100'}`}
-                                                            title={`${action} - ${res.label} (${role})`}
-                                                        >
-                                                            {action[0]}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </td>
-                                    ))}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-                <div className="p-4 bg-slate-50 flex gap-4 text-xs text-slate-500 border-t justify-end">
-                    <span className="flex items-center gap-1"><span className="w-3 h-3 bg-sky-100 border border-sky-300 rounded block"></span> V = Visualizar</span>
-                    <span className="flex items-center gap-1"><span className="w-3 h-3 bg-emerald-100 border border-emerald-300 rounded block"></span> C = Criar</span>
-                    <span className="flex items-center gap-1"><span className="w-3 h-3 bg-amber-100 border border-amber-300 rounded block"></span> E = Editar</span>
-                    <span className="flex items-center gap-1"><span className="w-3 h-3 bg-rose-100 border border-rose-300 rounded block"></span> D = Deletar</span>
-                </div>
-            </div>
-
-            {/* TENANT FEATURE TOGGLES */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                <div className="flex items-center justify-between mb-6">
-                    <div>
-                        <h2 className="font-bold text-lg text-slate-800 flex items-center gap-2"><Building size={20}/> Configuração por Cliente (Prefeitura)</h2>
-                        <p className="text-xs text-slate-500">Desabilite módulos inteiros para clientes específicos (Cascata de Restrição).</p>
-                    </div>
-                    <select 
-                        className="border border-slate-300 rounded-lg p-2 text-sm font-medium"
-                        value={selectedTenant}
-                        onChange={(e) => setSelectedTenant(e.target.value)}
+                <div className="flex items-center gap-4">
+                    {isDirty && (
+                        <span className="text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full animate-pulse border border-amber-200">
+                            Alterações pendentes...
+                        </span>
+                    )}
+                    <button 
+                        onClick={handleSave} 
+                        className={`btn-premium px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-xl transform transition-all ${!isDirty ? 'opacity-50 grayscale cursor-default scale-100' : 'hover:scale-105 active:scale-95'}`}
+                        disabled={!isDirty}
                     >
-                        {tenants.map(t => <option key={t.id} value={t.id}>{t.name} ({t.cnpj})</option>)}
-                    </select>
+                        <Save size={24}/> Aplicar Alterações
+                    </button>
+                </div>
+            </div>
+
+            <div className="flex flex-col lg:flex-row gap-10">
+                {/* Lado Esquerdo: Sidebar de Perfis */}
+                <div className="lg:w-96 flex-shrink-0 space-y-3">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] px-4 mb-4">Hierarquia de Perfis</h3>
+                    {ROLES_HIERARCHY.map(role => (
+                        <button 
+                            key={role}
+                            onClick={() => setSelectedRole(role)}
+                            className={`w-full text-left p-6 rounded-[2rem] border-2 transition-all flex items-center justify-between group shadow-sm ${selectedRole === role ? 'bg-indigo-600 border-indigo-600 text-white shadow-indigo-600/20' : 'bg-white border-slate-100 text-slate-600 hover:border-indigo-300'}`}
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${selectedRole === role ? 'bg-white/20' : 'bg-slate-50 text-indigo-600'}`}>
+                                    {role.charAt(0)}
+                                </div>
+                                <span className="font-black uppercase tracking-tight text-sm">{role.replace('_', ' ')}</span>
+                            </div>
+                            <ChevronRight size={20} className={selectedRole === role ? 'text-white' : 'text-slate-200 group-hover:translate-x-1 transition-transform'} />
+                        </button>
+                    ))}
+                    
+                    <div className="mt-8 p-6 bg-[#0f1d2e] rounded-[2rem] text-white relative overflow-hidden">
+                        <Lock size={120} className="absolute -right-10 -bottom-10 opacity-5 rotate-12"/>
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-2 text-indigo-400 mb-3 font-black text-xs uppercase tracking-widest">
+                                <Shield size={14}/> Segurança Ativa
+                            </div>
+                            <p className="text-xs text-slate-400 leading-relaxed font-medium italic">
+                                Alterações nesta tela afetam imediatamente a visibilidade de menus e botões para todos os usuários do perfil selecionado.
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {RESOURCES.map(res => {
-                        const isDisabled = currentTenant?.disabledResources?.includes(res.id);
-                        
-                        return (
-                            <div 
-                                key={res.id} 
-                                onClick={() => toggleTenantFeature(res.id)}
-                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${isDisabled ? 'bg-slate-50 border-slate-200 opacity-60 grayscale' : 'bg-white border-brand-secondary shadow-sm hover:shadow-md'}`}
-                            >
-                                <div>
-                                    <div className={`font-bold text-sm ${isDisabled ? 'text-slate-500' : 'text-brand-dark'}`}>{res.label}</div>
-                                    <div className="text-[10px] text-slate-400">{isDisabled ? 'Desativado para este cliente' : 'Ativo'}</div>
+                {/* Lado Direito: Matriz Dinâmica */}
+                <div className="flex-1 bg-white rounded-[3rem] border border-slate-100 shadow-2xl overflow-hidden flex flex-col min-h-[600px]">
+                    <div className="p-10 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
+                        <div>
+                            <div className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em] mb-2">Painel de Controle</div>
+                            <h2 className="text-3xl font-black text-slate-800 tracking-tight">{selectedRole.replace('_', ' ')}</h2>
+                        </div>
+                        <div className="flex gap-4">
+                           {ACTIONS.map(act => (
+                               <div key={act.id} className="flex flex-col items-center">
+                                   <div className={`p-2 rounded-lg ${act.bg} ${act.color}`}><act.icon size={16}/></div>
+                                   <span className="text-[9px] font-black text-slate-400 mt-2 uppercase tracking-widest">{act.id}</span>
+                               </div>
+                           ))}
+                        </div>
+                    </div>
+
+                    <div className="divide-y divide-slate-50 max-h-[700px] overflow-y-auto custom-scrollbar">
+                        {RESOURCES.map(res => (
+                            <div key={res.id} className="p-8 flex items-center justify-between hover:bg-slate-50/80 transition-colors group">
+                                <div className="max-w-lg">
+                                    <div className="font-black text-slate-800 text-lg group-hover:text-indigo-600 transition-colors uppercase tracking-tight flex items-center gap-2">
+                                        {res.icon && <res.icon size={18} className="text-slate-400"/>}
+                                        {res.label}
+                                    </div>
+                                    <div className="text-sm text-slate-400 font-medium mt-1">{res.description}</div>
                                 </div>
-                                <div className={`w-10 h-6 rounded-full p-1 transition-colors ${isDisabled ? 'bg-slate-300' : 'bg-emerald-500'}`}>
-                                    <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${isDisabled ? 'translate-x-0' : 'translate-x-4'}`}></div>
+                                <div className="flex gap-3">
+                                    {ACTIONS.map(action => {
+                                        const roleConfig = localMatrix[selectedRole] || {};
+                                        const isAllowed = (roleConfig[res.id] || []).includes(action.id);
+                                        
+                                        return (
+                                            <button 
+                                                key={action.id}
+                                                onClick={() => togglePermission(res.id, action.id)}
+                                                className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center transition-all shadow-sm ${isAllowed ? `${action.bg} ${action.color} border-transparent scale-110 shadow-lg` : 'bg-white border-slate-50 text-slate-200 hover:border-slate-200 hover:text-slate-400'}`}
+                                                title={`${action.id} ${res.label}`}
+                                            >
+                                                {isAllowed ? <Check size={28} strokeWidth={4}/> : <action.icon size={20}/>}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
-                        );
-                    })}
+                        ))}
+                    </div>
                 </div>
-                <div className="mt-4 p-3 bg-amber-50 text-amber-800 text-xs rounded border border-amber-200 flex items-center gap-2">
-                    <AlertTriangle size={16}/>
-                    <span>Atenção: Desabilitar um módulo aqui remove o acesso para <strong>TODOS</strong> os usuários desta prefeitura, independente da matriz acima.</span>
+            </div>
+
+            <div className="bg-amber-50 border-2 border-amber-100 p-8 rounded-[2.5rem] flex gap-6 items-start shadow-sm border-dashed">
+                <div className="p-4 bg-amber-100 rounded-2xl text-amber-600 animate-pulse">
+                    <Zap size={32} fill="currentColor"/>
+                </div>
+                <div>
+                    <h4 className="font-black text-amber-900 uppercase tracking-widest text-sm mb-2">Dica de Gestão</h4>
+                    <p className="text-amber-800 leading-relaxed font-medium">
+                        Ao remover a permissão <strong>VIEW</strong> de um recurso, o módulo correspondente será ocultado do menu lateral para simplificar a interface do usuário. Use isso para criar uma experiência focada para alunos e professores.
+                    </p>
                 </div>
             </div>
         </div>

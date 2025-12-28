@@ -1,26 +1,48 @@
 
 import React, { useEffect } from 'react';
 import { ArrowLeft, Printer } from 'lucide-react';
-import { AppState, Exam, QuestionType } from '../types';
+import { AppState, Exam, QuestionType, School, Tenant, User, Item } from '../types';
+import { useQuery } from '@tanstack/react-query'; // Import useQuery
+import { fetchExams, fetchItems, fetchSchools, fetchTenants, fetchUsers } from '../services/supabaseClient'; // Import fetching functions
 
 interface PrintableExamViewProps {
-  state: AppState;
+  state: AppState; // Keep state prop for currentUser access if needed in future
   examId: string;
   onBack: () => void;
 }
 
-export const PrintableExamView = ({ state, examId, onBack }: PrintableExamViewProps) => {
-  const exam = state.exams.find(e => e.id === examId);
+export const PrintableExamView = ({ state, examId, onBack }: PrintableExamViewProps) => { // Keep state prop
+  // Fetch data using useQuery
+  // @-fix: useQuery was called with the wrong syntax. Switched to object syntax.
+  const { data: exams, isLoading: examsLoading, error: examsError } = useQuery<Exam[]>({ queryKey: ['exams'], queryFn: fetchExams });
+  // @-fix: useQuery was called with the wrong syntax. Switched to object syntax.
+  const { data: items, isLoading: itemsLoading, error: itemsError } = useQuery<Item[]>({ queryKey: ['items'], queryFn: fetchItems });
+  // @-fix: useQuery was called with the wrong syntax. Switched to object syntax.
+  const { data: schools } = useQuery<School[]>({ queryKey: ['schools'], queryFn: fetchSchools });
+  // @-fix: useQuery was called with the wrong syntax. Switched to object syntax.
+  const { data: tenants } = useQuery<Tenant[]>({ queryKey: ['tenants'], queryFn: fetchTenants });
+  // @-fix: useQuery was called with the wrong syntax. Switched to object syntax.
+  const { data: users } = useQuery<User[]>({ queryKey: ['users'], queryFn: fetchUsers });
   
+  // @-fix: Added optional chaining to safely call .find() on data from useQuery.
+  const exam = exams?.find(e => e.id === examId);
+  
+  if (examsLoading || itemsLoading) return <div className="p-8 text-center text-slate-500">Carregando prova para impressão...</div>;
+  if (examsError) return <div className="p-8 text-center text-rose-500">Erro ao carregar prova: {(examsError as Error).message}</div>;
+  if (itemsError) return <div className="p-8 text-center text-rose-500">Erro ao carregar itens: {(itemsError as Error).message}</div>;
   if (!exam) return <div>Prova não encontrada.</div>;
 
-  const school = state.schools.find(s => s.id === exam.schoolId);
-  const tenant = state.tenants.find(t => t.id === exam.tenantId);
-  const creator = state.users.find(u => u.id === exam.creatorId);
+  // @-fix: Added optional chaining to safely call .find() on data from useQuery.
+  const school = schools?.find(s => s.id === exam.schoolId);
+  // @-fix: Added optional chaining to safely call .find() on data from useQuery.
+  const tenant = tenants?.find(t => t.id === exam.tenantId);
+  // @-fix: Added optional chaining to safely call .find() on data from useQuery.
+  const creator = users?.find(u => u.id === exam.creatorId);
 
   // Hydrate items based on exam config
   const examItems = exam.items.map(config => {
-    const originalItem = state.items.find(i => i.id === config.itemId);
+    // @-fix: Added optional chaining to safely call .find() on data from useQuery.
+    const originalItem = items?.find(i => i.id === config.itemId); // Use items from useQuery
     return originalItem ? { ...originalItem, ...config } : null;
   }).filter(Boolean) as any[];
 

@@ -1,27 +1,30 @@
 
 import React, { useState, useEffect } from 'react';
 import { Radio, Power, Server, Box, Layers, MapPin, Briefcase, Truck, CheckCircle, AlertTriangle, RefreshCcw } from 'lucide-react';
-import { AppState, MeshPeer, ProvisioningPayload } from '../../types';
+import { AppState, MeshPeer, ProvisioningPayload, School, Student, Exam, Tenant, MeshRole } from '../../types';
 import { meshService } from '../../services/localMeshService';
+import { useQuery } from '@tanstack/react-query';
+import { fetchSchools, fetchStudents, fetchExams, fetchTenants } from '../../services/supabaseClient';
 
 interface CommandCenterProps {
-    state: AppState;
+    state: AppState; 
     userSchoolId?: string;
 }
 
 export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
+    const { data: allSchools } = useQuery<School[]>({ queryKey: ['schools'], queryFn: fetchSchools, initialData: [] });
+    const { data: allStudents } = useQuery<Student[]>({ queryKey: ['students'], queryFn: fetchStudents, initialData: [] });
+    const { data: allExams } = useQuery<Exam[]>({ queryKey: ['exams'], queryFn: fetchExams, initialData: [] });
+    const { data: allTenants } = useQuery<Tenant[]>({ queryKey: ['tenants'], queryFn: fetchTenants, initialData: [] });
+
     const [peers, setPeers] = useState<MeshPeer[]>([]);
     const [selectedTenantId, setSelectedTenantId] = useState(state.currentUser?.tenantId || '');
     
-    // Configuração de Lote
-    const [suitcaseSize, setSuitcaseSize] = useState<number>(20); // 20, 10, 5
-    const [selectedExamIds, setSelectedExamIds] = useState<string[]>([]); // Multiplas provas (semana toda)
-
-    // Gestão de Incidentes
-    const [replacementTarget, setReplacementTarget] = useState('');
+    const [suitcaseSize, setSuitcaseSize] = useState<number>(20); 
+    const [selectedExamIds, setSelectedExamIds] = useState<string[]>([]); 
 
     useEffect(() => {
-        meshService.join('SERVER', 'SaaS-Central-Logistics', 'UNASSIGNED');
+        meshService.join('SERVER', 'SaaS-Central-Logistics', MeshRole.UNASSIGNED);
         const interval = setInterval(() => {
             setPeers(meshService.getPeers());
         }, 1000);
@@ -31,17 +34,9 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
         };
     }, []);
 
-    // --- LÓGICA DE CARGA REGIONAL ---
-    
-    // 1. Total de Tablets Necessários no Município (Visão Macro)
-    const tenantSchools = state.schools.filter(s => s.tenantId === selectedTenantId);
-    const totalStudentsInTenant = state.students.filter(s => s.tenantId === selectedTenantId).length;
-    
-    // Provas disponíveis para carga (ex: todas as provas da semana)
-    const availableExams = state.exams.filter(e => e.tenantId === selectedTenantId);
-
-    // Dispositivos virgens na rede (Staging Area)
-    const availableTablets = peers.filter(p => p.role === 'UNASSIGNED');
+    const tenantSchools = allSchools?.filter(s => s.tenantId === selectedTenantId) || [];
+    const availableExams = allExams?.filter(e => e.tenantId === selectedTenantId) || [];
+    const availableTablets = peers.filter(p => p.role === MeshRole.UNASSIGNED);
 
     const toggleExam = (id: string) => {
         if (selectedExamIds.includes(id)) setSelectedExamIds(selectedExamIds.filter(e => e !== id));
@@ -53,25 +48,21 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
         if (availableTablets.length === 0) return alert("Nenhum tablet detectado na 'Sala de Carga'.");
 
         const confirmMsg = `CONFIRMAÇÃO DE CARGA REGIONAL\n\n` +
-            `- Município: ${state.tenants.find(t => t.id === selectedTenantId)?.name}\n` +
+            `- Município: ${allTenants?.find(t => t.id === selectedTenantId)?.name}\n` +
             `- Conteúdo: ${selectedExamIds.length} Provas Criptografadas\n` +
             `- Destino: ${availableTablets.length} Dispositivos Detectados\n\n` +
             `Os tablets receberão dados de TODAS as escolas do município, permitindo flexibilidade total de transporte.`;
 
         if (!confirm(confirmMsg)) return;
 
-        // Simulação de Carga em Massa
         let processed = 0;
         availableTablets.forEach((tablet, idx) => {
-            // Lógica de Mala: Agrupar visualmente
             const suitcaseNumber = Math.floor(idx / suitcaseSize) + 1;
             
-            // O payload agora é genérico para a região. 
-            // O tablet do aluno vira um "Cofre Fechado"
-            meshService.sendTo(tablet.id, 'PROVISION_CMD', {
-                targetRole: 'STUDENT', // Default state
+            meshService.broadcast('PROVISION_CMD', {
+                targetRole: MeshRole.STUDENT,
                 assignedName: `Mala ${suitcaseNumber} - Unidade ${idx % suitcaseSize + 1}`,
-                killNetworkAfter: false // Mantém rede para receber ativação na escola
+                killNetworkAfter: false 
             } as ProvisioningPayload);
             processed++;
         });
@@ -80,15 +71,14 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
     };
 
     const handleProvisionCoordinators = () => {
-        // Coordenadores recebem chaves mestras, não apenas dados cifrados
-        const targets = availableTablets.slice(0, tenantSchools.length); // 1 por escola idealmente
+        const targets = availableTablets.slice(0, tenantSchools.length); 
         
         if (targets.length === 0) return alert("Sem dispositivos.");
 
         targets.forEach((t, i) => {
             const school = tenantSchools[i % tenantSchools.length];
-            meshService.sendTo(t.id, 'PROVISION_CMD', {
-                targetRole: 'COORDINATOR',
+            meshService.broadcast('PROVISION_CMD', {
+                targetRole: MeshRole.COORDINATOR,
                 assignedName: `COORD - ${school.name}`,
                 killNetworkAfter: false
             } as ProvisioningPayload);
@@ -98,8 +88,6 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
 
     return (
         <div className="p-6 bg-slate-50 min-h-[600px] space-y-8">
-            
-            {/* Header */}
             <div className="flex justify-between items-center bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                 <div>
                     <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
@@ -117,8 +105,6 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                
-                {/* COLUNA 1: O PACOTE DE DADOS (Conteúdo) */}
                 <div className="space-y-6">
                     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                         <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Layers size={20}/> 1. Conteúdo do Pacote</h3>
@@ -131,7 +117,7 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                                 onChange={e => setSelectedTenantId(e.target.value)}
                                 disabled={!!userSchoolId}
                             >
-                                {state.tenants.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                {allTenants?.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                             </select>
                         </div>
 
@@ -150,7 +136,6 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                                     {selectedExamIds.includes(exam.id) && <CheckCircle size={16} className="text-brand-primary"/>}
                                 </div>
                             ))}
-                            {availableExams.length === 0 && <div className="text-center text-slate-400 text-xs py-4">Nenhuma prova encontrada.</div>}
                         </div>
                         
                         <div className="mt-4 p-3 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-800">
@@ -160,7 +145,6 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                     </div>
                 </div>
 
-                {/* COLUNA 2: A LOGÍSTICA FÍSICA (Malas) */}
                 <div className="space-y-6">
                     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                         <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Briefcase size={20}/> 2. Configuração das Malas</h3>
@@ -184,7 +168,6 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                                 <span className="text-3xl font-black text-slate-800">{Math.ceil(availableTablets.length / suitcaseSize)}</span>
                                 <span className="text-sm text-slate-500 font-medium">malas necessárias</span>
                             </div>
-                            <div className="text-xs text-slate-400 mt-1">Para {availableTablets.length} tablets detectados</div>
                         </div>
 
                         <button 
@@ -204,7 +187,6 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                     </button>
                 </div>
 
-                {/* COLUNA 3: OPERAÇÃO DE CAMPO (Simulação) */}
                 <div className="space-y-6">
                     <div className="bg-slate-800 text-white p-6 rounded-xl shadow-lg h-full flex flex-col">
                         <h3 className="font-bold text-sm uppercase text-slate-400 mb-4 flex items-center gap-2">
@@ -221,21 +203,11 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                                             <div className="text-[10px] font-bold text-white">{peer.name}</div>
                                         </div>
                                     </div>
-                                    <span className={`text-[10px] px-2 py-0.5 rounded ${peer.role === 'UNASSIGNED' ? 'bg-amber-500/20 text-amber-300' : 'bg-blue-500/20 text-blue-300'}`}>
+                                    <span className={`text-[10px] px-2 py-0.5 rounded ${peer.role === MeshRole.UNASSIGNED ? 'bg-amber-500/20 text-amber-300' : 'bg-blue-500/20 text-blue-300'}`}>
                                         {peer.role}
                                     </span>
                                 </div>
                             ))}
-                            {peers.length === 0 && (
-                                <div className="flex flex-col items-center justify-center h-32 text-slate-500 text-xs text-center">
-                                    <Server size={24} className="mb-2 opacity-20"/>
-                                    Aguardando conexão dos dispositivos...
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="mt-4 pt-4 border-t border-slate-700 text-[10px] text-slate-400">
-                            <p><strong>Dica:</strong> Abra múltiplas abas deste navegador para simular os tablets na "Esteira de Carga".</p>
                         </div>
                     </div>
                 </div>

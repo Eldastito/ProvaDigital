@@ -1,5 +1,4 @@
 
-
 import { useState, useEffect, useRef } from 'react';
 import { meshService } from '../services/localMeshService';
 import { SecurityEvent } from '../types';

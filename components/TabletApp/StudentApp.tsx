@@ -1,16 +1,19 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Lock, CheckCircle, Play, Wifi, PenTool, Eraser, ChevronRight, ChevronLeft, ShieldCheck, Cloud } from 'lucide-react';
-import { AppState, QuestionType } from '../../types';
+import { AppState, QuestionType, Student, ExamResult } from '../../types';
 import { supabase } from '../../services/supabaseClient'; // Import Real Client
 import { uuidv4 } from '../../utils/helpers';
+import { useMutation } from '@tanstack/react-query'; // Import useMutation
+import { insertStudent, upsertResults } from '../../services/supabaseClient'; // Import fetching and mutation functions
+import { DEMO_ANSWER_KEY } from '../../utils/demoData'; // Import DEMO_ANSWER_KEY
 
 interface StudentAppProps {
-  state: AppState;
+  state: AppState; // Keep state prop for currentUser access if needed in future
   onBack: () => void;
 }
 
-export const StudentApp = ({ state, onBack }: StudentAppProps) => {
+export const StudentApp = ({ state, onBack }: StudentAppProps) => { // Keep state prop
   const params = new URLSearchParams(window.location.search);
   // Pega parâmetros reais do QR Code gerado pelo Lobby
   const classIdParam = params.get('classId');
@@ -19,18 +22,54 @@ export const StudentApp = ({ state, onBack }: StudentAppProps) => {
 
   const [studentData, setStudentData] = useState<any>(null);
   const [step, setStep] = useState<'LOGIN_FORM' | 'CONFIRM_IDENTITY' | 'EXAM_COVER' | 'EXAM' | 'SENDING' | 'COMPLETED'>('LOGIN_FORM');
-  const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
+  const [currentQuestionIdx, setCurrentQIndex] = useState(0);
   
   // Login State
   const [inputName, setInputName] = useState('');
-  const [joining, setJoining] = useState(false);
-
+  
   // Scratchpad State
   const [isScratchpadOpen, setIsScratchpadOpen] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [officialContent, setOfficialContent] = useState(''); // Essay
+
+  // --- React Query Mutations ---
+  // @fix: Updated useMutation to use object-based syntax and mutationFn property
+  const insertStudentMutation = useMutation({
+      mutationFn: insertStudent,
+      onSuccess: (data) => {
+          // Student successfully inserted, proceed with identity confirmation
+          setStudentData({
+              id: data.id,
+              name: data.name,
+              reg: data.registrationNumber,
+              examTitle: 'Prova Ao Vivo',
+              roleTitle: 'Participante',
+              eventId: classIdParam,
+              examId: examIdParam
+          });
+          setStep('CONFIRM_IDENTITY');
+      },
+      onError: (error) => {
+          console.error("Erro ao inserir estudante:", error);
+          alert("Erro ao entrar na sala: " + (error as Error).message);
+      }
+  });
+
+  // @fix: Updated useMutation to use object-based syntax and mutationFn property
+  const upsertResultsMutation = useMutation({
+      mutationFn: upsertResults,
+      onSuccess: () => {
+          setStep('COMPLETED');
+      },
+      onError: (error) => {
+          console.error("Erro ao salvar resultados:", error);
+          alert("Erro no envio. Tentando novamente...");
+          setStep('EXAM');
+      }
+  });
+
 
   // QUESTÕES DEMO ATUALIZADAS (Tech & Lógica)
   const mockItems = [
@@ -43,34 +82,23 @@ export const StudentApp = ({ state, onBack }: StudentAppProps) => {
 
   const handleJoinClass = async () => {
       if (!inputName.trim()) return alert("Digite seu nome.");
-      setJoining(true);
 
       try {
           if (sessionMode === 'LIVE_REAL' && classIdParam) {
-              // 1. Salvar Aluno no Banco (Isso dispara o Realtime no Lobby do Professor)
               const studentId = uuidv4();
               const regNum = Math.floor(Math.random() * 9000) + 1000;
               
-              const { error } = await supabase.from('students').insert({
+              const newStudent: Student = {
                   id: studentId,
                   name: inputName,
-                  registration_number: regNum.toString(),
-                  class_id: classIdParam,
-                  school_id: 's1', // Fixo demo
-                  tenant_id: 't1' // Fixo demo
-              });
-
-              if (error) throw error;
-
-              setStudentData({
-                  id: studentId,
-                  name: inputName,
-                  reg: regNum,
-                  examTitle: 'Prova Ao Vivo',
-                  roleTitle: 'Participante',
-                  eventId: classIdParam,
-                  examId: examIdParam
-              });
+                  registrationNumber: regNum.toString(),
+                  classId: classIdParam,
+                  schoolId: 's1', // Fixo demo
+                  tenantId: 't1' // Fixo demo
+              };
+              // @fix: Mutate now uses the data argument
+              insertStudentMutation.mutate(newStudent); // Use mutation
+              
           } else {
               // Modo Local (Fallback)
               setStudentData({
@@ -81,13 +109,11 @@ export const StudentApp = ({ state, onBack }: StudentAppProps) => {
                   roleTitle: 'Visitante',
                   eventId: 'local'
               });
+              setStep('CONFIRM_IDENTITY');
           }
-          setStep('CONFIRM_IDENTITY');
       } catch (e: any) {
           console.error(e);
           alert("Erro ao entrar na sala: " + e.message);
-      } finally {
-          setJoining(false);
       }
   };
 
@@ -104,25 +130,28 @@ export const StudentApp = ({ state, onBack }: StudentAppProps) => {
               // Converter respostas para formato simples
               const formattedAnswers = Object.keys(answers).map(qId => ({
                   itemId: qId,
-                  selectedAlternativeId: answers[qId]
+                  selectedAlternativeId: answers[qId],
+                  isCorrect: DEMO_ANSWER_KEY[qId] === answers[qId], // Basic correctness for demo
+                  scoreObtained: DEMO_ANSWER_KEY[qId] === answers[qId] ? 1 : 0 // Basic scoring
               }));
 
-              // Salvar no Banco
-              const { error } = await supabase.from('exam_results').insert({
+              const newResult: ExamResult[] = [{
                   id: uuidv4(),
-                  exam_id: studentData.examId,
-                  student_id: studentData.id,
+                  examId: studentData.examId,
+                  studentId: studentData.id,
                   answers: formattedAnswers,
-                  total_score: Math.floor(Math.random() * 10), // Mock score calc no cliente para demo
-                  graded_at: new Date().toISOString(),
-                  security_flags: []
-              });
+                  totalScore: formattedAnswers.filter(a => a.isCorrect).length, // Sum of correct answers
+                  gradedAt: new Date().toISOString(),
+                  securityFlags: []
+              }];
 
-              if (error) console.error("Erro ao salvar resultado:", error); // Log only, don't block demo flow
+              // @fix: Mutate now uses the data argument
+              upsertResultsMutation.mutate(newResult); // Use mutation
+          } else {
+              await new Promise(resolve => setTimeout(resolve, 1500)); // Fake network delay visual
+              setStep('COMPLETED');
           }
           
-          await new Promise(resolve => setTimeout(resolve, 1500)); // Fake network delay visual
-          setStep('COMPLETED');
 
       } catch (e) {
           console.error(e);
@@ -158,12 +187,13 @@ export const StudentApp = ({ state, onBack }: StudentAppProps) => {
                               onChange={e => setInputName(e.target.value)}
                           />
                       </div>
+                      {/* @fix: Changed isLoading to isPending for mutation in v5 */}
                       <button 
                           onClick={handleJoinClass}
-                          disabled={joining}
+                          disabled={insertStudentMutation.isPending}
                           className="w-full py-4 bg-brand-primary text-white font-bold rounded-xl text-lg hover:bg-brand-dark transition shadow-lg disabled:opacity-50"
                       >
-                          {joining ? 'Entrando...' : 'Entrar na Sala'}
+                          {insertStudentMutation.isPending ? 'Entrando...' : 'Entrar na Sala'}
                       </button>
                   </div>
               </div>
@@ -280,7 +310,7 @@ export const StudentApp = ({ state, onBack }: StudentAppProps) => {
 
           <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20 safe-area-pb">
               <button 
-                onClick={() => setCurrentQuestionIdx(Math.max(0, currentQuestionIdx - 1))}
+                onClick={() => setCurrentQIndex(Math.max(0, currentQuestionIdx - 1))}
                 disabled={currentQuestionIdx === 0}
                 className="p-3 rounded-xl text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition"
               >
@@ -290,14 +320,14 @@ export const StudentApp = ({ state, onBack }: StudentAppProps) => {
               {isLast ? (
                   <button 
                     onClick={handleFinishExam}
-                    className="bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-emerald-200 active:scale-95 transition flex items-center gap-2 text-lg"
+                    className="bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-emerald-200 active:scale-95 transition flex items-center justify-center gap-2 text-lg"
                   >
                       Entregar <CheckCircle size={20}/>
                   </button>
               ) : (
                   <button 
-                    onClick={() => setCurrentQuestionIdx(currentQuestionIdx + 1)}
-                    className="bg-brand-primary text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-sky-200 active:scale-95 transition flex items-center gap-2 text-lg"
+                    onClick={() => setCurrentQIndex(currentQuestionIdx + 1)}
+                    className="bg-brand-primary text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-sky-200 active:scale-95 transition flex items-center justify-center gap-2 text-lg"
                   >
                       Próxima <ChevronRight size={20}/>
                   </button>
