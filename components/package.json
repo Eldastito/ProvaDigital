@@ -1,0 +1,30 @@
+{
+  "name": "examepad-saas---prova-digital",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "@tanstack/react-query": "^5.90.12",
+    "@google/genai": "^1.34.0",
+    "lucide-react": "^0.562.0",
+    "zustand": "^5.0.9",
+    "dexie": "^4.2.1",
+    "@supabase/supabase-js": "^2.89.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0",
+    "tailwindcss": "^3.4.17",
+    "postcss": "^8.4.49",
+    "autoprefixer": "^10.4.20"
+  }
+}
