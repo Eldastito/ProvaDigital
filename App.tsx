@@ -41,16 +41,31 @@ export default function App() {
     // 2. Auth Listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
-        // Buscar perfil extendido do usuário
+        // Buscar perfil extendido do usuário na store local (pode ter vindo do loadRemoteData)
         const userMatch = users.find(u => u.email === session.user.email);
+
         if (userMatch) {
           setCurrentUser(userMatch);
           // Route based on Role
           if (userMatch.role === UserRole.ALUNO) setView('STUDENT_PORTAL');
           else setView('DASHBOARD');
         } else {
-          // Fallback para admin inicial se não tiver no mock
-          console.warn("Usuário logado não encontrado nos mocks locais, usando fallback.");
+          // Fallback: Criar perfil dinâmico para novos usuários do Supabase
+          console.warn("Usuário novo detectado. Criando perfil local...");
+
+          const newUser: any = {
+            id: session.user.id,
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Novo Usuário',
+            email: session.user.email!,
+            role: UserRole.TENANT_ADMIN, // Default role for new signups via this portal
+            tenantId: 't1', // Default tenant
+            schoolId: 's1'  // Default school
+          };
+
+          // Adicionar ao store e setar como atual
+          store.addUser(newUser);
+          setCurrentUser(newUser);
+          setView('DASHBOARD');
         }
       }
       if (event === 'SIGNED_OUT') {

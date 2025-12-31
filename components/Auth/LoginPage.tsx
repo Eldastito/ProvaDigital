@@ -8,23 +8,40 @@ export const LoginPage = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const [isSignUp, setIsSignUp] = useState(false);
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
 
         try {
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            });
+            if (isSignUp) {
+                const { data, error: signUpError } = await supabase.auth.signUp({
+                    email,
+                    password,
+                });
+                if (signUpError) throw signUpError;
 
-            if (error) throw error;
+                // Success Sign Up
+                alert("Cadastro realizado com sucesso! \n\nSe o login não ocorrer automaticamente, utilize suas credenciais para entrar.");
+                setIsSignUp(false); // Switch to login mode automatically
+            } else {
+                const { data, error: signInError } = await supabase.auth.signInWithPassword({
+                    email,
+                    password,
+                });
+                if (signInError) throw signInError;
 
-            // Auth state change will be caught by App.tsx listener
+                if (data.session) {
+                    console.log("Login Successful:", data.user?.email);
+                    // Force a check/redirect if App.tsx listener lags
+                    window.location.hash = '/';
+                }
+            }
         } catch (err: any) {
-            console.error(err);
-            setError(err.message || 'Falha ao realizar login. Verifique suas credenciais.');
+            console.error("Login Error:", err);
+            setError(err.message || 'Falha na autenticação. Verifique sua conexão.');
         } finally {
             setLoading(false);
         }
@@ -35,16 +52,30 @@ export const LoginPage = () => {
             <div className="w-full max-w-md">
 
                 {/* Header / Logo */}
-                <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                    <div className="w-16 h-16 bg-gradient-to-br from-brand-primary to-emerald-500 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-xl shadow-brand-primary/20 rotate-3 hover:rotate-6 transition-transform">
-                        <span className="text-3xl font-black text-white tracking-widest">E</span>
+                <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 flex flex-col items-center">
+                    <img
+                        src="/examepad_logo.png"
+                        alt="ExamePad"
+                        className="h-28 mb-4 object-contain hover:scale-105 transition-transform drop-shadow-2xl"
+                        onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            // Show the fallback sibling
+                            const fallback = document.getElementById('logo-fallback');
+                            if (fallback) fallback.style.display = 'flex';
+                        }}
+                    />
+                    {/* Fallback Element (Hidden by default) */}
+                    <div id="logo-fallback" style={{ display: 'none' }} className="w-20 h-20 bg-gradient-to-br from-brand-primary to-emerald-500 rounded-2xl mb-6 items-center justify-center shadow-xl shadow-brand-primary/20">
+                        <span className="text-4xl font-black text-white tracking-widest">E</span>
                     </div>
+
                     <h1 className="text-4xl font-black text-white tracking-tight mb-2">ExamePad</h1>
                     <p className="text-slate-400 font-medium tracking-wide">Acesso Administrativo</p>
                 </div>
 
                 {/* Login Card */}
                 <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700 p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-500">
+                    {/* ... (rest of the form remains same, mostly) ... */}
 
                     {error && (
                         <div className="mb-6 bg-red-500/10 border border-red-500/50 text-red-200 p-4 rounded-xl text-sm flex items-start gap-3">
@@ -96,19 +127,26 @@ export const LoginPage = () => {
                             {loading ? (
                                 <>
                                     <Loader2 size={20} className="animate-spin" />
-                                    Autenticando...
+                                    Processed...
                                 </>
                             ) : (
                                 <>
-                                    Entrar na Plataforma
+                                    {isSignUp ? 'Criar Conta' : 'Entrar na Plataforma'}
                                     <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                                 </>
                             )}
                         </button>
                     </form>
 
-                    <div className="mt-8 text-center">
-                        <a href="#" className="text-sm text-slate-400 hover:text-emerald-400 transition-colors">Esqueceu sua senha?</a>
+                    <div className="mt-8 text-center flex flex-col gap-2">
+                        <button
+                            type="button"
+                            onClick={() => { setIsSignUp(!isSignUp); setError(null); }}
+                            className="text-sm font-bold text-brand-primary hover:text-emerald-400 transition-colors"
+                        >
+                            {isSignUp ? 'Já tem conta? Voltar para Login' : 'Não tem conta? Cadastrar-se (Primeiro Acesso)'}
+                        </button>
+                        {!isSignUp && <a href="#" className="text-sm text-slate-400 hover:text-emerald-400 transition-colors">Esqueceu sua senha?</a>}
                     </div>
                 </div>
 

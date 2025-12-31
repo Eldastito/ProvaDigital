@@ -18,11 +18,11 @@ interface ManagementViewProps {
 }
 
 export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, onAddUser, onUpdateSettings }: ManagementViewProps) => {
-    const [activeTab, setActiveTab] = useState<ManagementTab>('SCHOOLS'); 
+    const [activeTab, setActiveTab] = useState<ManagementTab>('SCHOOLS');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const csvInputRef = useRef<HTMLInputElement>(null);
     const batchSchoolInputRef = useRef<HTMLInputElement>(null);
-    
+
     const currentUser = state.currentUser;
     const userSchoolId = currentUser?.schoolId;
     const isTenantAdmin = currentUser?.role === UserRole.TENANT_ADMIN || currentUser?.role === UserRole.SUPER_ADMIN;
@@ -35,8 +35,8 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
     const visibleUsers = isTenantAdmin ? state.users : state.users.filter(u => u.schoolId === userSchoolId);
 
     // Form States
-    const [schoolForm, setSchoolForm] = useState<{name: string, inep: string, resources: SchoolResources}>({ 
-        name: '', 
+    const [schoolForm, setSchoolForm] = useState<{ name: string, inep: string, resources: SchoolResources }>({
+        name: '',
         inep: '',
         resources: {
             funding: false, uniforms: false, textbooks: false, adminMaterials: false,
@@ -60,14 +60,14 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
             const text = event.target?.result as string;
             const lines = text.split('\n');
             let successCount = 0;
-            
+
             lines.forEach((line, idx) => {
                 if (idx === 0) return; // Skip Header
                 const parts = line.split(';');
                 if (parts.length >= 2) {
                     const schoolName = parts[0]?.trim();
                     const inep = parts[1]?.trim();
-                    
+
                     if (schoolName && inep) {
                         const newSchoolId = uuidv4();
                         // 1. Create School (Default resources false)
@@ -153,7 +153,7 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
     const handleCsvImport = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        if (activeTab !== 'STUDENTS') return alert('Importação via CSV disponível apenas para Alunos neste momento.');
+        if (activeTab !== 'STUDENTS' && activeTab !== 'BATCH_IMPORT') return alert('Importação via CSV disponível apenas para Alunos neste momento.');
 
         const targetClassId = prompt("Digite o ID da Turma para importar estes alunos (copie da lista de turmas):");
         if (!targetClassId) return;
@@ -190,10 +190,10 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
     };
 
     const resetForms = () => {
-        setSchoolForm({ 
-            name: '', 
+        setSchoolForm({
+            name: '',
             inep: '',
-            resources: { funding: false, uniforms: false, textbooks: false, adminMaterials: false, extracurricular: false, internet: false, lab: false, accessibility: false, food: false, transportation: false, security: false, ac_cooling: false } 
+            resources: { funding: false, uniforms: false, textbooks: false, adminMaterials: false, extracurricular: false, internet: false, lab: false, accessibility: false, food: false, transportation: false, security: false, ac_cooling: false }
         });
         setClassForm({ name: '', series: '', shift: 'MANHA', schoolId: userSchoolId || '' });
         setStudentForm({ name: '', reg: '', classId: '' });
@@ -236,7 +236,7 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
                     {/* Hide Add button for Schools if Director (they can only edit) */}
                     {activeTab !== 'COMMAND_CENTER' && activeTab !== 'SETTINGS' && activeTab !== 'BATCH_IMPORT' && activeTab !== 'HIERARCHY' && (isTenantAdmin || activeTab !== 'SCHOOLS') && (
                         <button onClick={() => openModal()} className="btn-gradient px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm text-sm font-medium">
-                            <Plus size={18} /> 
+                            <Plus size={18} />
                             Adicionar {activeTab === 'SCHOOLS' ? 'Escola' : activeTab === 'CLASSES' ? 'Turma' : activeTab === 'STUDENTS' ? 'Aluno' : 'Usuário'}
                         </button>
                     )}
@@ -248,49 +248,49 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
                 {isTenantAdmin && (
                     <>
                         <button onClick={() => setActiveTab('HIERARCHY')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'HIERARCHY' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
-                            <GitMerge size={18}/> Organograma
+                            <GitMerge size={18} /> Organograma
                         </button>
                         <button onClick={() => setActiveTab('BATCH_IMPORT')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'BATCH_IMPORT' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
-                            <FileText size={18}/> Carga em Lote
+                            <FileText size={18} /> Carga em Lote
                         </button>
                     </>
                 )}
                 <button onClick={() => setActiveTab('SCHOOLS')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'SCHOOLS' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
-                    <Briefcase size={18}/> {isDirector ? 'Minha Escola / Infra' : 'Escolas'}
+                    <Briefcase size={18} /> {isDirector ? 'Minha Escola / Infra' : 'Escolas'}
                 </button>
                 <button onClick={() => setActiveTab('CLASSES')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'CLASSES' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
-                    <SchoolIcon size={18}/> Turmas
+                    <SchoolIcon size={18} /> Turmas
                 </button>
                 <button onClick={() => setActiveTab('STUDENTS')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'STUDENTS' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
-                    <Users size={18}/> Alunos
+                    <Users size={18} /> Alunos
                 </button>
                 <button onClick={() => setActiveTab('USERS')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'USERS' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
-                    <Settings size={18}/> Usuários
+                    <Settings size={18} /> Usuários
                 </button>
                 <button onClick={() => setActiveTab('COMMAND_CENTER')} className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'COMMAND_CENTER' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-500'}`}>
-                    <Radio size={18}/> Centro de Comando
+                    <Radio size={18} /> Centro de Comando
                 </button>
-                 <button onClick={() => setActiveTab('SETTINGS')} className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'SETTINGS' ? 'border-brand-dark text-brand-dark' : 'border-transparent text-slate-500'}`}>
-                    <ShieldCheck size={18}/> Governança & LGPD
+                <button onClick={() => setActiveTab('SETTINGS')} className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'SETTINGS' ? 'border-brand-dark text-brand-dark' : 'border-transparent text-slate-500'}`}>
+                    <ShieldCheck size={18} /> Governança & LGPD
                 </button>
             </div>
 
             {/* Content */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm min-h-[400px]">
-                
+
                 {activeTab === 'HIERARCHY' && (
                     <div className="p-8">
                         <div className="flex flex-col items-center">
                             {/* Root: Secretaria */}
                             <div className="bg-brand-dark text-white p-4 rounded-xl shadow-lg border-2 border-brand-primary w-64 text-center z-10">
-                                <div className="flex justify-center mb-2"><Network size={32}/></div>
+                                <div className="flex justify-center mb-2"><Network size={32} /></div>
                                 <div className="font-bold text-lg">Secretaria de Educação</div>
                                 <div className="text-xs text-brand-light">{state.schools.length} Escolas Vinculadas</div>
                             </div>
-                            
+
                             {/* Connector Line */}
                             <div className="h-12 w-0.5 bg-slate-300 my-0"></div>
-                            
+
                             {/* Schools Row */}
                             <div className="flex flex-wrap justify-center gap-8 relative">
                                 {/* Horizontal Line connecting schools */}
@@ -299,23 +299,23 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
                                 {state.schools.map(school => (
                                     <div key={school.id} className="flex flex-col items-center mt-0 relative z-10">
                                         <div className="h-6 w-0.5 bg-slate-300 mb-0"></div>
-                                        
+
                                         {/* School Node */}
                                         <div className="bg-white border-2 border-brand-secondary p-3 rounded-lg shadow-sm w-56 hover:shadow-md transition-all cursor-pointer group">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <SchoolIcon size={18} className="text-brand-primary"/>
+                                                <SchoolIcon size={18} className="text-brand-primary" />
                                                 <div className="font-bold text-sm text-slate-800 truncate">{school.name}</div>
                                             </div>
                                             <div className="flex justify-between text-xs text-slate-500 bg-slate-50 p-1 rounded">
-                                                <span className="flex gap-1 items-center"><Users size={10}/> {state.students.filter(s=>s.schoolId===school.id).length}</span>
-                                                <span className="flex gap-1 items-center"><Briefcase size={10}/> {state.users.filter(u=>u.schoolId===school.id && u.role==='PROFESSOR').length}</span>
+                                                <span className="flex gap-1 items-center"><Users size={10} /> {state.students.filter(s => s.schoolId === school.id).length}</span>
+                                                <span className="flex gap-1 items-center"><Briefcase size={10} /> {state.users.filter(u => u.schoolId === school.id && u.role === 'PROFESSOR').length}</span>
                                             </div>
-                                            
+
                                             {/* Expanded Classes on Hover */}
                                             <div className="mt-2 pt-2 border-t border-dashed border-slate-200 hidden group-hover:block animate-in fade-in">
                                                 {state.classes.filter(c => c.schoolId === school.id).map(cls => (
                                                     <div key={cls.id} className="text-xs text-slate-600 flex items-center gap-1 py-0.5">
-                                                        <ArrowRight size={10} className="text-slate-300"/> {cls.name} ({cls.series})
+                                                        <ArrowRight size={10} className="text-slate-300" /> {cls.name} ({cls.series})
                                                     </div>
                                                 ))}
                                                 {state.classes.filter(c => c.schoolId === school.id).length === 0 && <span className="text-xs italic text-slate-300">Sem turmas</span>}
@@ -337,7 +337,7 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
                             {/* Import Schools & Directors */}
                             <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
                                 <div className="flex items-center gap-3 mb-4">
-                                    <div className="bg-brand-primary text-white p-2 rounded-lg"><SchoolIcon size={24}/></div>
+                                    <div className="bg-brand-primary text-white p-2 rounded-lg"><SchoolIcon size={24} /></div>
                                     <div>
                                         <h3 className="font-bold text-slate-800">Carga de Escolas</h3>
                                         <p className="text-xs text-slate-500">Importar Escolas via CSV</p>
@@ -348,37 +348,38 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
                                 </p>
                                 <div className="space-y-3">
                                     <button onClick={downloadTemplate} className="w-full py-2 border border-slate-300 bg-white text-slate-700 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-slate-100">
-                                        <Download size={16}/> Baixar Modelo CSV
+                                        <Download size={16} /> Baixar Modelo CSV
                                     </button>
                                     <div className="relative">
-                                        <input type="file" accept=".csv" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" ref={batchSchoolInputRef} onChange={handleBatchSchoolImport}/>
+                                        <input type="file" accept=".csv" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" ref={batchSchoolInputRef} onChange={handleBatchSchoolImport} />
                                         <button className="w-full py-3 bg-brand-primary text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 shadow-md">
-                                            <Upload size={18}/> Selecionar Arquivo (.csv)
+                                            <Upload size={18} /> Selecionar Arquivo (.csv)
                                         </button>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Import Students (Mock) */}
-                            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 opacity-70">
+                            {/* Import Students (Restored) */}
+                            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
                                 <div className="flex items-center gap-3 mb-4">
-                                    <div className="bg-emerald-600 text-white p-2 rounded-lg"><Users size={24}/></div>
+                                    <div className="bg-emerald-600 text-white p-2 rounded-lg"><Users size={24} /></div>
                                     <div>
                                         <h3 className="font-bold text-slate-800">Carga de Alunos (Global)</h3>
-                                        <p className="text-xs text-slate-500">Em breve</p>
+                                        <p className="text-xs text-slate-500">Importar Alunos via CSV</p>
                                     </div>
                                 </div>
                                 <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-                                    Para importação de alunos, utilize a aba "Alunos" e selecione a turma específica, ou aguarde a integração via API com o sistema legado.
+                                    Importe alunos para qualquer turma. O sistema solicitará o ID da Turma para vincular os alunos do arquivo.
                                 </p>
-                                <button disabled className="w-full py-3 bg-slate-200 text-slate-400 rounded-lg text-sm font-bold flex items-center justify-center gap-2 cursor-not-allowed">
-                                    <Link size={18}/> Configurar Integração API
+                                <button onClick={() => csvInputRef.current?.click()} className="w-full py-3 bg-emerald-600 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-emerald-500 shadow-md">
+                                    <Upload size={18} /> Selecionar Arquivo (.csv)
                                 </button>
+                                {/* Reusing the same input ref for simplicity, as logic is shared */}
                             </div>
                         </div>
 
                         <div className="mt-8 bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3">
-                            <Database size={24} className="text-blue-600 flex-shrink-0 mt-1"/>
+                            <Database size={24} className="text-blue-600 flex-shrink-0 mt-1" />
                             <div>
                                 <h4 className="font-bold text-blue-800 text-sm">Log de Processamento</h4>
                                 <ul className="text-xs text-blue-700 mt-1 space-y-1 list-disc pl-4">
@@ -393,8 +394,8 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
                 {activeTab === 'SETTINGS' && (
                     <div className="p-8 max-w-3xl mx-auto">
                         <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-6">
-                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Settings size={18}/> Preferências da Escola</h3>
-                            
+                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Settings size={18} /> Preferências da Escola</h3>
+
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between p-3 bg-white border rounded-lg">
                                     <div>
@@ -402,7 +403,7 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
                                         <div className="text-xs text-slate-500">Permitir que alunos vejam sua posição na turma</div>
                                     </div>
                                     <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
-                                        <input type="checkbox" name="toggle" id="ranking-toggle" checked={state.settings.rankingEnabled} onChange={() => onUpdateSettings && onUpdateSettings({ ...state.settings, rankingEnabled: !state.settings.rankingEnabled })} className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                        <input type="checkbox" name="toggle" id="ranking-toggle" checked={state.settings.rankingEnabled} onChange={() => onUpdateSettings && onUpdateSettings({ ...state.settings, rankingEnabled: !state.settings.rankingEnabled })} className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" />
                                         <label htmlFor="ranking-toggle" className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${state.settings.rankingEnabled ? 'bg-brand-primary' : 'bg-slate-300'}`}></label>
                                     </div>
                                 </div>
@@ -413,15 +414,15 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
                                         <div className="text-xs text-slate-500">Se ativo, exibe apenas matrícula em vez do nome</div>
                                     </div>
                                     <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
-                                        <input type="checkbox" name="toggle" id="anon-toggle" checked={state.settings.rankingAnonymity === 'ANONIMO'} onChange={() => onUpdateSettings && onUpdateSettings({ ...state.settings, rankingAnonymity: state.settings.rankingAnonymity === 'NOMINAL' ? 'ANONIMO' : 'NOMINAL' })} className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                        <input type="checkbox" name="toggle" id="anon-toggle" checked={state.settings.rankingAnonymity === 'ANONIMO'} onChange={() => onUpdateSettings && onUpdateSettings({ ...state.settings, rankingAnonymity: state.settings.rankingAnonymity === 'NOMINAL' ? 'ANONIMO' : 'NOMINAL' })} className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" />
                                         <label htmlFor="anon-toggle" className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${state.settings.rankingAnonymity === 'ANONIMO' ? 'bg-brand-primary' : 'bg-slate-300'}`}></label>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div className="p-4 border border-slate-200 rounded-xl text-center text-slate-500 text-sm">
-                            <ShieldCheck className="mx-auto mb-2 text-emerald-500" size={24}/>
+                            <ShieldCheck className="mx-auto mb-2 text-emerald-500" size={24} />
                             Todas as alterações de cadastro são auditadas e registradas conforme LGPD.
                         </div>
                     </div>
@@ -430,7 +431,7 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
                 {activeTab === 'COMMAND_CENTER' && (
                     <CommandCenter state={state} userSchoolId={userSchoolId} />
                 )}
-                
+
                 {activeTab === 'SCHOOLS' && (
                     <div className="divide-y divide-slate-100">
                         {visibleSchools.map(s => (
@@ -440,7 +441,7 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
                                     <div className="text-xs text-slate-500">INEP: {s.inep}</div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">ID: {s.id.slice(0,6)}</span>
+                                    <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">ID: {s.id.slice(0, 6)}</span>
                                     {isDirector && (
                                         <button onClick={() => openModal(s)} className="text-xs font-bold bg-brand-light text-brand-primary px-3 py-1 rounded hover:bg-brand-secondary hover:text-white transition">
                                             Atualizar Infraestrutura
@@ -464,7 +465,7 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
                             <div key={c.id} className="p-4 flex justify-between items-center hover:bg-slate-50">
                                 <div>
                                     <div className="font-bold text-slate-800">{c.name} <span className="text-slate-400 text-xs font-normal">({c.series})</span></div>
-                                    <div className="text-xs text-slate-500">{c.shift} • {state.schools.find(s=>s.id===c.schoolId)?.name}</div>
+                                    <div className="text-xs text-slate-500">{c.shift} • {state.schools.find(s => s.id === c.schoolId)?.name}</div>
                                 </div>
                             </div>
                         ))}
@@ -480,7 +481,7 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
                                     <div className="font-bold text-slate-800">{s.name}</div>
                                     <div className="text-xs text-slate-500">Mat: {s.registrationNumber}</div>
                                 </div>
-                                <span className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-500">{state.classes.find(c=>c.id===s.classId)?.name}</span>
+                                <span className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-500">{state.classes.find(c => c.id === s.classId)?.name}</span>
                             </div>
                         ))}
                         {visibleStudents.length === 0 && <div className="p-8 text-center text-slate-400">Nenhum aluno cadastrado.</div>}
@@ -513,11 +514,11 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
                             <h3 className="font-bold text-slate-800">
                                 {activeTab === 'SCHOOLS' ? (isDirector ? 'Atualizar Censo Escolar' : 'Gerenciar Escola') : `Adicionar ${activeTab === 'CLASSES' ? 'Turma' : activeTab === 'STUDENTS' ? 'Aluno' : 'Usuário'}`}
                             </h3>
-                            <button onClick={() => setIsModalOpen(false)}><X size={20} className="text-slate-400 hover:text-slate-600"/></button>
+                            <button onClick={() => setIsModalOpen(false)}><X size={20} className="text-slate-400 hover:text-slate-600" /></button>
                         </div>
-                        
+
                         <div className="p-6 overflow-y-auto max-h-[80vh]">
-                            <ManagementForms 
+                            <ManagementForms
                                 activeTab={activeTab}
                                 isTenantAdmin={isTenantAdmin}
                                 isDirector={isDirector}
