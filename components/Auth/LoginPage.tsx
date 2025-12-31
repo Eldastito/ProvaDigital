@@ -12,6 +12,7 @@ export const LoginPage = () => {
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+        console.log("LOGIN PAGE VERSION: 2025-12-31 - FIX LOGO"); // Cache Buster
         setLoading(true);
         setError(null);
 
