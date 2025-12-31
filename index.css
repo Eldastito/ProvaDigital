@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom Overrides */
+:root {
+  --brand-primary: #00A3E0;
+  --brand-secondary: #00CDAC;
+}
