@@ -1,0 +1,87 @@
+
+import React from 'react';
+import { Plus, MoreHorizontal, Clock, FileText, Printer, ClipboardCheck, Globe, School } from 'lucide-react';
+import { AppState, ExamStatus } from '../types';
+import { Badge } from './ui/Badge';
+
+export const ExamsListView = ({ state, onNew, onPrint, onGrade }: { state: AppState, onNew: () => void, onPrint: (id: string) => void, onGrade: (id: string) => void }) => {
+    const { currentUser } = state;
+    const userTenantId = currentUser?.tenantId;
+    const userSchoolId = currentUser?.schoolId;
+
+    // GLOBAL ACCESS: Filter by Tenant (SaaS Level), show School Name in card
+    const filteredExams = state.exams.filter(e => e.tenantId === userTenantId);
+
+    return (
+      <div className="space-y-6 max-w-7xl mx-auto">
+        <div className="flex justify-between items-center">
+            <div>
+                <h1 className="text-2xl font-bold text-brand-dark flex items-center gap-2">
+                    Banco de Provas (Rede)
+                </h1>
+                <p className="text-sm text-slate-500">Visualize e reutilize provas de toda a rede de ensino.</p>
+            </div>
+            <button onClick={onNew} className="btn-gradient px-4 py-2 rounded-lg flex items-center gap-2 font-medium">
+                <Plus size={18} /> Nova Prova
+            </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredExams.map(exam => {
+                const schoolName = state.schools.find(s => s.id === exam.schoolId)?.name || 'Escola Desconhecida';
+                const isMySchool = exam.schoolId === userSchoolId;
+
+                return (
+                    <div key={exam.id} className={`bg-white p-6 rounded-xl border shadow-sm flex flex-col hover:shadow-md transition group ${isMySchool ? 'border-brand-secondary/30' : 'border-slate-200'}`}>
+                        <div className="flex justify-between items-start mb-4">
+                            <Badge color={exam.status === ExamStatus.PUBLISHED ? 'green' : 'gray'}>{exam.status}</Badge>
+                            <div className={`text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center gap-1 ${isMySchool ? 'bg-brand-light text-brand-primary' : 'bg-slate-100 text-slate-400'}`}>
+                                {isMySchool ? <School size={10}/> : <Globe size={10}/>}
+                                <span className="truncate max-w-[120px]" title={schoolName}>{isMySchool ? 'Minha Escola' : schoolName}</span>
+                            </div>
+                        </div>
+                        <h3 className="font-bold text-lg text-slate-900 mb-1">{exam.title}</h3>
+                        <p className="text-sm text-slate-500 mb-4 line-clamp-2">{exam.description || 'Sem descrição.'}</p>
+                        
+                        <div className="mt-auto space-y-3">
+                            <div className="flex items-center text-sm text-slate-600 gap-2">
+                                <Clock size={16} className="text-slate-400"/> {exam.durationMinutes} min
+                            </div>
+                            <div className="flex items-center text-sm text-slate-600 gap-2">
+                                <FileText size={16} className="text-slate-400"/> {exam.items.length} questões
+                            </div>
+                            <div className="pt-4 border-t flex justify-between items-center gap-2">
+                                <span className="text-xs text-slate-400 flex-1">Criada em {new Date(exam.createdAt).toLocaleDateString()}</span>
+                                
+                                <div className="flex gap-3">
+                                    <button 
+                                        onClick={() => onPrint(exam.id)}
+                                        className="text-slate-500 font-medium text-sm hover:text-brand-primary flex items-center gap-1 transition"
+                                        title="Imprimir / Visualizar"
+                                    >
+                                        <Printer size={18} />
+                                    </button>
+                                    {exam.status === ExamStatus.PUBLISHED && (
+                                        <button 
+                                            onClick={() => onGrade(exam.id)}
+                                            className="text-brand-secondary font-medium text-sm hover:text-cyan-700 flex items-center gap-1 transition"
+                                            title="Lançar Notas"
+                                        >
+                                            <ClipboardCheck size={18} />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })}
+            {filteredExams.length === 0 && (
+                <div className="col-span-3 py-12 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                    <p className="text-slate-400 font-medium">Nenhuma prova encontrada nesta rede.</p>
+                </div>
+            )}
+        </div>
+      </div>
+    );
+};
