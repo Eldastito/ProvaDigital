@@ -8,6 +8,7 @@ import { useAppStore } from '../store/useAppStore';
 import { UserRole, TenantType } from '../types';
 import { usePermissions } from '../hooks/usePermissions';
 import { Badge } from './ui/Badge';
+import { ProfileSwitcher } from './ProfileSwitcher';
 
 interface LayoutProps {
   children?: React.ReactNode;
@@ -221,26 +222,13 @@ export const Layout = ({ children, currentView, setView }: LayoutProps) => {
       </aside>
 
       {/* MAIN CONTENT AREA */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-        <header className="bg-white h-16 border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 shadow-sm z-10">
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
+        {/* HEADER */}
+        <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-6 shadow-sm flex-shrink-0">
           <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-600">
-              <Menu size={20} />
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+              <Menu size={20} className="text-slate-700" />
             </button>
-            <h2 className="text-lg font-semibold text-brand-dark">ExamePad</h2>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden md:flex flex-col items-end mr-2">
-              <span className="text-xs font-bold text-slate-700">{cleanDisplayName}</span>
-              <span className="text-[10px] text-slate-500 uppercase">{currentUser.role.replace('_', ' ')}</span>
-              {isParent && currentChild && (
-                <span className="text-[10px] text-brand-secondary font-bold bg-brand-light px-2 rounded-full">
-                  Vendo: {currentChild.name.split(' ')[0]}
-                </span>
-              )}
-            </div>
-            <span className="px-3 py-1 bg-brand-light text-brand-primary rounded-full text-xs font-medium border border-brand-secondary/30 truncate max-w-[200px]" title={tenantName}>
-              {tenantName}
             </span>
           </div>
         </header>
@@ -248,7 +236,7 @@ export const Layout = ({ children, currentView, setView }: LayoutProps) => {
         <main className="flex-1 overflow-y-auto bg-[#f8fafc] p-6">
           {children}
         </main>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 };
