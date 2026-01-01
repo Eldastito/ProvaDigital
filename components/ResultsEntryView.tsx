@@ -15,9 +15,11 @@ interface ResultsEntryViewProps {
 export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: ResultsEntryViewProps) => {
     const exam = state.exams.find(e => e.id === examId);
     const [selectedClassId, setSelectedClassId] = useState<string>('');
-    const [localResults, setLocalResults] = useState<Record<string, Record<string, string>>>({}); 
+    const [localResults, setLocalResults] = useState<Record<string, Record<string, string>>>({});
     const [saving, setSaving] = useState(false);
     const [gradingLoading, setGradingLoading] = useState<string | null>(null); // ItemId being graded
+    const [bulkGrading, setBulkGrading] = useState(false);
+    const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
 
     if (!exam) return <div>Prova não encontrada.</div>;
 
@@ -28,7 +30,7 @@ export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: Resul
 
     const allocatedClasses = state.classes.filter(c => exam.classIds.includes(c.id));
     const students = state.students.filter(s => s.classId === selectedClassId);
-    
+
     const autoGradedCount = examItems.filter(i => i.type !== QuestionType.ESSAY).length;
     const manualGradedCount = examItems.length - autoGradedCount;
 
@@ -48,22 +50,22 @@ export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: Resul
                     const item = examItems.find(i => i.id === ans.itemId);
                     if (item) {
                         if (item.type === QuestionType.ESSAY) {
-                             resultsMap[student.id][ans.itemId] = ans.scoreObtained.toString();
+                            resultsMap[student.id][ans.itemId] = ans.scoreObtained.toString();
                         } else {
-                             const altIndex = item.alternatives.findIndex((a: any) => a.id === ans.selectedAlternativeId);
-                             if (altIndex >= 0) {
-                                 if (item.type === QuestionType.TRUE_FALSE) {
-                                     resultsMap[student.id][ans.itemId] = item.alternatives[altIndex].text.charAt(0);
-                                 } else {
-                                     resultsMap[student.id][ans.itemId] = String.fromCharCode(65 + altIndex);
-                                 }
-                             }
+                            const altIndex = item.alternatives.findIndex((a: any) => a.id === ans.selectedAlternativeId);
+                            if (altIndex >= 0) {
+                                if (item.type === QuestionType.TRUE_FALSE) {
+                                    resultsMap[student.id][ans.itemId] = item.alternatives[altIndex].text.charAt(0);
+                                } else {
+                                    resultsMap[student.id][ans.itemId] = String.fromCharCode(65 + altIndex);
+                                }
+                            }
                         }
                     }
                 });
             }
         });
-        setLocalResults(prev => ({...prev, ...resultsMap}));
+        setLocalResults(prev => ({ ...prev, ...resultsMap }));
     }, [selectedClassId, state.results]);
 
     const handleInputChange = (studentId: string, item: any, value: string) => {
@@ -84,14 +86,14 @@ export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: Resul
         // For this MVP entry view, we assume the professor is reading the paper and wants AI to suggest score.
         // Or, if we had online submission text, we would use that.
         // Let's Simulate a student answer for the demo based on the student's name (random quality).
-        
+
         setGradingLoading(`${studentId}-${item.id}`);
-        const mockStudentAnswer = studentId.includes('1') 
+        const mockStudentAnswer = studentId.includes('1')
             ? "A resposta é correta porque o contexto histórico..." // Good answer
             : "Não sei, acho que foi por causa da guerra."; // Bad answer
-            
+
         const result = await gradeEssayAnswer(
-            item.statement, 
+            item.statement,
             item.correctAnswerJustification || "Resposta deve conter X e Y.",
             mockStudentAnswer,
             item.customScore || item.score
@@ -104,9 +106,86 @@ export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: Resul
                 [item.id]: result.score.toFixed(1)
             }
         }));
-        
+
         alert(`IA Sugere: ${result.score} pontos.\nFeedback: ${result.feedback}`);
         setGradingLoading(null);
+    };
+
+    // NOVO: Correção em Lote com IA
+    const handleBulkAIGrading = async () => {
+        const essayItems = examItems.filter(item => item.type === QuestionType.ESSAY);
+        if (essayItems.length === 0) {
+            alert('Nenhuma questão discursiva para corrigir.');
+            return;
+        }
+
+        const confirmed = confirm(
+            `Corrigir TODAS as questões discursivas com IA?\n\n` +
+            `• ${students.length} alunos\n` +
+            `• ${essayItems.length} questões discursivas\n` +
+            `• Total: ${students.length * essayItems.length} correções\n\n` +
+            `Você poderá revisar e ajustar cada nota depois.\n\n` +
+            `Tempo estimado: ${Math.ceil((students.length * essayItems.length) / 10)} minutos`
+        );
+
+        if (!confirmed) return;
+
+        setBulkGrading(true);
+        const totalCorrections = students.length * essayItems.length;
+        setBulkProgress({ current: 0, total: totalCorrections });
+
+        let correctionCount = 0;
+
+        // Processar aluno por aluno (para evitar rate limit)
+        for (const student of students) {
+            for (const item of essayItems) {
+                // Pular se já tiver nota
+                const existingScore = localResults[student.id]?.[item.id];
+                if (existingScore && parseFloat(existingScore) > 0) {
+                    correctionCount++;
+                    setBulkProgress({ current: correctionCount, total: totalCorrections });
+                    continue;
+                }
+
+                try {
+                    // Mock student answer (em produção viria do banco)
+                    const mockStudentAnswer = student.id.includes('1')
+                        ? "A resposta é correta porque o contexto histórico demonstra que..."
+                        : "Não sei, acho que foi por causa da guerra.";
+
+                    const result = await gradeEssayAnswer(
+                        item.statement,
+                        item.correctAnswerJustification || "Resposta deve conter análise crítica.",
+                        mockStudentAnswer,
+                        item.customScore || item.score
+                    );
+
+                    // Atualizar resultado
+                    setLocalResults(prev => ({
+                        ...prev,
+                        [student.id]: {
+                            ...(prev[student.id] || {}),
+                            [item.id]: result.score.toFixed(1)
+                        }
+                    }));
+
+                    correctionCount++;
+                    setBulkProgress({ current: correctionCount, total: totalCorrections });
+
+                    // Rate limiting: aguardar 200ms entre chamadas (5 req/s)
+                    await new Promise(resolve => setTimeout(resolve, 200));
+
+                } catch (error) {
+                    console.error(`Erro ao corrigir ${student.name} - Q${item.order}:`, error);
+                    // Continuar mesmo com erro
+                    correctionCount++;
+                    setBulkProgress({ current: correctionCount, total: totalCorrections });
+                }
+            }
+        }
+
+        setBulkGrading(false);
+        alert(`✅ Correção em lote concluída!\n\n${correctionCount} questões corrigidas.\n\nRevise as notas e ajuste se necessário antes de salvar.`);
     };
 
     const handleSave = () => {
@@ -126,7 +205,7 @@ export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: Resul
 
                 if (item.type === QuestionType.ESSAY) {
                     scoreObtained = parseFloat(entry) || 0;
-                    isCorrect = scoreObtained > 0; 
+                    isCorrect = scoreObtained > 0;
                 } else {
                     if (entry) {
                         let index = -1;
@@ -161,19 +240,41 @@ export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: Resul
                     <div>
                         <h1 className="text-2xl font-bold text-brand-dark">Lançamento de Resultados</h1>
                         <p className="text-slate-500 text-sm flex items-center gap-2">
-                            {exam.title} 
-                            {autoGradedCount > 0 && <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold flex items-center gap-1"><Wand2 size={10}/> {autoGradedCount} Questões Auto-corrigidas</span>}
+                            {exam.title}
+                            {autoGradedCount > 0 && <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold flex items-center gap-1"><Wand2 size={10} /> {autoGradedCount} Questões Auto-corrigidas</span>}
                         </p>
                     </div>
                 </div>
                 <div className="flex gap-4">
-                     <select className="border border-brand-primary rounded-lg px-3 py-2 text-sm font-medium text-white bg-brand-input" value={selectedClassId} onChange={e => setSelectedClassId(e.target.value)}>
+                    <select className="border border-brand-primary rounded-lg px-3 py-2 text-sm font-medium text-white bg-brand-input" value={selectedClassId} onChange={e => setSelectedClassId(e.target.value)}>
                         {allocatedClasses.length === 0 && <option>Nenhuma turma alocada</option>}
                         {allocatedClasses.map(c => <option key={c.id} value={c.id}>{c.name} - {c.series}</option>)}
-                     </select>
-                     <button onClick={handleSave} disabled={saving} className="btn-gradient px-6 py-2 rounded-lg flex items-center gap-2 font-bold disabled:opacity-70 shadow-md">
+                    </select>
+
+                    {/* Bot\u00e3o de Corre\u00e7\u00e3o em Lote */}
+                    {manualGradedCount > 0 && (
+                        <button
+                            onClick={handleBulkAIGrading}
+                            disabled={bulkGrading || saving}
+                            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg flex items-center gap-2 font-bold disabled:opacity-70 shadow-md transition"
+                        >
+                            {bulkGrading ? (
+                                <>
+                                    <Loader2 size={18} className="animate-spin" />
+                                    Corrigindo... {bulkProgress.current}/{bulkProgress.total}
+                                </>
+                            ) : (
+                                <>
+                                    <Brain size={18} />
+                                    Corrigir Todas com IA
+                                </>
+                            )}
+                        </button>
+                    )}
+
+                    <button onClick={handleSave} disabled={saving || bulkGrading} className="btn-gradient px-6 py-2 rounded-lg flex items-center gap-2 font-bold disabled:opacity-70 shadow-md">
                         {saving ? 'Salvando...' : <><Save size={18} /> Salvar Notas</>}
-                     </button>
+                    </button>
                 </div>
             </div>
 
@@ -185,7 +286,7 @@ export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: Resul
                 </div>
                 {manualGradedCount > 0 && (
                     <div className="bg-purple-50 border border-purple-100 p-3 rounded-lg flex gap-3 text-sm text-purple-800 items-center whitespace-nowrap">
-                        <Brain size={20} className="flex-shrink-0"/>
+                        <Brain size={20} className="flex-shrink-0" />
                         <strong>IA Disponível:</strong> Use o botão mágico para corrigir discursivas.
                     </div>
                 )}
@@ -202,7 +303,7 @@ export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: Resul
                                         <div className="flex flex-col items-center">
                                             <span>Q{idx + 1}</span>
                                             <div className="flex items-center gap-1">
-                                                 <span className="text-[10px] text-slate-400 font-normal">{item.type === QuestionType.ESSAY ? 'Disc.' : 'Obj.'}</span>
+                                                <span className="text-[10px] text-slate-400 font-normal">{item.type === QuestionType.ESSAY ? 'Disc.' : 'Obj.'}</span>
                                             </div>
                                         </div>
                                     </th>
@@ -230,34 +331,34 @@ export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: Resul
                                                 return (
                                                     <td key={item.id} className="px-2 py-3 text-center border-r border-slate-100 relative">
                                                         <div className="flex items-center justify-center gap-1">
-                                                            <input 
+                                                            <input
                                                                 type="number"
                                                                 className={`w-12 h-8 text-center border rounded text-sm font-bold ${val ? "bg-brand-input text-white border-brand-secondary" : "border-slate-300"}`}
                                                                 value={val}
                                                                 onChange={(e) => handleInputChange(student.id, item, e.target.value)}
                                                             />
-                                                            <button 
+                                                            <button
                                                                 onClick={() => handleMagicGrade(student.id, item)}
                                                                 disabled={isLoading}
-                                                                className="p-1 text-purple-500 hover:bg-purple-50 rounded" 
+                                                                className="p-1 text-purple-500 hover:bg-purple-50 rounded"
                                                                 title="Corrigir com IA"
                                                             >
-                                                                {isLoading ? <Loader2 size={14} className="animate-spin"/> : <Brain size={14}/>}
+                                                                {isLoading ? <Loader2 size={14} className="animate-spin" /> : <Brain size={14} />}
                                                             </button>
                                                         </div>
                                                     </td>
                                                 );
                                             }
-                                            
+
                                             // ... MC/VF Logic ...
                                             let inputClass = "text-center border rounded w-8 h-8 uppercase ";
                                             // (omitted standard coloring logic for brevity)
                                             if (val === '') inputClass += "border-slate-300 bg-brand-input text-white";
-                                            else inputClass += "border-brand-primary bg-brand-primary text-white font-bold"; 
+                                            else inputClass += "border-brand-primary bg-brand-primary text-white font-bold";
 
                                             return (
                                                 <td key={item.id} className="px-2 py-3 text-center border-r border-slate-100">
-                                                    <input 
+                                                    <input
                                                         type="text" maxLength={1} className={inputClass}
                                                         value={val} onChange={(e) => handleInputChange(student.id, item, e.target.value)}
                                                         onFocus={(e) => e.target.select()}

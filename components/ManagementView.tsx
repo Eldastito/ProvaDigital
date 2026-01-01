@@ -14,12 +14,15 @@ interface ManagementViewProps {
     onAddClass: (c: SchoolClass) => void;
     onAddStudent: (s: Student) => void;
     onAddUser: (u: User) => void;
+    onUpdateUser: (u: User) => void;
+    onResetPassword: (email: string) => void;
     onUpdateSettings?: (s: AppSettings) => void;
 }
 
-export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, onAddUser, onUpdateSettings }: ManagementViewProps) => {
+export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, onAddUser, onUpdateUser, onResetPassword, onUpdateSettings }: ManagementViewProps) => {
     const [activeTab, setActiveTab] = useState<ManagementTab>('SCHOOLS');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState<User | null>(null);
     const csvInputRef = useRef<HTMLInputElement>(null);
     const batchSchoolInputRef = useRef<HTMLInputElement>(null);
 
@@ -137,17 +140,32 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
             });
         } else if (activeTab === 'USERS') {
             if (!userForm.name || !userForm.email) return alert('Campos obrigatórios');
-            onAddUser({
-                id: uuidv4(),
-                tenantId: currentTenantId,
-                schoolId: userForm.schoolId || undefined,
-                name: userForm.name,
-                email: userForm.email,
-                role: userForm.role
-            });
+            if (editingUser) {
+                // Update
+                onUpdateUser({
+                    ...editingUser,
+                    name: userForm.name,
+                    email: userForm.email,
+                    role: userForm.role,
+                    schoolId: userForm.role === UserRole.TENANT_ADMIN || userForm.role === UserRole.SUPER_ADMIN ? undefined : userForm.schoolId,
+                    tenantId: currentTenantId // Ensure tenant stays same or updates
+                });
+            } else {
+                // Create
+                onAddUser({
+                    id: uuidv4(),
+                    tenantId: currentTenantId,
+                    schoolId: userForm.role === UserRole.TENANT_ADMIN || userForm.role === UserRole.SUPER_ADMIN ? undefined : userForm.schoolId,
+                    name: userForm.name,
+                    email: userForm.email,
+                    role: userForm.role,
+                    status: 'ACTIVE'
+                });
+            }
         }
         setIsModalOpen(false);
         resetForms();
+        setEditingUser(null);
     };
 
     const handleCsvImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -200,44 +218,67 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
         setUserForm({ name: '', email: '', role: UserRole.PROFESSOR, schoolId: userSchoolId || '' });
     };
 
-    const openModal = (existingSchool?: School) => {
-        if (activeTab === 'SCHOOLS' && existingSchool) {
+    const openModal = (item?: any, type?: 'SCHOOL' | 'USER') => {
+        if (activeTab === 'SCHOOLS' && item) {
             setSchoolForm({
-                name: existingSchool.name,
-                inep: existingSchool.inep,
-                resources: existingSchool.resources || { funding: false, uniforms: false, textbooks: false, adminMaterials: false, extracurricular: false, internet: false, lab: false, accessibility: false, food: false, transportation: false, security: false, ac_cooling: false }
+                name: item.name,
+                inep: item.inep,
+                resources: item.resources || { funding: false, uniforms: false, textbooks: false, adminMaterials: false, extracurricular: false, internet: false, lab: false, accessibility: false, food: false, transportation: false, security: false, ac_cooling: false }
+            });
+        } else if (activeTab === 'USERS' && type === 'USER' && item) {
+            setEditingUser(item);
+            setUserForm({
+                name: item.name,
+                email: item.email,
+                role: item.role,
+                schoolId: item.schoolId || ''
             });
         } else {
             resetForms();
+            setEditingUser(null);
         }
         setIsModalOpen(true);
     };
 
+    // User Actions
+    const handleToggleBlock = (u: User) => {
+        const newStatus = u.status === 'BLOCKED' ? 'ACTIVE' : 'BLOCKED';
+        if (confirm(`Deseja realmente ${newStatus === 'BLOCKED' ? 'bloquear' : 'desbloquear'} o usuário ${u.name}?`)) {
+            onUpdateUser({ ...u, status: newStatus });
+        }
+    };
+
+    const handleResetPassword = (email: string) => {
+        if (confirm(`Enviar email de redefinição de senha para ${email}?`)) {
+            onResetPassword(email);
+        }
+    };
+
     return (
         <div className="space-y-6 max-w-7xl mx-auto">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-brand-dark flex items-center gap-2">
-                    <GraduationCap /> Gestão Escolar
+            {/* Hidden File Inputs (Persistent) */}
+            <input type="file" accept=".csv" className="hidden" ref={csvInputRef} onChange={handleCsvImport} />
+            <input type="file" accept=".csv" className="hidden" ref={batchSchoolInputRef} onChange={handleBatchSchoolImport} />
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h1 className="text-xl md:text-2xl font-bold text-brand-dark flex items-center gap-2">
+                    <GraduationCap className="flex-shrink-0" /> Gestão Escolar
                     {!isTenantAdmin && (
-                        <span className="text-sm font-normal bg-brand-light text-brand-primary px-3 py-1 rounded-full">
+                        <span className="text-[10px] md:text-sm font-normal bg-brand-light text-brand-primary px-3 py-1 rounded-full whitespace-nowrap">
                             {state.schools.find(s => s.id === userSchoolId)?.name}
                         </span>
                     )}
                 </h1>
-                <div className="flex gap-2">
+                <div className="flex w-full sm:w-auto gap-2">
                     {activeTab === 'STUDENTS' && (
-                        <>
-                            <input type="file" accept=".csv" className="hidden" ref={csvInputRef} onChange={handleCsvImport} />
-                            <button onClick={() => csvInputRef.current?.click()} className="bg-white text-slate-600 border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-50 transition flex items-center gap-2 text-sm font-medium">
-                                <Upload size={18} /> Importar CSV
-                            </button>
-                        </>
+                        <button onClick={() => csvInputRef.current?.click()} className="flex-1 sm:flex-none justify-center bg-white text-slate-600 border border-slate-300 px-3 md:px-4 py-2 rounded-lg hover:bg-slate-50 transition flex items-center gap-2 text-xs md:text-sm font-medium">
+                            <Upload size={18} /> <span className="sm:inline">Importar</span> CSV
+                        </button>
                     )}
                     {/* Hide Add button for Schools if Director (they can only edit) */}
                     {activeTab !== 'COMMAND_CENTER' && activeTab !== 'SETTINGS' && activeTab !== 'BATCH_IMPORT' && activeTab !== 'HIERARCHY' && (isTenantAdmin || activeTab !== 'SCHOOLS') && (
-                        <button onClick={() => openModal()} className="btn-gradient px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm text-sm font-medium">
+                        <button onClick={() => openModal()} className="flex-1 sm:flex-none justify-center btn-gradient px-3 md:px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm text-xs md:text-sm font-medium">
                             <Plus size={18} />
-                            Adicionar {activeTab === 'SCHOOLS' ? 'Escola' : activeTab === 'CLASSES' ? 'Turma' : activeTab === 'STUDENTS' ? 'Aluno' : 'Usuário'}
+                            Adicionar <span className="sm:inline">{activeTab === 'SCHOOLS' ? 'Escola' : activeTab === 'CLASSES' ? 'Turma' : activeTab === 'STUDENTS' ? 'Aluno' : 'Usuário'}</span>
                         </button>
                     )}
                 </div>
@@ -279,8 +320,8 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm min-h-[400px]">
 
                 {activeTab === 'HIERARCHY' && (
-                    <div className="p-8">
-                        <div className="flex flex-col items-center">
+                    <div className="p-4 md:p-8 overflow-x-auto custom-scrollbar">
+                        <div className="min-w-[800px] flex flex-col items-center">
                             {/* Root: Secretaria */}
                             <div className="bg-brand-dark text-white p-4 rounded-xl shadow-lg border-2 border-brand-primary w-64 text-center z-10">
                                 <div className="flex justify-center mb-2"><Network size={32} /></div>
@@ -350,12 +391,9 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
                                     <button onClick={downloadTemplate} className="w-full py-2 border border-slate-300 bg-white text-slate-700 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-slate-100">
                                         <Download size={16} /> Baixar Modelo CSV
                                     </button>
-                                    <div className="relative">
-                                        <input type="file" accept=".csv" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" ref={batchSchoolInputRef} onChange={handleBatchSchoolImport} />
-                                        <button className="w-full py-3 bg-brand-primary text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 shadow-md">
-                                            <Upload size={18} /> Selecionar Arquivo (.csv)
-                                        </button>
-                                    </div>
+                                    <button onClick={() => batchSchoolInputRef.current?.click()} className="w-full py-3 bg-brand-primary text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 shadow-md">
+                                        <Upload size={18} /> Selecionar Arquivo (.csv)
+                                    </button>
                                 </div>
                             </div>
 
@@ -435,20 +473,20 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
                 {activeTab === 'SCHOOLS' && (
                     <div className="divide-y divide-slate-100">
                         {visibleSchools.map(s => (
-                            <div key={s.id} className="p-4 flex justify-between items-center hover:bg-slate-50">
+                            <div key={s.id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:bg-slate-50">
                                 <div>
-                                    <div className="font-bold text-slate-800">{s.name}</div>
-                                    <div className="text-xs text-slate-500">INEP: {s.inep}</div>
+                                    <div className="font-bold text-slate-800 text-sm md:text-base">{s.name}</div>
+                                    <div className="text-[10px] md:text-xs text-slate-500 uppercase font-medium">INEP: {s.inep}</div>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">ID: {s.id.slice(0, 6)}</span>
+                                <div className="flex items-center gap-2 md:gap-3 w-full sm:w-auto">
+                                    <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded hidden md:inline">ID: {s.id.slice(0, 6)}</span>
                                     {isDirector && (
-                                        <button onClick={() => openModal(s)} className="text-xs font-bold bg-brand-light text-brand-primary px-3 py-1 rounded hover:bg-brand-secondary hover:text-white transition">
-                                            Atualizar Infraestrutura
+                                        <button onClick={() => openModal(s)} className="flex-1 sm:flex-none text-[10px] md:text-xs font-bold bg-brand-light text-brand-primary px-3 py-2 md:py-1 rounded hover:bg-brand-secondary hover:text-white transition text-center uppercase">
+                                            Infraestrutura
                                         </button>
                                     )}
                                     {isTenantAdmin && (
-                                        <button onClick={() => openModal(s)} className="text-xs font-bold border text-slate-500 px-3 py-1 rounded hover:bg-slate-100">
+                                        <button onClick={() => openModal(s)} className="flex-1 sm:flex-none text-[10px] md:text-xs font-bold border border-slate-200 text-slate-500 px-3 py-2 md:py-1 rounded hover:bg-slate-100 text-center uppercase">
                                             Editar
                                         </button>
                                     )}
@@ -462,10 +500,10 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
                 {activeTab === 'CLASSES' && (
                     <div className="divide-y divide-slate-100">
                         {visibleClasses.map(c => (
-                            <div key={c.id} className="p-4 flex justify-between items-center hover:bg-slate-50">
+                            <div key={c.id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 hover:bg-slate-50">
                                 <div>
-                                    <div className="font-bold text-slate-800">{c.name} <span className="text-slate-400 text-xs font-normal">({c.series})</span></div>
-                                    <div className="text-xs text-slate-500">{c.shift} • {state.schools.find(s => s.id === c.schoolId)?.name}</div>
+                                    <div className="font-bold text-slate-800 text-sm md:text-base">{c.name} <span className="text-slate-400 text-[10px] md:text-xs font-normal">({c.series})</span></div>
+                                    <div className="text-[10px] md:text-xs text-slate-500 uppercase font-medium">{c.shift} • {state.schools.find(s => s.id === c.schoolId)?.name}</div>
                                 </div>
                             </div>
                         ))}
@@ -489,17 +527,35 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
                 )}
 
                 {activeTab === 'USERS' && (
-                    <div className="divide-y divide-slate-100">
+                    <div className="divide-y divide-slate-100 pb-10">
                         {visibleUsers.map(u => (
-                            <div key={u.id} className="p-4 flex justify-between items-center hover:bg-slate-50">
+                            <div key={u.id} className={`p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-slate-50 ${u.status === 'BLOCKED' ? 'opacity-50' : ''}`}>
                                 <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-xs font-bold">{u.name.charAt(0)}</div>
+                                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-xs md:text-sm font-bold ${u.status === 'BLOCKED' ? 'bg-red-100 text-red-500' : 'bg-slate-200 text-slate-600'}`}>{u.name.charAt(0)}</div>
                                     <div>
-                                        <div className="font-bold text-slate-800">{u.name}</div>
-                                        <div className="text-xs text-slate-500">{u.email}</div>
+                                        <div className="font-bold text-slate-800 text-sm md:text-base flex flex-wrap items-center gap-2">
+                                            {u.name}
+                                            {u.status === 'BLOCKED' && <span className="text-[9px] bg-red-100 text-red-600 px-1 py-0.5 rounded border border-red-200 uppercase">Bloqueado</span>}
+                                        </div>
+                                        <div className="text-[10px] md:text-xs text-slate-500 truncate max-w-[200px] md:max-w-none">{u.email}</div>
                                     </div>
                                 </div>
-                                <span className="text-xs font-bold bg-brand-light text-brand-primary px-2 py-1 rounded uppercase">{u.role}</span>
+                                <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-2">
+                                    <span className="text-[9px] md:text-xs font-bold bg-brand-light text-brand-primary px-2 py-1 rounded uppercase mr-0 sm:mr-4">{u.role}</span>
+
+                                    <div className="flex items-center gap-1 md:gap-2">
+                                        {/* Action Buttons */}
+                                        <button onClick={() => openModal(u, 'USER')} className="text-slate-400 hover:text-brand-primary hover:bg-brand-light p-2 md:p-1 rounded transition" title="Editar">
+                                            <Settings size={16} />
+                                        </button>
+                                        <button onClick={() => handleResetPassword(u.email)} className="text-slate-400 hover:text-yellow-600 hover:bg-yellow-50 p-2 md:p-1 rounded transition" title="Redefinir Senha">
+                                            <ShieldCheck size={16} />
+                                        </button>
+                                        <button onClick={() => handleToggleBlock(u)} className={`p-2 md:p-1 rounded transition ${u.status === 'BLOCKED' ? 'text-red-500 hover:bg-red-100' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`} title={u.status === 'BLOCKED' ? "Desbloquear" : "Bloquear"}>
+                                            <Users size={16} />
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -512,7 +568,7 @@ export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, o
                     <div className={`bg-white rounded-xl shadow-2xl w-full overflow-hidden border border-brand-primary/20 ${activeTab === 'SCHOOLS' ? 'max-w-2xl' : 'max-w-md'}`}>
                         <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
                             <h3 className="font-bold text-slate-800">
-                                {activeTab === 'SCHOOLS' ? (isDirector ? 'Atualizar Censo Escolar' : 'Gerenciar Escola') : `Adicionar ${activeTab === 'CLASSES' ? 'Turma' : activeTab === 'STUDENTS' ? 'Aluno' : 'Usuário'}`}
+                                {activeTab === 'SCHOOLS' ? (isDirector ? 'Atualizar Censo Escolar' : 'Gerenciar Escola') : `${editingUser ? 'Editar' : 'Adicionar'} ${activeTab === 'CLASSES' ? 'Turma' : activeTab === 'STUDENTS' ? 'Aluno' : 'Usuário'}`}
                             </h3>
                             <button onClick={() => setIsModalOpen(false)}><X size={20} className="text-slate-400 hover:text-slate-600" /></button>
                         </div>

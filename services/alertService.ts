@@ -1,0 +1,471 @@
+/**
+ * Alert Service - Sistema de Persistência de Alertas de Risco
+ * 
+ * Funciona com mock data OU Supabase (configurável)
+ */
+
+import { supabase } from './supabaseClient';
+import { RiskAssessment, RiskLevel } from './riskDetectionEngine';
+import { uuidv4 } from '../utils/helpers';
+
+// ============================================
+// TIPOS
+// ============================================
+
+export interface RiskAlert {
+    id: string;
+    studentId: string;
+    studentName: string;
+    schoolId: string;
+    classId: string;
+    riskLevel: RiskLevel;
+    riskScore: number;
+    factors: any[];
+    interventions: any[];
+    status: 'ACTIVE' | 'RESOLVED' | 'IGNORED';
+    createdAt: string;
+    resolvedAt?: string;
+    resolvedBy?: string;
+    notes?: string;
+}
+
+export interface Intervention {
+    id: string;
+    alertId: string;
+    action: string;
+    description: string;
+    responsibleId: string;
+    responsibleName: string;
+    target: 'PARENT' | 'TEACHER' | 'COORDINATOR' | 'PSYCHOLOGIST' | 'STUDENT';
+    priority: 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW';
+    scheduledDate?: string;
+    completedAt?: string;
+    status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+    notes?: string;
+    createdAt: string;
+}
+
+export interface Notification {
+    id: string;
+    userId: string;
+    type: 'RISK_ALERT' | 'INTERVENTION_DUE' | 'INTERVENTION_COMPLETED' | 'SYSTEM';
+    title: string;
+    message: string;
+    data?: any;
+    read: boolean;
+    readAt?: string;
+    createdAt: string;
+    expiresAt?: string;
+}
+
+// ============================================
+// CONFIGURAÇÃO
+// ============================================
+
+const USE_SUPABASE = false; // Mude para true quando rodar o SQL
+
+// Mock Storage (simula banco de dados)
+let mockAlerts: RiskAlert[] = [];
+let mockInterventions: Intervention[] = [];
+let mockNotifications: Notification[] = [];
+
+// ============================================
+// FUNÇÕES DE ALERTAS
+// ============================================
+
+/**
+ * Salva ou atualiza um alerta de risco
+ */
+export const saveRiskAlert = async (assessment: RiskAssessment): Promise<RiskAlert> => {
+    const alert: RiskAlert = {
+        id: uuidv4(),
+        studentId: assessment.studentId,
+        studentName: assessment.studentName,
+        schoolId: assessment.schoolId || '',
+        classId: assessment.classId,
+        riskLevel: assessment.riskLevel,
+        riskScore: assessment.riskScore,
+        factors: assessment.factors,
+        interventions: assessment.interventions,
+        status: 'ACTIVE',
+        createdAt: new Date().toISOString()
+    };
+
+    if (USE_SUPABASE) {
+        const { data, error } = await supabase
+            .from('risk_alerts')
+            .insert([alert])
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    } else {
+        // Mock: Verifica se já existe alerta ativo para este aluno
+        const existingIndex = mockAlerts.findIndex(
+            a => a.studentId === alert.studentId && a.status === 'ACTIVE'
+        );
+
+        if (existingIndex >= 0) {
+            // Atualiza alerta existente
+            mockAlerts[existingIndex] = { ...mockAlerts[existingIndex], ...alert };
+            return mockAlerts[existingIndex];
+        } else {
+            // Cria novo alerta
+            mockAlerts.push(alert);
+            return alert;
+        }
+    }
+};
+
+/**
+ * Busca alertas ativos de uma escola
+ */
+export const getActiveAlerts = async (schoolId: string): Promise<RiskAlert[]> => {
+    if (USE_SUPABASE) {
+        const { data, error } = await supabase
+            .from('risk_alerts')
+            .select('*')
+            .eq('school_id', schoolId)
+            .eq('status', 'ACTIVE')
+            .order('risk_score', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    } else {
+        // Mock
+        return mockAlerts.filter(a => a.schoolId === schoolId && a.status === 'ACTIVE');
+    }
+};
+
+/**
+ * Resolve um alerta (marca como resolvido)
+ */
+export const resolveAlert = async (
+    alertId: string,
+    resolvedBy: string,
+    notes?: string
+): Promise<void> => {
+    if (USE_SUPABASE) {
+        const { error } = await supabase
+            .from('risk_alerts')
+            .update({
+                status: 'RESOLVED',
+                resolved_at: new Date().toISOString(),
+                resolved_by: resolvedBy,
+                notes
+            })
+            .eq('id', alertId);
+
+        if (error) throw error;
+    } else {
+        // Mock
+        const alert = mockAlerts.find(a => a.id === alertId);
+        if (alert) {
+            alert.status = 'RESOLVED';
+            alert.resolvedAt = new Date().toISOString();
+            alert.resolvedBy = resolvedBy;
+            alert.notes = notes;
+        }
+    }
+};
+
+// ============================================
+// FUNÇÕES DE INTERVENÇÕES
+// ============================================
+
+/**
+ * Cria uma intervenção
+ */
+export const createIntervention = async (
+    intervention: Omit<Intervention, 'id' | 'createdAt'>
+): Promise<Intervention> => {
+    const newIntervention: Intervention = {
+        ...intervention,
+        id: uuidv4(),
+        createdAt: new Date().toISOString()
+    };
+
+    if (USE_SUPABASE) {
+        const { data, error } = await supabase
+            .from('interventions')
+            .insert([newIntervention])
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    } else {
+        // Mock
+        mockInterventions.push(newIntervention);
+        return newIntervention;
+    }
+};
+
+/**
+ * Busca intervenções de um alerta
+ */
+export const getInterventionsByAlert = async (alertId: string): Promise<Intervention[]> => {
+    if (USE_SUPABASE) {
+        const { data, error } = await supabase
+            .from('interventions')
+            .select('*')
+            .eq('alert_id', alertId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    } else {
+        // Mock
+        return mockInterventions.filter(i => i.alertId === alertId);
+    }
+};
+
+/**
+ * Marca intervenção como concluída
+ */
+export const completeIntervention = async (
+    interventionId: string,
+    notes?: string
+): Promise<void> => {
+    if (USE_SUPABASE) {
+        const { error } = await supabase
+            .from('interventions')
+            .update({
+                status: 'COMPLETED',
+                completed_at: new Date().toISOString(),
+                notes
+            })
+            .eq('id', interventionId);
+
+        if (error) throw error;
+    } else {
+        // Mock
+        const intervention = mockInterventions.find(i => i.id === interventionId);
+        if (intervention) {
+            intervention.status = 'COMPLETED';
+            intervention.completedAt = new Date().toISOString();
+            intervention.notes = notes;
+        }
+    }
+};
+
+// ============================================
+// FUNÇÕES DE NOTIFICAÇÕES
+// ============================================
+
+/**
+ * Cria uma notificação
+ */
+export const createNotification = async (
+    notification: Omit<Notification, 'id' | 'createdAt' | 'read'>
+): Promise<Notification> => {
+    const newNotification: Notification = {
+        ...notification,
+        id: uuidv4(),
+        read: false,
+        createdAt: new Date().toISOString()
+    };
+
+    if (USE_SUPABASE) {
+        const { data, error } = await supabase
+            .from('notifications')
+            .insert([newNotification])
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    } else {
+        // Mock
+        mockNotifications.push(newNotification);
+        return newNotification;
+    }
+};
+
+/**
+ * Busca notificações de um usuário
+ */
+export const getUserNotifications = async (
+    userId: string,
+    unreadOnly = false
+): Promise<Notification[]> => {
+    if (USE_SUPABASE) {
+        let query = supabase
+            .from('notifications')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (unreadOnly) {
+            query = query.eq('read', false);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        return data || [];
+    } else {
+        // Mock
+        let notifications = mockNotifications.filter(n => n.userId === userId);
+        if (unreadOnly) {
+            notifications = notifications.filter(n => !n.read);
+        }
+        return notifications.sort((a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+    }
+};
+
+/**
+ * Marca notificação como lida
+ */
+export const markNotificationAsRead = async (notificationId: string): Promise<void> => {
+    if (USE_SUPABASE) {
+        const { error } = await supabase
+            .from('notifications')
+            .update({
+                read: true,
+                read_at: new Date().toISOString()
+            })
+            .eq('id', notificationId);
+
+        if (error) throw error;
+    } else {
+        // Mock
+        const notification = mockNotifications.find(n => n.id === notificationId);
+        if (notification) {
+            notification.read = true;
+            notification.readAt = new Date().toISOString();
+        }
+    }
+};
+
+/**
+ * Marca todas as notificações como lidas
+ */
+export const markAllNotificationsAsRead = async (userId: string): Promise<void> => {
+    if (USE_SUPABASE) {
+        const { error } = await supabase
+            .from('notifications')
+            .update({
+                read: true,
+                read_at: new Date().toISOString()
+            })
+            .eq('user_id', userId)
+            .eq('read', false);
+
+        if (error) throw error;
+    } else {
+        // Mock
+        mockNotifications
+            .filter(n => n.userId === userId && !n.read)
+            .forEach(n => {
+                n.read = true;
+                n.readAt = new Date().toISOString();
+            });
+    }
+};
+
+// ============================================
+// FUNÇÕES DE PROCESSAMENTO EM LOTE
+// ============================================
+
+/**
+ * Processa alertas de risco para uma escola inteira
+ * (Chamado diariamente via cron ou manualmente)
+ */
+export const processSchoolRiskAlerts = async (
+    schoolId: string,
+    assessments: RiskAssessment[]
+): Promise<{ created: number; updated: number; notifications: number }> => {
+    let created = 0;
+    let updated = 0;
+    let notifications = 0;
+
+    for (const assessment of assessments) {
+        // Só processa se tiver risco MÉDIO ou ALTO
+        if (assessment.riskLevel === RiskLevel.LOW) continue;
+
+        // Salva alerta
+        const alert = await saveRiskAlert(assessment);
+
+        // Verifica se é novo (criado agora)
+        const isNew = new Date(alert.createdAt).getTime() > Date.now() - 5000;
+
+        if (isNew) {
+            created++;
+
+            // Cria notificação para coordenadores
+            // TODO: Buscar coordenadores da escola
+            await createNotification({
+                userId: 'coordinator-mock', // Substituir por IDs reais
+                type: 'RISK_ALERT',
+                title: `⚠️ Alerta de Risco ${assessment.riskLevel}`,
+                message: `${assessment.studentName} precisa de atenção. Score: ${assessment.riskScore}/100`,
+                data: { alertId: alert.id, studentId: assessment.studentId }
+            });
+
+            notifications++;
+        } else {
+            updated++;
+        }
+    }
+
+    return { created, updated, notifications };
+};
+
+// ============================================
+// FUNÇÕES DE MOCK DATA (PARA TESTES)
+// ============================================
+
+/**
+ * Gera dados de exemplo para testes
+ */
+export const generateMockData = () => {
+    // Limpa dados anteriores
+    mockAlerts = [];
+    mockInterventions = [];
+    mockNotifications = [];
+
+    // Cria 3 alertas de exemplo
+    const mockAlert1: RiskAlert = {
+        id: 'alert-001',
+        studentId: 'student-001',
+        studentName: 'João Silva',
+        schoolId: 'school-001',
+        classId: 'class-001',
+        riskLevel: RiskLevel.HIGH,
+        riskScore: 85,
+        factors: [
+            { name: 'Baixa Frequência', severity: 'HIGH', value: '65%' }
+        ],
+        interventions: [],
+        status: 'ACTIVE',
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() // 2 dias atrás
+    };
+
+    mockAlerts.push(mockAlert1);
+
+    // Cria notificação de exemplo
+    mockNotifications.push({
+        id: 'notif-001',
+        userId: 'current-user',
+        type: 'RISK_ALERT',
+        title: '⚠️ Novo Alerta de Risco ALTO',
+        message: 'João Silva precisa de atenção urgente. Score: 85/100',
+        data: { alertId: 'alert-001' },
+        read: false,
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+    });
+
+    console.log('✅ Mock data gerado:', {
+        alerts: mockAlerts.length,
+        interventions: mockInterventions.length,
+        notifications: mockNotifications.length
+    });
+};
+
+// Gera mock data automaticamente em modo de desenvolvimento
+if (!USE_SUPABASE) {
+    generateMockData();
+}

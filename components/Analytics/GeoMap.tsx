@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, AlertCircle } from 'lucide-react';
 
 interface GeoMapProps {
     level: 'FEDERAL' | 'STATE' | 'MUNICIPAL';
@@ -63,11 +63,11 @@ export const GeoMap = ({ level, dataPoints, onSelect }: GeoMapProps) => {
             {/* Background Grid & Texture */}
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 pointer-events-none"></div>
             <div className="absolute inset-0 bg-gradient-to-b from-[#0f1d2e] via-[#162a42] to-[#0f1d2e] opacity-90 pointer-events-none"></div>
-            
+
             {/* Grid Lines Overlay */}
-            <div className="absolute inset-0" style={{ 
-                backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)', 
-                backgroundSize: '40px 40px' 
+            <div className="absolute inset-0" style={{
+                backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)',
+                backgroundSize: '40px 40px'
             }}></div>
 
             {/* Legend Overlay */}
@@ -76,21 +76,21 @@ export const GeoMap = ({ level, dataPoints, onSelect }: GeoMapProps) => {
                 <div className="space-y-2">
                     <div className="flex items-center gap-3">
                         <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                         </span>
                         <span className="text-xs text-slate-300 font-medium">Meta Atingida (IDEB 6.0+)</span>
                     </div>
                     <div className="flex items-center gap-3">
                         <span className="relative flex h-2 w-2">
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
                         </span>
                         <span className="text-xs text-slate-300 font-medium">Alerta (IDEB 5.0 - 5.9)</span>
                     </div>
                     <div className="flex items-center gap-3">
                         <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
                         </span>
                         <span className="text-xs text-slate-300 font-medium">Crítico (Abaixo de 5.0)</span>
                     </div>
@@ -98,9 +98,9 @@ export const GeoMap = ({ level, dataPoints, onSelect }: GeoMapProps) => {
             </div>
 
             {/* MAP LAYER */}
-            <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="absolute inset-0 flex items-center justify-center">
                 {/* ViewBox ajustado para o tamanho dos Paths reais (IBGE simplificado) */}
-                <svg viewBox="0 0 612 650" className="w-full h-full max-w-[650px] drop-shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+                <svg viewBox="0 0 612 650" className="w-full h-full drop-shadow-[0_0_15px_rgba(0,0,0,0.5)]">
                     <defs>
                         <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
                             <feGaussianBlur stdDeviation="3" result="blur" />
@@ -108,82 +108,91 @@ export const GeoMap = ({ level, dataPoints, onSelect }: GeoMapProps) => {
                         </filter>
                     </defs>
 
-                    {level === 'FEDERAL' ? (
+                    {/* Imagem do Mapa: Resetada para 100% centralizado para calibração final das bolinhas */}
+                    <foreignObject x="0" y="0" width="612" height="650">
+                        <div className="w-full h-full flex items-center justify-center">
+                            <img
+                                src="/mapa.png"
+                                alt="Mapa Regional"
+                                className="w-full h-full object-contain mix-blend-lighten opacity-80"
+                                style={{
+                                    filter: 'drop-shadow(0 0 20px rgba(0, 163, 224, 0.3))'
+                                }}
+                            />
+                        </div>
+                    </foreignObject>
+
+                    {/* Camada interativa invisível para detecção de cliques nos estados (Nível Federal) */}
+                    {level === 'FEDERAL' && (
                         <g>
-                            {Object.entries(BRAZIL_STATES).map(([uf, path]) => {
-                                // Check if this state has a data point to highlight
-                                const hasData = dataPoints.some(p => p.id.toUpperCase() === uf);
-                                const isHovered = hoveredUF === uf;
-                                
-                                return (
-                                    <path 
-                                        key={uf}
-                                        id={uf}
-                                        d={path}
-                                        fill={isHovered ? '#3b82f6' : hasData ? '#1e3a8a' : '#1e293b'}
-                                        stroke={isHovered ? '#60a5fa' : '#334155'}
-                                        strokeWidth={isHovered ? "1.5" : "0.8"}
-                                        className="transition-all duration-200 cursor-pointer"
-                                        onMouseEnter={() => setHoveredUF(uf)}
-                                        onMouseLeave={() => setHoveredUF(null)}
-                                        onClick={() => onSelect && onSelect(uf.toLowerCase())}
-                                        style={{ vectorEffect: 'non-scaling-stroke' }}
-                                    >
-                                        <title>{uf}</title>
-                                    </path>
-                                );
-                            })}
+                            {Object.entries(BRAZIL_STATES).map(([uf, path]) => (
+                                <path
+                                    key={uf}
+                                    id={uf}
+                                    d={path}
+                                    fill="transparent"
+                                    stroke="transparent"
+                                    className="cursor-pointer"
+                                    onClick={() => onSelect && onSelect(uf.toLowerCase())}
+                                />
+                            ))}
                         </g>
-                    ) : (
-                        /* Placeholder para Nível Estadual/Municipal se não for mapa do Brasil */
-                        <path 
-                            d="M100,100 L300,80 L350,250 L200,300 L80,250 Z" 
-                            fill="#1e293b" stroke="#334155" strokeWidth="2"
-                        />
                     )}
+
+                    {/* DATA POINTS LAYER: Agora dentro do SVG para alinhamento perfeito (0-100% vira 0-612/650) */}
+                    {dataPoints.map(point => (
+                        <foreignObject
+                            key={point.id}
+                            x={`${point.x}%`}
+                            y={`${point.y}%`}
+                            width="40"
+                            height="40"
+                            className="overflow-visible"
+                            style={{
+                                transform: 'translate(-20px, -20px)', // Centraliza o dot na coordenada
+                                pointerEvents: 'none'
+                            }}
+                        >
+                            <div
+                                className="w-10 h-10 flex items-center justify-center cursor-pointer group/point"
+                                style={{ pointerEvents: 'auto' }}
+                                onMouseEnter={() => setHoveredPoint(point.id)}
+                                onMouseLeave={() => setHoveredPoint(null)}
+                                onClick={() => onSelect && onSelect(point.id)}
+                            >
+                                {/* Ripple Effect for Critical Items */}
+                                {point.status !== 'NORMAL' && (
+                                    <span className={`absolute inset-2 rounded-full opacity-40 animate-ping ${getStatusColor(point.status).split(' ')[1]}`}></span>
+                                )}
+
+                                {/* The Dot */}
+                                <div className={`relative inline-flex rounded-full h-3 w-3 border-2 border-[#0f1d2e] shadow-lg transition-transform duration-300 ${hoveredPoint === point.id ? 'scale-150' : 'scale-100'} ${getStatusColor(point.status).split(' ')[1]}`}></div>
+
+                                {/* Futuristic Tooltip (Ajustado para dentro do foreignObject) */}
+                                <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-slate-900/95 backdrop-blur-md border-t-2 rounded-xl p-0 z-50 pointer-events-none transform transition-all duration-300 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.5)] ${hoveredPoint === point.id ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'} ${point.status === 'CRITICAL' ? 'border-rose-500' : point.status === 'WARNING' ? 'border-amber-400' : 'border-emerald-400'}`}>
+                                    <div className="p-3 border-b border-slate-700/50">
+                                        <div className="flex justify-between items-start mb-1">
+                                            <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{level === 'FEDERAL' ? 'Estado' : 'Unidade'}</div>
+                                            {point.status === 'CRITICAL' && <AlertCircle size={12} className="text-rose-500 animate-pulse" />}
+                                        </div>
+                                        <div className="text-sm font-bold text-white leading-tight">{point.label}</div>
+                                    </div>
+                                    <div className="p-2 grid grid-cols-2 gap-1 bg-slate-800/50">
+                                        <div className="bg-slate-800 rounded p-1.5 text-center">
+                                            <div className="text-[9px] text-slate-500 uppercase">IDEB Proj.</div>
+                                            <div className={`font-mono font-bold text-sm ${point.value >= 6 ? 'text-emerald-400' : 'text-rose-400'}`}>{point.value.toFixed(1)}</div>
+                                        </div>
+                                        <div className="bg-slate-800 rounded p-1.5 text-center">
+                                            <div className="text-[9px] text-slate-500 uppercase">Status</div>
+                                            <div className="font-bold text-[10px] text-white pt-0.5">{point.status}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </foreignObject>
+                    ))}
                 </svg>
             </div>
-
-            {/* DATA POINTS LAYER */}
-            {dataPoints.map(point => (
-                <div 
-                    key={point.id}
-                    className="absolute cursor-pointer group/point"
-                    style={{ left: `${point.x}%`, top: `${point.y}%` }}
-                    onMouseEnter={() => setHoveredPoint(point.id)}
-                    onMouseLeave={() => setHoveredPoint(null)}
-                    onClick={() => onSelect && onSelect(point.id)}
-                >
-                    {/* Ripple Effect for Critical Items */}
-                    {point.status !== 'NORMAL' && (
-                        <span className={`absolute -inset-3 rounded-full opacity-40 animate-ping ${getStatusColor(point.status).split(' ')[1]}`}></span>
-                    )}
-                    
-                    {/* The Dot */}
-                    <div className={`relative inline-flex rounded-full h-3 w-3 border-2 border-[#0f1d2e] shadow-lg transition-transform duration-300 ${hoveredPoint === point.id ? 'scale-150' : 'scale-100'} ${getStatusColor(point.status).split(' ')[1]}`}></div>
-
-                    {/* Futuristic Tooltip */}
-                    <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 w-56 bg-slate-900/95 backdrop-blur-md border-t-2 rounded-xl p-0 z-30 pointer-events-none transform transition-all duration-300 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.5)] ${hoveredPoint === point.id ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'} ${point.status === 'CRITICAL' ? 'border-rose-500' : point.status === 'WARNING' ? 'border-amber-400' : 'border-emerald-400'}`}>
-                        <div className="p-3 border-b border-slate-700/50">
-                            <div className="flex justify-between items-start mb-1">
-                                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{level === 'FEDERAL' ? 'Estado' : 'Unidade'}</div>
-                                {point.status === 'CRITICAL' && <AlertTriangle size={12} className="text-rose-500 animate-pulse"/>}
-                            </div>
-                            <div className="text-sm font-bold text-white leading-tight">{point.label}</div>
-                        </div>
-                        <div className="p-2 grid grid-cols-2 gap-1 bg-slate-800/50">
-                            <div className="bg-slate-800 rounded p-1.5 text-center">
-                                <div className="text-[9px] text-slate-500 uppercase">IDEB Proj.</div>
-                                <div className={`font-mono font-bold text-sm ${point.value >= 6 ? 'text-emerald-400' : 'text-rose-400'}`}>{point.value.toFixed(1)}</div>
-                            </div>
-                            <div className="bg-slate-800 rounded p-1.5 text-center">
-                                <div className="text-[9px] text-slate-500 uppercase">Status</div>
-                                <div className="font-bold text-[10px] text-white pt-0.5">{point.status}</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            ))}
         </div>
     );
 };

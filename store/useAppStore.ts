@@ -68,6 +68,8 @@ interface AppActions {
     updateMessages: (messages: ChatMessage[]) => void;
     updateChatGroups: (groups: ChatGroup[]) => void;
     updateCurrentUser: (user: User) => void;
+    updateUser: (user: User) => void; // Admin action
+    resetUserPassword: (email: string) => Promise<void>; // Admin action
     updateUserProfile: (profile: UserProfileExtended) => void;
     updateExamAllocation: (examId: string, classIds: string[]) => void;
     updateResults: (newResults: ExamResult[]) => void;
@@ -305,16 +307,41 @@ export const useAppStore = create<AppStore>((set, get) => ({
     addUser: async (user) => {
         set((state) => ({ users: [...state.users, user] }));
         try {
-            // Nota: Em prod, criaríamos o Auth User via Edge Function, aqui salvamos o perfil
             await supabase.from('users').insert({
                 id: user.id,
                 name: user.name,
                 email: user.email,
                 role: user.role,
                 tenant_id: user.tenantId,
-                school_id: user.schoolId
+                school_id: user.schoolId || null,
+                status: user.status || 'ACTIVE'
             });
         } catch (e) { console.error(e); }
+    },
+    updateUser: async (user) => {
+        set((state) => ({
+            users: state.users.map(u => u.id === user.id ? user : u)
+        }));
+        try {
+            await supabase.from('users').update({
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                status: user.status
+            }).eq('id', user.id);
+        } catch (e) { console.error(e); }
+    },
+    resetUserPassword: async (email) => {
+        try {
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin + '/update-password',
+            });
+            if (error) throw error;
+            alert(`Email de redefinição enviado para ${email}`);
+        } catch (e: any) {
+            console.error(e);
+            alert("Erro ao enviar email: " + e.message);
+        }
     },
     updateSettings: (settings) => set({ settings }),
     updatePermissions: (matrix) => set({ globalPermissions: matrix }),

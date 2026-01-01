@@ -1,87 +1,158 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ExamePad SaaS</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- KaTeX for Math Rendering -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
 
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              brand: {
-                dark: '#0f1d2e',     // Dark Navy (Keep - Login BG)
-                primary: '#00A3E0',  // Vivid Blue/Cyan (Logo Primary)
-                secondary: '#00CDAC', // Mint/Teal (Logo Accent/Gradient)
-                accent: '#E0F7FA',   // Very Light Cyan (Highlights)
-                light: '#F0F9FF',    // Lightest Blue (Page BG)
-                input: '#162a42',    // Input BG (Keep)
-                surface: '#ffffff',  // Surface white
-              }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ExamePad - Gestão Escolar Inteligente</title>
+
+  <!-- PWA Meta Tags -->
+  <meta name="description" content="Plataforma completa de gestão educacional com IA para escolas brasileiras">
+  <meta name="theme-color" content="#0B4F6C">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ExamePad">
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json">
+
+  <!-- Icons -->
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- KaTeX for Math Rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
+    integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"
+    integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8"
+    crossorigin="anonymous"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              dark: '#0f1d2e',     // Dark Navy (Keep - Login BG)
+              primary: '#00A3E0',  // Vivid Blue/Cyan (Logo Primary)
+              secondary: '#00CDAC', // Mint/Teal (Logo Accent/Gradient)
+              accent: '#E0F7FA',   // Very Light Cyan (Highlights)
+              light: '#F0F9FF',    // Lightest Blue (Page BG)
+              input: '#162a42',    // Input BG (Keep)
+              surface: '#ffffff',  // Surface white
             }
           }
         }
       }
-    </script>
-    <style>
-      body { font-family: 'Inter', sans-serif; }
-      /* Custom scrollbar for cleaner UI */
-      ::-webkit-scrollbar { width: 6px; height: 6px; }
-      ::-webkit-scrollbar-track { background: #f1f5f9; }
-      ::-webkit-scrollbar-thumb { background: #90e0ef; border-radius: 3px; }
-      ::-webkit-scrollbar-thumb:hover { background: #00b4d8; }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
 
-      /* Global Input Styles override to ensure white text on dark background */
-      input, select, textarea {
-        color: white !important;
-        background-color: #162a42 !important; /* brand-input */
-        border-color: #0077b6 !important; /* brand-primary */
-      }
-      
-      /* Adjust placeholder color for dark inputs */
-      ::placeholder {
-        color: #90e0ef !important; /* brand-accentish */
-        opacity: 0.7;
-      }
+    /* Custom scrollbar for cleaner UI */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
 
-      /* Fix for select dropdown options (browser default needs handling) */
-      option {
-        background-color: #162a42;
-        color: white;
-      }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
 
-      /* --- Standard Button Gradient --- */
-      .btn-gradient {
-        background: linear-gradient(135deg, #0077b6 0%, #00b4d8 100%);
-        color: white;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 6px -1px rgba(0, 119, 182, 0.3);
-      }
-      .btn-gradient:hover {
-        background: linear-gradient(135deg, #023e8a 0%, #0077b6 100%);
-        transform: translateY(-1px);
-        box-shadow: 0 6px 8px -1px rgba(0, 119, 182, 0.4);
-      }
-      .btn-gradient:active {
-        transform: translateY(0);
-      }
+    ::-webkit-scrollbar-thumb {
+      background: #90e0ef;
+      border-radius: 3px;
+    }
 
-      /* Rich Text Content Styles */
-      .rich-content p { margin-bottom: 0.75em; }
-      .rich-content code { background: #f1f5f9; color: #ef4444; padding: 2px 4px; rounded: 4px; font-family: monospace; }
-      .rich-content pre { background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1rem; }
-      .rich-content blockquote { border-left: 4px solid #00b4d8; padding-left: 1rem; font-style: italic; color: #475569; }
-      .rich-content .katex-display { margin: 1em 0; overflow-x: auto; overflow-y: hidden; }
-    </style>
-<script type="importmap">
+    ::-webkit-scrollbar-thumb:hover {
+      background: #00b4d8;
+    }
+
+    /* Global Input Styles override to ensure white text on dark background */
+    input,
+    select,
+    textarea {
+      color: white !important;
+      background-color: #162a42 !important;
+      /* brand-input */
+      border-color: #0077b6 !important;
+      /* brand-primary */
+    }
+
+    /* Adjust placeholder color for dark inputs */
+    ::placeholder {
+      color: #90e0ef !important;
+      /* brand-accentish */
+      opacity: 0.7;
+    }
+
+    /* Fix for select dropdown options (browser default needs handling) */
+    option {
+      background-color: #162a42;
+      color: white;
+    }
+
+    /* --- Standard Button Gradient --- */
+    .btn-gradient {
+      background: linear-gradient(135deg, #0077b6 0%, #00b4d8 100%);
+      color: white;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px -1px rgba(0, 119, 182, 0.3);
+    }
+
+    .btn-gradient:hover {
+      background: linear-gradient(135deg, #023e8a 0%, #0077b6 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 8px -1px rgba(0, 119, 182, 0.4);
+    }
+
+    .btn-gradient:active {
+      transform: translateY(0);
+    }
+
+    /* Rich Text Content Styles */
+    .rich-content p {
+      margin-bottom: 0.75em;
+    }
+
+    .rich-content code {
+      background: #f1f5f9;
+      color: #ef4444;
+      padding: 2px 4px;
+      rounded: 4px;
+      font-family: monospace;
+    }
+
+    .rich-content pre {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      overflow-x: auto;
+      margin-bottom: 1rem;
+    }
+
+    .rich-content blockquote {
+      border-left: 4px solid #00b4d8;
+      padding-left: 1rem;
+      font-style: italic;
+      color: #475569;
+    }
+
+    .rich-content .katex-display {
+      margin: 1em 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+  </style>
+  <script type="importmap">
 {
   "imports": {
     "react": "https://aistudiocdn.com/react@^19.2.0",
@@ -95,10 +166,48 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+  <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-slate-50 text-slate-900 antialiased">
-    <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
-  </body>
+
+<body class="bg-slate-50 text-slate-900 antialiased">
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then((registration) => {
+            console.log('✅ Service Worker registrado:', registration.scope);
+
+            // Verifica atualizações a cada 1 hora
+            setInterval(() => {
+              registration.update();
+            }, 3600000);
+          })
+          .catch((error) => {
+            console.error('❌ Erro ao registrar Service Worker:', error);
+          });
+      });
+    }
+
+    // Detecta quando o app está instalado
+    window.addEventListener('appinstalled', () => {
+      console.log('🎉 ExamePad instalado com sucesso!');
+      // Opcional: Enviar analytics
+    });
+
+    // Prompt de instalação (para mostrar banner customizado)
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      console.log('💡 App pode ser instalado');
+      // Aqui você pode mostrar um banner customizado
+      // Ex: showInstallBanner();
+    });
+  </script>
+</body>
+
 </html>

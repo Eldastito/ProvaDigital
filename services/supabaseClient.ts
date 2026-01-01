@@ -1,9 +1,16 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// --- CONFIGURAÇÃO DE PRODUÇÃO ---
-const SUPABASE_URL = 'https://donwkyyrqydogtgyzcar.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvbndreXlycXlkb2d0Z3l6Y2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyOTEwMDgsImV4cCI6MjA4MDg2NzAwOH0.dRLPfDpWPqjdRGpa0FeP-qj2zJ5CFYROt3y2U6ql2Po';
+// --- CONFIGURAÇÃO SEGURA (Variáveis de Ambiente) ---
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Validação: Garantir que as variáveis estão configuradas
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+    console.error('❌ ERRO: Variáveis de ambiente não configuradas!');
+    console.error('📝 Crie o arquivo .env.local baseado em .env.example');
+    throw new Error('Supabase credentials missing. Check .env.local file.');
+}
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -12,12 +19,12 @@ export const checkConnection = async () => {
     try {
         console.log("🔌 Iniciando conexão com Supabase...");
         const { data, error } = await supabase.from('tenants').select('count', { count: 'exact', head: true });
-        
+
         if (error) {
             console.error("❌ Erro Supabase:", error.message);
             return false;
         }
-        
+
         console.log("✅ Supabase Conectado! Tenants disponíveis.");
         return true;
     } catch (e) {

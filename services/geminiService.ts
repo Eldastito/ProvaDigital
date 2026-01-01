@@ -65,45 +65,67 @@ const PROMPTS = {
         1. Seja conciso, didático e use emojis ocasionalmente 🦉.
         2. NÃO forneça respostas diretas para perguntas de prova. Ajude a raciocinar.
         3. Tópicos PROIBIDOS (Em prova agora): ${forbidden.join(', ')}. Se o aluno perguntar sobre isso, recuse educadamente e deseje boa sorte na prova.
+    `,
+    IMPROVE_STATEMENT: (statement: string) => `
+        Você é um especialista em avaliação educacional (INEP/SAEB). 
+        Melhore o enunciado abaixo para torná-lo mais claro, objetivo e gramaticalmente correto, mantendo o sentido original.
+        Original: "${statement}"
+        Retorne apenas o texto melhorado.
+    `,
+    GENERATE_DISTRACTORS: (statement: string, correct: string) => `
+        Gere 4 distratores (alternativas incorretas) plausíveis para a questão abaixo.
+        Enunciado: "${statement}"
+        Resposta Correta: "${correct}"
+        Requisitos:
+        - Os distratores devem ser baseados em erros comuns de raciocínio.
+        - Devem ter tamanho e estilo similar à resposta correta.
+        - Evite "todas as anteriores" ou "nenhuma das anteriores".
+        Retorne um array JSON de strings.
+    `,
+    SUGGEST_BNCC: (statement: string) => `
+        Com base no enunciado abaixo, identifique o código BNCC (Base Nacional Comum Curricular) mais adequado.
+        Enunciado: "${statement}"
+        Retorne apenas o código (ex: EF09HI01) e uma breve descrição do porquê.
+        Formato JSON: { "code": "...", "reason": "..." }
     `
 };
 
 // --- Helper: Safe Env Access ---
 // This function is critical for stability in Web Containers where 'process' is undefined.
 const getApiKey = (): string | undefined => {
-  // 1. Browser / Web Container: Global variable injection
-  const globalKey = (globalThis as any)?.GEMINI_API_KEY;
-  if (typeof globalKey === 'string' && globalKey.trim().length > 0) {
-    return globalKey;
-  }
+    // 1. Browser / Web Container: Global variable injection
+    const globalKey = (globalThis as any)?.GEMINI_API_KEY;
+    if (typeof globalKey === 'string' && globalKey.trim().length > 0) {
+        return globalKey;
+    }
 
-  // 2. Vite Environment Variable
-  const meta = import.meta as any;
-  if (meta && meta.env && meta.env.VITE_API_KEY) {
-    return meta.env.VITE_API_KEY;
-  }
-  
-  // 3. Safe Process Check (Node/Server environment)
-  try {
-      // @ts-ignore
-      if (typeof process !== 'undefined' && process?.env?.API_KEY) {
-          // @ts-ignore
-          return process.env.API_KEY;
-      }
-  } catch (e) {
-      // Ignore reference errors
-  }
+    // 2. Vite Environment Variable
+    const meta = import.meta as any;
+    if (meta && meta.env && meta.env.VITE_API_KEY) {
+        return meta.env.VITE_API_KEY;
+    }
 
-  return undefined;
+    // 3. Safe Process Check (Node/Server environment)
+    try {
+        // @ts-ignore
+        if (typeof process !== 'undefined' && process?.env?.API_KEY) {
+            // @ts-ignore
+            return process.env.API_KEY;
+        }
+    } catch (e) {
+        // Ignore reference errors
+    }
+
+    return undefined;
 };
 
 // --- Interfaces ---
 interface GeneratedQuestion {
-  statement: string;
-  alternatives: { text: string; isCorrect: boolean }[];
-  justification: string;
-  difficulty: string;
-  bnccCode?: string;
+    statement: string;
+    alternatives: { text: string; isCorrect: boolean }[];
+    justification: string;
+    difficulty: string;
+    bnccCode?: string;
 }
 
 interface EssayGrade {
@@ -139,7 +161,7 @@ async function callGeminiAPI<T>(
 
     try {
         const ai = new GoogleGenAI({ apiKey: apiKey });
-        
+
         const config: any = {};
         if (responseSchema) {
             config.responseMimeType = "application/json";
@@ -164,7 +186,7 @@ async function callGeminiAPI<T>(
             }
             return JSON.parse(text) as T;
         }
-        
+
         return text as unknown as T;
 
     } catch (error) {
@@ -176,39 +198,39 @@ async function callGeminiAPI<T>(
 // --- Exported Services ---
 
 export const generateQuestionsFromText = async (
-  contextText: string,
-  quantity: number,
-  type: QuestionType,
-  difficulty: DifficultyLevel,
-  subject: string
+    contextText: string,
+    quantity: number,
+    type: QuestionType,
+    difficulty: DifficultyLevel,
+    subject: string
 ): Promise<GeneratedQuestion[]> => {
-    
-  const prompt = PROMPTS.GENERATE_QUESTIONS(quantity, subject, type, difficulty, contextText);
 
-  const schema = {
-    type: Type.ARRAY,
-    items: {
-      type: Type.OBJECT,
-      properties: {
-        statement: { type: Type.STRING, description: "The question text" },
-        alternatives: {
-          type: Type.ARRAY,
-          items: {
+    const prompt = PROMPTS.GENERATE_QUESTIONS(quantity, subject, type, difficulty, contextText);
+
+    const schema = {
+        type: Type.ARRAY,
+        items: {
             type: Type.OBJECT,
             properties: {
-              text: { type: Type.STRING },
-              isCorrect: { type: Type.BOOLEAN }
+                statement: { type: Type.STRING, description: "The question text" },
+                alternatives: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            text: { type: Type.STRING },
+                            isCorrect: { type: Type.BOOLEAN }
+                        }
+                    }
+                },
+                justification: { type: Type.STRING, description: "Why the answer is correct" },
+                difficulty: { type: Type.STRING, enum: ["FACIL", "MEDIO", "DIFICIL"] },
+                bnccCode: { type: Type.STRING, description: "The BNCC code (e.g., EF01MA01)" }
             }
-          }
-        },
-        justification: { type: Type.STRING, description: "Why the answer is correct" },
-        difficulty: { type: Type.STRING, enum: ["FACIL", "MEDIO", "DIFICIL"] },
-        bnccCode: { type: Type.STRING, description: "The BNCC code (e.g., EF01MA01)" }
-      }
-    }
-  };
+        }
+    };
 
-  return callGeminiAPI<GeneratedQuestion[]>(prompt, schema, mockGenerate(quantity, type, difficulty));
+    return callGeminiAPI<GeneratedQuestion[]>(prompt, schema, mockGenerate(quantity, type, difficulty));
 };
 
 export const gradeEssayAnswer = async (
@@ -228,9 +250,9 @@ export const gradeEssayAnswer = async (
         }
     };
 
-    const fallback: EssayGrade = { 
-        score: maxScore * 0.8, 
-        feedback: "Simulação: Resposta parece correta, mas faltou detalhar X. (Modo Offline)" 
+    const fallback: EssayGrade = {
+        score: maxScore * 0.8,
+        feedback: "Simulação: Resposta parece correta, mas faltou detalhar X. (Modo Offline)"
     };
 
     return callGeminiAPI<EssayGrade>(prompt, schema, fallback);
@@ -243,7 +265,7 @@ export const askOwlTutor = async (
     context: string,
     forbiddenTopics: string[] = []
 ): Promise<string> => {
-    
+
     let prompt = PROMPTS.TUTOR_SYSTEM(studentName, context, forbiddenTopics) + "\nHistórico da Conversa:\n";
 
     history.forEach(msg => {
@@ -262,7 +284,7 @@ export const generateStudyPlanSuggestions = async (
     weakSubject: string,
     recentGrade: number
 ): Promise<StudyPlanSuggestion> => {
-    
+
     const prompt = PROMPTS.STUDY_PLAN(studentName, weakSubject, recentGrade);
 
     const schema = {
@@ -290,7 +312,7 @@ export const generateAssessmentReport = async (
     testType: AssessmentType,
     answers: { question: string; answer: string }[]
 ): Promise<AssessmentReport> => {
-    
+
     const prompt = PROMPTS.ASSESSMENT_REPORT(userName, testType, JSON.stringify(answers));
 
     const schema = {
@@ -313,18 +335,52 @@ export const generateAssessmentReport = async (
     return callGeminiAPI<AssessmentReport>(prompt, schema, fallback);
 };
 
+export const improveItemStatement = async (statement: string): Promise<string> => {
+    const prompt = PROMPTS.IMPROVE_STATEMENT(statement);
+    return callGeminiAPI<string>(prompt, undefined, statement);
+};
+
+export const generateDistractors = async (statement: string, correct: string): Promise<string[]> => {
+    const prompt = PROMPTS.GENERATE_DISTRACTORS(statement, correct);
+    const schema = {
+        type: Type.ARRAY,
+        items: { type: Type.STRING }
+    };
+    return callGeminiAPI<string[]>(prompt, schema, [
+        "Distrator Automático 1 (Modo Offline)",
+        "Distrator Automático 2 (Modo Offline)",
+        "Distrator Automático 3 (Modo Offline)",
+        "Distrator Automático 4 (Modo Offline)"
+    ]);
+};
+
+export const suggestBNCC = async (statement: string): Promise<{ code: string; reason: string }> => {
+    const prompt = PROMPTS.SUGGEST_BNCC(statement);
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            code: { type: Type.STRING },
+            reason: { type: Type.STRING }
+        }
+    };
+    return callGeminiAPI<{ code: string; reason: string }>(prompt, schema, {
+        code: "EF00MOCK",
+        reason: "Modo offline habilitado."
+    });
+};
+
 // --- Internal Mock Generator (Fallback) ---
 const mockGenerate = (qty: number, type: QuestionType, diff: DifficultyLevel): GeneratedQuestion[] => {
-  return Array.from({ length: qty }).map((_, i) => ({
-    statement: `(Mock AI) Questão ${i + 1} gerada localmente sobre o tema (Modo Offline). Dificuldade: ${diff}.`,
-    alternatives: [
-      { text: "Alternativa Correta Exemplo", isCorrect: true },
-      { text: "Distrator 1 incorreto", isCorrect: false },
-      { text: "Distrator 2 incorreto", isCorrect: false },
-      { text: "Distrator 3 incorreto", isCorrect: false },
-    ],
-    justification: "Esta é a resposta correta porque o sistema está em modo de fallback.",
-    difficulty: diff,
-    bnccCode: "EF00MOCK"
-  }));
+    return Array.from({ length: qty }).map((_, i) => ({
+        statement: `(Mock AI) Questão ${i + 1} gerada localmente sobre o tema (Modo Offline). Dificuldade: ${diff}.`,
+        alternatives: [
+            { text: "Alternativa Correta Exemplo", isCorrect: true },
+            { text: "Distrator 1 incorreto", isCorrect: false },
+            { text: "Distrator 2 incorreto", isCorrect: false },
+            { text: "Distrator 3 incorreto", isCorrect: false },
+        ],
+        justification: "Esta é a resposta correta porque o sistema está em modo de fallback.",
+        difficulty: diff,
+        bnccCode: "EF00MOCK"
+    }));
 };

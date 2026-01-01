@@ -1,8 +1,8 @@
 
 import React, { useState, useRef } from 'react';
-import { Brain, X, Trash2, Image as ImageIcon, Upload, GripVertical, BookOpen, Eye, CheckSquare, Save } from 'lucide-react';
+import { Brain, X, Trash2, Image as ImageIcon, Upload, GripVertical, BookOpen, Eye, CheckSquare, Save, Wand2, Loader2, Sparkles } from 'lucide-react';
 import { AppState, Item, DifficultyLevel, QuestionType, ItemOrigin } from '../types';
-import { generateQuestionsFromText } from '../services/geminiService';
+import { generateQuestionsFromText, improveItemStatement, generateDistractors, suggestBNCC } from '../services/geminiService';
 import { uuidv4 } from '../utils/helpers';
 import { RichTextEditor } from './RichTextEditor';
 
@@ -30,10 +30,15 @@ const BRAZILIAN_SUBJECTS = [
 export const ItemEditorView = ({ state, onSave, onCancel }: { state: AppState, onSave: (item: Item) => void, onCancel: () => void }) => {
     const [mode, setMode] = useState<'MANUAL' | 'AI'>('MANUAL');
     const fileInputRef = useRef<HTMLInputElement>(null);
-    
+
     const [aiContext, setAiContext] = useState('');
     const [aiLoading, setAiLoading] = useState(false);
     const [generatedItems, setGeneratedItems] = useState<any[]>([]);
+
+    // Novas flags de carregamento para otimização
+    const [isImproving, setIsImproving] = useState(false);
+    const [isGeneratingAlts, setIsGeneratingAlts] = useState(false);
+    const [isBNCCLoading, setIsBNCCLoading] = useState(false);
 
     // Drag and Drop State
     const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
@@ -84,6 +89,40 @@ export const ItemEditorView = ({ state, onSave, onCancel }: { state: AppState, o
     const handleDragEnd = () => { setDraggedIdx(null); };
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = (event) => { const text = event.target?.result as string; setAiContext(prev => prev + "\n\n--- Conteúdo do Arquivo ---\n" + text); }; reader.readAsText(file); };
 
+    // FUNÇÕES DE AUTOMAÇÃO IA
+    const handleImproveStatement = async () => {
+        if (!form.statement.replace(/<[^>]*>/g, '').trim()) return alert('Escreva algo no enunciado primeiro.');
+        setIsImproving(true);
+        const improved = await improveItemStatement(form.statement);
+        setForm(prev => ({ ...prev, statement: improved }));
+        setIsImproving(false);
+    };
+
+    const handleGenerateAlts = async () => {
+        const correctAlt = alternatives.find(a => a.isCorrect && a.text.trim());
+        if (!correctAlt) return alert('Defina a alternativa correta e o seu texto primeiro.');
+        if (!form.statement.trim()) return alert('O enunciado é necessário para o contexto.');
+
+        setIsGeneratingAlts(true);
+        const distratores = await generateDistractors(form.statement, correctAlt.text);
+
+        const newAlts = [
+            correctAlt,
+            ...distratores.map(d => ({ text: d, isCorrect: false }))
+        ];
+        setAlternatives(newAlts);
+        setIsGeneratingAlts(false);
+    };
+
+    const handleSuggestBNCC = async () => {
+        if (!form.statement.trim()) return alert('O enunciado é necessário para sugerir a BNCC.');
+        setIsBNCCLoading(true);
+        const suggestion = await suggestBNCC(form.statement);
+        setForm(prev => ({ ...prev, bnccCode: suggestion.code }));
+        alert(`Sugerido: ${suggestion.code}\nMotivo: ${suggestion.reason}`);
+        setIsBNCCLoading(false);
+    };
+
     const handleGenerate = async () => {
         if (!aiContext) return alert('Insira um texto de contexto.');
         setAiLoading(true);
@@ -92,7 +131,7 @@ export const ItemEditorView = ({ state, onSave, onCancel }: { state: AppState, o
                 aiContext, 3, QuestionType.MULTIPLE_CHOICE, form.difficulty, form.subject || 'Geral'
             );
             setGeneratedItems(questions);
-        } catch(e) {
+        } catch (e) {
             console.error(e);
         } finally {
             setAiLoading(false);
@@ -153,8 +192,8 @@ export const ItemEditorView = ({ state, onSave, onCancel }: { state: AppState, o
             statement: form.statement,
             imageUrl: form.imageUrl,
             // Garante que alternativas seja um array vazio se for redação/discursiva
-            alternatives: (form.type === QuestionType.REDACTION || form.type === QuestionType.ESSAY) 
-                ? [] 
+            alternatives: (form.type === QuestionType.REDACTION || form.type === QuestionType.ESSAY)
+                ? []
                 : alternatives.map((a, i) => ({ id: `alt-${i}`, text: a.text, isCorrect: a.isCorrect })),
             correctAnswerJustification: form.justification,
             difficulty: form.difficulty,
@@ -168,7 +207,7 @@ export const ItemEditorView = ({ state, onSave, onCancel }: { state: AppState, o
             usageCount: 0,
             createdAt: new Date().toISOString()
         };
-        
+
         onSave(newItem);
     };
 
@@ -180,10 +219,10 @@ export const ItemEditorView = ({ state, onSave, onCancel }: { state: AppState, o
                         Criação Manual
                     </button>
                     <button onClick={() => setMode('AI')} className={`pb-1 text-sm font-medium border-b-2 transition flex items-center gap-2 ${mode === 'AI' ? 'border-brand-secondary text-brand-secondary' : 'border-transparent text-slate-500'}`}>
-                       <Brain size={14} /> Gerar com IA
+                        <Brain size={14} /> Gerar com IA
                     </button>
                 </div>
-                <button onClick={onCancel} className="text-slate-400 hover:text-slate-600"><X size={20}/></button>
+                <button onClick={onCancel} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
@@ -192,10 +231,10 @@ export const ItemEditorView = ({ state, onSave, onCancel }: { state: AppState, o
                         <div className="grid grid-cols-3 gap-6">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Disciplina</label>
-                                <select 
-                                    className="w-full border rounded-lg p-2 text-sm" 
-                                    value={form.subject} 
-                                    onChange={e => setForm({...form, subject: e.target.value})}
+                                <select
+                                    className="w-full border rounded-lg p-2 text-sm"
+                                    value={form.subject}
+                                    onChange={e => setForm({ ...form, subject: e.target.value })}
                                 >
                                     <option value="">Selecione...</option>
                                     {BRAZILIAN_SUBJECTS.map(subj => (
@@ -214,7 +253,7 @@ export const ItemEditorView = ({ state, onSave, onCancel }: { state: AppState, o
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Dificuldade</label>
-                                <select className="w-full border rounded-lg p-2 text-sm" value={form.difficulty} onChange={e => setForm({...form, difficulty: e.target.value as DifficultyLevel})}>
+                                <select className="w-full border rounded-lg p-2 text-sm" value={form.difficulty} onChange={e => setForm({ ...form, difficulty: e.target.value as DifficultyLevel })}>
                                     <option value="FACIL">Fácil</option>
                                     <option value="MEDIO">Médio</option>
                                     <option value="DIFICIL">Difícil</option>
@@ -229,19 +268,19 @@ export const ItemEditorView = ({ state, onSave, onCancel }: { state: AppState, o
                                     {form.type === QuestionType.REDACTION && (
                                         <div>
                                             <label className="block text-xs font-bold text-blue-700 uppercase mb-1">Mínimo de Linhas</label>
-                                            <input type="number" className="w-full border rounded-lg p-2 text-sm" value={form.minLines} onChange={e => setForm({...form, minLines: e.target.value})} placeholder="Ex: 20" />
+                                            <input type="number" className="w-full border rounded-lg p-2 text-sm" value={form.minLines} onChange={e => setForm({ ...form, minLines: e.target.value })} placeholder="Ex: 20" />
                                         </div>
                                     )}
                                     <div>
                                         <label className="block text-xs font-bold text-blue-700 uppercase mb-1">Máximo de Linhas</label>
-                                        <input type="number" className="w-full border rounded-lg p-2 text-sm" value={form.maxLines} onChange={e => setForm({...form, maxLines: e.target.value})} placeholder="Ex: 30" />
+                                        <input type="number" className="w-full border rounded-lg p-2 text-sm" value={form.maxLines} onChange={e => setForm({ ...form, maxLines: e.target.value })} placeholder="Ex: 30" />
                                     </div>
                                 </div>
-                                
+
                                 {/* Optional Counter Toggle */}
                                 <div className="flex items-center gap-2 border-t border-blue-200 pt-3">
-                                    <button 
-                                        onClick={() => setForm({...form, showWordCount: !form.showWordCount})}
+                                    <button
+                                        onClick={() => setForm({ ...form, showWordCount: !form.showWordCount })}
                                         className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${form.showWordCount ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-blue-300'}`}
                                     >
                                         {form.showWordCount && <CheckSquare size={14} />}
@@ -251,15 +290,26 @@ export const ItemEditorView = ({ state, onSave, onCancel }: { state: AppState, o
                                 </div>
                             </div>
                         )}
-                        
+
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">
-                                {form.type === QuestionType.REDACTION ? 'Proposta da Redação / Texto de Apoio' : 'Enunciado da Questão'}
-                            </label>
+                            <div className="flex justify-between items-center mb-2">
+                                <label className="block text-sm font-medium text-slate-700">
+                                    {form.type === QuestionType.REDACTION ? 'Proposta da Redação / Texto de Apoio' : 'Enunciado da Questão'}
+                                </label>
+                                <button
+                                    onClick={handleImproveStatement}
+                                    disabled={isImproving}
+                                    className="text-xs flex items-center gap-1.5 px-2 py-1 bg-purple-50 text-purple-700 rounded border border-purple-100 hover:bg-purple-100 transition font-bold"
+                                    title="Melhorar clareza e gram\u00e1tica com IA"
+                                >
+                                    {isImproving ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                                    Aprimorar com IA
+                                </button>
+                            </div>
                             {/* RICH TEXT EDITOR FOR STATEMENT */}
-                            <RichTextEditor 
-                                value={form.statement} 
-                                onChange={(val) => setForm({...form, statement: val})} 
+                            <RichTextEditor
+                                value={form.statement}
+                                onChange={(val) => setForm({ ...form, statement: val })}
                                 placeholder={form.type === QuestionType.REDACTION ? "Insira os textos motivadores e o tema da redação..." : "Digite o enunciado. Use **negrito**, $$fórmulas$$..."}
                                 height="h-64"
                             />
@@ -268,23 +318,36 @@ export const ItemEditorView = ({ state, onSave, onCancel }: { state: AppState, o
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">URL da Imagem (Opcional)</label>
                             <div className="relative flex-1">
-                                <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-accent" size={16}/>
-                                <input 
-                                    className="w-full border rounded-lg pl-9 p-2 text-sm" 
-                                    value={form.imageUrl} 
-                                    onChange={e => setForm({...form, imageUrl: e.target.value})} 
-                                    placeholder="https://exemplo.com/figura.jpg" 
+                                <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-accent" size={16} />
+                                <input
+                                    className="w-full border rounded-lg pl-9 p-2 text-sm"
+                                    value={form.imageUrl}
+                                    onChange={e => setForm({ ...form, imageUrl: e.target.value })}
+                                    placeholder="https://exemplo.com/figura.jpg"
                                 />
                             </div>
                         </div>
 
                         {(form.type === QuestionType.MULTIPLE_CHOICE || form.type === QuestionType.TRUE_FALSE) && (
                             <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
-                                <label className="block text-sm font-medium text-slate-700 mb-4">Alternativas / Gabarito</label>
+                                <div className="flex justify-between items-center mb-4">
+                                    <label className="block text-sm font-medium text-slate-700">Alternativas / Gabarito</label>
+                                    {form.type === QuestionType.MULTIPLE_CHOICE && (
+                                        <button
+                                            onClick={handleGenerateAlts}
+                                            disabled={isGeneratingAlts}
+                                            className="text-xs flex items-center gap-1.5 px-2 py-1 bg-indigo-50 text-indigo-700 rounded border border-indigo-100 hover:bg-indigo-100 transition font-bold"
+                                            title="Gera 4 alternativas incorretas plausíveis"
+                                        >
+                                            {isGeneratingAlts ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                                            Autocompletar Distratores
+                                        </button>
+                                    )}
+                                </div>
                                 <div className="space-y-4">
                                     {alternatives.map((alt, i) => (
-                                        <div 
-                                            key={i} 
+                                        <div
+                                            key={i}
                                             draggable={form.type === QuestionType.MULTIPLE_CHOICE}
                                             onDragStart={(e) => handleDragStart(e, i)}
                                             onDragOver={(e) => handleDragOver(e, i)}
@@ -297,34 +360,34 @@ export const ItemEditorView = ({ state, onSave, onCancel }: { state: AppState, o
                                                 </div>
                                             )}
                                             <div className="pt-2">
-                                                <input 
-                                                    type="radio" 
-                                                    name="correct" 
-                                                    checked={alt.isCorrect} 
+                                                <input
+                                                    type="radio"
+                                                    name="correct"
+                                                    checked={alt.isCorrect}
                                                     onChange={() => {
                                                         const newAlts = alternatives.map((a, idx) => ({ ...a, isCorrect: idx === i }));
                                                         setAlternatives(newAlts);
-                                                    }} 
+                                                    }}
                                                     className="w-5 h-5 text-brand-primary focus:ring-brand-secondary border-brand-dark bg-brand-input"
                                                 />
                                             </div>
-                                            
+
                                             <div className="flex-1">
                                                 {/* RICH TEXT EDITOR FOR ALTERNATIVES */}
-                                                <RichTextEditor 
-                                                    value={alt.text} 
+                                                <RichTextEditor
+                                                    value={alt.text}
                                                     onChange={(val) => {
                                                         const newAlts = [...alternatives];
                                                         newAlts[i].text = val;
                                                         setAlternatives(newAlts);
                                                     }}
-                                                    placeholder={`Alternativa ${String.fromCharCode(65+i)}`}
+                                                    placeholder={`Alternativa ${String.fromCharCode(65 + i)}`}
                                                     miniMode={true}
                                                 />
                                             </div>
 
                                             {form.type === QuestionType.MULTIPLE_CHOICE && (
-                                                <button onClick={() => setAlternatives(alternatives.filter((_, idx) => idx !== i))} className="text-slate-300 hover:text-red-500 mt-2"><Trash2 size={16}/></button>
+                                                <button onClick={() => setAlternatives(alternatives.filter((_, idx) => idx !== i))} className="text-slate-300 hover:text-red-500 mt-2"><Trash2 size={16} /></button>
                                             )}
                                         </div>
                                     ))}
@@ -341,43 +404,53 @@ export const ItemEditorView = ({ state, onSave, onCancel }: { state: AppState, o
                             <label className="block text-sm font-medium text-slate-700 mb-1">
                                 {form.type === QuestionType.ESSAY || form.type === QuestionType.REDACTION ? 'Critérios de Correção / Gabarito Esperado' : 'Justificativa da Resposta Correta'}
                             </label>
-                            <RichTextEditor 
-                                value={form.justification} 
-                                onChange={(val) => setForm({...form, justification: val})}
+                            <RichTextEditor
+                                value={form.justification}
+                                onChange={(val) => setForm({ ...form, justification: val })}
                                 placeholder={form.type === QuestionType.REDACTION ? "Descreva o que se espera que o aluno aborde na redação..." : "Explique o raciocínio da resposta correta..."}
                                 height="h-32"
                             />
                         </div>
-                        
+
                         <div className="grid grid-cols-2 gap-6 pb-6">
-                             <div>
+                            <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Tags</label>
-                                <input className="w-full border rounded-lg p-2 text-sm" value={form.tags} onChange={e => setForm({...form, tags: e.target.value})} placeholder="Separe por vírgulas" />
-                             </div>
-                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Código BNCC</label>
-                                <div className="relative">
-                                    <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16}/>
-                                    <input className="w-full border rounded-lg pl-9 p-2 text-sm uppercase" value={form.bnccCode} onChange={e => setForm({...form, bnccCode: e.target.value})} placeholder="Ex: EF09HI01" />
+                                <input className="w-full border rounded-lg p-2 text-sm" value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} placeholder="Separe por vírgulas" />
+                            </div>
+                            <div>
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="block text-sm font-medium text-slate-700">Código BNCC</label>
+                                    <button
+                                        onClick={handleSuggestBNCC}
+                                        disabled={isBNCCLoading}
+                                        className="text-[10px] flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-100 hover:bg-blue-100 transition font-bold uppercase"
+                                    >
+                                        {isBNCCLoading ? <Loader2 size={10} className="animate-spin" /> : <Wand2 size={10} />}
+                                        Sugerir
+                                    </button>
                                 </div>
-                             </div>
+                                <div className="relative">
+                                    <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                    <input className="w-full border rounded-lg pl-9 p-2 text-sm uppercase" value={form.bnccCode} onChange={e => setForm({ ...form, bnccCode: e.target.value })} placeholder="Ex: EF09HI01" />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 ) : (
                     // AI Mode (Existing)
                     <div className="space-y-6">
                         <div className="bg-sky-50 p-4 rounded-lg border border-sky-100 text-sm text-sky-900 mb-4">
-                            <p className="font-semibold flex items-center gap-2"><Brain size={16}/> IA Generator + BNCC</p>
+                            <p className="font-semibold flex items-center gap-2"><Brain size={16} /> IA Generator + BNCC</p>
                             Faça upload de um arquivo de texto ou cole o conteúdo abaixo. A IA irá sugerir códigos BNCC automaticamente.
                         </div>
-                         <div className="grid grid-cols-2 gap-6">
+                        <div className="grid grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Disciplina Alvo</label>
-                                <input className="w-full border rounded-lg p-2 text-sm" value={form.subject} onChange={e => setForm({...form, subject: e.target.value})} placeholder="Ex: Geografia" />
+                                <input className="w-full border rounded-lg p-2 text-sm" value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} placeholder="Ex: Geografia" />
                             </div>
-                             <div>
+                            <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Nível Desejado</label>
-                                <select className="w-full border rounded-lg p-2 text-sm" value={form.difficulty} onChange={e => setForm({...form, difficulty: e.target.value as DifficultyLevel})}>
+                                <select className="w-full border rounded-lg p-2 text-sm" value={form.difficulty} onChange={e => setForm({ ...form, difficulty: e.target.value as DifficultyLevel })}>
                                     <option value="FACIL">Fácil</option>
                                     <option value="MEDIO">Médio</option>
                                     <option value="DIFICIL">Difícil</option>
@@ -388,10 +461,10 @@ export const ItemEditorView = ({ state, onSave, onCancel }: { state: AppState, o
                             <label className="block text-sm font-medium text-slate-700 mb-1">Texto de Contexto</label>
                             <textarea className="w-full border rounded-lg p-3 text-sm h-40 font-mono mb-2" value={aiContext} onChange={e => setAiContext(e.target.value)} placeholder="Cole aqui o texto ou faça upload de um arquivo..." />
                             <input type="file" accept=".txt,.csv,.md" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
-                            <button onClick={() => fileInputRef.current?.click()} className="text-sm text-white bg-brand-primary hover:bg-sky-700 px-3 py-1 rounded flex items-center gap-2 w-fit"><Upload size={14}/> Carregar Arquivo (.txt)</button>
+                            <button onClick={() => fileInputRef.current?.click()} className="text-sm text-white bg-brand-primary hover:bg-sky-700 px-3 py-1 rounded flex items-center gap-2 w-fit"><Upload size={14} /> Carregar Arquivo (.txt)</button>
                         </div>
                         <button onClick={handleGenerate} disabled={aiLoading} className="w-full py-3 btn-gradient rounded-lg font-bold disabled:opacity-50 flex items-center justify-center gap-2 shadow-md">
-                            {aiLoading ? 'Processando...' : <><Brain size={20}/> Gerar Questões</>}
+                            {aiLoading ? 'Processando...' : <><Brain size={20} /> Gerar Questões</>}
                         </button>
                         {generatedItems.length > 0 && (
                             <div className="mt-8 border-t pt-6">
@@ -417,11 +490,11 @@ export const ItemEditorView = ({ state, onSave, onCancel }: { state: AppState, o
                     </div>
                 )}
             </div>
-            
+
             <div className="p-4 border-t border-slate-100 bg-white flex justify-end flex-shrink-0">
-                 <button onClick={saveManual} className="btn-gradient px-8 py-3 rounded-lg font-bold shadow-lg flex items-center gap-2">
-                    <Save size={18}/> Salvar Item
-                 </button>
+                <button onClick={saveManual} className="btn-gradient px-8 py-3 rounded-lg font-bold shadow-lg flex items-center gap-2">
+                    <Save size={18} /> Salvar Item
+                </button>
             </div>
         </div>
     );

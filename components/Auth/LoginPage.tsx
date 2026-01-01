@@ -53,11 +53,11 @@ export const LoginPage = () => {
             <div className="w-full max-w-md">
 
                 {/* Header / Logo */}
-                <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 flex flex-col items-center">
+                <div className="text-center mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 flex flex-col items-center">
                     <img
                         src="/examepad_logo.png"
                         alt="ExamePad"
-                        className="h-28 mb-4 object-contain hover:scale-105 transition-transform drop-shadow-2xl"
+                        className="h-20 md:h-28 mb-4 object-contain hover:scale-105 transition-transform drop-shadow-2xl"
                         onError={(e) => {
                             e.currentTarget.style.display = 'none';
                             // Show the fallback sibling
@@ -66,16 +66,16 @@ export const LoginPage = () => {
                         }}
                     />
                     {/* Fallback Element (Hidden by default) */}
-                    <div id="logo-fallback" style={{ display: 'none' }} className="w-20 h-20 bg-gradient-to-br from-brand-primary to-emerald-500 rounded-2xl mb-6 items-center justify-center shadow-xl shadow-brand-primary/20">
-                        <span className="text-4xl font-black text-white tracking-widest">E</span>
+                    <div id="logo-fallback" style={{ display: 'none' }} className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-brand-primary to-emerald-500 rounded-2xl mb-6 items-center justify-center shadow-xl shadow-brand-primary/20">
+                        <span className="text-3xl md:text-4xl font-black text-white tracking-widest">E</span>
                     </div>
 
-                    <h1 className="text-4xl font-black text-white tracking-tight mb-2">ExamePad</h1>
-                    <p className="text-slate-400 font-medium tracking-wide">Acesso Administrativo</p>
+                    <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-2">ExamePad</h1>
+                    <p className="text-sm md:text-base text-slate-400 font-medium tracking-wide">Acesso Administrativo</p>
                 </div>
 
                 {/* Login Card */}
-                <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700 p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-500">
+                <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700 p-6 md:p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-500">
                     {/* ... (rest of the form remains same, mostly) ... */}
 
                     {error && (
