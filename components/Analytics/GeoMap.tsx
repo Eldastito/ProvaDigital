@@ -108,15 +108,19 @@ export const GeoMap = ({ level, dataPoints, onSelect }: GeoMapProps) => {
                         </filter>
                     </defs>
 
-                    {/* Mapa do Brasil em SVG (substituindo imagem PNG faltante) */}
-                    <g opacity="0.3" stroke="#00a3e0" strokeWidth="2" fill="none">
-                        {/* Contorno simplificado do Brasil */}
-                        <path d="M 150,50 L 200,80 L 250,100 L 300,120 L 350,140 L 380,180 L 400,220 L 410,260 L 400,300 L 380,340 L 350,380 L 320,420 L 280,450 L 240,470 L 200,480 L 160,470 L 130,450 L 100,420 L 80,380 L 70,340 L 60,300 L 55,260 L 60,220 L 70,180 L 90,140 L 120,100 Z"
-                            fill="rgba(0, 163, 224, 0.1)"
-                            stroke="rgba(0, 163, 224, 0.5)"
-                            strokeWidth="1.5"
-                            filter="url(#glow)" />
-                    </g>
+                    {/* Imagem do Mapa do Brasil */}
+                    <foreignObject x="0" y="0" width="612" height="650">
+                        <div className="w-full h-full flex items-center justify-center">
+                            <img
+                                src="/mapa.png"
+                                alt="Mapa do Brasil"
+                                className="w-full h-full object-contain mix-blend-lighten opacity-80"
+                                style={{
+                                    filter: 'drop-shadow(0 0 20px rgba(0, 163, 224, 0.3))'
+                                }}
+                            />
+                        </div>
+                    </foreignObject>
 
                     {/* Camada interativa invisível para detecção de cliques nos estados (Nível Federal) */}
                     {level === 'FEDERAL' && (
