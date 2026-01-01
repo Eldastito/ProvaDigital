@@ -42,33 +42,6 @@ export const LoginPage = () => {
             }
         } catch (err: any) {
             console.error("Login Error:", err);
-
-            // --- EMERGENCY FALLBACK: Mock Login se Supabase falhar ---
-            // Detecta 'Failed to fetch', 'network', 'NAME_NOT_RESOLVED' e 'AuthRetryableFetchError'
-            const errorMessage = err.message || err.toString();
-            if ((errorMessage.includes('Failed to fetch') ||
-                errorMessage.includes('network') ||
-                errorMessage.includes('NAME_NOT_RESOLVED') ||
-                errorMessage.includes('AuthRetryableFetchError'))
-                && email === 'eldastito@gmail.com') {
-
-                console.warn("⚠️ MOCK LOGIN ATIVADO: Falha crítica na conexão Supabase. Forçando entrada.");
-
-                // Salvar flag de sessão mockada
-                localStorage.setItem('examepad_mock_session', 'true');
-
-                // Salvar um token fake padrão do supabase para enganar o client se necessário
-                // (Opcional, mas ajuda se algum hook checar o localStorage direto)
-                localStorage.setItem('sb-token', 'mock-token-emergency');
-
-                alert("⚠️ AVISO: Acesso Offline / Mock\n\nConexão com banco de dados falhou. Entrando em modo de emergência...");
-
-                // Forçar recarregamento total para a home (bypass React Router)
-                window.location.href = '/';
-                return;
-            }
-            // ---------------------------------------------------------
-
             setError(err.message || 'Falha na autenticação. Verifique sua conexão.');
         } finally {
             setLoading(false);
