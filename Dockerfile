@@ -12,7 +12,17 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the application
+# Accept build arguments (environment variables)
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ARG VITE_GEMINI_API_KEY
+
+# Set them as environment variables for the build
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+ENV VITE_GEMINI_API_KEY=$VITE_GEMINI_API_KEY
+
+# Build the application (Vite will use the ENV variables)
 RUN npm run build
 
 # Stage 2: Serve
