@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
-import { Lock, Mail, Loader2, AlertCircle, ArrowRight } from 'lucide-react';
+import { Lock, Mail, Loader2, AlertCircle, ArrowRight, Chrome } from 'lucide-react';
 
 export const LoginPage = () => {
     const [email, setEmail] = useState('');
@@ -9,6 +9,31 @@ export const LoginPage = () => {
     const [error, setError] = useState<string | null>(null);
 
     const [isSignUp, setIsSignUp] = useState(false);
+
+    const handleGoogleLogin = async () => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const { data, error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: `${window.location.origin}/`,
+                    queryParams: {
+                        access_type: 'offline',
+                        prompt: 'consent',
+                    }
+                }
+            });
+
+            if (error) throw error;
+            // OAuth will redirect, no need to handle success here
+        } catch (err: any) {
+            console.error("Google Login Error:", err);
+            setError('Falha no login com Google. Tente novamente.');
+            setLoading(false);
+        }
+    };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -136,6 +161,27 @@ export const LoginPage = () => {
                                     <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                                 </>
                             )}
+                        </button>
+
+                        {/* Divider */}
+                        <div className="relative my-6">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-slate-700"></div>
+                            </div>
+                            <div className="relative flex justify-center text-sm">
+                                <span className="px-4 bg-slate-800/50 text-slate-400 font-medium">ou continue com</span>
+                            </div>
+                        </div>
+
+                        {/* Google OAuth Button */}
+                        <button
+                            type="button"
+                            onClick={handleGoogleLogin}
+                            disabled={loading}
+                            className="w-full bg-white hover:bg-gray-50 text-gray-900 font-bold py-4 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 group disabled:opacity-70 disabled:pointer-events-none border-2 border-gray-200"
+                        >
+                            <Chrome size={20} className="text-blue-600" />
+                            <span>Entrar com Google</span>
                         </button>
                     </form>
 
