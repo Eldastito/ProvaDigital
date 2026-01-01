@@ -42,6 +42,18 @@ export const LoginPage = () => {
             }
         } catch (err: any) {
             console.error("Login Error:", err);
+
+            // --- EMERGENCY FALLBACK: Mock Login se Supabase falhar ---
+            if (err.message && (err.message.includes('Failed to fetch') || err.message.includes('network')) && email === 'eldastito@gmail.com') {
+                console.warn("⚠️ MOCK LOGIN ATIVADO: Falha na conexão com Supabase. Permitindo acesso administrativo.");
+                alert("⚠️ AVISO: Acesso em Modo de Compatibilidade (Mock)\n\nNão foi possível conectar ao banco de dados. Você está acessando uma versão local/offline.");
+
+                // Simula sessão válida
+                window.location.hash = '/';
+                return;
+            }
+            // ---------------------------------------------------------
+
             setError(err.message || 'Falha na autenticação. Verifique sua conexão.');
         } finally {
             setLoading(false);
