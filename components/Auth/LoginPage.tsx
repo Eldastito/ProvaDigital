@@ -67,7 +67,28 @@ export const LoginPage = () => {
             }
         } catch (err: any) {
             console.error("Login Error:", err);
-            setError(err.message || 'Falha na autenticação. Verifique sua conexão.');
+
+            // Mensagens de erro específicas e acionáveis
+            let userMessage = 'Falha na autenticação. Tente novamente.';
+
+            if (err.message) {
+                if (err.message.includes('Invalid API key')) {
+                    userMessage = '⚠️ Erro de Configuração: Chave de API inválida. Entre em contato com o suporte técnico.';
+                } else if (err.message.includes('Invalid login credentials')) {
+                    userMessage = '❌ Email ou senha incorretos. Verifique suas credenciais e tente novamente.';
+                } else if (err.message.includes('Email not confirmed')) {
+                    userMessage = '📧 Email não confirmado. Verifique sua caixa de entrada e confirme seu email.';
+                } else if (err.message.includes('Failed to fetch') || err.message.includes('network')) {
+                    userMessage = '🌐 Erro de conexão. Verifique sua internet e tente novamente.';
+                } else if (err.message.includes('User already registered')) {
+                    userMessage = '👤 Este email já está cadastrado. Tente fazer login ou recuperar sua senha.';
+                } else {
+                    // Mostrar mensagem original se não for um erro conhecido
+                    userMessage = `❌ ${err.message}`;
+                }
+            }
+
+            setError(userMessage);
         } finally {
             setLoading(false);
         }
