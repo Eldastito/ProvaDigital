@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { TrendingUp, AlertTriangle, BookOpen, CheckCircle, Calendar, Clock, Brain, Award, ChevronLeft, ChevronRight, Trophy, X, FileText, Check, Eye, User as UserIcon, List, ArrowUp, ArrowDown, Coins, Star, Activity, Zap, Medal, Sparkles } from 'lucide-react';
+import { TrendingUp, AlertTriangle, BookOpen, CheckCircle, Calendar, Clock, Brain, Award, ChevronLeft, ChevronRight, Trophy, X, FileText, Check, Eye, User as UserIcon, List, ArrowUp, ArrowDown, Coins, Star, Activity, Zap, Medal, Sparkles, Target } from 'lucide-react';
 import { AppState, RiskLevel, User, Exam, ExamResult, QuestionType, UserRole, GamifiedEventStatus } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
 import { useAppStore } from '../../store/useAppStore';
