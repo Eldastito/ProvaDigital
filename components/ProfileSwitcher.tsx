@@ -23,13 +23,25 @@ export const ProfileSwitcher: React.FC = () => {
     const currentProfile = PROFILE_OPTIONS.find(p => p.role === currentUser.role);
 
     const handleSwitch = (role: UserRole) => {
+        if (!currentUser) return;
+
+        // Update user with new role
         const updatedUser = { ...currentUser, role };
-        setCurrentUser(updatedUser);
+
+        // Save to localStorage for persistence
         localStorage.setItem('test_profile', role);
+
+        // Update store immediately
+        setCurrentUser(updatedUser);
+
+        console.log('🧪 ProfileSwitcher: Switching to', role);
+
         setIsOpen(false);
 
-        // Force reload to apply new role and update UI
-        setTimeout(() => window.location.reload(), 100);
+        // Force reload to ensure clean state
+        setTimeout(() => {
+            window.location.reload();
+        }, 100);
     };
 
     return (
