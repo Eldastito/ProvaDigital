@@ -82,7 +82,11 @@ interface AppActions {
     addGamifiedEvent: (event: GamifiedEvent) => void;
     updateGamifiedEvent: (event: GamifiedEvent) => void;
     registerStudentToEvent: (eventId: string, studentId: string) => void;
-}
+
+    // --- MENTORSHIP ACTIONS ---
+    addMentorshipRequest: (request: MentorshipRequest) => void;
+    acceptMentorshipRequest: (requestId: string, mentorId: string, mentorName: string) => void;
+    confirmMentorship: (requestId: string, pinInput: string) => boolean; // Returns true if PIN matches
 
 type AppStore = AppState & AppActions;
 
@@ -400,5 +404,31 @@ export const useAppStore = create<AppStore>((set, get) => ({
             }
             return e;
         })
-    }))
+    })),
+
+    // --- MENTORSHIP IMPL ---
+    mentorships: [], // Init empty
+    addMentorshipRequest: (req) => set(state => ({ mentorships: [req, ...state.mentorships] })),
+    acceptMentorshipRequest: (reqId, mentorId, mentorName) => set(state => ({
+        mentorships: state.mentorships.map(m =>
+            m.id === reqId
+                ? { ...m, status: 'EM_ANDAMENTO', mentorId, mentorName, verificationPin: Math.floor(1000 + Math.random() * 9000).toString() } // Generate 4-digit PIN
+                : m
+        )
+    })),
+    confirmMentorship: (reqId, pinInput) => {
+        let success = false;
+        set(state => {
+            const mentorship = state.mentorships.find(m => m.id === reqId);
+            if (mentorship && mentorship.verificationPin === pinInput) {
+                success = true;
+                // Award XP logic would go here (updateUserProfile)
+                return {
+                    mentorships: state.mentorships.map(m => m.id === reqId ? { ...m, status: 'CONCLUIDO' } : m)
+                };
+            }
+            return state;
+        });
+        return success;
+    }
 }));

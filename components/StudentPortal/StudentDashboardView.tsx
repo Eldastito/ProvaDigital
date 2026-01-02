@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { TrendingUp, AlertTriangle, BookOpen, CheckCircle, Calendar, Clock, Brain, Award, ChevronLeft, ChevronRight, Trophy, X, FileText, Check, Eye, User as UserIcon, List, ArrowUp, ArrowDown, Coins, Star, Activity, Zap, Medal, Sparkles, Target } from 'lucide-react';
+import { TrendingUp, AlertTriangle, BookOpen, CheckCircle, Calendar, Clock, Brain, Award, ChevronLeft, ChevronRight, Trophy, X, FileText, Check, Eye, User as UserIcon, List, ArrowUp, ArrowDown, Coins, Star, Activity, Zap, Medal, Sparkles, Target, Users, BookHeart } from 'lucide-react';
 import { AppState, RiskLevel, User, Exam, ExamResult, QuestionType, UserRole, GamifiedEventStatus } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
 import { useAppStore } from '../../store/useAppStore';
@@ -271,6 +271,50 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
         }
     };
 
+    // --- MENTORSHIP HANDLERS ---
+    const { addMentorshipRequest, acceptMentorshipRequest, confirmMentorship, updateUserProfile } = useAppStore();
+
+    // Mock handler (Need state for modal in real implementation)
+    const handleCreateRequest = () => {
+        const desc = prompt("Descreva sua dúvida (ex: Equações de 2º grau):");
+        if (desc) {
+            addMentorshipRequest({
+                id: Math.random().toString(36).substr(2, 9),
+                studentId: student.id,
+                studentName: student.name,
+                subject: 'Geral', // Hardcoded for now, could be select
+                description: desc,
+                status: 'ABERTO' as any,
+                rewardXp: 200,
+                createdAt: new Date().toISOString()
+            });
+            alert("Pedido criado! Aguarde um mentor aceitar.");
+        }
+    };
+
+    const handleAcceptMentorship = (reqId: string) => {
+        if (confirm("Aceitar esta mentoria? Você ganhará XP após o aluno confirmar com o PIN.")) {
+            acceptMentorshipRequest(reqId, student.id, student.name);
+        }
+    };
+
+    const handleConfirmMentorship = (reqId: string, pin: string) => {
+        const success = confirmMentorship(reqId, pin);
+        if (success) {
+            alert("🎉 Mentoria validada e Concluída! Você ganhou +200 XP!");
+            // Mock XP Update
+            if (extendedProfile) {
+                updateUserProfile({
+                    ...extendedProfile,
+                    xp: (extendedProfile.xp || 0) + 200,
+                    owlCoins: extendedProfile.owlCoins + 50
+                });
+            }
+        } else {
+            alert("PIN incorreto. Peça ao aluno o número de 4 dígitos.");
+        }
+    };
+
     const renderCorrectionModal = () => {
         if (!selectedResult) return null;
         const exam = state.exams.find(e => e.id === selectedResult.examId);
@@ -395,10 +439,10 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                                         <Coins size={12} className="text-yellow-400" /> Prémio: {evt.rewardCoins}
                                     </div>
                                     <button
-                                        onClick={() => setShowEventRules(evt.id)}
-                                        className="w-full bg-white text-purple-700 py-2 rounded font-bold text-sm hover:bg-purple-50 transition"
+                                        onClick={handleCreateRequest}
+                                        className="bg-white text-indigo-700 px-4 py-2 rounded-lg font-bold shadow-sm border border-indigo-200 hover:bg-indigo-50 transition flex items-center gap-2"
                                     >
-                                        Inscrever-se
+                                        <Zap size={16} /> Pedir Ajuda
                                     </button>
                                 </div>
                             ))}

@@ -259,6 +259,31 @@ export interface ExamResult {
   securityFlags?: string[];
 }
 
+securityFlags ?: string[];
+}
+
+// --- MENTORSHIP SYSTEM (NEW) ---
+export enum MentorshipStatus {
+  OPEN = 'ABERTO',
+  IN_PROGRESS = 'EM_ANDAMENTO',
+  COMPLETED = 'CONCLUIDO',
+  CANCELLED = 'CANCELADO'
+}
+
+export interface MentorshipRequest {
+  id: string;
+  studentId: string; // Quem pediu
+  studentName: string;
+  subject: string;
+  description: string;
+  status: MentorshipStatus;
+  mentorId?: string; // Quem aceitou
+  mentorName?: string;
+  createdAt: string;
+  verificationPin?: string; // PIN 4 dígitos gerado pelo sistema
+  rewardXp: number; // XP de recompensa
+}
+
 // --- NOVO: GAMIFIED EVENTS ---
 export type GamifiedEventType = 'OLIMPIADA' | 'SOLETRANDO' | 'QUIZ_SHOW' | 'FEIRA_CIENCIAS' | 'DEBATE';
 
@@ -502,6 +527,7 @@ export interface AppState {
   exams: Exam[];
   registrations: ExamRegistration[];
   results: ExamResult[];
+  mentorships: MentorshipRequest[]; // NOVO
   events: ExamEvent[];
   gamifiedEvents: GamifiedEvent[]; // NOVO
   announcements: Announcement[];

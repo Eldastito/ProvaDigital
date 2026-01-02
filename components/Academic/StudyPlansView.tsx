@@ -96,6 +96,72 @@ export const StudyPlansView = ({ state, user }: StudyPlansViewProps) => {
         }
     };
 
+    // --- AUDIO SYSTEM (WEB AUDIO API) ---
+    const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+    const [whiteNoiseNode, setWhiteNoiseNode] = useState<AudioBufferSourceNode | null>(null);
+    const [gainNode, setGainNode] = useState<GainNode | null>(null);
+    const [activeSound, setActiveSound] = useState<'OFF' | 'RAIN' | 'CAFE' | 'WHITE_NOISE'>('OFF');
+
+    useEffect(() => {
+        // Init Audio Context on first user interaction (browser policy)
+        return () => {
+            if (audioContext) audioContext.close();
+        };
+    }, []);
+
+    const toggleWhiteNoise = (enable: boolean) => {
+        if (enable) {
+            const ctx = audioContext || new AudioContext();
+            if (!audioContext) setAudioContext(ctx);
+
+            const bufferSize = ctx.sampleRate * 2; // 2 seconds buffer
+            const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+
+            const noise = ctx.createBufferSource();
+            noise.buffer = buffer;
+            noise.loop = true;
+
+            const gain = ctx.createGain();
+            gain.gain.value = 0.05; // Low volume
+
+            noise.connect(gain);
+            gain.connect(ctx.destination);
+            noise.start();
+
+            setWhiteNoiseNode(noise);
+            setGainNode(gain);
+        } else {
+            if (whiteNoiseNode) {
+                whiteNoiseNode.stop();
+                setWhiteNoiseNode(null);
+            }
+            if (gainNode) {
+                gainNode.disconnect();
+                setGainNode(null);
+            }
+        }
+    };
+
+    const handleSoundChange = (sound: 'OFF' | 'RAIN' | 'CAFE' | 'WHITE_NOISE') => {
+        // Stop previous
+        if (activeSound === 'WHITE_NOISE') toggleWhiteNoise(false);
+
+        setActiveSound(sound);
+
+        // Start new
+        if (sound === 'WHITE_NOISE') {
+            toggleWhiteNoise(true);
+        } else if (sound !== 'OFF') {
+            // Placeholder for Rain/Cafe (would be HTMLAudioElement in real app)
+            alert(`🔊 Simulando áudio: ${sound} (Imagine o som relaxante...)`);
+        }
+    };
+
     // --- EFFECT: POMODORO ---
     useEffect(() => {
         let interval: any = null;
@@ -103,9 +169,11 @@ export const StudyPlansView = ({ state, user }: StudyPlansViewProps) => {
             interval = setInterval(() => setPomoTime(t => t - 1), 1000);
         } else if (pomoTime === 0 && pomoIsActive) {
             handlePomodoroComplete();
+            // Stop audio on complete
+            if (activeSound !== 'OFF') handleSoundChange('OFF');
         }
         return () => clearInterval(interval);
-    }, [pomoIsActive, pomoTime, pomoMode]);
+    }, [pomoIsActive, pomoTime, pomoMode, activeSound]); // Added activeSound dependency
 
     // --- EFFECT: SIMULATOR TIMER ---
     useEffect(() => {
@@ -375,15 +443,15 @@ export const StudyPlansView = ({ state, user }: StudyPlansViewProps) => {
                                         {['OFF', 'RAIN', 'CAFE', 'WHITE_NOISE'].map((sound) => (
                                             <button
                                                 key={sound}
-                                                // Placeholder for actual audio implementation
-                                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ${(sound === 'OFF')
-                                                        ? 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ${(activeSound === sound)
+                                                        ? 'bg-slate-800 text-white shadow-md transform scale-105'
                                                         : 'bg-white border hover:bg-slate-50 text-slate-600'
                                                     }`}
-                                                onClick={() => alert(`🎵 Som de fundo: ${sound} (Simulação)\nEm breve com áudio real!`)}
+                                                onClick={() => handleSoundChange(sound as any)}
                                             >
                                                 {sound === 'OFF' ? <XCircle size={12} /> : <Play size={10} />}
                                                 {sound === 'OFF' ? 'Sem Som' : sound === 'RAIN' ? 'Chuva' : sound === 'CAFE' ? 'Cafeteria' : 'Ruído Branco'}
+                                                {activeSound === sound && sound !== 'OFF' && <span className="animate-pulse">🔊</span>}
                                             </button>
                                         ))}
                                     </div>
