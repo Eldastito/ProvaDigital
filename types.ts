@@ -94,6 +94,7 @@ export interface UserProfileExtended {
   bio?: string;
   assessments: AssessmentResult[];
   owlCoins: number;
+  xp?: number; // Pontos de experiência para gamificação
   badges: string[]; // Badges gamificados (visual)
   academicAchievements?: AcademicAchievement[]; // Conquistas com peso acadêmico
 }
