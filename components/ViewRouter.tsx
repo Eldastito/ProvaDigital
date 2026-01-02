@@ -27,6 +27,7 @@ import { GamifiedEventsManager } from './GamifiedEvents/GamifiedEventsManager';
 import { RiskDashboard } from './RiskManagement/RiskDashboard';
 import { ClassDiaryView } from './ClassDiary/ClassDiaryView';
 import { ProfessorDashboardView } from './Professor/ProfessorDashboardView';
+import { ParentsDashboardView } from './Parents/ParentsDashboardView';
 
 interface ViewRouterProps {
     view: string;
@@ -59,6 +60,10 @@ export const ViewRouter = ({
             // Check if user is PROFESSOR and route to specific dashboard
             if (currentUser.role === 'PROFESSOR') {
                 return <ProfessorDashboardView />;
+            }
+            // Check if user is PAIS (Parents) and route to specific dashboard
+            if (currentUser.role === 'PAIS') {
+                return <ParentsDashboardView />;
             }
             return <DashboardView state={store} setView={setView} />;
 
