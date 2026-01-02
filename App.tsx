@@ -51,12 +51,21 @@ export default function App() {
         if (userMatch) {
           console.log('👤 User found in store:', userMatch.name);
 
-          // 🧪 CHECK FOR TEST PROFILE OVERRIDE
+          // 🧪 CHECK FOR TEST PROFILE OVERRIDE (with persistence flag)
           const testProfile = localStorage.getItem('test_profile');
-          if (testProfile) {
+          const testProfileLocked = sessionStorage.getItem('test_profile_locked');
+
+          if (testProfile && !testProfileLocked) {
             console.log('🧪 Test profile detected:', testProfile);
             userMatch = { ...userMatch, role: testProfile as UserRole };
             console.log('🔄 Overriding role to:', testProfile);
+
+            // Lock the test profile for this session to prevent auth events from overriding it
+            sessionStorage.setItem('test_profile_locked', 'true');
+          } else if (testProfileLocked) {
+            // Profile already locked, use the test profile from localStorage
+            console.log('🔒 Test profile locked, maintaining:', testProfile);
+            userMatch = { ...userMatch, role: testProfile as UserRole };
           }
 
           setCurrentUser(userMatch);

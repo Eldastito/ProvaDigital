@@ -31,6 +31,9 @@ export const ProfileSwitcher: React.FC = () => {
         // Save to localStorage for persistence
         localStorage.setItem('test_profile', role);
 
+        // Clear session lock to allow new profile to be applied
+        sessionStorage.removeItem('test_profile_locked');
+
         // Update store immediately
         setCurrentUser(updatedUser);
 
