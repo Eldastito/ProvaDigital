@@ -46,10 +46,19 @@ export default function App() {
         console.log('✅ User signed in:', session.user.email);
 
         // Buscar perfil extendido do usuário na store local (pode ter vindo do loadRemoteData)
-        const userMatch = users.find(u => u.email === session.user.email);
+        let userMatch = users.find(u => u.email === session.user.email);
 
         if (userMatch) {
           console.log('👤 User found in store:', userMatch.name);
+
+          // 🧪 CHECK FOR TEST PROFILE OVERRIDE
+          const testProfile = localStorage.getItem('test_profile');
+          if (testProfile) {
+            console.log('🧪 Test profile detected:', testProfile);
+            userMatch = { ...userMatch, role: testProfile as UserRole };
+            console.log('🔄 Overriding role to:', testProfile);
+          }
+
           setCurrentUser(userMatch);
           // Route based on Role
           if (userMatch.role === UserRole.ALUNO) setView('STUDENT_PORTAL');
