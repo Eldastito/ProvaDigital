@@ -26,6 +26,7 @@ import { SurvivalView } from './StudentPortal/SurvivalView';
 import { GamifiedEventsManager } from './GamifiedEvents/GamifiedEventsManager';
 import { RiskDashboard } from './RiskManagement/RiskDashboard';
 import { ClassDiaryView } from './ClassDiary/ClassDiaryView';
+import { ProfessorDashboardView } from './Professor/ProfessorDashboardView';
 
 interface ViewRouterProps {
     view: string;
@@ -55,6 +56,10 @@ export const ViewRouter = ({
 
     switch (view) {
         case 'DASHBOARD':
+            // Check if user is PROFESSOR and route to specific dashboard
+            if (currentUser.role === 'PROFESSOR') {
+                return <ProfessorDashboardView />;
+            }
             return <DashboardView state={store} setView={setView} />;
 
         case 'ITEMS':
