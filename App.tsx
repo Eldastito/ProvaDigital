@@ -68,6 +68,23 @@ export default function App() {
               console.log('👨‍👩‍👧‍👦 Adicionando filhos de teste ao perfil PAIS');
             }
 
+            // 🎓 Se for perfil ALUNO, criar registro de estudante
+            if (testProfile === 'ALUNO') {
+              const studentExists = students.find(s => s.id === userMatch.id);
+              if (!studentExists) {
+                const newStudent = {
+                  id: userMatch.id,
+                  name: userMatch.name,
+                  registrationNumber: 'TEST-' + userMatch.id.slice(0, 6),
+                  classId: 'c1',
+                  schoolId: userMatch.schoolId || 's1',
+                  tenantId: userMatch.tenantId
+                };
+                store.students.push(newStudent);
+                console.log('🎓 Criando registro de estudante para teste:', newStudent.name);
+              }
+            }
+
             console.log('🔄 Overriding role to:', testProfile);
 
             // Lock the test profile for this session to prevent auth events from overriding it
@@ -83,6 +100,22 @@ export default function App() {
                 ...userMatch,
                 childrenIds: ['st_muni', 'st_state', 'st_fed', 'st_priv']
               };
+            }
+
+            // 🎓 Se for perfil ALUNO, garantir que estudante existe
+            if (testProfile === 'ALUNO') {
+              const studentExists = students.find(s => s.id === userMatch.id);
+              if (!studentExists) {
+                const newStudent = {
+                  id: userMatch.id,
+                  name: userMatch.name,
+                  registrationNumber: 'TEST-' + userMatch.id.slice(0, 6),
+                  classId: 'c1',
+                  schoolId: userMatch.schoolId || 's1',
+                  tenantId: userMatch.tenantId
+                };
+                store.students.push(newStudent);
+              }
             }
           }
 
