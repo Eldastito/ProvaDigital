@@ -87,6 +87,7 @@ interface AppActions {
     addMentorshipRequest: (request: MentorshipRequest) => void;
     acceptMentorshipRequest: (requestId: string, mentorId: string, mentorName: string) => void;
     confirmMentorship: (requestId: string, pinInput: string) => boolean; // Returns true if PIN matches
+}
 
 type AppStore = AppState & AppActions;
 
