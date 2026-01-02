@@ -58,6 +58,16 @@ export default function App() {
           if (testProfile && !testProfileLocked) {
             console.log('🧪 Test profile detected:', testProfile);
             userMatch = { ...userMatch, role: testProfile as UserRole };
+
+            // 🧒 Se for perfil PAIS, adicionar filhos de teste
+            if (testProfile === 'PAIS') {
+              userMatch = {
+                ...userMatch,
+                childrenIds: ['st_muni', 'st_state', 'st_fed', 'st_priv']
+              };
+              console.log('👨‍👩‍👧‍👦 Adicionando filhos de teste ao perfil PAIS');
+            }
+
             console.log('🔄 Overriding role to:', testProfile);
 
             // Lock the test profile for this session to prevent auth events from overriding it
@@ -66,6 +76,14 @@ export default function App() {
             // Profile already locked, use the test profile from localStorage
             console.log('🔒 Test profile locked, maintaining:', testProfile);
             userMatch = { ...userMatch, role: testProfile as UserRole };
+
+            // 🧒 Se for perfil PAIS, adicionar filhos de teste
+            if (testProfile === 'PAIS') {
+              userMatch = {
+                ...userMatch,
+                childrenIds: ['st_muni', 'st_state', 'st_fed', 'st_priv']
+              };
+            }
           }
 
           setCurrentUser(userMatch);
