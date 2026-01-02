@@ -156,9 +156,6 @@ export const StudyPlansView = ({ state, user }: StudyPlansViewProps) => {
         // Start new
         if (sound === 'WHITE_NOISE') {
             toggleWhiteNoise(true);
-        } else if (sound !== 'OFF') {
-            // Placeholder for Rain/Cafe (would be HTMLAudioElement in real app)
-            alert(`🔊 Simulando áudio: ${sound} (Imagine o som relaxante...)`);
         }
     };
 
@@ -440,17 +437,17 @@ export const StudyPlansView = ({ state, user }: StudyPlansViewProps) => {
                                         <Sparkles size={12} /> Paisagens Sonoras
                                     </h4>
                                     <div className="flex justify-center gap-3">
-                                        {['OFF', 'RAIN', 'CAFE', 'WHITE_NOISE'].map((sound) => (
+                                        {['OFF', 'WHITE_NOISE'].map((sound) => (
                                             <button
                                                 key={sound}
                                                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ${(activeSound === sound)
-                                                        ? 'bg-slate-800 text-white shadow-md transform scale-105'
-                                                        : 'bg-white border hover:bg-slate-50 text-slate-600'
+                                                    ? 'bg-slate-800 text-white shadow-md transform scale-105'
+                                                    : 'bg-white border hover:bg-slate-50 text-slate-600'
                                                     }`}
                                                 onClick={() => handleSoundChange(sound as any)}
                                             >
                                                 {sound === 'OFF' ? <XCircle size={12} /> : <Play size={10} />}
-                                                {sound === 'OFF' ? 'Sem Som' : sound === 'RAIN' ? 'Chuva' : sound === 'CAFE' ? 'Cafeteria' : 'Ruído Branco'}
+                                                {sound === 'OFF' ? 'Sem Som' : 'Ruído Branco (Foco)'}
                                                 {activeSound === sound && sound !== 'OFF' && <span className="animate-pulse">🔊</span>}
                                             </button>
                                         ))}

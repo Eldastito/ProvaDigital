@@ -259,8 +259,7 @@ export interface ExamResult {
   securityFlags?: string[];
 }
 
-securityFlags ?: string[];
-}
+
 
 // --- MENTORSHIP SYSTEM (NEW) ---
 export enum MentorshipStatus {
