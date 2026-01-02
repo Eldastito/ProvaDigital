@@ -229,7 +229,26 @@ export const Layout = ({ children, currentView, setView }: LayoutProps) => {
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
               <Menu size={20} className="text-slate-700" />
             </button>
-            </span>
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col">
+                <h1 className="text-lg font-black text-brand-dark tracking-tight">{tenantName}</h1>
+                <p className="text-xs text-slate-500 font-medium">ExamePad SaaS</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            {/* Profile Switcher for Testing */}
+            <ProfileSwitcher />
+
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <p className="text-sm font-bold text-slate-800">{cleanDisplayName}</p>
+                <p className="text-xs text-slate-500">{currentUser.email}</p>
+              </div>
+              <button onClick={handleLogout} className="p-2 hover:bg-slate-100 rounded-lg transition-colors group" title="Sair">
+                <LogOut size={18} className="text-slate-600 group-hover:text-rose-600 transition-colors" />
+              </button>
+            </div>
           </div>
         </header>
 
