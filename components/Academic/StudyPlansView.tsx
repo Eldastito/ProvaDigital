@@ -364,6 +364,32 @@ export const StudyPlansView = ({ state, user }: StudyPlansViewProps) => {
                                     💡 Dica: Sessões completas aumentam seu nível no ranking!
                                 </div>
                             )}
+
+                            {/* --- AMBIENT SOUNDSCAPES --- */}
+                            {pomoMode === 'FOCUS' && (
+                                <div className="mt-8 border-t border-slate-100 pt-6">
+                                    <h4 className="text-xs font-bold text-slate-400 uppercase mb-3 flex items-center justify-center gap-2">
+                                        <Sparkles size={12} /> Paisagens Sonoras
+                                    </h4>
+                                    <div className="flex justify-center gap-3">
+                                        {['OFF', 'RAIN', 'CAFE', 'WHITE_NOISE'].map((sound) => (
+                                            <button
+                                                key={sound}
+                                                // Placeholder for actual audio implementation
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ${(sound === 'OFF')
+                                                        ? 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                                                        : 'bg-white border hover:bg-slate-50 text-slate-600'
+                                                    }`}
+                                                onClick={() => alert(`🎵 Som de fundo: ${sound} (Simulação)\nEm breve com áudio real!`)}
+                                            >
+                                                {sound === 'OFF' ? <XCircle size={12} /> : <Play size={10} />}
+                                                {sound === 'OFF' ? 'Sem Som' : sound === 'RAIN' ? 'Chuva' : sound === 'CAFE' ? 'Cafeteria' : 'Ruído Branco'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <p className="text-[10px] text-slate-300 mt-2">Áudio imersivo para ajudar na concentração.</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

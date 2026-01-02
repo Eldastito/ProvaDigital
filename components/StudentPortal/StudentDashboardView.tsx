@@ -31,10 +31,10 @@ const EvolutionChart = ({ data }: { data: { label: string, value: number }[] }) 
                 {/* Grid Lines */}
                 <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#e2e8f0" strokeWidth="1" />
                 <line x1={padding} y1={padding} x2={width - padding} y2={padding} stroke="#e2e8f0" strokeWidth="1" strokeDasharray="4" />
-                
+
                 {/* Path */}
                 <polyline points={points} fill="none" stroke="#0077b6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                
+
                 {/* Dots and Labels */}
                 {data.map((d, i) => {
                     const x = padding + (i / (data.length - 1)) * (width - 2 * padding);
@@ -55,11 +55,11 @@ const EvolutionChart = ({ data }: { data: { label: string, value: number }[] }) 
 export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps) => {
     const isParent = user.role === UserRole.PAIS;
     const { registerStudentToEvent } = useAppStore();
-    
+
     // Se for pai, pega o filho selecionado na store (selectedChildId)
     // Se não houver seleção, fallback para o primeiro filho disponível
     let studentIdToView = user.id;
-    
+
     if (isParent) {
         if (state.selectedChildId) {
             studentIdToView = state.selectedChildId;
@@ -73,10 +73,10 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
     const analytics = new AnalyticsService(state);
     const stats = student ? analytics.getStudentStats(student.id) : null;
     const profile = student ? state.studentProfiles?.find(p => p.studentId === student.id) : null;
-    
+
     // Buscar perfil estendido (para moedas e badges)
     const extendedProfile = student ? state.userProfiles?.find(p => p.userId === student.id) : null;
-    
+
     // Calendar State
     const [currentMonth, setCurrentMonth] = useState(new Date());
     // Ranking Modal State
@@ -87,7 +87,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
     const [selectedResult, setSelectedResult] = useState<ExamResult | null>(null);
     // Agenda Modal State
     const [showAgendaModal, setShowAgendaModal] = useState(false);
-    
+
     // Event Modal
     const [showEventRules, setShowEventRules] = useState<string | null>(null);
 
@@ -114,7 +114,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
         .map(r => {
             const exam = state.exams.find(e => e.id === r.examId);
             return {
-                label: exam?.subject.slice(0,3) || 'Av',
+                label: exam?.subject.slice(0, 3) || 'Av',
                 value: r.totalScore
             };
         });
@@ -124,13 +124,13 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
     const trend = lastTwoResults.length === 2 ? lastTwoResults[1].value - lastTwoResults[0].value : 0;
 
     // --- EVENTS LOGIC ---
-    const availableEvents = state.gamifiedEvents.filter(e => 
-        e.schoolId === student.schoolId && 
+    const availableEvents = state.gamifiedEvents.filter(e =>
+        e.schoolId === student.schoolId &&
         e.status === GamifiedEventStatus.OPEN &&
         !e.participants.some(p => p.studentId === student.id)
     );
 
-    const myActiveEvents = state.gamifiedEvents.filter(e => 
+    const myActiveEvents = state.gamifiedEvents.filter(e =>
         e.participants.some(p => p.studentId === student.id) &&
         e.status !== GamifiedEventStatus.FINISHED
     );
@@ -174,6 +174,20 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
 
     const ranks = calculateRanks();
 
+    // --- LEVELLING LOGIC ---
+    const currentXP = extendedProfile?.xp || 0;
+    const currentLevel = Math.floor(currentXP / 1000) + 1;
+    const nextLevelXP = currentLevel * 1000;
+    const progressToNext = currentXP % 1000;
+    const progressPercent = (progressToNext / 1000) * 100;
+
+    // --- MOCK DAILY QUESTS ---
+    const dailyQuests = [
+        { id: 1, title: 'Foco Total', desc: 'Complete 1 pomodoro de 25m', xp: 50, done: false },
+        { id: 2, title: 'Mestre dos Simulados', desc: 'Acerte 80% em um simulado', xp: 100, done: true },
+        { id: 3, title: 'Presença Diária', desc: 'Faça login no portal', xp: 10, done: true },
+    ];
+
     // Calendar Logic (Reuse existing logic)
     const getDaysInMonth = (date: Date) => {
         const year = date.getFullYear();
@@ -184,7 +198,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
     };
 
     const { days, firstDay } = getDaysInMonth(currentMonth);
-    
+
     const myExams = state.registrations
         .filter(r => r.studentId === student.id)
         .map(r => state.exams.find(e => e.id === r.examId))
@@ -194,21 +208,21 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
         const dateStr = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toISOString().split('T')[0];
         const exams = myExams.filter(e => e.scheduledDate === dateStr);
         const announcements = state.announcements.filter(a => a.eventDate === dateStr);
-        
+
         // Add Gamified Events to Calendar
-        const gameEvents = state.gamifiedEvents.filter(e => 
+        const gameEvents = state.gamifiedEvents.filter(e =>
             e.participants.some(p => p.studentId === student.id) &&
             e.eventDate.startsWith(dateStr)
         );
 
         const mappedEvents = [
-            ...exams.map(e => ({ 
-                type: e.title.toLowerCase().includes('trabalho') ? 'TRABALHO' : 'PROVA', 
+            ...exams.map(e => ({
+                type: e.title.toLowerCase().includes('trabalho') ? 'TRABALHO' : 'PROVA',
                 title: e.title,
-                date: e.scheduledDate 
+                date: e.scheduledDate
             })),
-            ...announcements.map(a => ({ 
-                type: a.type === 'AVISO' ? 'OUTRO' : 'EVENTO', 
+            ...announcements.map(a => ({
+                type: a.type === 'AVISO' ? 'OUTRO' : 'EVENTO',
                 title: a.title,
                 date: a.eventDate
             })),
@@ -224,9 +238,9 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
 
     const getAllMonthEvents = () => {
         const events = [];
-        for(let i=1; i<=days; i++) {
+        for (let i = 1; i <= days; i++) {
             const dayEvents = getEventsForDay(i);
-            if(dayEvents.length > 0) events.push(...dayEvents.map(e => ({...e, day: i})));
+            if (dayEvents.length > 0) events.push(...dayEvents.map(e => ({ ...e, day: i })));
         }
         return events;
     };
@@ -238,7 +252,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
     };
 
     const getEventColor = (type: string) => {
-        switch(type) {
+        switch (type) {
             case 'PROVA': return 'bg-rose-500 border-rose-600 text-white';
             case 'TRABALHO': return 'bg-blue-500 border-blue-600 text-white';
             case 'EVENTO': return 'bg-emerald-500 border-emerald-600 text-white';
@@ -248,7 +262,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
     };
 
     const getEventLabel = (type: string) => {
-        switch(type) {
+        switch (type) {
             case 'PROVA': return 'Prova/Avaliação';
             case 'TRABALHO': return 'Trabalho/Pesquisa';
             case 'EVENTO': return 'Evento Escolar';
@@ -266,69 +280,69 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in">
                 <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl h-[90vh] flex flex-col">
                     <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
-                         <div>
-                             <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2"><FileText size={20}/> Correção: {exam.title}</h3>
-                             <p className="text-xs text-slate-500">Nota Final: <strong className="text-brand-primary text-sm">{selectedResult.totalScore.toFixed(1)}</strong></p>
-                         </div>
-                         <button onClick={() => setSelectedResult(null)} className="p-2 hover:bg-slate-200 rounded-full text-slate-500"><X size={20}/></button>
+                        <div>
+                            <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2"><FileText size={20} /> Correção: {exam.title}</h3>
+                            <p className="text-xs text-slate-500">Nota Final: <strong className="text-brand-primary text-sm">{selectedResult.totalScore.toFixed(1)}</strong></p>
+                        </div>
+                        <button onClick={() => setSelectedResult(null)} className="p-2 hover:bg-slate-200 rounded-full text-slate-500"><X size={20} /></button>
                     </div>
                     <div className="flex-1 overflow-y-auto p-8 bg-slate-100">
                         <div className="bg-white shadow-sm p-8 max-w-2xl mx-auto min-h-full">
-                             <div className="text-center border-b pb-6 mb-6">
-                                 <h1 className="text-2xl font-bold uppercase tracking-wide">{exam.title}</h1>
-                                 <div className="flex justify-center gap-4 text-sm text-slate-500 mt-2">
-                                     <span>Aluno: {student.name}</span>
-                                     <span>Data: {new Date(selectedResult.gradedAt).toLocaleDateString()}</span>
-                                 </div>
-                             </div>
-                             <div className="space-y-8">
-                                 {exam.items.map((conf, idx) => {
-                                     const item = state.items.find(i => i.id === conf.itemId);
-                                     const answer = selectedResult.answers.find(a => a.itemId === conf.itemId);
-                                     if (!item) return null;
+                            <div className="text-center border-b pb-6 mb-6">
+                                <h1 className="text-2xl font-bold uppercase tracking-wide">{exam.title}</h1>
+                                <div className="flex justify-center gap-4 text-sm text-slate-500 mt-2">
+                                    <span>Aluno: {student.name}</span>
+                                    <span>Data: {new Date(selectedResult.gradedAt).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                            <div className="space-y-8">
+                                {exam.items.map((conf, idx) => {
+                                    const item = state.items.find(i => i.id === conf.itemId);
+                                    const answer = selectedResult.answers.find(a => a.itemId === conf.itemId);
+                                    if (!item) return null;
 
-                                     return (
-                                         <div key={item.id} className={`p-4 border rounded-lg ${answer?.isCorrect ? 'border-emerald-200 bg-emerald-50/30' : 'border-rose-200 bg-rose-50/30'}`}>
-                                             <div className="flex gap-3 mb-2">
-                                                 <span className="font-bold text-slate-700">{idx+1}.</span>
-                                                 <div className="flex-1 font-medium text-slate-800">{item.statement}</div>
-                                                 <div className="font-bold text-xs">
-                                                     {answer?.scoreObtained}/{conf.customScore || item.score} pts
-                                                 </div>
-                                             </div>
-                                             
-                                             {item.type !== QuestionType.ESSAY ? (
-                                                 <div className="pl-7 space-y-1">
-                                                     {item.alternatives.map((alt, i) => {
-                                                         const isSelected = answer?.selectedAlternativeId === alt.id;
-                                                         const isKey = alt.isCorrect;
-                                                         
-                                                         let rowClass = "text-sm p-1 rounded flex justify-between ";
-                                                         if (isSelected && isKey) rowClass += "bg-emerald-100 text-emerald-800 font-bold";
-                                                         else if (isSelected && !isKey) rowClass += "bg-rose-100 text-rose-800 font-bold line-through decoration-rose-500";
-                                                         else if (!isSelected && isKey) rowClass += "bg-sky-50 text-sky-700 font-bold border border-sky-200";
-                                                         else rowClass += "text-slate-500";
+                                    return (
+                                        <div key={item.id} className={`p-4 border rounded-lg ${answer?.isCorrect ? 'border-emerald-200 bg-emerald-50/30' : 'border-rose-200 bg-rose-50/30'}`}>
+                                            <div className="flex gap-3 mb-2">
+                                                <span className="font-bold text-slate-700">{idx + 1}.</span>
+                                                <div className="flex-1 font-medium text-slate-800">{item.statement}</div>
+                                                <div className="font-bold text-xs">
+                                                    {answer?.scoreObtained}/{conf.customScore || item.score} pts
+                                                </div>
+                                            </div>
 
-                                                         return (
-                                                             <div key={i} className={rowClass}>
-                                                                 <span>{String.fromCharCode(97+i)}) {alt.text}</span>
-                                                                 {isKey && <Check size={14} className="text-emerald-600"/>}
-                                                             </div>
-                                                         );
-                                                     })}
-                                                 </div>
-                                             ) : (
-                                                 <div className="pl-7 mt-2">
-                                                     <div className="text-xs font-bold text-slate-500 uppercase">Sua Resposta:</div>
-                                                     <div className="p-2 bg-white border border-slate-200 rounded text-sm text-slate-600 italic">
-                                                         (Resposta discursiva avaliada pelo professor)
-                                                     </div>
-                                                 </div>
-                                             )}
-                                         </div>
-                                     );
-                                 })}
-                             </div>
+                                            {item.type !== QuestionType.ESSAY ? (
+                                                <div className="pl-7 space-y-1">
+                                                    {item.alternatives.map((alt, i) => {
+                                                        const isSelected = answer?.selectedAlternativeId === alt.id;
+                                                        const isKey = alt.isCorrect;
+
+                                                        let rowClass = "text-sm p-1 rounded flex justify-between ";
+                                                        if (isSelected && isKey) rowClass += "bg-emerald-100 text-emerald-800 font-bold";
+                                                        else if (isSelected && !isKey) rowClass += "bg-rose-100 text-rose-800 font-bold line-through decoration-rose-500";
+                                                        else if (!isSelected && isKey) rowClass += "bg-sky-50 text-sky-700 font-bold border border-sky-200";
+                                                        else rowClass += "text-slate-500";
+
+                                                        return (
+                                                            <div key={i} className={rowClass}>
+                                                                <span>{String.fromCharCode(97 + i)}) {alt.text}</span>
+                                                                {isKey && <Check size={14} className="text-emerald-600" />}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : (
+                                                <div className="pl-7 mt-2">
+                                                    <div className="text-xs font-bold text-slate-500 uppercase">Sua Resposta:</div>
+                                                    <div className="p-2 bg-white border border-slate-200 rounded text-sm text-slate-600 italic">
+                                                        (Resposta discursiva avaliada pelo professor)
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -340,7 +354,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
         <div className="space-y-6 max-w-7xl mx-auto">
             {isParent && (
                 <div className="bg-sky-50 border border-sky-200 p-4 rounded-lg flex items-center gap-3 text-sky-800 mb-4 animate-in slide-in-from-top-2">
-                    <UserIcon size={24} className="p-1 bg-sky-200 rounded-full"/>
+                    <UserIcon size={24} className="p-1 bg-sky-200 rounded-full" />
                     <div>
                         <span className="font-bold text-xs uppercase">Modo Responsável</span>
                         <p className="text-sm">Visualizando o desempenho acadêmico de <strong>{student.name}</strong>.</p>
@@ -356,11 +370,11 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                 <div className="flex gap-3">
                     {state.settings.rankingEnabled && (
                         <button onClick={() => setShowRankingModal(true)} className="bg-amber-100 text-amber-700 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-amber-200 transition shadow-sm border border-amber-200">
-                            <Trophy size={18}/> Ver Ranking
+                            <Trophy size={18} /> Ver Ranking
                         </button>
                     )}
                     <button onClick={() => setShowAgendaModal(true)} className="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-slate-50 transition shadow-sm">
-                        <List size={18}/> Ver Agenda Completa
+                        <List size={18} /> Ver Agenda Completa
                     </button>
                 </div>
             </div>
@@ -369,18 +383,18 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
             {availableEvents.length > 0 && !isParent && (
                 <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6 rounded-xl shadow-lg mb-6 relative overflow-hidden animate-in slide-in-from-top-4">
                     <div className="relative z-10">
-                        <h3 className="text-xl font-bold mb-2 flex items-center gap-2"><Sparkles className="text-yellow-400"/> Convites Especiais ({availableEvents.length})</h3>
+                        <h3 className="text-xl font-bold mb-2 flex items-center gap-2"><Sparkles className="text-yellow-400" /> Convites Especiais ({availableEvents.length})</h3>
                         <div className="flex gap-4 overflow-x-auto pb-2">
                             {availableEvents.map(evt => (
                                 <div key={evt.id} className="min-w-[280px] bg-white/10 border border-white/20 p-4 rounded-lg hover:bg-white/20 transition">
                                     <div className="text-xs font-bold text-purple-200 uppercase mb-1">{evt.type.replace('_', ' ')}</div>
                                     <h4 className="font-bold text-lg leading-tight mb-2">{evt.title}</h4>
                                     <div className="flex items-center gap-2 text-xs text-purple-100 mb-3">
-                                        <Calendar size={12}/> {new Date(evt.eventDate).toLocaleDateString()}
+                                        <Calendar size={12} /> {new Date(evt.eventDate).toLocaleDateString()}
                                         <span className="opacity-50">|</span>
-                                        <Coins size={12} className="text-yellow-400"/> Prémio: {evt.rewardCoins}
+                                        <Coins size={12} className="text-yellow-400" /> Prémio: {evt.rewardCoins}
                                     </div>
-                                    <button 
+                                    <button
                                         onClick={() => setShowEventRules(evt.id)}
                                         className="w-full bg-white text-purple-700 py-2 rounded font-bold text-sm hover:bg-purple-50 transition"
                                     >
@@ -390,7 +404,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                             ))}
                         </div>
                     </div>
-                    <Trophy size={150} className="absolute -right-4 -bottom-4 text-white/10 rotate-12"/>
+                    <Trophy size={150} className="absolute -right-4 -bottom-4 text-white/10 rotate-12" />
                 </div>
             )}
 
@@ -398,7 +412,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
             {myActiveEvents.length > 0 && !isParent && (
                 <div className="bg-white border-l-4 border-amber-500 p-4 rounded-xl shadow-sm mb-6 flex items-center justify-between">
                     <div>
-                        <h4 className="font-bold text-slate-800 flex items-center gap-2"><Award className="text-amber-500"/> Suas Competições</h4>
+                        <h4 className="font-bold text-slate-800 flex items-center gap-2"><Award className="text-amber-500" /> Suas Competições</h4>
                         <p className="text-sm text-slate-500">Você está inscrito em {myActiveEvents.length} evento(s). Prepare-se!</p>
                     </div>
                     <div className="flex gap-2">
@@ -416,13 +430,13 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                 <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-slate-400 uppercase">Índice Global (IDG)</span>
-                        <TrendingUp size={20} className="text-brand-primary"/>
+                        <TrendingUp size={20} className="text-brand-primary" />
                     </div>
                     <div className="flex items-baseline gap-2">
                         <div className="text-3xl font-black text-slate-800">{stats.idgScore.toFixed(1)}</div>
                         {trend !== 0 && (
                             <div className={`flex items-center text-xs font-bold ${trend > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                {trend > 0 ? <ArrowUp size={12}/> : <ArrowDown size={12}/>}
+                                {trend > 0 ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
                                 {Math.abs(trend).toFixed(1)}
                             </div>
                         )}
@@ -431,23 +445,23 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                 </div>
 
                 <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                     <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-slate-400 uppercase">Frequência</span>
-                        <CheckCircle size={20} className={stats.attendanceRate > 85 ? "text-emerald-500" : "text-rose-500"}/>
+                        <CheckCircle size={20} className={stats.attendanceRate > 85 ? "text-emerald-500" : "text-rose-500"} />
                     </div>
                     <div className="text-3xl font-black text-slate-800">{stats.attendanceRate}%</div>
                     <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden">
-                        <div 
-                            className={`h-full ${stats.attendanceRate > 85 ? 'bg-emerald-500' : 'bg-rose-500'}`} 
-                            style={{width: `${stats.attendanceRate}%`}}
+                        <div
+                            className={`h-full ${stats.attendanceRate > 85 ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                            style={{ width: `${stats.attendanceRate}%` }}
                         ></div>
                     </div>
                 </div>
 
                 <div className={`p-5 rounded-xl border shadow-sm ${getRiskColor(stats.riskLevel)}`}>
-                     <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold uppercase opacity-70">Status de Risco</span>
-                        <AlertTriangle size={20}/>
+                        <AlertTriangle size={20} />
                     </div>
                     <div className="text-xl font-black">
                         {stats.riskLevel === RiskLevel.LOW ? 'Zona Segura' : stats.riskLevel === RiskLevel.MEDIUM ? 'Atenção' : 'Crítico'}
@@ -458,9 +472,9 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                 </div>
 
                 <div className="bg-gradient-to-br from-brand-dark to-brand-primary text-white p-5 rounded-xl border border-brand-dark shadow-sm">
-                     <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-sky-200 uppercase">Meta Próxima Prova</span>
-                        <BookOpen size={20} className="text-white"/>
+                        <BookOpen size={20} className="text-white" />
                     </div>
                     <div className="text-3xl font-black text-white">
                         {Math.min(10, stats.missingPointsForApproval).toFixed(1)}
@@ -475,7 +489,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
                     <div>
                         <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
-                            <Brain size={20} className="text-purple-600"/> Perfil e Conquistas
+                            <Brain size={20} className="text-purple-600" /> Perfil e Conquistas
                         </h3>
                         <div className="space-y-4">
                             {/* Academic Achievements List */}
@@ -485,7 +499,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                                     <div className="space-y-2">
                                         {extendedProfile.academicAchievements.map(ach => (
                                             <div key={ach.id} className="flex items-center gap-2 bg-yellow-50 p-2 rounded border border-yellow-200 text-sm text-yellow-800">
-                                                <Medal size={16}/>
+                                                <Medal size={16} />
                                                 <span className="font-bold">{ach.title}</span>
                                                 <span className="text-xs bg-white px-1 rounded ml-auto border border-yellow-300">+{ach.bonusPoints} pts</span>
                                             </div>
@@ -506,7 +520,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                                 </div>
                             ) : (
                                 <div className="text-center py-6 text-slate-400">
-                                    <Activity size={32} className="mx-auto mb-2 opacity-50"/>
+                                    <Activity size={32} className="mx-auto mb-2 opacity-50" />
                                     <p className="text-sm">Triagem de perfil ainda não realizada.</p>
                                 </div>
                             )}
@@ -517,43 +531,82 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                 {/* Gamification / Coins Card */}
                 <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-6 rounded-xl border border-amber-200 shadow-sm flex flex-col justify-between relative overflow-hidden">
                     <div className="relative z-10">
-                        <h3 className="font-bold text-amber-800 flex items-center gap-2 mb-4">
-                            <Coins size={20} className="text-amber-600"/> Liga de XP & Conquistas
-                        </h3>
-                        <div className="flex items-end gap-2 mb-2">
-                            <span className="text-4xl font-black text-amber-600">{extendedProfile?.owlCoins || 0}</span>
-                            <span className="text-sm font-bold text-amber-700 mb-1">Owl Coins</span>
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 className="font-bold text-amber-900 flex items-center gap-2 text-lg">
+                                    <Trophy size={20} className="text-amber-600" /> Nível {currentLevel}
+                                </h3>
+                                <p className="text-xs text-amber-700 font-bold uppercase">{currentXP} XP Total</p>
+                            </div>
+                            <div className="text-right">
+                                <span className="text-3xl font-black text-amber-600">{extendedProfile?.owlCoins || 0}</span>
+                                <div className="text-[10px] font-bold text-amber-700 uppercase">Owl Coins</div>
+                            </div>
                         </div>
-                        <p className="text-xs text-amber-800/70 mb-4">
-                            Você subiu <strong>{ranks.schoolRank}º</strong> no Ranking de Engajamento!
-                        </p>
-                        
-                        <div className="flex gap-2">
+
+                        {/* XP Progress Bar */}
+                        <div className="mb-2">
+                            <div className="flex justify-between text-xs font-bold text-amber-800 mb-1">
+                                <span>Progresso para Nível {currentLevel + 1}</span>
+                                <span>{Math.floor(progressPercent)}%</span>
+                            </div>
+                            <div className="w-full bg-white/50 h-3 rounded-full border border-amber-200 overflow-hidden">
+                                <div
+                                    className="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-1000"
+                                    style={{ width: `${progressPercent}%` }}
+                                ></div>
+                            </div>
+                            <div className="text-[10px] text-amber-700 mt-1 text-right">Faltam {1000 - progressToNext} XP</div>
+                        </div>
+
+                        <div className="flex gap-2 mt-2 flex-wrap">
                             {(extendedProfile?.badges || ['Iniciante']).map((badge, idx) => (
-                                <div key={idx} className="bg-white/60 px-2 py-1 rounded text-xs font-bold text-amber-800 flex items-center gap-1 border border-amber-200">
-                                    <Star size={10} fill="orange" className="text-orange-400"/> {badge}
+                                <div key={idx} className="bg-white/80 px-2 py-1 rounded text-[10px] font-bold text-amber-900 flex items-center gap-1 border border-amber-200 shadow-sm">
+                                    <Medal size={10} className="text-orange-500" /> {badge}
                                 </div>
                             ))}
                         </div>
                     </div>
-                    <Coins size={100} className="absolute -right-4 -bottom-4 text-amber-200 opacity-50 rotate-12"/>
+                    <Coins size={120} className="absolute -right-6 -bottom-6 text-amber-200 opacity-40 rotate-12" />
+                </div>
+            </div>
+
+            {/* --- DAILY QUESTS WIDGET (NEW) --- */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-10"><Target size={100} /></div>
+                <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 relative z-10">
+                    <Target size={20} className="text-brand-primary" /> Missões Diárias
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10">
+                    {dailyQuests.map(q => (
+                        <div key={q.id} className={`p-3 rounded-lg border flex items-center gap-3 ${q.done ? 'bg-emerald-50 border-emerald-200 opacity-80' : 'bg-white border-slate-200'}`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${q.done ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+                                {q.done ? <Check size={16} /> : <Star size={16} />}
+                            </div>
+                            <div>
+                                <div className={`text-sm font-bold ${q.done ? 'text-emerald-800 line-through' : 'text-slate-700'}`}>{q.title}</div>
+                                <div className="text-xs text-slate-500">{q.desc}</div>
+                                {!q.done && <div className="text-[10px] font-bold text-amber-600 mt-1">+{q.xp} XP</div>}
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left Column: Calendar & Evolution */}
                 <div className="space-y-6">
-                     {/* Evolution Chart Card */}
+                    {/* Evolution Chart Card */}
                     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><TrendingUp size={18}/> Evolução de Notas</h3>
+                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><TrendingUp size={18} /> Evolução de Notas</h3>
                         <EvolutionChart data={chartData} />
                     </div>
 
                     {/* Quick Agenda Widget */}
                     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                         <div className="flex justify-between items-center mb-4">
-                             <h3 className="font-bold text-slate-800 flex items-center gap-2"><Calendar size={18}/> Agenda Rápida</h3>
-                             <button onClick={() => setShowAgendaModal(true)} className="text-xs text-brand-primary hover:underline">Expandir</button>
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2"><Calendar size={18} /> Agenda Rápida</h3>
+                            <button onClick={() => setShowAgendaModal(true)} className="text-xs text-brand-primary hover:underline">Expandir</button>
                         </div>
                         <div className="space-y-2">
                             {getAllMonthEvents().slice(0, 3).map((ev, i) => (
@@ -574,7 +627,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                 <div className="lg:col-span-2 space-y-6">
                     {/* Grades History */}
                     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Clock size={18}/> Histórico de Provas</h3>
+                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Clock size={18} /> Histórico de Provas</h3>
                         <div className="space-y-3">
                             {recentResults.length === 0 && <p className="text-slate-400 text-sm">Nenhuma prova realizada ainda.</p>}
                             {recentResults.map(result => {
@@ -586,11 +639,11 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                                             <div className="text-xs text-slate-500">{exam?.subject} • {new Date(result.gradedAt).toLocaleDateString()}</div>
                                         </div>
                                         <div className="flex items-center gap-4">
-                                            <button 
+                                            <button
                                                 onClick={() => setSelectedResult(result)}
                                                 className="text-xs font-bold text-brand-primary bg-brand-light px-3 py-1.5 rounded-lg hover:bg-brand-secondary hover:text-white transition flex items-center gap-1"
                                             >
-                                                Ver Correção <Eye size={12}/>
+                                                Ver Correção <Eye size={12} />
                                             </button>
                                             <div className={`font-bold text-lg ${result.totalScore >= 6 ? 'text-emerald-600' : 'text-rose-600'}`}>
                                                 {result.totalScore.toFixed(1)}
@@ -604,7 +657,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
 
                     {/* Mural Announcements */}
                     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Calendar size={18}/> Mural da Escola</h3>
+                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Calendar size={18} /> Mural da Escola</h3>
                         <div className="space-y-4">
                             {state.announcements.map(ann => (
                                 <div key={ann.id} className={`p-3 rounded-lg border-l-4 ${ann.type === 'URGENTE' ? 'border-rose-500 bg-rose-50' : 'border-brand-secondary bg-slate-50'}`}>
@@ -627,17 +680,17 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in">
                     <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full h-[80vh] flex flex-col border-2 border-brand-primary relative overflow-hidden">
                         <div className="bg-slate-50 p-6 border-b flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Calendar className="text-brand-primary"/> Agenda Escolar</h2>
-                            <button onClick={() => setShowAgendaModal(false)}><X size={24} className="text-slate-400 hover:text-slate-600"/></button>
+                            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Calendar className="text-brand-primary" /> Agenda Escolar</h2>
+                            <button onClick={() => setShowAgendaModal(false)}><X size={24} className="text-slate-400 hover:text-slate-600" /></button>
                         </div>
-                        
+
                         <div className="flex flex-1 overflow-hidden">
                             {/* Calendar Sidebar */}
                             <div className="w-1/3 bg-slate-50 border-r border-slate-200 p-6 overflow-y-auto">
                                 <div className="flex justify-between items-center mb-6">
-                                     <button onClick={() => changeMonth(-1)} className="p-1 hover:bg-slate-200 rounded"><ChevronLeft size={20}/></button>
-                                     <span className="font-bold text-lg">{currentMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span>
-                                     <button onClick={() => changeMonth(1)} className="p-1 hover:bg-slate-200 rounded"><ChevronRight size={20}/></button>
+                                    <button onClick={() => changeMonth(-1)} className="p-1 hover:bg-slate-200 rounded"><ChevronLeft size={20} /></button>
+                                    <span className="font-bold text-lg">{currentMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span>
+                                    <button onClick={() => changeMonth(1)} className="p-1 hover:bg-slate-200 rounded"><ChevronRight size={20} /></button>
                                 </div>
                                 <div className="grid grid-cols-7 gap-1 text-center mb-2 text-xs font-bold text-slate-400">
                                     <div>D</div><div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div>
@@ -682,7 +735,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                                         <div key={i} className={`p-4 rounded-xl border-l-4 flex gap-4 shadow-sm ${getEventColor(ev.type).replace('text-white', 'bg-slate-50')}`}>
                                             <div className="flex flex-col items-center justify-center px-4 border-r border-slate-200">
                                                 <span className="text-2xl font-black text-slate-700">{new Date(ev.date || '').getDate()}</span>
-                                                <span className="text-xs uppercase font-bold text-slate-400">{new Date(ev.date || '').toLocaleDateString('pt-BR', {month: 'short'})}</span>
+                                                <span className="text-xs uppercase font-bold text-slate-400">{new Date(ev.date || '').toLocaleDateString('pt-BR', { month: 'short' })}</span>
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-2 mb-1">
@@ -697,7 +750,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                                     ))}
                                     {getAllMonthEvents().length === 0 && (
                                         <div className="text-center py-20 text-slate-400">
-                                            <Calendar size={48} className="mx-auto mb-4 opacity-20"/>
+                                            <Calendar size={48} className="mx-auto mb-4 opacity-20" />
                                             <p>Nenhum evento agendado para este mês.</p>
                                         </div>
                                     )}
@@ -713,18 +766,18 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in">
                     <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-purple-200">
                         <div className="bg-purple-900 p-6 text-white">
-                            <h2 className="text-xl font-bold flex items-center gap-2"><Trophy size={24} className="text-yellow-400"/> Regras do Evento</h2>
+                            <h2 className="text-xl font-bold flex items-center gap-2"><Trophy size={24} className="text-yellow-400" /> Regras do Evento</h2>
                         </div>
                         <div className="p-6">
-                            <h3 className="font-bold text-lg text-slate-800 mb-2">{availableEvents.find(e=>e.id===showEventRules)?.title}</h3>
-                            <p className="text-sm text-slate-600 mb-4 italic">{availableEvents.find(e=>e.id===showEventRules)?.description}</p>
-                            
+                            <h3 className="font-bold text-lg text-slate-800 mb-2">{availableEvents.find(e => e.id === showEventRules)?.title}</h3>
+                            <p className="text-sm text-slate-600 mb-4 italic">{availableEvents.find(e => e.id === showEventRules)?.description}</p>
+
                             <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-sm text-slate-700 leading-relaxed font-medium mb-6">
-                                {availableEvents.find(e=>e.id===showEventRules)?.rules}
+                                {availableEvents.find(e => e.id === showEventRules)?.rules}
                             </div>
 
                             <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 p-2 rounded mb-6 border border-amber-100">
-                                <AlertTriangle size={14}/> Ao aceitar, você se compromete a participar no dia do evento.
+                                <AlertTriangle size={14} /> Ao aceitar, você se compromete a participar no dia do evento.
                             </div>
 
                             <div className="flex gap-4">
@@ -742,17 +795,17 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                     <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border-2 border-brand-primary relative">
                         {/* Confetti Effect Background */}
                         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/confetti.png')] opacity-10 pointer-events-none"></div>
-                        
+
                         <div className="p-6 text-center relative">
-                            <button 
+                            <button
                                 onClick={() => setShowRankingModal(false)}
                                 className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
                             >
-                                <X size={20}/>
+                                <X size={20} />
                             </button>
 
                             <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border-4 shadow-inner ${rankingMode === 'ACADEMIC' ? 'bg-yellow-100 border-yellow-200' : 'bg-amber-100 border-amber-300'}`}>
-                                {rankingMode === 'ACADEMIC' ? <Trophy size={40} className="text-yellow-600 drop-shadow-sm" /> : <Coins size={40} className="text-amber-600 drop-shadow-sm"/>}
+                                {rankingMode === 'ACADEMIC' ? <Trophy size={40} className="text-yellow-600 drop-shadow-sm" /> : <Coins size={40} className="text-amber-600 drop-shadow-sm" />}
                             </div>
 
                             <h2 className="text-2xl font-black text-slate-800 mb-2">
@@ -764,13 +817,13 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
 
                             {/* TOGGLE */}
                             <div className="flex justify-center gap-2 mb-6">
-                                <button 
+                                <button
                                     onClick={() => setRankingMode('ACADEMIC')}
                                     className={`px-4 py-1 rounded-full text-xs font-bold transition ${rankingMode === 'ACADEMIC' ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500'}`}
                                 >
                                     Acadêmico (IDG)
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => setRankingMode('XP')}
                                     className={`px-4 py-1 rounded-full text-xs font-bold transition ${rankingMode === 'XP' ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-500'}`}
                                 >
@@ -782,14 +835,14 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                             {rankingMode === 'ACADEMIC' && (
                                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-4 text-left">
                                     <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Composição da sua Nota Global ({stats.idgScore.toFixed(1)})</h4>
-                                    
+
                                     <div className="space-y-2 text-sm">
                                         <div className="flex justify-between items-center">
                                             <span>📘 Médias de Provas (60%)</span>
                                             <span className="font-bold">{stats.examAverage.toFixed(1)}</span>
                                         </div>
                                         <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                                            <div className="bg-blue-500 h-full" style={{width: `${stats.examAverage * 10}%`}}></div>
+                                            <div className="bg-blue-500 h-full" style={{ width: `${stats.examAverage * 10}%` }}></div>
                                         </div>
 
                                         <div className="flex justify-between items-center mt-1">
@@ -797,12 +850,12 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                                             <span className="font-bold">{stats.projectAverage.toFixed(1)}</span>
                                         </div>
                                         <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                                            <div className="bg-orange-500 h-full" style={{width: `${stats.projectAverage * 10}%`}}></div>
+                                            <div className="bg-orange-500 h-full" style={{ width: `${stats.projectAverage * 10}%` }}></div>
                                         </div>
 
                                         {stats.bonusPoints > 0 && (
                                             <div className="flex justify-between items-center text-emerald-700 font-bold bg-emerald-50 px-2 py-1 rounded mt-2">
-                                                <span className="flex items-center gap-1"><Medal size={12}/> Bônus Extra (Olimpíadas/Eventos)</span>
+                                                <span className="flex items-center gap-1"><Medal size={12} /> Bônus Extra (Olimpíadas/Eventos)</span>
                                                 <span>+{stats.bonusPoints.toFixed(1)}</span>
                                             </div>
                                         )}
@@ -835,7 +888,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                             )}
                             {rankingMode === 'XP' && (
                                 <p className="text-[10px] text-amber-600 mt-4 font-bold flex items-center justify-center gap-1">
-                                    <Zap size={10}/> Dica: Jogue o 'Modo Sobrevivência' para subir no ranking de XP!
+                                    <Zap size={10} /> Dica: Jogue o 'Modo Sobrevivência' para subir no ranking de XP!
                                 </p>
                             )}
                         </div>
