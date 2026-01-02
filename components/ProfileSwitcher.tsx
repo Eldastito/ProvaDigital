@@ -5,11 +5,13 @@ import { ChevronDown, User, RefreshCw } from 'lucide-react';
 
 const PROFILE_OPTIONS = [
     { role: 'SUPER_ADMIN' as UserRole, label: '🏛️ MEC (SUPERADMIN)', color: 'purple', description: 'Visão Nacional' },
-    { role: 'TENANT_ADMIN' as UserRole, label: '🌐 Secretaria Municipal', color: 'blue', description: 'Gestão de Rede' },
+    { role: 'STATE_ADMIN' as UserRole, label: '🏢 Secretaria Estadual', color: 'indigo', description: 'Gestão Estadual' },
+    { role: 'TENANT_ADMIN' as UserRole, label: '🌐 Secretaria Municipal', color: 'blue', description: 'Gestão Municipal' },
     { role: 'DIRETOR' as UserRole, label: '🏫 Diretor de Escola', color: 'green', description: 'Gestão Escolar' },
     { role: 'SUPERVISOR' as UserRole, label: '👔 Supervisor', color: 'cyan', description: 'Supervisão Pedagógica' },
     { role: 'PROFESSOR' as UserRole, label: '👨‍🏫 Professor', color: 'orange', description: 'Gestão de Turmas' },
     { role: 'ALUNO' as UserRole, label: '🎓 Aluno', color: 'pink', description: 'Portal do Estudante' },
+    { role: 'PAIS' as UserRole, label: '👨‍👩‍👧‍👦 Pais e Responsáveis', color: 'teal', description: 'Acompanhamento Familiar' },
 ];
 
 export const ProfileSwitcher: React.FC = () => {
