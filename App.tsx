@@ -70,7 +70,7 @@ export default function App() {
 
             // 🎓 Se for perfil ALUNO, criar registro de estudante
             if (testProfile === 'ALUNO') {
-              const studentExists = students.find(s => s.id === userMatch.id);
+              const studentExists = store.students.find(s => s.id === userMatch.id);
               if (!studentExists) {
                 const newStudent = {
                   id: userMatch.id,
@@ -104,7 +104,7 @@ export default function App() {
 
             // 🎓 Se for perfil ALUNO, garantir que estudante existe
             if (testProfile === 'ALUNO') {
-              const studentExists = students.find(s => s.id === userMatch.id);
+              const studentExists = store.students.find(s => s.id === userMatch.id);
               if (!studentExists) {
                 const newStudent = {
                   id: userMatch.id,
