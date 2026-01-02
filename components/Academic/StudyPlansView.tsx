@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calendar, CheckSquare, Plus, BookOpen, Target, Brain, User as UserIcon, GraduationCap, ChevronRight, Sparkles, Trash2, Save, X, History, Clock, Play, Pause, RotateCcw, CheckCircle, XCircle, AlertCircle, Timer } from 'lucide-react';
+import { Calendar, CheckSquare, Plus, BookOpen, Target, Brain, User as UserIcon, GraduationCap, ChevronRight, Sparkles, Trash2, Save, X, History, Clock, Play, Pause, RotateCcw, CheckCircle, XCircle, AlertCircle, Timer, Trophy } from 'lucide-react';
 import { AppState, User, UserRole, LessonPlan, StudyPlan, QuestionType } from '../../types';
 import { uuidv4 } from '../../utils/helpers';
 import { AnalyticsService } from '../../services/analyticsService';
@@ -76,551 +76,605 @@ export const StudyPlansView = ({ state, user }: StudyPlansViewProps) => {
                 if (userProfile) {
                     updateUserProfile({
                         ...userProfile,
-                        owlCoins: (userProfile.owlCoins || 0) + 10
+                        owlCoins: (userProfile.owlCoins || 0) + 10,
+                        xp: (userProfile.xp || 0) + 50
                     });
-                    alert("🎉 Foco concluído! +10 Moedas ganhas! Hora de uma pausa.");
-                } else {
-                    alert("Foco concluído! Hora de uma pausa.");
+                    // Tocar som de sucesso se possível ou mostrar visual
                 }
+                alert("🎉 Foco concluído! +10 Moedas ganhas! Hora de uma pausa.");
             } else {
                 alert("Foco concluído! Hora de uma pausa.");
             }
-
-            setPomoMode('BREAK');
-            setPomoTime(5 * 60);
         } else {
-            alert("Pausa concluída! De volta aos estudos.");
-            setPomoMode('FOCUS');
-            setPomoTime(25 * 60);
+            alert("Foco concluído! Hora de uma pausa.");
         }
+
+        setPomoMode('BREAK');
+        setPomoTime(5 * 60);
+    } else {
+        alert("Pausa concluída! De volta aos estudos.");
+    setPomoMode('FOCUS');
+    setPomoTime(25 * 60);
+}
     };
 
-    // --- EFFECT: POMODORO ---
-    useEffect(() => {
-        let interval: any = null;
-        if (pomoIsActive && pomoTime > 0) {
-            interval = setInterval(() => setPomoTime(t => t - 1), 1000);
-        } else if (pomoTime === 0 && pomoIsActive) {
-            handlePomodoroComplete();
-        }
-        return () => clearInterval(interval);
-    }, [pomoIsActive, pomoTime, pomoMode]);
+// --- EFFECT: POMODORO ---
+useEffect(() => {
+    let interval: any = null;
+    if (pomoIsActive && pomoTime > 0) {
+        interval = setInterval(() => setPomoTime(t => t - 1), 1000);
+    } else if (pomoTime === 0 && pomoIsActive) {
+        handlePomodoroComplete();
+    }
+    return () => clearInterval(interval);
+}, [pomoIsActive, pomoTime, pomoMode]);
 
-    // --- EFFECT: SIMULATOR TIMER ---
-    useEffect(() => {
-        let interval: any = null;
-        if (simStep === 'TAKING' && simTimeLeft > 0 && !simFinished) {
-            interval = setInterval(() => setSimTimeLeft(t => t - 1), 1000);
-        } else if (simStep === 'TAKING' && simTimeLeft === 0 && !simFinished) {
-            finishSimulator();
-        }
-        return () => clearInterval(interval);
-    }, [simStep, simTimeLeft, simFinished]);
+// --- EFFECT: SIMULATOR TIMER ---
+useEffect(() => {
+    let interval: any = null;
+    if (simStep === 'TAKING' && simTimeLeft > 0 && !simFinished) {
+        interval = setInterval(() => setSimTimeLeft(t => t - 1), 1000);
+    } else if (simStep === 'TAKING' && simTimeLeft === 0 && !simFinished) {
+        finishSimulator();
+    }
+    return () => clearInterval(interval);
+}, [simStep, simTimeLeft, simFinished]);
 
-    // --- ACTIONS ---
+// --- ACTIONS ---
 
-    const handleCreateLessonPlan = () => {
-        if (!lpForm.classId || !lpForm.topic) return alert('Preencha os campos obrigatórios.');
-        const newPlan: LessonPlan = {
-            id: uuidv4(),
-            professorId: user.id,
-            classId: lpForm.classId,
-            subject: 'Geral',
-            topic: lpForm.topic,
-            objectives: lpForm.objectives,
-            content: lpForm.content,
-            date: new Date().toISOString().split('T')[0]
-        };
-        addLessonPlan(newPlan);
-        setIsLessonFormOpen(false);
-        setLpForm({ classId: '', topic: '', objectives: '', content: '' });
+const handleCreateLessonPlan = () => {
+    if (!lpForm.classId || !lpForm.topic) return alert('Preencha os campos obrigatórios.');
+    const newPlan: LessonPlan = {
+        id: uuidv4(),
+        professorId: user.id,
+        classId: lpForm.classId,
+        subject: 'Geral',
+        topic: lpForm.topic,
+        objectives: lpForm.objectives,
+        content: lpForm.content,
+        date: new Date().toISOString().split('T')[0]
     };
+    addLessonPlan(newPlan);
+    setIsLessonFormOpen(false);
+    setLpForm({ classId: '', topic: '', objectives: '', content: '' });
+};
 
-    const handleCreateStudyPlan = () => {
-        const finalStudentId = isProfessor ? spForm.studentId : targetStudentId;
-        if (!finalStudentId || !spForm.title || spTasks.length === 0) return alert('Dados incompletos.');
-        const newPlan: StudyPlan = {
-            id: uuidv4(),
-            studentId: finalStudentId,
-            generatedBy: isStudent || isParent ? 'IA' : user.id,
-            title: spForm.title,
-            tasks: spTasks,
-            createdAt: new Date().toISOString()
-        };
-        addStudyPlan(newPlan);
-        setIsStudyFormOpen(false);
-        setSpForm({ studentId: isProfessor ? '' : targetStudentId, title: '', newTask: '' });
-        setSpTasks([]);
+const handleCreateStudyPlan = () => {
+    const finalStudentId = isProfessor ? spForm.studentId : targetStudentId;
+    if (!finalStudentId || !spForm.title || spTasks.length === 0) return alert('Dados incompletos.');
+    const newPlan: StudyPlan = {
+        id: uuidv4(),
+        studentId: finalStudentId,
+        generatedBy: isStudent || isParent ? 'IA' : user.id,
+        title: spForm.title,
+        tasks: spTasks,
+        createdAt: new Date().toISOString()
     };
+    addStudyPlan(newPlan);
+    setIsStudyFormOpen(false);
+    setSpForm({ studentId: isProfessor ? '' : targetStudentId, title: '', newTask: '' });
+    setSpTasks([]);
+};
 
-    const addTask = () => {
-        if (!spForm.newTask) return;
-        setSpTasks([...spTasks, { id: uuidv4(), description: spForm.newTask, completed: false }]);
-        setSpForm({ ...spForm, newTask: '' });
+const addTask = () => {
+    if (!spForm.newTask) return;
+    setSpTasks([...spTasks, { id: uuidv4(), description: spForm.newTask, completed: false }]);
+    setSpForm({ ...spForm, newTask: '' });
+};
+
+const handleGenerateAI = async () => {
+    const finalStudentId = isProfessor ? spForm.studentId : targetStudentId;
+    if (!finalStudentId) return alert("Aluno não identificado.");
+    setAiLoading(true);
+    const stats = analytics.getStudentStats(finalStudentId);
+    if (stats) {
+        const suggestion = await generateStudyPlanSuggestions(targetStudentName, stats.weakestSubject || 'Geral', stats.idgScore);
+        setSpForm(prev => ({ ...prev, title: suggestion.title }));
+        setSpTasks(suggestion.tasks.map(t => ({ id: uuidv4(), description: t, completed: false })));
+    } else {
+        setSpForm(prev => ({ ...prev, title: "Plano de Estudos IA" }));
+        setSpTasks([{ id: uuidv4(), description: "Ler capítulo 1", completed: false }]);
+    }
+    setAiLoading(false);
+};
+
+const toggleTask = (planId: string, taskId: string) => {
+    const plan = localStudyPlans.find(p => p.id === planId);
+    if (!plan) return;
+    const updatedPlan = {
+        ...plan,
+        tasks: plan.tasks.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t)
     };
+    updateStudyPlan(updatedPlan);
+};
 
-    const handleGenerateAI = async () => {
-        const finalStudentId = isProfessor ? spForm.studentId : targetStudentId;
-        if (!finalStudentId) return alert("Aluno não identificado.");
-        setAiLoading(true);
-        const stats = analytics.getStudentStats(finalStudentId);
-        if (stats) {
-            const suggestion = await generateStudyPlanSuggestions(targetStudentName, stats.weakestSubject || 'Geral', stats.idgScore);
-            setSpForm(prev => ({ ...prev, title: suggestion.title }));
-            setSpTasks(suggestion.tasks.map(t => ({ id: uuidv4(), description: t, completed: false })));
-        } else {
-            setSpForm(prev => ({ ...prev, title: "Plano de Estudos IA" }));
-            setSpTasks([{ id: uuidv4(), description: "Ler capítulo 1", completed: false }]);
-        }
-        setAiLoading(false);
-    };
+// --- SIMULATOR LOGIC ---
+const availableSubjects = useMemo(() => {
+    return Array.from(new Set(state.items.map(i => i.subject)));
+}, [state.items]);
 
-    const toggleTask = (planId: string, taskId: string) => {
-        const plan = localStudyPlans.find(p => p.id === planId);
-        if (!plan) return;
-        const updatedPlan = {
-            ...plan,
-            tasks: plan.tasks.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t)
-        };
-        updateStudyPlan(updatedPlan);
-    };
+const startSimulator = () => {
+    if (!simConfig.subject) return alert("Selecione uma matéria.");
 
-    // --- SIMULATOR LOGIC ---
-    const availableSubjects = useMemo(() => {
-        return Array.from(new Set(state.items.map(i => i.subject)));
-    }, [state.items]);
+    // 1. Filter items
+    const subjectItems = state.items.filter(i =>
+        i.subject === simConfig.subject &&
+        (i.type === QuestionType.MULTIPLE_CHOICE || i.type === QuestionType.TRUE_FALSE)
+    );
 
-    const startSimulator = () => {
-        if (!simConfig.subject) return alert("Selecione uma matéria.");
+    if (subjectItems.length === 0) return alert("Não há questões suficientes desta matéria no banco.");
 
-        // 1. Filter items
-        const subjectItems = state.items.filter(i =>
-            i.subject === simConfig.subject &&
-            (i.type === QuestionType.MULTIPLE_CHOICE || i.type === QuestionType.TRUE_FALSE)
-        );
+    // 2. Randomize and Slice (Simulate shuffle)
+    const shuffled = [...subjectItems].sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, simConfig.count);
 
-        if (subjectItems.length === 0) return alert("Não há questões suficientes desta matéria no banco.");
+    if (selected.length === 0) return alert("Erro ao gerar questões.");
 
-        // 2. Randomize and Slice (Simulate shuffle)
-        const shuffled = [...subjectItems].sort(() => 0.5 - Math.random());
-        const selected = shuffled.slice(0, simConfig.count);
+    setSimQuestions(selected);
+    setSimCurrentQ(0);
+    setSimAnswers({});
+    setSimTimeLeft(simConfig.timeMinutes * 60);
+    setSimFinished(false);
+    setSimStep('TAKING');
+};
 
-        if (selected.length === 0) return alert("Erro ao gerar questões.");
+const finishSimulator = () => {
+    setSimFinished(true);
+    setSimStep('RESULT');
+};
 
-        setSimQuestions(selected);
-        setSimCurrentQ(0);
-        setSimAnswers({});
-        setSimTimeLeft(simConfig.timeMinutes * 60);
-        setSimFinished(false);
-        setSimStep('TAKING');
-    };
+const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+};
 
-    const finishSimulator = () => {
-        setSimFinished(true);
-        setSimStep('RESULT');
-    };
+const filteredStudyPlans = isProfessor
+    ? localStudyPlans
+    : localStudyPlans.filter(sp => sp.studentId === targetStudentId);
 
-    const formatTime = (seconds: number) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-    };
+// Get current student profile for gamification display
+const currentStudentProfile = state.userProfiles?.find(p => p.userId === (isStudent ? user.id : targetStudentId));
 
-    const filteredStudyPlans = isProfessor
-        ? localStudyPlans
-        : localStudyPlans.filter(sp => sp.studentId === targetStudentId);
+// Safety check for Simulator Question
+const currentQuestion = simQuestions[simCurrentQ];
+const currentAlternatives = currentQuestion?.alternatives || [];
 
-    // --- VIEWS ---
+// --- VIEWS ---
 
-    return (
-        <div className="space-y-6 max-w-6xl mx-auto">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-2xl font-bold text-brand-dark flex items-center gap-2">
-                        {isProfessor ? <BookOpen className="text-brand-secondary" /> : <Target className="text-brand-secondary" />}
-                        {isProfessor ? 'Planejamento Acadêmico' : (isParent ? `Histórico de Roteiros: ${targetStudentName}` : 'Planos de Estudo & Ferramentas')}
-                    </h1>
-                    {isParent && <p className="text-sm text-slate-500">Acompanhe as tarefas geradas.</p>}
-                </div>
-
-                {/* Action Buttons */}
-                {isProfessor ? (
-                    activeTab === 'LESSON' ? (
-                        <button onClick={() => setIsLessonFormOpen(true)} className="btn-gradient px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold">
-                            <Plus size={18} /> Novo Plano de Aula
-                        </button>
-                    ) : (
-                        <button onClick={() => setIsStudyFormOpen(true)} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold shadow-lg">
-                            <Target size={18} /> Novo Roteiro p/ Aluno
-                        </button>
-                    )
-                ) : (
-                    // Student Action
-                    !isParent && activeTab === 'STUDY' && (
-                        <button onClick={() => setIsStudyFormOpen(true)} className="btn-gradient px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold shadow-lg">
-                            <Sparkles size={18} className="text-yellow-300" /> Gerar Plano com IA
-                        </button>
-                    )
-                )}
+return (
+    <div className="space-y-6 max-w-6xl mx-auto">
+        <div className="flex justify-between items-center">
+            <div>
+                <h1 className="text-2xl font-bold text-brand-dark flex items-center gap-2">
+                    {isProfessor ? <BookOpen className="text-brand-secondary" /> : <Target className="text-brand-secondary" />}
+                    {isProfessor ? 'Planejamento Acadêmico' : (isParent ? `Histórico de Roteiros: ${targetStudentName}` : 'Planos de Estudo & Ferramentas')}
+                </h1>
+                {isParent && <p className="text-sm text-slate-500">Acompanhe as tarefas geradas.</p>}
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-6 border-b border-slate-200">
-                {isProfessor ? (
-                    <>
-                        <button onClick={() => setActiveTab('LESSON')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 ${activeTab === 'LESSON' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
-                            <GraduationCap size={18} /> Planos de Aula (Turma)
-                        </button>
-                        <button onClick={() => setActiveTab('STUDY')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 ${activeTab === 'STUDY' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-500'}`}>
-                            <Target size={18} /> Roteiros de Estudo (Individual)
-                        </button>
-                    </>
+            {/* Action Buttons */}
+            {isProfessor ? (
+                activeTab === 'LESSON' ? (
+                    <button onClick={() => setIsLessonFormOpen(true)} className="btn-gradient px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold">
+                        <Plus size={18} /> Novo Plano de Aula
+                    </button>
                 ) : (
-                    <>
-                        <button onClick={() => setActiveTab('STUDY')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 ${activeTab === 'STUDY' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
-                            <Target size={18} /> Meus Planos
-                        </button>
-                        {!isParent && (
-                            <>
-                                <button onClick={() => setActiveTab('POMODORO')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 ${activeTab === 'POMODORO' ? 'border-rose-500 text-rose-600' : 'border-transparent text-slate-500'}`}>
-                                    <Clock size={18} /> Foco (Pomodoro)
-                                </button>
-                                <button onClick={() => setActiveTab('SIMULATOR')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 ${activeTab === 'SIMULATOR' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500'}`}>
-                                    <CheckSquare size={18} /> Simulado
-                                </button>
-                            </>
-                        )}
-                    </>
-                )}
-            </div>
+                    <button onClick={() => setIsStudyFormOpen(true)} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold shadow-lg">
+                        <Target size={18} /> Novo Roteiro p/ Aluno
+                    </button>
+                )
+            ) : (
+                // Student Action
+                !isParent && activeTab === 'STUDY' && (
+                    <button onClick={() => setIsStudyFormOpen(true)} className="btn-gradient px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold shadow-lg">
+                        <Sparkles size={18} className="text-yellow-300" /> Gerar Plano com IA
+                    </button>
+                )
+            )}
+        </div>
 
-            {/* --- TOOL 1: POMODORO --- */}
-            {activeTab === 'POMODORO' && !isParent && (
-                <div className="flex flex-col items-center justify-center py-12 animate-in fade-in">
-                    <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-12 text-center w-full max-w-md relative overflow-hidden">
-                        {/* Background Pulse */}
-                        {pomoIsActive && (
+        {/* Tabs */}
+        <div className="flex gap-6 border-b border-slate-200">
+            {isProfessor ? (
+                <>
+                    <button onClick={() => setActiveTab('LESSON')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 ${activeTab === 'LESSON' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
+                        <GraduationCap size={18} /> Planos de Aula (Turma)
+                    </button>
+                    <button onClick={() => setActiveTab('STUDY')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 ${activeTab === 'STUDY' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-500'}`}>
+                        <Target size={18} /> Roteiros de Estudo (Individual)
+                    </button>
+                </>
+            ) : (
+                <>
+                    <button onClick={() => setActiveTab('STUDY')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 ${activeTab === 'STUDY' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
+                        <Target size={18} /> Meus Planos
+                    </button>
+                    {!isParent && (
+                        <>
+                            <button onClick={() => setActiveTab('POMODORO')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 ${activeTab === 'POMODORO' ? 'border-rose-500 text-rose-600' : 'border-transparent text-slate-500'}`}>
+                                <Clock size={18} /> Foco (Pomodoro)
+                            </button>
+                            <button onClick={() => setActiveTab('SIMULATOR')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 ${activeTab === 'SIMULATOR' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500'}`}>
+                                <CheckSquare size={18} /> Simulado
+                            </button>
+                        </>
+                    )}
+                </>
+            )}
+        </div>
+
+        {/* --- TOOL 1: POMODORO & GAMIFICATION --- */}
+        {activeTab === 'POMODORO' && !isParent && (
+            <div className="flex flex-col items-center justify-center py-8 animate-in fade-in">
+
+                {/* Gamification Status Bar */}
+                {isStudent && currentStudentProfile && (
+                    <div className="flex gap-6 mb-8 bg-white px-8 py-3 rounded-full shadow-sm border border-slate-200">
+                        <div className="flex items-center gap-2">
+                            <div className="bg-yellow-100 p-1.5 rounded-full"><Trophy size={16} className="text-yellow-600" /></div>
+                            <div>
+                                <div className="text-[10px] uppercase font-bold text-slate-400">Moedas</div>
+                                <div className="font-black text-slate-700 leading-none">{currentStudentProfile.owlCoins || 0}</div>
+                            </div>
+                        </div>
+                        <div className="w-px bg-slate-200"></div>
+                        <div className="flex items-center gap-2">
+                            <div className="bg-purple-100 p-1.5 rounded-full"><Sparkles size={16} className="text-purple-600" /></div>
+                            <div>
+                                <div className="text-[10px] uppercase font-bold text-slate-400">XP Total</div>
+                                <div className="font-black text-slate-700 leading-none">{currentStudentProfile.xp || 0} xp</div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 p-10 text-center w-full max-w-md relative overflow-hidden transform transition-all hover:scale-[1.01]">
+                    {/* Background Pulse & Effects */}
+                    {pomoIsActive && (
+                        <>
                             <div className={`absolute inset-0 opacity-10 animate-pulse ${pomoMode === 'FOCUS' ? 'bg-rose-500' : 'bg-emerald-500'}`}></div>
-                        )}
+                            <div className="absolute top-0 left-0 w-full h-1 bg-slate-100"><div className="h-full bg-rose-500 transition-all duration-1000" style={{ width: `${(pomoTime / (25 * 60)) * 100}%` }}></div></div>
+                        </>
+                    )}
 
-                        <h2 className="text-2xl font-bold text-slate-800 mb-2">{pomoMode === 'FOCUS' ? 'Hora de Focar!' : 'Pausa para Descanso'}</h2>
-                        <p className="text-slate-500 mb-8">{pomoMode === 'FOCUS' ? 'Concentre-se em apenas uma tarefa.' : 'Relaxe, beba água e estique-se.'}</p>
+                    <div className="relative z-10">
+                        <h2 className="text-3xl font-black text-slate-800 mb-2 tracking-tight">{pomoMode === 'FOCUS' ? 'Hora de Focar 🚀' : 'Pausa Merecida ☕'}</h2>
+                        <p className="text-slate-500 mb-8 font-medium">{pomoMode === 'FOCUS' ? 'Bloqueie distrações e ganhe +50 XP!' : 'Respire fundo e prepare-se para o próximo round.'}</p>
 
-                        <div className={`text-7xl font-black font-mono mb-8 ${pomoMode === 'FOCUS' ? 'text-rose-600' : 'text-emerald-600'}`}>
+                        <div className={`text-8xl font-black font-mono mb-8 tracking-tighter tabular-nums ${pomoMode === 'FOCUS' ? 'text-rose-500 drop-shadow-sm' : 'text-emerald-500'}`}>
                             {formatTime(pomoTime)}
                         </div>
 
                         <div className="flex justify-center gap-4">
                             <button
                                 onClick={() => setPomoIsActive(!pomoIsActive)}
-                                className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition transform hover:scale-105 ${pomoIsActive ? 'bg-amber-400 text-amber-900' : 'bg-brand-primary text-white'}`}
+                                className={`w-20 h-20 rounded-2xl flex items-center justify-center shadow-xl transition-all transform active:scale-95 ${pomoIsActive ? 'bg-amber-400 text-amber-900 border-b-4 border-amber-600' : 'bg-brand-primary text-white border-b-4 border-blue-700 hover:brightness-110'}`}
                             >
-                                {pomoIsActive ? <Pause size={32} /> : <Play size={32} className="ml-1" />}
+                                {pomoIsActive ? <Pause size={36} fill="currentColor" /> : <Play size={36} fill="currentColor" className="ml-1" />}
                             </button>
                             <button
                                 onClick={() => { setPomoIsActive(false); setPomoTime(pomoMode === 'FOCUS' ? 25 * 60 : 5 * 60); }}
-                                className="w-16 h-16 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200 transition"
+                                className="w-20 h-20 rounded-2xl bg-slate-100 text-slate-500 border-b-4 border-slate-300 flex items-center justify-center hover:bg-slate-200 transition-all active:top-1"
                             >
-                                <RotateCcw size={24} />
+                                <RotateCcw size={28} />
+                            </button>
+                        </div>
+
+                        {!pomoIsActive && pomoMode === 'FOCUS' && (
+                            <div className="mt-8 text-xs text-slate-400 font-medium bg-slate-50 py-2 px-4 rounded-full inline-block">
+                                💡 Dica: Sessões completas aumentam seu nível no ranking!
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* --- SIMULATOR --- */}
+        {activeTab === 'SIMULATOR' && (
+            <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-8 mt-6">
+                {simStep === 'CONFIG' && (
+                    <div className="max-w-md mx-auto text-center space-y-6">
+                        <h2 className="text-2xl font-bold text-slate-800">Configurar Simulado</h2>
+                        <div className="space-y-4 text-left">
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">Matéria</label>
+                                <select
+                                    value={simConfig.subject}
+                                    onChange={e => setSimConfig({ ...simConfig, subject: e.target.value })}
+                                    className="w-full p-3 border border-slate-300 rounded-lg"
+                                >
+                                    <option value="">Selecione...</option>
+                                    {availableSubjects.map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">Questões</label>
+                                    <input
+                                        type="number"
+                                        value={simConfig.count}
+                                        onChange={e => setSimConfig({ ...simConfig, count: Number(e.target.value) })}
+                                        className="w-full p-3 border border-slate-300 rounded-lg"
+                                        min={1} max={50}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">Minutos</label>
+                                    <input
+                                        type="number"
+                                        value={simConfig.timeMinutes}
+                                        onChange={e => setSimConfig({ ...simConfig, timeMinutes: Number(e.target.value) })}
+                                        className="w-full p-3 border border-slate-300 rounded-lg"
+                                        min={1} max={180}
+                                    />
+                                </div>
+                            </div>
+                            <button
+                                onClick={startSimulator}
+                                className="w-full py-3 bg-brand-primary text-white font-bold rounded-lg hover:bg-brand-dark transition"
+                            >
+                                Iniciar Simulado
                             </button>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* --- SIMULATOR --- */}
-            {activeTab === 'SIMULATOR' && (
-                <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-8 mt-6">
-                    {simStep === 'CONFIG' && (
-                        <div className="max-w-md mx-auto text-center space-y-6">
-                            <h2 className="text-2xl font-bold text-slate-800">Configurar Simulado</h2>
-                            <div className="space-y-4 text-left">
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-1">Matéria</label>
-                                    <select
-                                        value={simConfig.subject}
-                                        onChange={e => setSimConfig({ ...simConfig, subject: e.target.value })}
-                                        className="w-full p-3 border border-slate-300 rounded-lg"
-                                    >
-                                        <option value="">Selecione...</option>
-                                        {availableSubjects.map(s => <option key={s} value={s}>{s}</option>)}
-                                    </select>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-1">Questões</label>
-                                        <input
-                                            type="number"
-                                            value={simConfig.count}
-                                            onChange={e => setSimConfig({ ...simConfig, count: Number(e.target.value) })}
-                                            className="w-full p-3 border border-slate-300 rounded-lg"
-                                            min={1} max={50}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-1">Minutos</label>
-                                        <input
-                                            type="number"
-                                            value={simConfig.timeMinutes}
-                                            onChange={e => setSimConfig({ ...simConfig, timeMinutes: Number(e.target.value) })}
-                                            className="w-full p-3 border border-slate-300 rounded-lg"
-                                            min={1} max={180}
-                                        />
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={startSimulator}
-                                    className="w-full py-3 bg-brand-primary text-white font-bold rounded-lg hover:bg-brand-dark transition"
-                                >
-                                    Iniciar Simulado
-                                </button>
+                {simStep === 'TAKING' && (
+                    <div className="max-w-3xl mx-auto">
+                        <div className="flex justify-between items-center mb-6">
+                            <div className="text-sm font-bold text-slate-500">
+                                Questão {simCurrentQ + 1} de {simQuestions.length}
+                            </div>
+                            <div className={`text-xl font-mono font-bold ${simTimeLeft < 60 ? 'text-rose-500 animate-pulse' : 'text-slate-700'}`}>
+                                {formatTime(simTimeLeft)}
                             </div>
                         </div>
-                    )}
 
-                    {simStep === 'TAKING' && (
-                        <div className="max-w-3xl mx-auto">
-                            <div className="flex justify-between items-center mb-6">
-                                <div className="text-sm font-bold text-slate-500">
-                                    Questão {simCurrentQ + 1} de {simQuestions.length}
-                                </div>
-                                <div className={`text-xl font-mono font-bold ${simTimeLeft < 60 ? 'text-rose-500 animate-pulse' : 'text-slate-700'}`}>
-                                    {formatTime(simTimeLeft)}
-                                </div>
-                            </div>
+                        <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-6 min-h-[120px] flex items-center">
+                            {currentQuestion ? (
+                                <p className="text-lg font-medium text-slate-800">{currentQuestion.statement}</p>
+                            ) : (
+                                <div className="w-full text-center py-4"><span className="animate-spin text-2xl">⏳</span></div>
+                            )}
+                        </div>
 
-                            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-6">
-                                <p className="text-lg font-medium text-slate-800">{simQuestions[simCurrentQ]?.statement}</p>
-                            </div>
-
-                            <div className="space-y-3">
-                                {simQuestions[simCurrentQ]?.alternatives.map((alt: any) => (
+                        <div className="space-y-3">
+                            {currentAlternatives.length > 0 ? (
+                                currentAlternatives.map((alt: any) => (
                                     <button
                                         key={alt.id}
                                         onClick={() => {
-                                            setSimAnswers(prev => ({ ...prev, [simQuestions[simCurrentQ].id]: alt.id }));
+                                            if (!currentQuestion) return;
+                                            setSimAnswers(prev => ({ ...prev, [currentQuestion.id]: alt.id }));
                                         }}
-                                        className={`w-full p-4 rounded-lg border-2 text-left transition flex justify-between items-center ${simAnswers[simQuestions[simCurrentQ].id] === alt.id
+                                        className={`w-full p-4 rounded-lg border-2 text-left transition flex justify-between items-center ${currentQuestion && simAnswers[currentQuestion.id] === alt.id
                                                 ? 'border-brand-primary bg-blue-50 text-brand-dark'
                                                 : 'border-slate-200 hover:border-slate-300'
                                             }`}
                                     >
                                         <span>{alt.text}</span>
-                                        {simAnswers[simQuestions[simCurrentQ].id] === alt.id && <CheckCircle size={20} className="text-brand-primary" />}
+                                        {currentQuestion && simAnswers[currentQuestion.id] === alt.id && <CheckCircle size={20} className="text-brand-primary" />}
                                     </button>
-                                ))}
-                            </div>
-
-                            <div className="flex justify-between mt-8">
-                                <button
-                                    disabled={simCurrentQ === 0}
-                                    onClick={() => setSimCurrentQ(c => c - 1)}
-                                    className="px-6 py-2 text-slate-500 font-bold disabled:opacity-30"
-                                >
-                                    Anterior
-                                </button>
-                                {simCurrentQ < simQuestions.length - 1 ? (
-                                    <button
-                                        onClick={() => setSimCurrentQ(c => c + 1)}
-                                        className="px-6 py-2 bg-slate-800 text-white font-bold rounded-lg hover:bg-slate-700"
-                                    >
-                                        Próxima
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={finishSimulator}
-                                        className="px-6 py-2 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-500"
-                                    >
-                                        Finalizar
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {simStep === 'RESULT' && (
-                        <div className="max-w-2xl mx-auto text-center">
-                            <Trophy size={64} className="mx-auto text-yellow-500 mb-4" />
-                            <h2 className="text-3xl font-black text-slate-800 mb-2">Simulado Concluído!</h2>
-                            <p className="text-slate-500 mb-8">Confira seu desempenho abaixo.</p>
-
-                            <div className="bg-slate-50 rounded-xl p-8 border border-slate-200 mb-8">
-                                <div className="text-5xl font-black text-brand-primary mb-2">
-                                    {Object.entries(simAnswers).filter(([qId, aId]) => {
-                                        const q = simQuestions.find(i => i.id === qId);
-                                        return q?.alternatives.find((a: any) => a.id === aId)?.isCorrect;
-                                    }).length} / {simQuestions.length}
+                                ))
+                            ) : (
+                                <div className="text-center p-4 text-slate-400 bg-slate-50 rounded-lg border border-slate-100 border-dashed">
+                                    Nenhuma alternativa encontrada para esta questão.
                                 </div>
-                                <div className="text-sm font-bold text-slate-400 uppercase tracking-widest">Acertos</div>
-                            </div>
+                            )}
+                        </div>
 
+                        <div className="flex justify-between mt-8">
                             <button
-                                onClick={() => setSimStep('CONFIG')}
-                                className="px-8 py-3 bg-slate-800 text-white font-bold rounded-lg hover:bg-slate-700"
+                                disabled={simCurrentQ === 0}
+                                onClick={() => setSimCurrentQ(c => c - 1)}
+                                className="px-6 py-2 text-slate-500 font-bold disabled:opacity-30"
                             >
-                                Novo Simulado
+                                Anterior
                             </button>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* --- MODALS --- */}
-            {isStudyFormOpen && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 animate-in zoom-in-95">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold flex items-center gap-2">
-                                <Target className="text-brand-primary" /> Novo Plano de Estudos
-                            </h2>
-                            <button onClick={() => setIsStudyFormOpen(false)} className="text-slate-400 hover:text-rose-500">
-                                <X size={24} />
-                            </button>
-                        </div>
-
-                        <div className="space-y-4">
-                            {!isProfessor && (
+                            {simCurrentQ < simQuestions.length - 1 ? (
                                 <button
-                                    onClick={handleGenerateAI}
-                                    disabled={aiLoading}
-                                    className="w-full py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-lg font-bold shadow-md hover:shadow-lg transition flex items-center justify-center gap-2"
+                                    onClick={() => setSimCurrentQ(c => c + 1)}
+                                    className="px-6 py-2 bg-slate-800 text-white font-bold rounded-lg hover:bg-slate-700"
                                 >
-                                    {aiLoading ? <span className="animate-spin">⏳</span> : <Sparkles size={18} className="text-yellow-300" />}
-                                    {aiLoading ? 'Gerando com IA...' : 'Gerar Roteiro Inteligente com IA'}
+                                    Próxima
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={finishSimulator}
+                                    className="px-6 py-2 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-500"
+                                >
+                                    Finalizar
                                 </button>
                             )}
+                        </div>
+                    </div>
+                )}
 
-                            <div className="relative">
-                                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
-                                <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-500">ou manualmente</span></div>
+                {simStep === 'RESULT' && (
+                    <div className="max-w-2xl mx-auto text-center">
+                        <Trophy size={64} className="mx-auto text-yellow-500 mb-4" />
+                        <h2 className="text-3xl font-black text-slate-800 mb-2">Simulado Concluído!</h2>
+                        <p className="text-slate-500 mb-8">Confira seu desempenho abaixo.</p>
+
+                        <div className="bg-slate-50 rounded-xl p-8 border border-slate-200 mb-8">
+                            <div className="text-5xl font-black text-brand-primary mb-2">
+                                {Object.entries(simAnswers).filter(([qId, aId]) => {
+                                    const q = simQuestions.find(i => i.id === qId);
+                                    return q?.alternatives.find((a: any) => a.id === aId)?.isCorrect;
+                                }).length} / {simQuestions.length}
                             </div>
+                            <div className="text-sm font-bold text-slate-400 uppercase tracking-widest">Acertos</div>
+                        </div>
 
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-1">Título do Roteiro</label>
+                        <button
+                            onClick={() => setSimStep('CONFIG')}
+                            className="px-8 py-3 bg-slate-800 text-white font-bold rounded-lg hover:bg-slate-700"
+                        >
+                            Novo Simulado
+                        </button>
+                    </div>
+                )}
+            </div>
+        )}
+
+        {/* --- MODALS --- */}
+        {isStudyFormOpen && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 animate-in zoom-in-95">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl font-bold flex items-center gap-2">
+                            <Target className="text-brand-primary" /> Novo Plano de Estudos
+                        </h2>
+                        <button onClick={() => setIsStudyFormOpen(false)} className="text-slate-400 hover:text-rose-500">
+                            <X size={24} />
+                        </button>
+                    </div>
+
+                    <div className="space-y-4">
+                        {!isProfessor && (
+                            <button
+                                onClick={handleGenerateAI}
+                                disabled={aiLoading}
+                                className="w-full py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-lg font-bold shadow-md hover:shadow-lg transition flex items-center justify-center gap-2"
+                            >
+                                {aiLoading ? <span className="animate-spin">⏳</span> : <Sparkles size={18} className="text-yellow-300" />}
+                                {aiLoading ? 'Gerando com IA...' : 'Gerar Roteiro Inteligente com IA'}
+                            </button>
+                        )}
+
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
+                            <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-500">ou manualmente</span></div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-1">Título do Roteiro</label>
+                            <input
+                                type="text"
+                                value={spForm.title}
+                                onChange={e => setSpForm({ ...spForm, title: e.target.value })}
+                                placeholder="Ex: Revisão de Matemática"
+                                className="w-full p-3 border border-slate-300 rounded-lg"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-1">Tarefas</label>
+                            <div className="flex gap-2 mb-2">
                                 <input
                                     type="text"
-                                    value={spForm.title}
-                                    onChange={e => setSpForm({ ...spForm, title: e.target.value })}
-                                    placeholder="Ex: Revisão de Matemática"
-                                    className="w-full p-3 border border-slate-300 rounded-lg"
+                                    value={spForm.newTask}
+                                    onChange={e => setSpForm({ ...spForm, newTask: e.target.value })}
+                                    onKeyDown={e => e.key === 'Enter' && addTask()}
+                                    placeholder="Nova tarefa..."
+                                    className="flex-1 p-2 border border-slate-300 rounded-lg"
                                 />
+                                <button onClick={addTask} className="bg-slate-100 p-2 rounded-lg hover:bg-slate-200"><Plus size={20} /></button>
                             </div>
+                            <div className="space-y-2 max-h-40 overflow-y-auto bg-slate-50 p-2 rounded-lg">
+                                {spTasks.map(t => (
+                                    <div key={t.id} className="flex justify-between items-center bg-white p-2 rounded border border-slate-200 text-sm">
+                                        <span>{t.description}</span>
+                                        <button onClick={() => setSpTasks(spTasks.filter(x => x.id !== t.id))} className="text-rose-500"><Trash2 size={14} /></button>
+                                    </div>
+                                ))}
+                                {spTasks.length === 0 && <p className="text-center text-xs text-slate-400 py-2">Nenhuma tarefa adicionada</p>}
+                            </div>
+                        </div>
 
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-1">Tarefas</label>
-                                <div className="flex gap-2 mb-2">
-                                    <input
-                                        type="text"
-                                        value={spForm.newTask}
-                                        onChange={e => setSpForm({ ...spForm, newTask: e.target.value })}
-                                        onKeyDown={e => e.key === 'Enter' && addTask()}
-                                        placeholder="Nova tarefa..."
-                                        className="flex-1 p-2 border border-slate-300 rounded-lg"
-                                    />
-                                    <button onClick={addTask} className="bg-slate-100 p-2 rounded-lg hover:bg-slate-200"><Plus size={20} /></button>
+                        <button
+                            onClick={handleCreateStudyPlan}
+                            className="w-full py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-500 transition mt-4"
+                        >
+                            Salvar Plano
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {isLessonFormOpen && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 animate-in zoom-in-95">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl font-bold flex items-center gap-2">
+                            <GraduationCap className="text-brand-primary" /> Novo Plano de Aula
+                        </h2>
+                        <button onClick={() => setIsLessonFormOpen(false)} className="text-slate-400 hover:text-rose-500">
+                            <X size={24} />
+                        </button>
+                    </div>
+                    {/* Form fields simplified for brevity, assume implemented if needed or just placeholder */}
+                    <p className="text-center text-slate-500 py-8">Formulário de Plano de Aula (Implementação Padrão)</p>
+                    <button onClick={() => setIsLessonFormOpen(false)} className="w-full py-2 bg-slate-200 rounded-lg">Fechar</button>
+                </div>
+            </div>
+        )}
+        {activeTab === 'STUDY' && (
+            // STUDY PLANS LIST (Shared)
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mt-6">
+                {filteredStudyPlans.length > 0 ? (
+                    <div className="divide-y divide-slate-100">
+                        {filteredStudyPlans.map(plan => (
+                            <div key={plan.id} className="p-6 flex flex-col gap-4">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
+                                            {plan.title}
+                                            {plan.generatedBy === 'IA' && <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded border border-purple-200 flex items-center gap-1"><Sparkles size={10} /> IA</span>}
+                                        </h3>
+                                        <div className="text-xs text-slate-500 mt-1">
+                                            Criado em {new Date(plan.createdAt).toLocaleDateString()} • {plan.tasks.length} tarefas
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-2xl font-black text-emerald-600">
+                                            {Math.round((plan.tasks.filter(t => t.completed).length / plan.tasks.length) * 100)}%
+                                        </div>
+                                        <div className="text-[10px] text-slate-400 uppercase font-bold">Concluído</div>
+                                    </div>
                                 </div>
-                                <div className="space-y-2 max-h-40 overflow-y-auto bg-slate-50 p-2 rounded-lg">
-                                    {spTasks.map(t => (
-                                        <div key={t.id} className="flex justify-between items-center bg-white p-2 rounded border border-slate-200 text-sm">
-                                            <span>{t.description}</span>
-                                            <button onClick={() => setSpTasks(spTasks.filter(x => x.id !== t.id))} className="text-rose-500"><Trash2 size={14} /></button>
+
+                                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 space-y-2">
+                                    {plan.tasks.map(task => (
+                                        <div
+                                            key={task.id}
+                                            onClick={() => toggleTask(plan.id, task.id)}
+                                            className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${task.completed ? 'bg-emerald-50/50 opacity-60' : 'bg-white border border-slate-200 hover:border-brand-primary'}`}
+                                        >
+                                            <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${task.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-slate-300'}`}>
+                                                {task.completed && <CheckSquare size={14} />}
+                                            </div>
+                                            <span className={`text-sm ${task.completed ? 'line-through text-slate-400' : 'text-slate-700 font-medium'}`}>{task.description}</span>
                                         </div>
                                     ))}
-                                    {spTasks.length === 0 && <p className="text-center text-xs text-slate-400 py-2">Nenhuma tarefa adicionada</p>}
                                 </div>
                             </div>
-
-                            <button
-                                onClick={handleCreateStudyPlan}
-                                className="w-full py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-500 transition mt-4"
-                            >
-                                Salvar Plano
-                            </button>
-                        </div>
+                        ))}
                     </div>
-                </div>
-            )}
-
-            {isLessonFormOpen && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 animate-in zoom-in-95">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold flex items-center gap-2">
-                                <GraduationCap className="text-brand-primary" /> Novo Plano de Aula
-                            </h2>
-                            <button onClick={() => setIsLessonFormOpen(false)} className="text-slate-400 hover:text-rose-500">
-                                <X size={24} />
-                            </button>
-                        </div>
-                        {/* Form fields simplified for brevity, assume implemented if needed or just placeholder */}
-                        <p className="text-center text-slate-500 py-8">Formulário de Plano de Aula (Implementação Padrão)</p>
-                        <button onClick={() => setIsLessonFormOpen(false)} className="w-full py-2 bg-slate-200 rounded-lg">Fechar</button>
+                ) : (
+                    <div className="p-12 text-center flex flex-col items-center">
+                        {isParent ? (
+                            <>
+                                <History size={48} className="text-slate-200 mb-4" />
+                                <p className="text-slate-500 font-medium">Nenhum histórico de roteiro encontrado.</p>
+                                <p className="text-sm text-slate-400 mt-1">Incentive seu filho a gerar um plano de estudos com a IA.</p>
+                            </>
+                        ) : (
+                            <>
+                                <Target size={48} className="text-slate-200 mb-4" />
+                                <p className="text-slate-500 font-medium">Nenhum plano de estudo ativo.</p>
+                                <p className="text-sm text-slate-400 mt-1">
+                                    {isProfessor ? 'Crie um para orientar seus alunos.' : 'Clique em "Gerar Plano com IA" para começar.'}
+                                </p>
+                            </>
+                        )}
                     </div>
-                </div>
-            )}
-            {activeTab === 'STUDY' && (
-                // STUDY PLANS LIST (Shared)
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mt-6">
-                    {filteredStudyPlans.length > 0 ? (
-                        <div className="divide-y divide-slate-100">
-                            {filteredStudyPlans.map(plan => (
-                                <div key={plan.id} className="p-6 flex flex-col gap-4">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                                                {plan.title}
-                                                {plan.generatedBy === 'IA' && <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded border border-purple-200 flex items-center gap-1"><Sparkles size={10} /> IA</span>}
-                                            </h3>
-                                            <div className="text-xs text-slate-500 mt-1">
-                                                Criado em {new Date(plan.createdAt).toLocaleDateString()} • {plan.tasks.length} tarefas
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-2xl font-black text-emerald-600">
-                                                {Math.round((plan.tasks.filter(t => t.completed).length / plan.tasks.length) * 100)}%
-                                            </div>
-                                            <div className="text-[10px] text-slate-400 uppercase font-bold">Concluído</div>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 space-y-2">
-                                        {plan.tasks.map(task => (
-                                            <div
-                                                key={task.id}
-                                                onClick={() => toggleTask(plan.id, task.id)}
-                                                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${task.completed ? 'bg-emerald-50/50 opacity-60' : 'bg-white border border-slate-200 hover:border-brand-primary'}`}
-                                            >
-                                                <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${task.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-slate-300'}`}>
-                                                    {task.completed && <CheckSquare size={14} />}
-                                                </div>
-                                                <span className={`text-sm ${task.completed ? 'line-through text-slate-400' : 'text-slate-700 font-medium'}`}>{task.description}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="p-12 text-center flex flex-col items-center">
-                            {isParent ? (
-                                <>
-                                    <History size={48} className="text-slate-200 mb-4" />
-                                    <p className="text-slate-500 font-medium">Nenhum histórico de roteiro encontrado.</p>
-                                    <p className="text-sm text-slate-400 mt-1">Incentive seu filho a gerar um plano de estudos com a IA.</p>
-                                </>
-                            ) : (
-                                <>
-                                    <Target size={48} className="text-slate-200 mb-4" />
-                                    <p className="text-slate-500 font-medium">Nenhum plano de estudo ativo.</p>
-                                    <p className="text-sm text-slate-400 mt-1">
-                                        {isProfessor ? 'Crie um para orientar seus alunos.' : 'Clique em "Gerar Plano com IA" para começar.'}
-                                    </p>
-                                </>
-                            )}
-                        </div>
-                    )}
-                </div>
-            )}
-        </div>
-    );
+                )}
+            </div>
+        )}
+    </div>
+);
 };
