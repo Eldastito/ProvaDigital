@@ -577,10 +577,10 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                                 <div>
                                     <div className="text-xs text-slate-500 mb-1">Insira o PIN do aluno para finalizar:</div>
                                     <div className="flex gap-2">
-                                        <input id={`pin - ${ m.id } `} type="text" maxLength={4} className="w-full text-center font-bold border rounded p-1" placeholder="PIN" />
+                                        <input id={'pin-' + m.id} type="text" maxLength={4} className="w-full text-center font-bold border rounded p-1" placeholder="PIN" />
                                         <button
                                             onClick={() => {
-                                                const val = (document.getElementById(`pin - ${ m.id } `) as HTMLInputElement).value;
+                                                const val = (document.getElementById('pin-' + m.id) as HTMLInputElement).value;
                                                 handleConfirmMentorship(m.id, val);
                                             }}
                                             className="bg-emerald-500 text-white px-3 rounded font-bold"
