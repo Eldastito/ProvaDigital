@@ -10,6 +10,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 # Copy source code
+ARG CACHEBUST=1
 COPY . .
 
 # Accept build arguments (environment variables)
