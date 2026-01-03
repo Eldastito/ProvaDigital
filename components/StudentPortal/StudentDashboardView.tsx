@@ -488,7 +488,7 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                                         onClick={handleCreateRequest}
                                         className="bg-white text-indigo-700 px-4 py-2 rounded-lg font-bold shadow-sm border border-indigo-200 hover:bg-indigo-50 transition flex items-center gap-2"
                                     >
-                                        <Zap size={16} /> Pedir Ajuda
+                                        <Check size={16} /> Aceitar Convite
                                     </button>
                                 </div>
                             ))}
@@ -707,7 +707,7 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                                             className="p-2 bg-brand-primary text-white rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition-all flex items-center gap-2 font-bold text-xs"
                                             title="Loja de Avatares"
                                         >
-                                            <ShoppingBag size={16} /> <span className="hidden md:inline">Loja</span>
+                                            <ShoppingBag size={16} /> <span>Loja</span>
                                         </button>
                                     </div>
                                 </div>
