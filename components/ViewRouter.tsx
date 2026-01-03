@@ -145,8 +145,7 @@ export const ViewRouter = ({
         case 'CLASS_DIARY':
             return <ClassDiaryView />;
 
-        case 'CLASS_DIARY':
-            return <ClassDiaryView />;
+
 
         case 'ARCADE':
             return <ArcadeView onBack={() => setView('STUDENT_PORTAL')} />;
