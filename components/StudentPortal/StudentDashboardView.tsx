@@ -347,7 +347,7 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                                     if (!item) return null;
 
                                     return (
-                                        <div key={item.id} className={`p - 4 border rounded - lg ${ answer?.isCorrect ? 'border-emerald-200 bg-emerald-50/30' : 'border-rose-200 bg-rose-50/30' } `}>
+                                        <div key={item.id} className={"p-4 border rounded-lg " + (answer?.isCorrect ? 'border-emerald-200 bg-emerald-50/30' : 'border-rose-200 bg-rose-50/30')}>
                                             <div className="flex gap-3 mb-2">
                                                 <span className="font-bold text-slate-700">{idx + 1}.</span>
                                                 <div className="flex-1 font-medium text-slate-800">{item.statement}</div>
