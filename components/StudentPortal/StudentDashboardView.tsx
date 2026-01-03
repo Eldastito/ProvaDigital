@@ -28,7 +28,7 @@ const EvolutionChart = ({ data }: { data: { label: string, value: number }[] }) 
 
     return (
         <div className="w-full overflow-hidden">
-            <svg viewBox={`0 0 ${ width } ${ height } `} className="w-full h-full">
+            <svg viewBox={'0 0 ' + width + ' ' + height} className="w-full h-full">
                 {/* Grid Lines */}
                 <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#e2e8f0" strokeWidth="1" />
                 <line x1={padding} y1={padding} x2={width - padding} y2={padding} stroke="#e2e8f0" strokeWidth="1" strokeDasharray="4" />
