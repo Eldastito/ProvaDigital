@@ -88,14 +88,18 @@ export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: Resul
         // Let's Simulate a student answer for the demo based on the student's name (random quality).
 
         setGradingLoading(`${studentId}-${item.id}`);
-        const mockStudentAnswer = studentId.includes('1')
-            ? "A resposta é correta porque o contexto histórico..." // Good answer
-            : "Não sei, acho que foi por causa da guerra."; // Bad answer
+
+        const transcribedText = localResults[studentId]?.[`${item.id}_text`];
+        const studentAnswerText = transcribedText && transcribedText.length > 5
+            ? transcribedText
+            : (studentId.includes('1')
+                ? "A resposta é correta porque o contexto histórico..." // Good answer
+                : "Não sei, acho que foi por causa da guerra."); // Bad answer
 
         const result = await gradeEssayAnswer(
             item.statement,
             item.correctAnswerJustification || "Resposta deve conter X e Y.",
-            mockStudentAnswer,
+            studentAnswerText,
             item.customScore || item.score
         );
 
@@ -148,15 +152,19 @@ export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: Resul
                 }
 
                 try {
-                    // Mock student answer (em produção viria do banco)
-                    const mockStudentAnswer = student.id.includes('1')
-                        ? "A resposta é correta porque o contexto histórico demonstra que..."
-                        : "Não sei, acho que foi por causa da guerra.";
+                    // Use transcribed text if available, otherwise mock
+                    const transcribedText = localResults[student.id]?.[`${item.id}_text`];
+
+                    const studentAnswerText = transcribedText && transcribedText.length > 5
+                        ? transcribedText
+                        : (student.id.includes('1')
+                            ? "A resposta é correta porque o contexto histórico demonstra que a revolução industrial mudou..."
+                            : "Não sei, acho que foi por causa da guerra.");
 
                     const result = await gradeEssayAnswer(
                         item.statement,
                         item.correctAnswerJustification || "Resposta deve conter análise crítica.",
-                        mockStudentAnswer,
+                        studentAnswerText,
                         item.customScore || item.score
                     );
 
@@ -328,23 +336,43 @@ export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: Resul
                                             const isLoading = gradingLoading === `${student.id}-${item.id}`;
 
                                             if (item.type === QuestionType.ESSAY) {
+                                                const answerText = localResults[student.id]?.[`${item.id}_text`] || '';
+
                                                 return (
-                                                    <td key={item.id} className="px-2 py-3 text-center border-r border-slate-100 relative">
-                                                        <div className="flex items-center justify-center gap-1">
-                                                            <input
-                                                                type="number"
-                                                                className={`w-12 h-8 text-center border rounded text-sm font-bold ${val ? "bg-brand-input text-white border-brand-secondary" : "border-slate-300"}`}
-                                                                value={val}
-                                                                onChange={(e) => handleInputChange(student.id, item, e.target.value)}
+                                                    <td key={item.id} className="px-2 py-3 text-center border-r border-slate-100 relative min-w-[200px]">
+                                                        <div className="flex flex-col gap-2 p-2">
+                                                            {/* Essay Transcription Area */}
+                                                            <textarea
+                                                                className="w-full text-xs p-2 border border-slate-300 rounded focus:border-brand-primary placeholder:text-slate-300 resize-none"
+                                                                rows={2}
+                                                                placeholder="Transcreva a resposta start..."
+                                                                value={answerText}
+                                                                onChange={(e) => setLocalResults(prev => ({
+                                                                    ...prev,
+                                                                    [student.id]: {
+                                                                        ...(prev[student.id] || {}),
+                                                                        [`${item.id}_text`]: e.target.value
+                                                                    }
+                                                                }))}
                                                             />
-                                                            <button
-                                                                onClick={() => handleMagicGrade(student.id, item)}
-                                                                disabled={isLoading}
-                                                                className="p-1 text-purple-500 hover:bg-purple-50 rounded"
-                                                                title="Corrigir com IA"
-                                                            >
-                                                                {isLoading ? <Loader2 size={14} className="animate-spin" /> : <Brain size={14} />}
-                                                            </button>
+
+                                                            <div className="flex items-center justify-center gap-1">
+                                                                <span className="text-xs text-slate-500 font-bold">Nota:</span>
+                                                                <input
+                                                                    type="number"
+                                                                    className={`w-14 h-8 text-center border rounded text-sm font-bold ${val ? "bg-brand-input text-white border-brand-secondary" : "border-slate-300"}`}
+                                                                    value={val}
+                                                                    onChange={(e) => handleInputChange(student.id, item, e.target.value)}
+                                                                />
+                                                                <button
+                                                                    onClick={() => handleMagicGrade(student.id, item)}
+                                                                    disabled={isLoading}
+                                                                    className="p-1 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded border border-purple-200"
+                                                                    title="Corrigir Individualmente com IA"
+                                                                >
+                                                                    {isLoading ? <Loader2 size={14} className="animate-spin" /> : <Brain size={16} />}
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     </td>
                                                 );

@@ -243,6 +243,7 @@ export interface ExamRegistration {
 export interface StudentAnswer {
   itemId: string;
   selectedAlternativeId: string | null;
+  text?: string; // For Essay answers
   isCorrect: boolean;
   scoreObtained: number;
   essayFeedback?: string;
