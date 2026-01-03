@@ -400,7 +400,7 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                                                             'Justificativa: ' + (item.correctAnswerJustification || '');
 
                                                             setOwlTutorContext({
-                                                                initialMessage: `Olá Corujão! Errei a questão "${item.statement.substring(0, 30)}...".Pode me explicar por que a resposta correta é a certa ? `,
+                                                                initialMessage: 'Olá Corujão! Errei a questão "' + item.statement.substring(0, 30) + '...".Pode me explicar por que a resposta correta é a certa ? ',
                                                                 contextData: contextData,
                                                                 examId: exam.id
                                                             });
