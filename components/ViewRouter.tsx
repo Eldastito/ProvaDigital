@@ -27,10 +27,10 @@ import { GamifiedEventsManager } from './GamifiedEvents/GamifiedEventsManager';
 import { RiskDashboard } from './RiskManagement/RiskDashboard';
 import { ClassDiaryView } from './ClassDiary/ClassDiaryView';
 import { ProfessorDashboardView } from './Professor/ProfessorDashboardView';
-import { ProfessorDashboardView } from './Professor/ProfessorDashboardView';
 import { ParentsDashboardView } from './Parents/ParentsDashboardView';
 import { ArcadeView } from './StudentPortal/ArcadeView';
 import { AvatarShopView } from './StudentPortal/AvatarShopView';
+import { GovernanceView } from './Admin/GovernanceView';
 
 interface ViewRouterProps {
     view: string;
@@ -144,6 +144,9 @@ export const ViewRouter = ({
 
         case 'CLASS_DIARY':
             return <ClassDiaryView />;
+
+        case 'GOVERNANCE':
+            return <GovernanceView state={store} />;
 
 
 

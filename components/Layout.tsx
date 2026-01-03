@@ -192,7 +192,7 @@ export const Layout = ({ children, currentView, setView }: LayoutProps) => {
               )}
 
               {canManageCapabilities && (
-                <NavItem icon={Shield} label="Governança" target="CAPABILITIES" active={currentView === 'CAPABILITIES'} onClick={() => setView('CAPABILITIES')} />
+                <NavItem icon={Shield} label="Governança" target="GOVERNANCE" active={currentView === 'GOVERNANCE'} onClick={() => setView('GOVERNANCE')} />
               )}
 
               {!isStrategic && canView('OFFLINE_OPS') && (

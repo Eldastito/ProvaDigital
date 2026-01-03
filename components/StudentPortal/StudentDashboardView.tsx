@@ -485,7 +485,7 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                                         <Coins size={12} className="text-yellow-400" /> Prémio: {evt.rewardCoins}
                                     </div>
                                     <button
-                                        onClick={handleCreateRequest}
+                                        onClick={() => alert('Convite para o Soletrando aceito com sucesso! Prepare-se para o prêmio de 500 moedas.')}
                                         className="bg-white text-indigo-700 px-4 py-2 rounded-lg font-bold shadow-sm border border-indigo-200 hover:bg-indigo-50 transition flex items-center gap-2"
                                     >
                                         <Check size={16} /> Aceitar Convite
@@ -707,7 +707,7 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                                             className="p-2 bg-brand-primary text-white rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition-all flex items-center gap-2 font-bold text-xs"
                                             title="Loja de Avatares"
                                         >
-                                            <ShoppingBag size={16} /> <span>Loja</span>
+                                            <ShoppingBag size={16} /> <span>LOJA</span>
                                         </button>
                                     </div>
                                 </div>
