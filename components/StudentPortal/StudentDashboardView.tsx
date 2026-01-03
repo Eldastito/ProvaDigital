@@ -393,13 +393,11 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                                                             // Prepare context
 
                                                             // Prepare context
-                                                            const contextData = `
-Questão: "${item.statement}"
-Alternativas: ${ item.alternatives.map(a => a.text).join(' | ') }
-                                                                Resposta do Aluno: ${ item.alternatives.find(a => a.id === answer?.selectedAlternativeId)?.text || 'Sem resposta' }
-                                                                Gabarito: ${ item.alternatives.find(a => a.isCorrect)?.text }
-Justificativa: ${ item.correctAnswerJustification }
-`;
+                                                            const contextData = 'Questão: "' + item.statement + '"\n' +
+                                                            'Alternativas: ' + item.alternatives.map(a => a.text).join(' | ') + '\n' +
+                                                            'Resposta do Aluno: ' + (item.alternatives.find(a => a.id === answer?.selectedAlternativeId)?.text || 'Sem resposta') + '\n' +
+                                                            'Gabarito: ' + (item.alternatives.find(a => a.isCorrect)?.text || '') + '\n' +
+                                                            'Justificativa: ' + (item.correctAnswerJustification || '');
 
                                                             setOwlTutorContext({
                                                                 initialMessage: `Olá Corujão! Errei a questão "${item.statement.substring(0, 30)}...".Pode me explicar por que a resposta correta é a certa ? `,
