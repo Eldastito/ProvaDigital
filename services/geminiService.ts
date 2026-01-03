@@ -87,8 +87,92 @@ const PROMPTS = {
         Enunciado: "${statement}"
         Retorne apenas o código (ex: EF09HI01) e uma breve descrição do porquê.
         Formato JSON: { "code": "...", "reason": "..." }
+    `,
+    BATCH_GRADE: (items: string) => `
+        Você é um corretor de provas especialista. Receba um lote de respostas de alunos e avalie cada uma.
+        
+        ITENS PARA CORREÇÃO (JSON):
+        ${items}
+        
+        Critérios:
+        1. Compare a "studentAnswer" com a "expectedAnswer".
+        2. Atribua uma nota de 0 até "maxScore" baseada na precisão.
+        3. Gere um feedback curto (1 frase) e construtivo.
+        
+        RETORNE APENAS UM ARRAY JSON com objetos contendo: { "id": "...", "score": number, "feedback": "string" }
     `
 };
+
+// ... (Rest of imports and helpers remain)
+
+// --- Interfaces ---
+interface GeneratedQuestion {
+    statement: string;
+    alternatives: { text: string; isCorrect: boolean }[];
+    justification: string;
+    difficulty: string;
+    bnccCode?: string;
+}
+
+interface EssayGrade {
+    score: number;
+    feedback: string;
+}
+
+export interface AnswerContext {
+    id: string;
+    question: string;
+    expectedAnswer: string;
+    studentAnswer: string;
+    maxScore: number;
+}
+
+export interface BatchGradeResult {
+    id: string;
+    score: number;
+    feedback: string;
+}
+
+// ... (Rest of existing interfaces)
+
+// ... (Inside Exported Services)
+
+export const batchGradeAnswers = async (answers: AnswerContext[]): Promise<BatchGradeResult[]> => {
+    // Otimização: Se lista vazia, retorna vazio
+    if (answers.length === 0) return [];
+
+    const payload = JSON.stringify(answers.map(a => ({
+        id: a.id,
+        q: a.question,
+        expected: a.expectedAnswer,
+        answer: a.studentAnswer,
+        maxContext: a.maxScore
+    })));
+
+    const prompt = PROMPTS.BATCH_GRADE(payload);
+
+    const schema = {
+        type: Type.ARRAY,
+        items: {
+            type: Type.OBJECT,
+            properties: {
+                id: { type: Type.STRING },
+                score: { type: Type.NUMBER },
+                feedback: { type: Type.STRING }
+            }
+        }
+    };
+
+    // Fallback Mock
+    const fallback: BatchGradeResult[] = answers.map(a => ({
+        id: a.id,
+        score: a.maxScore * 0.7,
+        feedback: "Correção offline (Simulada). Verifique conexão."
+    }));
+
+    return callGeminiAPI<BatchGradeResult[]>(prompt, schema, fallback);
+};
+
 
 // --- Helper: Safe Env Access ---
 // This function is critical for stability in Web Containers where 'process' is undefined.

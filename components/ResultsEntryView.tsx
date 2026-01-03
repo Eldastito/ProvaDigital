@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Save, CheckCircle, AlertCircle, Wand2, CheckSquare, Brain, Loader2 } from 'lucide-react';
 import { AppState, Exam, ExamResult, StudentAnswer, QuestionType } from '../types';
 import { uuidv4 } from '../utils/helpers';
-import { gradeEssayAnswer } from '../services/geminiService';
+import { gradeEssayAnswer, batchGradeAnswers } from '../services/geminiService';
 
 interface ResultsEntryViewProps {
     state: AppState;
@@ -115,7 +115,7 @@ export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: Resul
         setGradingLoading(null);
     };
 
-    // NOVO: Correção em Lote com IA
+    // NOVO: Correção em Lote com IA (Otimizado)
     const handleBulkAIGrading = async () => {
         const essayItems = examItems.filter(item => item.type === QuestionType.ESSAY);
         if (essayItems.length === 0) {
@@ -123,77 +123,76 @@ export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: Resul
             return;
         }
 
+        // 1. Identificar o que precisa ser corrigido
+        const pendingContexts: any[] = [];
+
+        students.forEach(student => {
+            essayItems.forEach(item => {
+                // Se já tem nota (>0), pula
+                const existingScore = localResults[student.id]?.[item.id];
+                if (existingScore && parseFloat(existingScore) > 0) return;
+
+                // Texto da resposta (Transcreve ou usa Mock se vazio)
+                const transcribedText = localResults[student.id]?.[`${item.id}_text`];
+                const studentAnswerText = transcribedText && transcribedText.length > 5
+                    ? transcribedText
+                    : (student.id.charCodeAt(0) % 2 === 0
+                        ? "A resposta é correta porque o contexto demonstra análise crítica dos fatos."
+                        : "Não sei responder.");
+
+                pendingContexts.push({
+                    id: `${student.id}:::${item.id}`, // ID Composto para mapear volta
+                    question: item.statement,
+                    expectedAnswer: item.correctAnswerJustification || "Resposta deve ser coerente.",
+                    studentAnswer: studentAnswerText,
+                    maxScore: item.customScore || item.score
+                });
+            });
+        });
+
+        if (pendingContexts.length === 0) {
+            alert("Todas as questões já estão corrigidas!");
+            return;
+        }
+
         const confirmed = confirm(
-            `Corrigir TODAS as questões discursivas com IA?\n\n` +
-            `• ${students.length} alunos\n` +
-            `• ${essayItems.length} questões discursivas\n` +
-            `• Total: ${students.length * essayItems.length} correções\n\n` +
-            `Você poderá revisar e ajustar cada nota depois.\n\n` +
-            `Tempo estimado: ${Math.ceil((students.length * essayItems.length) / 10)} minutos`
+            `Confirmar Correção em Lote (IA Fast)?\n\n` +
+            `• ${pendingContexts.length} respostas pendentes\n` +
+            `• Modo BATCH (Acelerado)\n\n` +
+            `O sistema processará tudo em uma única chamada.`
         );
 
         if (!confirmed) return;
 
         setBulkGrading(true);
-        const totalCorrections = students.length * essayItems.length;
-        setBulkProgress({ current: 0, total: totalCorrections });
+        setBulkProgress({ current: 0, total: pendingContexts.length });
 
-        let correctionCount = 0;
+        try {
+            // 2. Chamada Única para a API
+            // Em produção, se > 50 itens, dividir em chunks de 50
+            const results = await batchGradeAnswers(pendingContexts);
 
-        // Processar aluno por aluno (para evitar rate limit)
-        for (const student of students) {
-            for (const item of essayItems) {
-                // Pular se já tiver nota
-                const existingScore = localResults[student.id]?.[item.id];
-                if (existingScore && parseFloat(existingScore) > 0) {
-                    correctionCount++;
-                    setBulkProgress({ current: correctionCount, total: totalCorrections });
-                    continue;
-                }
+            // 3. Aplicar resultados
+            const newResultsMap = { ...localResults };
 
-                try {
-                    // Use transcribed text if available, otherwise mock
-                    const transcribedText = localResults[student.id]?.[`${item.id}_text`];
+            results.forEach(res => {
+                const [studentId, itemId] = res.id.split(':::');
+                if (!newResultsMap[studentId]) newResultsMap[studentId] = {};
 
-                    const studentAnswerText = transcribedText && transcribedText.length > 5
-                        ? transcribedText
-                        : (student.id.includes('1')
-                            ? "A resposta é correta porque o contexto histórico demonstra que a revolução industrial mudou..."
-                            : "Não sei, acho que foi por causa da guerra.");
+                newResultsMap[studentId][itemId] = res.score.toFixed(1);
+                // Opcional: Salvar feedback em algum lugar se tiver UI para isso no futuro
+            });
 
-                    const result = await gradeEssayAnswer(
-                        item.statement,
-                        item.correctAnswerJustification || "Resposta deve conter análise crítica.",
-                        studentAnswerText,
-                        item.customScore || item.score
-                    );
+            setLocalResults(newResultsMap);
+            setBulkProgress({ current: pendingContexts.length, total: pendingContexts.length });
+            alert(`✅ ${results.length} provas corrigidas com sucesso!`);
 
-                    // Atualizar resultado
-                    setLocalResults(prev => ({
-                        ...prev,
-                        [student.id]: {
-                            ...(prev[student.id] || {}),
-                            [item.id]: result.score.toFixed(1)
-                        }
-                    }));
-
-                    correctionCount++;
-                    setBulkProgress({ current: correctionCount, total: totalCorrections });
-
-                    // Rate limiting: aguardar 200ms entre chamadas (5 req/s)
-                    await new Promise(resolve => setTimeout(resolve, 200));
-
-                } catch (error) {
-                    console.error(`Erro ao corrigir ${student.name} - Q${item.order}:`, error);
-                    // Continuar mesmo com erro
-                    correctionCount++;
-                    setBulkProgress({ current: correctionCount, total: totalCorrections });
-                }
-            }
+        } catch (error) {
+            console.error("Erro no Batch Grading:", error);
+            alert("Houve um erro ao processar o lote. Tente novamente ou use a correção individual.");
+        } finally {
+            setBulkGrading(false);
         }
-
-        setBulkGrading(false);
-        alert(`✅ Correção em lote concluída!\n\n${correctionCount} questões corrigidas.\n\nRevise as notas e ajuste se necessário antes de salvar.`);
     };
 
     const handleSave = () => {

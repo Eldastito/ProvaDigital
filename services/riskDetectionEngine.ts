@@ -1,7 +1,7 @@
 /**
  * Motor de Inteligência para Detecção de Risco (Evasão/Desempenho)
  */
-import { Student, ExamResult } from '../types';
+import { Student, ExamResult, AppState } from '../types';
 
 export enum RiskLevel {
     LOW = 'LOW',         // Sem risco (Verde)
@@ -133,4 +133,24 @@ export const calculateRiskScore = (student: Student, results: ExamResult[]): Ris
         simulatedAttendance: attendance,
         generatedAt: new Date().toISOString()
     };
+};
+
+/**
+ * Calcula o risco para todos os alunos de uma escola
+ */
+export const calculateSchoolRisk = (schoolId: string, state: AppState): RiskAssessment[] => {
+    // 1. Filtrar alunos da escola
+    const students = state.students.filter(s => s.schoolId === schoolId);
+
+    // 2. Para cada aluno, calcular risco
+    const assessments = students.map(student => {
+        // Obter resultados do aluno
+        const studentResults = state.results.filter(r => r.studentId === student.id);
+
+        // Calcular score
+        return calculateRiskScore(student, studentResults);
+    });
+
+    // 3. Ordenar por score (maior risco primeiro)
+    return assessments.sort((a, b) => b.riskScore - a.riskScore);
 };
