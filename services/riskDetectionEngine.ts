@@ -1,19 +1,16 @@
 /**
  * Motor de Inteligência para Detecção de Risco (Evasão/Desempenho)
  */
-import { Student, ExamResult, AppState } from '../types';
-
-export enum RiskLevel {
-    LOW = 'LOW',         // Sem risco (Verde)
-    MEDIUM = 'MEDIUM',   // Atenção (Amarelo)
-    HIGH = 'HIGH',       // Risco Crítico - Evasão provável (Vermelho)
-}
+import { Student, ExamResult, AppState, RiskLevel } from '../types';
 
 export interface RiskFactor {
     name: string;
     severity: RiskLevel;
     value: string;
     message: string;
+    threshold?: string;   // Limiar para disparo (ex: < 75%)
+    evidence?: string[];  // Fatos que comprovam o risco
+    recommendation?: string; // Sugestão de ação
 }
 
 export interface RiskAssessment {
@@ -24,6 +21,7 @@ export interface RiskAssessment {
     riskScore: number; // 0 a 100
     riskLevel: RiskLevel;
     factors: RiskFactor[];
+    interventions?: any[]; // Added to match AlertService expectation
     generatedAt: string;
     simulatedAttendance: number; // Porcentagem de presença (0-100)
 }
@@ -59,7 +57,10 @@ export const calculateRiskScore = (student: Student, results: ExamResult[]): Ris
             name: 'Frequência Crítica',
             severity: RiskLevel.HIGH,
             value: `${attendance}%`,
-            message: 'Aluno com alto nº de faltas. Risco iminente de reprovação por falta.'
+            message: 'Aluno com alto nº de faltas. Risco iminente de reprovação por falta.',
+            threshold: '< 75%',
+            evidence: ['Faltas consecutivas na última semana', 'Ausência em dias de prova', 'Sem justificativa médica apresentada'],
+            recommendation: 'Agendar reunião presencial com os pais e acionar Conselho Tutelar se necessário.'
         });
     } else if (attendance < 85) {
         riskScore += 15;
@@ -67,7 +68,10 @@ export const calculateRiskScore = (student: Student, results: ExamResult[]): Ris
             name: 'Frequência em Queda',
             severity: RiskLevel.MEDIUM,
             value: `${attendance}%`,
-            message: 'Faltas aumentando. Acompanhar.'
+            message: 'Faltas aumentando. Acompanhar.',
+            threshold: '< 85%',
+            evidence: ['Faltas intercaladas', 'Atrasos frequentes no primeiro tempo'],
+            recommendation: 'Entrar em contato via WhatsApp com os responsáveis para entender motivos.'
         });
     }
 
@@ -83,7 +87,10 @@ export const calculateRiskScore = (student: Student, results: ExamResult[]): Ris
                 name: 'Desempenho Insuficiente',
                 severity: RiskLevel.HIGH,
                 value: avgScore.toFixed(1),
-                message: 'Média geral abaixo de 5.0. Necessita reforço urgente.'
+                message: 'Média geral abaixo de 5.0. Necessita reforço urgente.',
+                threshold: 'Média < 5.0',
+                evidence: ['Notas vermelhas em 3+ disciplinas', 'Não entregou trabalhos do bimestre'],
+                recommendation: 'Encaminhar para aulas de reforço no contraturno e solicitar plano de estudos individualizado.'
             });
         } else if (avgScore < 7.0) {
             riskScore += 20;
@@ -91,7 +98,10 @@ export const calculateRiskScore = (student: Student, results: ExamResult[]): Ris
                 name: 'Desempenho em Alerta',
                 severity: RiskLevel.MEDIUM,
                 value: avgScore.toFixed(1),
-                message: 'Média abaixo de 7.0. Monitorar.'
+                message: 'Média abaixo de 7.0. Monitorar.',
+                threshold: 'Média < 7.0',
+                evidence: ['Dificuldade em Matemática e Ciências', 'Participação baixa em sala'],
+                recommendation: 'Sugerir atividades extras na plataforma e monitorar próximas avaliações.'
             });
         }
 

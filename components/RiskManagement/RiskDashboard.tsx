@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { calculateSchoolRisk, RiskLevel, RiskAssessment } from '../../services/riskDetectionEngine';
+import { calculateSchoolRisk, RiskAssessment } from '../../services/riskDetectionEngine';
+import { RiskLevel } from '../../types';
 import { processSchoolRiskAlerts } from '../../services/alertService';
 import {
     AlertTriangle,

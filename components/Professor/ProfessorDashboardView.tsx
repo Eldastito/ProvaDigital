@@ -1,8 +1,14 @@
 import React from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { FileText, Users, BookOpen, TrendingUp, Plus, Calendar, Award, BarChart3 } from 'lucide-react';
+import { FileText, Users, BookOpen, TrendingUp, Plus, Calendar, Award, BarChart3, AlertTriangle } from 'lucide-react';
+import { NotificationBell } from '../Notifications/NotificationBell';
+import { ExamStatus } from '../../types';
 
-export const ProfessorDashboardView = () => {
+interface ProfessorDashboardViewProps {
+    setView?: (view: string) => void;
+}
+
+export const ProfessorDashboardView = ({ setView }: ProfessorDashboardViewProps) => {
     const { currentUser, classes, exams, students, results } = useAppStore();
 
     // Filtrar turmas onde o professor está associado
@@ -23,8 +29,8 @@ export const ProfessorDashboardView = () => {
         return sum + students.filter(s => s.classId === cls.id).length;
     }, 0);
 
-    const activeExams = myExams.filter(e => e.status === 'ACTIVE').length;
-    const completedExams = myExams.filter(e => e.status === 'COMPLETED').length;
+    const activeExams = myExams.filter(e => e.status === ExamStatus.ACTIVE).length;
+    const completedExams = myExams.filter(e => e.status === ExamStatus.COMPLETED).length;
 
     return (
         <div className="p-6 space-y-6 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
@@ -40,6 +46,7 @@ export const ProfessorDashboardView = () => {
                             <p className="text-sm font-bold text-slate-700">{currentUser?.name}</p>
                             <p className="text-xs text-slate-500">{currentUser?.email}</p>
                         </div>
+                        <NotificationBell />
                         <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
                             {currentUser?.name?.charAt(0) || 'P'}
                         </div>
@@ -135,6 +142,21 @@ export const ProfessorDashboardView = () => {
                         </div>
                     </div>
                 </button>
+
+                <button
+                    onClick={() => setView?.('RISK_MANAGEMENT')}
+                    className="bg-gradient-to-br from-red-500 to-red-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all group col-span-3 md:col-span-1"
+                >
+                    <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 bg-white/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <AlertTriangle size={28} />
+                        </div>
+                        <div className="text-left">
+                            <p className="text-lg font-black">Gestão de Risco</p>
+                            <p className="text-sm opacity-90">Intervenção Pedagógica</p>
+                        </div>
+                    </div>
+                </button>
             </div>
 
             <div className="grid grid-cols-2 gap-6">
@@ -204,7 +226,7 @@ export const ProfessorDashboardView = () => {
                                                 <p className="text-sm text-slate-600">{exam.subject}</p>
                                             </div>
                                             <span className={`px-3 py-1 rounded-full text-xs font-bold ${statusColors[exam.status]}`}>
-                                                {exam.status === 'DRAFT' ? 'Rascunho' : exam.status === 'ACTIVE' ? 'Ativa' : 'Concluída'}
+                                                {exam.status === ExamStatus.DRAFT ? 'Rascunho' : exam.status === ExamStatus.ACTIVE ? 'Ativa' : 'Concluída'}
                                             </span>
                                         </div>
                                     </div>

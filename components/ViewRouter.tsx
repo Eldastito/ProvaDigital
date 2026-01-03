@@ -27,7 +27,10 @@ import { GamifiedEventsManager } from './GamifiedEvents/GamifiedEventsManager';
 import { RiskDashboard } from './RiskManagement/RiskDashboard';
 import { ClassDiaryView } from './ClassDiary/ClassDiaryView';
 import { ProfessorDashboardView } from './Professor/ProfessorDashboardView';
+import { ProfessorDashboardView } from './Professor/ProfessorDashboardView';
 import { ParentsDashboardView } from './Parents/ParentsDashboardView';
+import { ArcadeView } from './StudentPortal/ArcadeView';
+import { AvatarShopView } from './StudentPortal/AvatarShopView';
 
 interface ViewRouterProps {
     view: string;
@@ -59,7 +62,7 @@ export const ViewRouter = ({
         case 'DASHBOARD':
             // Check if user is PROFESSOR and route to specific dashboard
             if (currentUser.role === 'PROFESSOR') {
-                return <ProfessorDashboardView />;
+                return <ProfessorDashboardView setView={setView} />;
             }
             // Check if user is PAIS (Parents) and route to specific dashboard
             if (currentUser.role === 'PAIS') {
@@ -101,7 +104,7 @@ export const ViewRouter = ({
             return selectedExamIdForResults ? <ResultsEntryView state={store} examId={selectedExamIdForResults} onBack={() => setView('EXAMS')} onSaveResults={updateResults} /> : null;
 
         case 'STUDENT_PORTAL':
-            return <StudentDashboardView state={store} user={currentUser} />;
+            return <StudentDashboardView state={store} user={currentUser} setView={setView} />;
 
         case 'OWL_TUTOR':
             return <OwlTutorView state={store} user={currentUser} />;
@@ -141,6 +144,15 @@ export const ViewRouter = ({
 
         case 'CLASS_DIARY':
             return <ClassDiaryView />;
+
+        case 'CLASS_DIARY':
+            return <ClassDiaryView />;
+
+        case 'ARCADE':
+            return <ArcadeView onBack={() => setView('STUDENT_PORTAL')} />;
+
+        case 'AVATAR_SHOP':
+            return <AvatarShopView onBack={() => setView('STUDENT_PORTAL')} />;
 
         default:
             return <div className="p-8 text-center text-slate-500">View not found: {view}</div>;

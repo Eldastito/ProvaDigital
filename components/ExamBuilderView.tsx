@@ -16,14 +16,14 @@ export const ExamBuilderView = ({ state, onSave, onCancel }: { state: AppState, 
     });
     const [selectedItems, setSelectedItems] = useState<Item[]>([]);
     const [filter, setFilter] = useState('');
-    
+
     // Preview State for "Tablet Simulator"
     const [previewIndex, setPreviewIndex] = useState(0);
 
     const handleSave = (publish = false) => {
         if (!config.title) return alert('Título obrigatório');
         if (selectedItems.length === 0) return alert('Selecione ao menos 1 questão');
-        
+
         const newExam: Exam = {
             id: uuidv4(),
             tenantId: state.currentUser?.tenantId || 't1',
@@ -59,77 +59,170 @@ export const ExamBuilderView = ({ state, onSave, onCancel }: { state: AppState, 
         }
     };
 
-    const filteredAvailableItems = state.items.filter(i => 
+    const filteredAvailableItems = state.items.filter(i =>
         !selectedItems.find(s => s.id === i.id) &&
         (i.statement.toLowerCase().includes(filter.toLowerCase()) || i.subject.toLowerCase().includes(filter.toLowerCase()))
     );
 
     const currentPreviewItem = selectedItems[previewIndex];
 
+    // --- Recommendation Logic ---
+    const [showRecommendations, setShowRecommendations] = useState(false);
+    const [recommendedItems, setRecommendedItems] = useState<any[]>([]);
+    const [loadingRecs, setLoadingRecs] = useState(false);
+
+    const handleGetRecommendations = async () => {
+        setLoadingRecs(true);
+        setShowRecommendations(true);
+        try {
+            // Import dynamically to avoid circular dependencies if any
+            const { getRecommendedItems } = await import('../services/recommendationService');
+
+            const recs = await getRecommendedItems({
+                subject: config.subject || 'Geral',
+                gradeLevel: 8 // Mock grade, in real app get from class selection
+            }, state);
+
+            setRecommendedItems(recs);
+        } catch (error) {
+            console.error("Failed to get recs:", error);
+            alert("Erro ao buscar recomendações da IA.");
+        } finally {
+            setLoadingRecs(false);
+        }
+    };
+
+    const addRecommendedItem = (item: any) => {
+        // Add to state items if not exists (it's a new generated item)
+        // In a real app we would save to DB first
+        if (!state.items.find(i => i.id === item.id)) {
+            state.items.push(item); // Temporary local push
+        }
+        toggleItem(item);
+    };
+
     return (
         <div className="bg-white rounded-xl shadow-lg border border-brand-primary flex flex-col h-[calc(100vh-120px)]">
-             <div className="p-6 border-b flex justify-between items-center bg-slate-50">
+            <div className="p-6 border-b flex justify-between items-center bg-slate-50">
                 <div>
                     <h2 className="text-xl font-bold text-slate-900">Montar Prova</h2>
                     <p className="text-sm text-slate-500">Passo {step} de 2: {step === 1 ? 'Configurações' : 'Seleção e Revisão'}</p>
                 </div>
                 <div className="flex gap-3">
                     {step === 2 && <button onClick={() => setStep(1)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium">Voltar</button>}
-                    <button onClick={onCancel} className="text-slate-400 hover:text-slate-600"><X size={20}/></button>
+                    <button onClick={onCancel} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
                 </div>
-             </div>
+            </div>
 
-             <div className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
+            <div className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
                 {step === 1 ? (
                     <div className="max-w-2xl mx-auto space-y-6 bg-white p-8 rounded-xl shadow-sm border border-slate-200">
+                        {/* ... Existing Step 1 Form ... */}
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Título da Prova</label>
-                            <input className="w-full border rounded-lg p-2" value={config.title} onChange={e => setConfig({...config, title: e.target.value})} placeholder="Ex: Avaliação Bimestral de História" />
+                            <input className="w-full border rounded-lg p-2" value={config.title} onChange={e => setConfig({ ...config, title: e.target.value })} placeholder="Ex: Avaliação Bimestral de História" />
                         </div>
                         <div className="grid grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Disciplina</label>
-                                <input className="w-full border rounded-lg p-2" value={config.subject} onChange={e => setConfig({...config, subject: e.target.value})} />
+                                <input className="w-full border rounded-lg p-2" value={config.subject} onChange={e => setConfig({ ...config, subject: e.target.value })} />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Duração (minutos)</label>
-                                <input type="number" className="w-full border rounded-lg p-2" value={config.duration} onChange={e => setConfig({...config, duration: parseInt(e.target.value)})} />
+                                <input type="number" className="w-full border rounded-lg p-2" value={config.duration} onChange={e => setConfig({ ...config, duration: parseInt(e.target.value) })} />
                             </div>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Modelo de Avaliação</label>
-                            <select className="w-full border rounded-lg p-2" value={config.model} onChange={e => setConfig({...config, model: e.target.value as ExamModel})}>
+                            <select className="w-full border rounded-lg p-2" value={config.model} onChange={e => setConfig({ ...config, model: e.target.value as ExamModel })}>
                                 <option value="SOMATIVO">Somativo</option>
                                 <option value="ADAPTADO">Adaptado</option>
                             </select>
                         </div>
-                         <div>
+                        <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Descrição/Instruções</label>
-                            <textarea className="w-full border rounded-lg p-2 h-24" value={config.description} onChange={e => setConfig({...config, description: e.target.value})} />
+                            <textarea className="w-full border rounded-lg p-2 h-24" value={config.description} onChange={e => setConfig({ ...config, description: e.target.value })} />
                         </div>
                         <div className="flex justify-end pt-4">
                             <button onClick={() => setStep(2)} className="btn-gradient px-6 py-3 rounded-lg flex items-center gap-2 font-bold shadow-lg">
-                                Próximo: Selecionar Questões <ChevronRight size={18}/>
+                                Próximo: Selecionar Questões <ChevronRight size={18} />
                             </button>
                         </div>
                     </div>
                 ) : (
                     <div className="flex h-full gap-8">
                         {/* Left: Available Items (List) */}
-                        <div className="flex-1 flex flex-col bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                            <div className="p-4 border-b bg-slate-50">
-                                <h3 className="font-bold text-slate-800 mb-3">Banco de Itens Disponível</h3>
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-secondary" size={16}/>
-                                    <input 
-                                        className="w-full border rounded-lg pl-9 p-2 text-sm shadow-sm" 
-                                        placeholder="Filtrar questões..."
-                                        value={filter}
-                                        onChange={e => setFilter(e.target.value)}
-                                    />
+                        <div className="flex-1 flex flex-col bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden relative">
+                            <div className="p-4 border-b bg-slate-50 flex flex-col gap-3">
+                                <h3 className="font-bold text-slate-800">Banco de Itens Disponível</h3>
+                                <div className="flex gap-2">
+                                    <div className="relative flex-1">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-secondary" size={16} />
+                                        <input
+                                            className="w-full border rounded-lg pl-9 p-2 text-sm shadow-sm"
+                                            placeholder="Filtrar questões..."
+                                            value={filter}
+                                            onChange={e => setFilter(e.target.value)}
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={() => setShowRecommendations(!showRecommendations)}
+                                        className={`px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition border ${showRecommendations ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-purple-50 hover:text-purple-600'}`}
+                                    >
+                                        <Plus size={16} className={showRecommendations ? 'rotate-45 transition' : ''} />
+                                        {showRecommendations ? 'Fechar IA' : 'Sugestões IA'}
+                                    </button>
                                 </div>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-2 space-y-2">
+
+                            <div className="flex-1 overflow-y-auto p-2 space-y-2 relative">
+                                {/* AI Recommendations Overlay/Panel */}
+                                {showRecommendations && (
+                                    <div className="mb-4 bg-purple-50 border border-purple-100 rounded-xl p-4 animate-in slide-in-from-top-4">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <h4 className="font-bold text-purple-800 flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
+                                                Sugestões Inteligentes (BNCC)
+                                            </h4>
+                                            {recommendedItems.length === 0 && !loadingRecs && (
+                                                <button onClick={handleGetRecommendations} className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 transition">
+                                                    Gerar Questões Baseadas em Gaps
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {loadingRecs ? (
+                                            <div className="text-center py-8 text-purple-400">
+                                                <div className="animate-spin w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+                                                Analisando desempenho da turma...
+                                            </div>
+                                        ) : recommendedItems.length > 0 ? (
+                                            <div className="grid gap-3">
+                                                {recommendedItems.map(rec => (
+                                                    <div key={rec.id} className="bg-white p-3 rounded-lg border border-purple-200 shadow-sm hover:shadow-md transition cursor-pointer group" onClick={() => addRecommendedItem(rec)}>
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <Badge color="indigo">{rec.bncc}</Badge>
+                                                            <span className="text-[10px] uppercase font-bold text-slate-400">Match: {rec.matchScore}%</span>
+                                                        </div>
+                                                        <p className="text-sm text-slate-700 mb-2 line-clamp-2">{rec.statement}</p>
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-xs text-purple-600 font-medium italic">Motivo: {rec.reason}</span>
+                                                            <button className="text-purple-600 text-xs font-bold flex items-center gap-1 bg-purple-50 px-2 py-1 rounded group-hover:bg-purple-100">
+                                                                Aceitar <Plus size={12} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-4 text-slate-500 text-xs italic">
+                                                Clique em "Gerar" para a IA identificar gaps de aprendizado nesta turma.
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Standard List */}
                                 {filteredAvailableItems.map(item => (
                                     <div key={item.id} className="p-3 border border-slate-200 rounded-lg hover:border-brand-secondary bg-white cursor-pointer group transition-all hover:shadow-sm" onClick={() => toggleItem(item)}>
                                         <div className="flex justify-between items-start mb-1">
@@ -138,31 +231,32 @@ export const ExamBuilderView = ({ state, onSave, onCancel }: { state: AppState, 
                                         </div>
                                         <p className="text-sm text-slate-800 line-clamp-2 mb-2">{item.statement}</p>
                                         <div className="flex justify-between items-center">
-                                            <span className="text-xs text-slate-400">ID: {item.id.slice(0,6)}</span>
-                                            <button className="text-brand-primary text-xs font-bold opacity-0 group-hover:opacity-100 flex items-center gap-1 bg-brand-light px-2 py-1 rounded">Adicionar <Plus size={12}/></button>
+                                            <span className="text-xs text-slate-400">ID: {item.id.slice(0, 6)}</span>
+                                            <button className="text-brand-primary text-xs font-bold opacity-0 group-hover:opacity-100 flex items-center gap-1 bg-brand-light px-2 py-1 rounded">Adicionar <Plus size={12} /></button>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Right: Tablet Simulator (Preview) */}
+                        {/* Right: Tablet Simulator (Preview) - Unchanged */}
                         <div className="w-[500px] flex flex-col">
+                            {/* ... (Existing Simulator Code) ... */}
                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-bold text-slate-800 flex items-center gap-2"><Tablet size={20}/> Simulação do Aluno</h3>
+                                <h3 className="font-bold text-slate-800 flex items-center gap-2"><Tablet size={20} /> Simulação do Aluno</h3>
                                 <span className="text-xs font-bold bg-brand-primary text-white px-3 py-1 rounded-full">{selectedItems.length} questões selecionadas</span>
                             </div>
-                            
+
                             {/* Tablet Device Frame */}
                             <div className="flex-1 bg-slate-900 rounded-[2rem] p-3 shadow-2xl relative border-4 border-slate-800 flex flex-col min-h-[600px]">
                                 {/* Camera Dot */}
                                 <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 rounded-full"></div>
-                                
+
                                 {/* Screen Content */}
                                 <div className="flex-1 bg-slate-100 rounded-[1.5rem] overflow-hidden flex flex-col relative">
                                     {selectedItems.length === 0 ? (
                                         <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center">
-                                            <Plus size={48} className="mb-4 opacity-50"/>
+                                            <Plus size={48} className="mb-4 opacity-50" />
                                             <p>Adicione questões do banco ao lado para visualizar como elas aparecerão na prova.</p>
                                         </div>
                                     ) : (
@@ -185,10 +279,10 @@ export const ExamBuilderView = ({ state, onSave, onCancel }: { state: AppState, 
                                                         <div className="text-sm text-slate-800 font-medium leading-relaxed mb-4">
                                                             {currentPreviewItem.statement}
                                                         </div>
-                                                        
+
                                                         {currentPreviewItem.imageUrl && (
                                                             <div className="mb-4 rounded-lg overflow-hidden border border-slate-200">
-                                                                <img src={currentPreviewItem.imageUrl} alt="Questão" className="w-full object-cover"/>
+                                                                <img src={currentPreviewItem.imageUrl} alt="Questão" className="w-full object-cover" />
                                                             </div>
                                                         )}
 
@@ -211,27 +305,27 @@ export const ExamBuilderView = ({ state, onSave, onCancel }: { state: AppState, 
                                                                         <span>Folha de Resposta Oficial</span>
                                                                         <span>Max: {currentPreviewItem.maxLines || 30} linhas</span>
                                                                     </div>
-                                                                    
+
                                                                     {/* NOTEBOOK MASK */}
-                                                                    <div className="w-full bg-white border border-slate-300 shadow-sm flex relative overflow-hidden rounded-md" style={{height: '400px'}}>
+                                                                    <div className="w-full bg-white border border-slate-300 shadow-sm flex relative overflow-hidden rounded-md" style={{ height: '400px' }}>
                                                                         {/* Numbered Column + Red Margin */}
                                                                         <div className="w-8 bg-slate-100 flex-shrink-0 flex flex-col items-center pt-1 border-r-2 border-red-400/50 text-slate-400 font-mono text-xs select-none leading-[32px]">
-                                                                            {Array.from({length: currentPreviewItem.maxLines || 30}).map((_, i) => (
-                                                                                <div key={i} style={{height: '32px'}}>{i+1}</div>
+                                                                            {Array.from({ length: currentPreviewItem.maxLines || 30 }).map((_, i) => (
+                                                                                <div key={i} style={{ height: '32px' }}>{i + 1}</div>
                                                                             ))}
                                                                         </div>
-                                                                        
+
                                                                         {/* Lined Paper Background + Transparent Input */}
                                                                         <div className="flex-1 relative overflow-y-auto custom-scrollbar">
-                                                                            <div 
+                                                                            <div
                                                                                 className="absolute inset-0 pointer-events-none"
                                                                                 style={{
                                                                                     backgroundImage: 'linear-gradient(transparent 31px, #cbd5e1 32px)',
                                                                                     backgroundSize: '100% 32px',
-                                                                                    marginTop: '0px' // Adjust alignment
+                                                                                    marginTop: '0px'
                                                                                 }}
                                                                             ></div>
-                                                                            <textarea 
+                                                                            <textarea
                                                                                 className="w-full h-full bg-transparent outline-none resize-none p-0 pl-2 text-slate-800 text-base leading-[32px] font-sans relative z-10"
                                                                                 placeholder="Escreva sua redação aqui..."
                                                                                 spellCheck={false}
@@ -249,31 +343,31 @@ export const ExamBuilderView = ({ state, onSave, onCancel }: { state: AppState, 
 
                                             {/* Tablet Footer Navigation */}
                                             <div className="p-4 bg-white border-t border-slate-200 flex justify-between items-center z-10">
-                                                <button 
+                                                <button
                                                     onClick={() => setPreviewIndex(Math.max(0, previewIndex - 1))}
                                                     disabled={previewIndex === 0}
                                                     className="p-2 rounded-full hover:bg-slate-100 disabled:opacity-30 text-slate-600 transition"
                                                 >
-                                                    <ChevronLeft size={24}/>
+                                                    <ChevronLeft size={24} />
                                                 </button>
-                                                
+
                                                 {/* Question Dots */}
                                                 <div className="flex gap-1 overflow-hidden max-w-[200px] justify-center px-2">
                                                     {selectedItems.map((_, i) => (
-                                                        <div 
-                                                            key={i} 
+                                                        <div
+                                                            key={i}
                                                             onClick={() => setPreviewIndex(i)}
-                                                            className={`w-2 h-2 rounded-full cursor-pointer transition-all ${i === previewIndex ? 'bg-brand-primary w-4' : 'bg-slate-300 hover:bg-slate-400'}`} 
+                                                            className={`w-2 h-2 rounded-full cursor-pointer transition-all ${i === previewIndex ? 'bg-brand-primary w-4' : 'bg-slate-300 hover:bg-slate-400'}`}
                                                         />
                                                     ))}
                                                 </div>
 
-                                                <button 
+                                                <button
                                                     onClick={() => setPreviewIndex(Math.min(selectedItems.length - 1, previewIndex + 1))}
                                                     disabled={previewIndex === selectedItems.length - 1}
                                                     className="p-2 rounded-full hover:bg-slate-100 disabled:opacity-30 text-slate-600 transition"
                                                 >
-                                                    <ArrowRight size={24}/>
+                                                    <ArrowRight size={24} />
                                                 </button>
                                             </div>
                                         </>
@@ -293,7 +387,7 @@ export const ExamBuilderView = ({ state, onSave, onCancel }: { state: AppState, 
                         </div>
                     </div>
                 )}
-             </div>
+            </div>
         </div>
     );
 };

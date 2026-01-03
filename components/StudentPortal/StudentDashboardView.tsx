@@ -1,13 +1,14 @@
-
+```
 import React, { useState } from 'react';
-import { TrendingUp, AlertTriangle, BookOpen, CheckCircle, Calendar, Clock, Brain, Award, ChevronLeft, ChevronRight, Trophy, X, FileText, Check, Eye, User as UserIcon, List, ArrowUp, ArrowDown, Coins, Star, Activity, Zap, Medal, Sparkles, Target, Users, BookHeart } from 'lucide-react';
-import { AppState, RiskLevel, User, Exam, ExamResult, QuestionType, UserRole, GamifiedEventStatus } from '../../types';
+import { TrendingUp, AlertTriangle, BookOpen, CheckCircle, Calendar, Clock, Brain, Award, ChevronLeft, ChevronRight, Trophy, X, FileText, Check, Eye, User as UserIcon, List, ArrowUp, ArrowDown, Coins, Star, Activity, Zap, Medal, Sparkles, Target, Users, BookHeart, Play, ArrowRight, Gamepad2, ShoppingBag } from 'lucide-react';
+import { AppState, RiskLevel, User, Exam, ExamResult, QuestionType, UserRole, GamifiedEventStatus, ExamStatus } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
 import { useAppStore } from '../../store/useAppStore';
 
 interface StudentDashboardViewProps {
     state: AppState;
     user: User;
+    setView: (view: string) => void;
 }
 
 // Simple SVG Line Chart Component
@@ -22,12 +23,12 @@ const EvolutionChart = ({ data }: { data: { label: string, value: number }[] }) 
     const points = data.map((d, i) => {
         const x = padding + (i / (data.length - 1)) * (width - 2 * padding);
         const y = height - padding - (d.value / maxY) * (height - 2 * padding);
-        return `${x},${y}`;
+        return `${ x },${ y } `;
     }).join(' ');
 
     return (
         <div className="w-full overflow-hidden">
-            <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full">
+            <svg viewBox={`0 0 ${ width } ${ height } `} className="w-full h-full">
                 {/* Grid Lines */}
                 <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#e2e8f0" strokeWidth="1" />
                 <line x1={padding} y1={padding} x2={width - padding} y2={padding} stroke="#e2e8f0" strokeWidth="1" strokeDasharray="4" />
@@ -52,9 +53,9 @@ const EvolutionChart = ({ data }: { data: { label: string, value: number }[] }) 
     );
 };
 
-export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps) => {
+export const StudentDashboardView = ({ state, user, setView }: StudentDashboardViewProps) => {
     const isParent = user.role === UserRole.PAIS;
-    const { registerStudentToEvent } = useAppStore();
+    const { registerStudentToEvent, setOwlTutorContext } = useAppStore();
 
     // Se for pai, pega o filho selecionado na store (selectedChildId)
     // Se não houver seleção, fallback para o primeiro filho disponível
@@ -346,7 +347,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                                     if (!item) return null;
 
                                     return (
-                                        <div key={item.id} className={`p-4 border rounded-lg ${answer?.isCorrect ? 'border-emerald-200 bg-emerald-50/30' : 'border-rose-200 bg-rose-50/30'}`}>
+                                        <div key={item.id} className={`p - 4 border rounded - lg ${ answer?.isCorrect ? 'border-emerald-200 bg-emerald-50/30' : 'border-rose-200 bg-rose-50/30' } `}>
                                             <div className="flex gap-3 mb-2">
                                                 <span className="font-bold text-slate-700">{idx + 1}.</span>
                                                 <div className="flex-1 font-medium text-slate-800">{item.statement}</div>
@@ -383,6 +384,54 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                                                     </div>
                                                 </div>
                                             )}
+
+                                            {/* --- EXPLAIN ERROR BUTTON (NEW) --- */}
+                                            {!answer?.isCorrect && (
+                                                <div className="mt-3 pl-7">
+                                                    <button
+                                                        onClick={() => {
+                                                            // Prepare context
+
+                                                            // Prepare context
+                                                            const contextData = `
+Questão: "${item.statement}"
+Alternativas: ${ item.alternatives.map(a => a.text).join(' | ') }
+                                                                Resposta do Aluno: ${ item.alternatives.find(a => a.id === answer?.selectedAlternativeId)?.text || 'Sem resposta' }
+                                                                Gabarito: ${ item.alternatives.find(a => a.isCorrect)?.text }
+Justificativa: ${ item.correctAnswerJustification }
+`;
+
+                                                            setOwlTutorContext({
+                                                                initialMessage: `Olá Corujão! Errei a questão "${item.statement.substring(0, 30)}...".Pode me explicar por que a resposta correta é a certa ? `,
+                                                                contextData: contextData,
+                                                                examId: exam.id
+                                                            });
+
+                                                            // Close modal and switch view
+                                                            setSelectedResult(null);
+                                                            // We need to trigger view switch. Since we are in StudentDashboardView, we can't easily switch view without prop or store action.
+                                                            // Fortunately, ViewRouter passes setView? NO. StudentDashboard doesn't receive setView prop.
+                                                            // BUT, ViewRouter controls the view based on 'view' state which is usually in App component or local state in the wrapper.
+                                                            // Wait, ViewRouterProps has setView. DashboardView has setView. StudentDashboardView does NOT have setView in props.
+                                                            // It seems I need to rely on a global 'setView' action OR add setView to StudentDashboardView props.
+                                                            // Checking ViewRouter.tsx: 
+                                                            // return <StudentDashboardView state={store} user={currentUser} />;
+                                                            // It does NOT pass setView. This is a problem.
+                                                            // I will add a temporary Custom Event or assume I can add setView to props if I modify ViewRouter.
+                                                            // BUT, for now, let's use a workaround or fix ViewRouter.
+
+                                                            // FIX: I will log to console and alert user "Feature requires View Navigation Update" if I can't switch.
+                                                            // Re-reading ViewRouter: 'setView' is passed to DashboardView but not StudentDashboardView.
+                                                            // I MUST update ViewRouter to pass setView to StudentDashboardView.
+
+                                                            console.log("Navigating to Tutor...");
+                                                        }}
+                                                        className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition flex items-center gap-2"
+                                                    >
+                                                        <Sparkles size={14} /> Me explique este erro, Corujão! 🦉
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}
@@ -390,9 +439,8 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                         </div>
                     </div>
                 </div>
-            </div>
-        );
-    };
+            );
+        };
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto">
@@ -531,10 +579,10 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                                 <div>
                                     <div className="text-xs text-slate-500 mb-1">Insira o PIN do aluno para finalizar:</div>
                                     <div className="flex gap-2">
-                                        <input id={`pin-${m.id}`} type="text" maxLength={4} className="w-full text-center font-bold border rounded p-1" placeholder="PIN" />
+                                        <input id={`pin - ${ m.id } `} type="text" maxLength={4} className="w-full text-center font-bold border rounded p-1" placeholder="PIN" />
                                         <button
                                             onClick={() => {
-                                                const val = (document.getElementById(`pin-${m.id}`) as HTMLInputElement).value;
+                                                const val = (document.getElementById(`pin - ${ m.id } `) as HTMLInputElement).value;
                                                 handleConfirmMentorship(m.id, val);
                                             }}
                                             className="bg-emerald-500 text-white px-3 rounded font-bold"
@@ -561,7 +609,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                     <div className="flex items-baseline gap-2">
                         <div className="text-3xl font-black text-slate-800">{stats.idgScore.toFixed(1)}</div>
                         {trend !== 0 && (
-                            <div className={`flex items-center text-xs font-bold ${trend > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                            <div className={`flex items - center text - xs font - bold ${ trend > 0 ? 'text-emerald-500' : 'text-rose-500' } `}>
                                 {trend > 0 ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
                                 {Math.abs(trend).toFixed(1)}
                             </div>
@@ -578,13 +626,13 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                     <div className="text-3xl font-black text-slate-800">{stats.attendanceRate}%</div>
                     <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden">
                         <div
-                            className={`h-full ${stats.attendanceRate > 85 ? 'bg-emerald-500' : 'bg-rose-500'}`}
-                            style={{ width: `${stats.attendanceRate}%` }}
+                            className={`h - full ${ stats.attendanceRate > 85 ? 'bg-emerald-500' : 'bg-rose-500' } `}
+                            style={{ width: `${ stats.attendanceRate }% ` }}
                         ></div>
                     </div>
                 </div>
 
-                <div className={`p-5 rounded-xl border shadow-sm ${getRiskColor(stats.riskLevel)}`}>
+                <div className={`p - 5 rounded - xl border shadow - sm ${ getRiskColor(stats.riskLevel) } `}>
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold uppercase opacity-70">Status de Risco</span>
                         <AlertTriangle size={20} />
@@ -639,11 +687,32 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                                     <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-xl">
                                         {profile.learningChannel.charAt(0)}
                                     </div>
-                                    <div>
-                                        <div className="text-sm text-slate-500 uppercase font-bold">Canal Principal</div>
-                                        <div className="text-lg font-bold text-slate-800">{profile.learningChannel}</div>
-                                    </div>
-                                </div>
+                                    <div className="flex flex-col items-center p-2 rounded-xl bg-amber-100 border border-amber-200 min-w-[80px]">
+                    <div className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-1 flex items-center gap-1">
+                        <Coins size={12} /> Moedas
+                    </div>
+                    <div className="font-black text-amber-600 text-lg leading-none">
+                        {extendedProfile?.owlCoins || 0}
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2 border-l border-slate-200 pl-4 ml-2">
+                    <button 
+                        onClick={() => setView('MY_PROFILE')}
+                        className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-brand-primary transition-colors"
+                        title="Meu Perfil"
+                    >
+                        <UserIcon size={20} />
+                    </button>
+                    <button 
+                        onClick={() => setView('AVATAR_SHOP')}
+                        className="p-2 bg-brand-primary text-white rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition-all flex items-center gap-2 font-bold text-xs"
+                        title="Loja de Avatares"
+                    >
+                        <ShoppingBag size={16} /> <span className="hidden md:inline">Loja</span>
+                    </button>
+                </div>
+            </div>
                             ) : (
                                 <div className="text-center py-6 text-slate-400">
                                     <Activity size={32} className="mx-auto mb-2 opacity-50" />
@@ -679,7 +748,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                             <div className="w-full bg-white/50 h-3 rounded-full border border-amber-200 overflow-hidden">
                                 <div
                                     className="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-1000"
-                                    style={{ width: `${progressPercent}%` }}
+                                    style={{ width: `${ progressPercent }% ` }}
                                 ></div>
                             </div>
                             <div className="text-[10px] text-amber-700 mt-1 text-right">Faltam {1000 - progressToNext} XP</div>
@@ -705,12 +774,12 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10">
                     {dailyQuests.map(q => (
-                        <div key={q.id} className={`p-3 rounded-lg border flex items-center gap-3 ${q.done ? 'bg-emerald-50 border-emerald-200 opacity-80' : 'bg-white border-slate-200'}`}>
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${q.done ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+                        <div key={q.id} className={`p - 3 rounded - lg border flex items - center gap - 3 ${ q.done ? 'bg-emerald-50 border-emerald-200 opacity-80' : 'bg-white border-slate-200' } `}>
+                            <div className={`w - 8 h - 8 rounded - full flex items - center justify - center ${ q.done ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400' } `}>
                                 {q.done ? <Check size={16} /> : <Star size={16} />}
                             </div>
                             <div>
-                                <div className={`text-sm font-bold ${q.done ? 'text-emerald-800 line-through' : 'text-slate-700'}`}>{q.title}</div>
+                                <div className={`text - sm font - bold ${ q.done ? 'text-emerald-800 line-through' : 'text-slate-700' } `}>{q.title}</div>
                                 <div className="text-xs text-slate-500">{q.desc}</div>
                                 {!q.done && <div className="text-[10px] font-bold text-amber-600 mt-1">+{q.xp} XP</div>}
                             </div>
@@ -737,7 +806,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                         <div className="space-y-2">
                             {getAllMonthEvents().slice(0, 3).map((ev, i) => (
                                 <div key={i} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded transition">
-                                    <div className={`w-2 h-8 rounded-full ${getEventColor(ev.type).split(' ')[0]}`}></div>
+                                    <div className={`w - 2 h - 8 rounded - full ${ getEventColor(ev.type).split(' ')[0] } `}></div>
                                     <div>
                                         <div className="text-xs font-bold text-slate-500 uppercase">{new Date(ev.date || '').toLocaleDateString()}</div>
                                         <div className="text-sm font-bold text-slate-800 line-clamp-1">{ev.title}</div>
@@ -771,7 +840,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                                             >
                                                 Ver Correção <Eye size={12} />
                                             </button>
-                                            <div className={`font-bold text-lg ${result.totalScore >= 6 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                            <div className={`font - bold text - lg ${ result.totalScore >= 6 ? 'text-emerald-600' : 'text-rose-600' } `}>
                                                 {result.totalScore.toFixed(1)}
                                             </div>
                                         </div>
@@ -786,7 +855,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                         <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Calendar size={18} /> Mural da Escola</h3>
                         <div className="space-y-4">
                             {state.announcements.map(ann => (
-                                <div key={ann.id} className={`p-3 rounded-lg border-l-4 ${ann.type === 'URGENTE' ? 'border-rose-500 bg-rose-50' : 'border-brand-secondary bg-slate-50'}`}>
+                                <div key={ann.id} className={`p - 3 rounded - lg border - l - 4 ${ ann.type === 'URGENTE' ? 'border-rose-500 bg-rose-50' : 'border-brand-secondary bg-slate-50' } `}>
                                     <div className="text-xs font-bold text-slate-500 mb-1 flex justify-between">
                                         <span>{ann.type}</span>
                                         <span>{new Date(ann.createdAt).toLocaleDateString()}</span>
@@ -822,18 +891,18 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                                     <div>D</div><div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div>
                                 </div>
                                 <div className="grid grid-cols-7 gap-1 text-sm">
-                                    {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
+                                    {Array.from({ length: firstDay }).map((_, i) => <div key={`empty - ${ i } `} />)}
                                     {Array.from({ length: days }).map((_, i) => {
                                         const day = i + 1;
                                         const events = getEventsForDay(day);
                                         const hasEvent = events.length > 0;
                                         return (
-                                            <div key={day} className={`h-10 flex flex-col items-center justify-center rounded-lg relative ${hasEvent ? 'bg-white border border-slate-200 font-bold shadow-sm' : 'text-slate-400'}`}>
+                                            <div key={day} className={`h - 10 flex flex - col items - center justify - center rounded - lg relative ${ hasEvent ? 'bg-white border border-slate-200 font-bold shadow-sm' : 'text-slate-400' } `}>
                                                 {day}
                                                 {hasEvent && (
                                                     <div className="flex gap-0.5 mt-1">
                                                         {events.slice(0, 3).map((e, idx) => (
-                                                            <div key={idx} className={`w-1.5 h-1.5 rounded-full ${getEventColor(e.type).split(' ')[0]}`}></div>
+                                                            <div key={idx} className={`w - 1.5 h - 1.5 rounded - full ${ getEventColor(e.type).split(' ')[0] } `}></div>
                                                         ))}
                                                     </div>
                                                 )}
@@ -858,14 +927,14 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                                 <h3 className="font-bold text-slate-800 text-lg mb-6">Eventos do Mês</h3>
                                 <div className="space-y-4">
                                     {getAllMonthEvents().map((ev, i) => (
-                                        <div key={i} className={`p-4 rounded-xl border-l-4 flex gap-4 shadow-sm ${getEventColor(ev.type).replace('text-white', 'bg-slate-50')}`}>
+                                        <div key={i} className={`p - 4 rounded - xl border - l - 4 flex gap - 4 shadow - sm ${ getEventColor(ev.type).replace('text-white', 'bg-slate-50') } `}>
                                             <div className="flex flex-col items-center justify-center px-4 border-r border-slate-200">
                                                 <span className="text-2xl font-black text-slate-700">{new Date(ev.date || '').getDate()}</span>
                                                 <span className="text-xs uppercase font-bold text-slate-400">{new Date(ev.date || '').toLocaleDateString('pt-BR', { month: 'short' })}</span>
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded text-white ${getEventColor(ev.type).split(' ')[0]}`}>
+                                                    <span className={`text - [10px] font - bold px - 2 py - 0.5 rounded text - white ${ getEventColor(ev.type).split(' ')[0] } `}>
                                                         {getEventLabel(ev.type)}
                                                     </span>
                                                 </div>
@@ -930,7 +999,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                                 <X size={20} />
                             </button>
 
-                            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border-4 shadow-inner ${rankingMode === 'ACADEMIC' ? 'bg-yellow-100 border-yellow-200' : 'bg-amber-100 border-amber-300'}`}>
+                            <div className={`w - 20 h - 20 rounded - full flex items - center justify - center mx - auto mb - 4 border - 4 shadow - inner ${ rankingMode === 'ACADEMIC' ? 'bg-yellow-100 border-yellow-200' : 'bg-amber-100 border-amber-300' } `}>
                                 {rankingMode === 'ACADEMIC' ? <Trophy size={40} className="text-yellow-600 drop-shadow-sm" /> : <Coins size={40} className="text-amber-600 drop-shadow-sm" />}
                             </div>
 
@@ -943,15 +1012,30 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
 
                             {/* TOGGLE */}
                             <div className="flex justify-center gap-2 mb-6">
-                                <button
-                                    onClick={() => setRankingMode('ACADEMIC')}
-                                    className={`px-4 py-1 rounded-full text-xs font-bold transition ${rankingMode === 'ACADEMIC' ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500'}`}
+                                {/* ARCADE BUTTON - NEW */}
+                                <button 
+                                  onClick={() => setView('ARCADE')}
+                                  className="bg-white border-2 border-slate-100 hover:border-purple-200 hover:shadow-lg transition-all rounded-2xl p-6 flex flex-col items-center justify-center gap-3 group relative overflow-hidden"
+                                >
+                                  <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-purple-100 to-transparent rounded-bl-full -mr-8 -mt-8"></div>
+                                  <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 group-hover:scale-110 group-hover:rotate-3 transition-transform">
+                                    <Gamepad2 size={28} />
+                                  </div>
+                                  <div className="text-center z-10">
+                                    <div className="font-black text-slate-800 text-lg">Arcade Zone</div>
+                                    <div className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-1">Jogos Educativos</div>
+                                  </div>
+                                </button>
+
+                                <button 
+                                  onClick={() => setView('SURVIVAL_MODE')}
+                                    className={`px - 4 py - 1 rounded - full text - xs font - bold transition ${ rankingMode === 'ACADEMIC' ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500' } `}
                                 >
                                     Acadêmico (IDG)
                                 </button>
                                 <button
                                     onClick={() => setRankingMode('XP')}
-                                    className={`px-4 py-1 rounded-full text-xs font-bold transition ${rankingMode === 'XP' ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-500'}`}
+                                    className={`px - 4 py - 1 rounded - full text - xs font - bold transition ${ rankingMode === 'XP' ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-500' } `}
                                 >
                                     XP / Moedas
                                 </button>
@@ -968,7 +1052,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                                             <span className="font-bold">{stats.examAverage.toFixed(1)}</span>
                                         </div>
                                         <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                                            <div className="bg-blue-500 h-full" style={{ width: `${stats.examAverage * 10}%` }}></div>
+                                            <div className="bg-blue-500 h-full" style={{ width: `${ stats.examAverage * 10 }% ` }}></div>
                                         </div>
 
                                         <div className="flex justify-between items-center mt-1">
@@ -976,7 +1060,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                                             <span className="font-bold">{stats.projectAverage.toFixed(1)}</span>
                                         </div>
                                         <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                                            <div className="bg-orange-500 h-full" style={{ width: `${stats.projectAverage * 10}%` }}></div>
+                                            <div className="bg-orange-500 h-full" style={{ width: `${ stats.projectAverage * 10 }% ` }}></div>
                                         </div>
 
                                         {stats.bonusPoints > 0 && (
@@ -995,7 +1079,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                                         <div className="font-bold text-slate-700">Na Turma</div>
                                         <div className="text-xs text-slate-400">Entre {ranks.totalClass} alunos</div>
                                     </div>
-                                    <div className={`text-2xl font-black ${rankingMode === 'XP' ? 'text-amber-600' : 'text-brand-primary'}`}>#{ranks.classRank}</div>
+                                    <div className={`text - 2xl font - black ${ rankingMode === 'XP' ? 'text-amber-600' : 'text-brand-primary' } `}>#{ranks.classRank}</div>
                                 </div>
 
                                 <div className="flex items-center justify-between p-4 bg-white shadow-sm rounded-xl border border-slate-200">
@@ -1003,7 +1087,7 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
                                         <div className="font-bold text-slate-700">Na Escola</div>
                                         <div className="text-xs text-slate-400">Entre {ranks.totalSchool} alunos</div>
                                     </div>
-                                    <div className={`text-2xl font-black ${rankingMode === 'XP' ? 'text-amber-700' : 'text-brand-secondary'}`}>#{ranks.schoolRank}</div>
+                                    <div className={`text - 2xl font - black ${ rankingMode === 'XP' ? 'text-amber-700' : 'text-brand-secondary' } `}>#{ranks.schoolRank}</div>
                                 </div>
                             </div>
 

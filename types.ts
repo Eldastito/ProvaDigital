@@ -96,7 +96,41 @@ export interface UserProfileExtended {
   owlCoins: number;
   xp?: number; // Pontos de experiência para gamificação
   badges: string[]; // Badges gamificados (visual)
+  inventory?: string[]; // IDs de itens comprados
+  equippedItems?: {
+    hat?: string;
+    outfit?: string;
+    accessory?: string;
+  };
   academicAchievements?: AcademicAchievement[]; // Conquistas com peso acadêmico
+}
+
+export type ShopItemCategory = 'HAT' | 'OUTFIT' | 'ACCESSORY';
+
+export interface ShopItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: ShopItemCategory;
+  imageUrl: string; // Emoji ou URL
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: ShopItemCategory;
+  imageUrl: string;
+  minLevel?: number;
+}
+
+export interface ExternalGame {
+  id: string;
+  title: string;
+  description: string;
+  thumbnailUrl: string;
+  gameUrl: string;
+  category: 'MATH' | 'LOGIC' | 'MEMORY' | 'STRATEGY';
+  minLevel?: number;
 }
 
 export interface Tenant {
@@ -196,9 +230,9 @@ export enum ExamModel {
 }
 
 export enum ExamStatus {
-  DRAFT = 'RASCUNHO',
-  PUBLISHED = 'PUBLICADA',
-  CLOSED = 'ENCERRADA'
+  DRAFT = 'DRAFT',
+  ACTIVE = 'ACTIVE',
+  COMPLETED = 'COMPLETED'
 }
 
 export interface ExamItemConfig {
@@ -360,11 +394,18 @@ export interface ChatGroup {
   createdAt: string;
 }
 
+
 export interface OwlSession {
   id: string;
   studentId: string;
   messages: { role: 'user' | 'model', text: string }[];
   startedAt: string;
+}
+
+export interface OwlTutorContext {
+  initialMessage?: string;
+  contextData?: string;
+  examId?: string;
 }
 
 export interface LessonPlan {
@@ -480,9 +521,9 @@ export interface SessionStudent {
 }
 
 export enum RiskLevel {
-  LOW = 'BAIXO',
-  MEDIUM = 'MEDIO',
-  HIGH = 'ALTO'
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH'
 }
 
 export interface StudentStats {
@@ -534,6 +575,7 @@ export interface AppState {
   messages: ChatMessage[];
   chatGroups: ChatGroup[];
   owlSessions: OwlSession[];
+  owlTutorContext: OwlTutorContext | null; // NOVO: Contexto para abrir o chat
   lessonPlans: LessonPlan[];
   studyPlans: StudyPlan[];
   studentProfiles: StudentProfile[];

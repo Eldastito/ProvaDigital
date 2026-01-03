@@ -3,7 +3,12 @@
 -- Compatível com IDs do tipo TEXT (atual)
 -- ============================================
 
--- 1. Tabela de Alertas de Risco
+-- 1. Garante que a tabela public.users tenha a coluna children_ids (necessária para Pais)
+-- ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS children_ids TEXT[] DEFAULT '{}'; -- Bloqueado pelo Supabase
+CREATE TABLE IF NOT EXISTS public.users (id TEXT PRIMARY KEY REFERENCES auth.users(id)); -- Garante que a tabela existe
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS children_ids TEXT[] DEFAULT '{}';
+
+-- 2. Tabela de Alertas de Risco
 CREATE TABLE IF NOT EXISTS risk_alerts (
   id TEXT PRIMARY KEY,
   student_id TEXT NOT NULL,
@@ -97,7 +102,7 @@ CREATE POLICY "Coordenadores veem alertas da escola" ON risk_alerts
   FOR SELECT
   USING (
     school_id IN (
-      SELECT school_id FROM users WHERE id = auth.uid()
+      SELECT school_id FROM users WHERE id = auth.uid()::text
     )
   );
 
@@ -106,19 +111,19 @@ CREATE POLICY "Pais veem alertas dos filhos" ON risk_alerts
   FOR SELECT
   USING (
     student_id IN (
-      SELECT unnest(children_ids) FROM users WHERE id = auth.uid()
+      SELECT unnest(children_ids) FROM users WHERE id = auth.uid()::text
     )
   );
 
 -- Política: Usuários veem suas próprias notificações
 CREATE POLICY "Usuários veem suas notificações" ON notifications
   FOR SELECT
-  USING (user_id = auth.uid());
+  USING (user_id = auth.uid()::text);
 
 -- Política: Usuários podem marcar suas notificações como lidas
 CREATE POLICY "Usuários atualizam suas notificações" ON notifications
   FOR UPDATE
-  USING (user_id = auth.uid());
+  USING (user_id = auth.uid()::text);
 
 -- ============================================
 -- FUNÇÕES ÚTEIS

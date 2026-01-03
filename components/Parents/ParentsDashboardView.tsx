@@ -1,5 +1,9 @@
-// ... imports
-import { calculateRiskScore, RiskLevel } from '../../services/riskDetectionEngine';
+import React, { useState } from 'react';
+import { useAppStore } from '../../store/useAppStore';
+import { ChevronDown, TrendingUp, BookOpen, Award, Calendar, User, FileText, BarChart3, Clock } from 'lucide-react';
+import { calculateRiskScore } from '../../services/riskDetectionEngine';
+import { RiskLevel } from '../../types';
+import { NotificationBell } from '../Notifications/NotificationBell';
 
 export const ParentsDashboardView = () => {
     const { currentUser, students, results, exams, selectedChildId, setSelectedChildId } = useAppStore();
@@ -41,7 +45,8 @@ export const ParentsDashboardView = () => {
                             <p className="text-sm font-bold text-slate-700">{currentUser?.name}</p>
                             <p className="text-xs text-slate-500">Responsável</p>
                         </div>
-                        <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                        <NotificationBell />
+                        <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg">
                             {currentUser?.name?.charAt(0) || 'P'}
                         </div>
                     </div>
@@ -72,8 +77,8 @@ export const ParentsDashboardView = () => {
                             {/* --- RISK ALERT SECTION (NEW) --- */}
                             {(riskAssessment.riskLevel === RiskLevel.HIGH || riskAssessment.riskLevel === RiskLevel.MEDIUM) && (
                                 <div className={`rounded-xl p-6 shadow-lg border ${riskAssessment.riskLevel === RiskLevel.HIGH
-                                        ? 'bg-red-50 border-red-200'
-                                        : 'bg-yellow-50 border-yellow-200'
+                                    ? 'bg-red-50 border-red-200'
+                                    : 'bg-yellow-50 border-yellow-200'
                                     }`}>
                                     <div className="flex items-start gap-4">
                                         <div className={`p-3 rounded-full ${riskAssessment.riskLevel === RiskLevel.HIGH ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'

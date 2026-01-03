@@ -41,6 +41,8 @@ export const LoginPage = () => {
         setLoading(true);
         setError(null);
 
+
+
         try {
             if (isSignUp) {
                 const { data, error: signUpError } = await supabase.auth.signUp({

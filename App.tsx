@@ -59,10 +59,12 @@ export default function App() {
           console.log('👤 User found in store:', userMatch.name);
 
           // 🧪 CHECK FOR TEST PROFILE OVERRIDE (with persistence flag)
+          // Disabled in Production to prevent accidental access
+          const isProduction = import.meta.env.VITE_APP_ENV === 'production';
           const testProfile = localStorage.getItem('test_profile');
           const testProfileLocked = sessionStorage.getItem('test_profile_locked');
 
-          if (testProfile && !testProfileLocked) {
+          if (testProfile && !testProfileLocked && !isProduction) {
             console.log('🧪 Test profile detected:', testProfile);
             userMatch = { ...userMatch, role: testProfile as UserRole };
 

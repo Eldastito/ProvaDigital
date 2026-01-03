@@ -5,7 +5,8 @@
  */
 
 import { supabase } from './supabaseClient';
-import { RiskAssessment, RiskLevel } from './riskDetectionEngine';
+import { RiskAssessment } from './riskDetectionEngine';
+import { RiskLevel } from '../types';
 import { uuidv4 } from '../utils/helpers';
 
 // ============================================
@@ -62,7 +63,8 @@ export interface Notification {
 // CONFIGURAÇÃO
 // ============================================
 
-const USE_SUPABASE = false; // Mude para true quando rodar o SQL
+// TENTA usar Supabase se as chaves estiverem definidas, senão cai no Mock
+const USE_SUPABASE = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
 
 // Mock Storage (simula banco de dados)
 let mockAlerts: RiskAlert[] = [];
@@ -465,7 +467,7 @@ export const generateMockData = () => {
     });
 };
 
-// Gera mock data automaticamente em modo de desenvolvimento
+// Gera mock data automaticamente APENAS se não estiver usando Supabase
 if (!USE_SUPABASE) {
     generateMockData();
 }

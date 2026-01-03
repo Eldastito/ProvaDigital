@@ -1,6 +1,6 @@
 
 import { create } from 'zustand';
-import { AppState, User, Item, Exam, ExamResult, ChatMessage, ChatGroup, Announcement, LessonPlan, StudyPlan, UserProfileExtended, AppSettings, PermissionMatrix, UserRole, GamifiedEvent } from '../types';
+import { AppState, User, Item, Exam, ExamResult, ChatMessage, ChatGroup, Announcement, LessonPlan, StudyPlan, UserProfileExtended, AppSettings, PermissionMatrix, UserRole, GamifiedEvent, OwlTutorContext } from '../types';
 import { INITIAL_TENANTS, INITIAL_SCHOOLS, INITIAL_CLASSES, INITIAL_USERS, INITIAL_ITEMS, INITIAL_STUDENTS, INITIAL_RESULTS, INITIAL_EXAMS, INITIAL_REGISTRATIONS, INITIAL_ANNOUNCEMENTS, INITIAL_MESSAGES, INITIAL_LESSON_PLANS, INITIAL_STUDY_PLANS, INITIAL_STUDENT_PROFILES, INITIAL_USER_PROFILES, INITIAL_SETTINGS, INITIAL_GAMIFIED_EVENTS } from '../utils/mockData';
 import { supabase } from '../services/supabaseClient';
 
@@ -88,6 +88,7 @@ interface AppActions {
     acceptMentorshipRequest: (requestId: string, mentorId: string, mentorName: string) => void;
     confirmMentorship: (requestId: string, pinInput: string) => boolean; // Returns true if PIN matches
     setHasConsented: (hasConsented: boolean) => void;
+    setOwlTutorContext: (context: OwlTutorContext | null) => void;
 }
 
 type AppStore = AppState & AppActions;
@@ -110,6 +111,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     messages: INITIAL_MESSAGES,
     chatGroups: [],
     owlSessions: [],
+    owlTutorContext: null,
     lessonPlans: INITIAL_LESSON_PLANS,
     studyPlans: INITIAL_STUDY_PLANS,
     studentProfiles: INITIAL_STUDENT_PROFILES,
@@ -119,6 +121,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     hasConsented: false,
 
     setHasConsented: (val) => set({ hasConsented: val }),
+    setOwlTutorContext: (ctx) => set({ owlTutorContext: ctx }),
 
     setCurrentUser: (user) => set({ currentUser: user, selectedChildId: null }),
     setSelectedChildId: (childId) => set({ selectedChildId: childId }),
