@@ -19,6 +19,7 @@ import { StudentApp } from './components/TabletApp/StudentApp';
 
 // Demo
 import { LiveDemoLobby } from './components/Demo/LiveDemoLobby';
+import { ProfileSwitcher } from './components/ProfileSwitcher';
 
 export default function App() {
   const store = useAppStore();
