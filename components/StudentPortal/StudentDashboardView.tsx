@@ -607,7 +607,7 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                     <div className="flex items-baseline gap-2">
                         <div className="text-3xl font-black text-slate-800">{stats.idgScore.toFixed(1)}</div>
                         {trend !== 0 && (
-                            <div className={'flex items-center text-xs font-bold ' + ( trend > 0 ? 'text-emerald-500' : 'text-rose-500' ) + ' '}>
+                            <div className={'flex items-center text-xs font-bold ' + (trend > 0 ? 'text-emerald-500' : 'text-rose-500') + ' '}>
                                 {trend > 0 ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
                                 {Math.abs(trend).toFixed(1)}
                             </div>
@@ -624,13 +624,13 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                     <div className="text-3xl font-black text-slate-800">{stats.attendanceRate}%</div>
                     <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden">
                         <div
-                            className={'h-full ' + ( stats.attendanceRate > 85 ? 'bg-emerald-500' : 'bg-rose-500' ) + ' '}
-                            style={{ width: ( stats.attendanceRate ) + '%' }}
+                            className={'h-full ' + (stats.attendanceRate > 85 ? 'bg-emerald-500' : 'bg-rose-500') + ' '}
+                            style={{ width: (stats.attendanceRate ) + '%' }}
                         ></div>
                     </div>
                 </div>
 
-                <div className={'p-5 rounded-xl border shadow-sm ' + ( getRiskColor(stats.riskLevel) ) + ' '}>
+                <div className={'p-5 rounded-xl border shadow-sm ' + (getRiskColor(stats.riskLevel)) + ' '}>
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold uppercase opacity-70">Status de Risco</span>
                         <AlertTriangle size={20} />
@@ -746,7 +746,7 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                             <div className="w-full bg-white/50 h-3 rounded-full border border-amber-200 overflow-hidden">
                                 <div
                                     className="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-1000"
-                                    style={{ width: ( progressPercent ) + '%' }}
+                                    style={{ width: (progressPercent ) + '%' }}
                                 ></div>
                             </div>
                             <div className="text-[10px] text-amber-700 mt-1 text-right">Faltam {1000 - progressToNext} XP</div>
@@ -772,12 +772,12 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10">
                     {dailyQuests.map(q => (
-                        <div key={q.id} className={'p-3 rounded-lg border flex items-center gap-3 ' + ( q.done ? 'bg-emerald-50 border-emerald-200 opacity-80' : 'bg-white border-slate-200' ) + ' '}>
-                            <div className={'w-8 h-8 rounded-full flex items-center justify-center ' + ( q.done ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400' ) + ' '}>
+                        <div key={q.id} className={'p-3 rounded-lg border flex items-center gap-3 ' + (q.done ? 'bg-emerald-50 border-emerald-200 opacity-80' : 'bg-white border-slate-200') + ' '}>
+                            <div className={'w-8 h-8 rounded-full flex items-center justify-center ' + (q.done ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400') + ' '}>
                                 {q.done ? <Check size={16} /> : <Star size={16} />}
                             </div>
                             <div>
-                                <div className={'text-sm font-bold ' + ( q.done ? 'text-emerald-800 line-through' : 'text-slate-700' ) + ' '}>{q.title}</div>
+                                <div className={'text-sm font-bold ' + (q.done ? 'text-emerald-800 line-through' : 'text-slate-700') + ' '}>{q.title}</div>
                                 <div className="text-xs text-slate-500">{q.desc}</div>
                                 {!q.done && <div className="text-[10px] font-bold text-amber-600 mt-1">+{q.xp} XP</div>}
                             </div>
@@ -804,7 +804,7 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                         <div className="space-y-2">
                             {getAllMonthEvents().slice(0, 3).map((ev, i) => (
                                 <div key={i} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded transition">
-                                    <div className={'w-2 h-8 rounded-full ' + ( getEventColor(ev.type).split(' ')[0] ) + ' '}></div>
+                                    <div className={'w-2 h-8 rounded-full ' + (getEventColor(ev.type).split(' ')[0]) + ' '}></div>
                                     <div>
                                         <div className="text-xs font-bold text-slate-500 uppercase">{new Date(ev.date || '').toLocaleDateString()}</div>
                                         <div className="text-sm font-bold text-slate-800 line-clamp-1">{ev.title}</div>
@@ -838,7 +838,7 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                                             >
                                                 Ver Correção <Eye size={12} />
                                             </button>
-                                            <div className={'font-bold text-lg ' + ( result.totalScore >= 6 ? 'text-emerald-600' : 'text-rose-600' ) + ' '}>
+                                            <div className={'font-bold text-lg ' + (result.totalScore >= 6 ? 'text-emerald-600' : 'text-rose-600') + ' '}>
                                                 {result.totalScore.toFixed(1)}
                                             </div>
                                         </div>
@@ -853,7 +853,7 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                         <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Calendar size={18} /> Mural da Escola</h3>
                         <div className="space-y-4">
                             {state.announcements.map(ann => (
-                                <div key={ann.id} className={'p-3 rounded-lg border-l-4 ' + ( ann.type === 'URGENTE' ? 'border-rose-500 bg-rose-50' : 'border-brand-secondary bg-slate-50' ) + ' '}>
+                                <div key={ann.id} className={'p-3 rounded-lg border-l-4 ' + (ann.type === 'URGENTE' ? 'border-rose-500 bg-rose-50' : 'border-brand-secondary bg-slate-50') + ' '}>
                                     <div className="text-xs font-bold text-slate-500 mb-1 flex justify-between">
                                         <span>{ann.type}</span>
                                         <span>{new Date(ann.createdAt).toLocaleDateString()}</span>
@@ -895,12 +895,12 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                                         const events = getEventsForDay(day);
                                         const hasEvent = events.length > 0;
                                         return (
-                                            <div key={day} className={'h-10 flex flex-col items-center justify-center rounded-lg relative ' + ( hasEvent ? 'bg-white border border-slate-200 font-bold shadow-sm' : 'text-slate-400' ) + ' '}>
+                                            <div key={day} className={'h-10 flex flex-col items-center justify-center rounded-lg relative ' + (hasEvent ? 'bg-white border border-slate-200 font-bold shadow-sm' : 'text-slate-400') + ' '}>
                                                 {day}
                                                 {hasEvent && (
                                                     <div className="flex gap-0.5 mt-1">
                                                         {events.slice(0, 3).map((e, idx) => (
-                                                            <div key={idx} className={'w-1.5 h-1.5 rounded-full ' + ( getEventColor(e.type).split(' ')[0] ) + ' '}></div>
+                                                            <div key={idx} className={'w-1.5 h-1.5 rounded-full ' + (getEventColor(e.type).split(' ')[0]) + ' '}></div>
                                                         ))}
                                                     </div>
                                                 )}
@@ -925,14 +925,14 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                                 <h3 className="font-bold text-slate-800 text-lg mb-6">Eventos do Mês</h3>
                                 <div className="space-y-4">
                                     {getAllMonthEvents().map((ev, i) => (
-                                        <div key={i} className={'p-4 rounded-xl border-l-4 flex gap-4 shadow-sm ' + ( getEventColor(ev.type).replace('text-white', 'bg-slate-50') ) + ' '}>
+                                        <div key={i} className={'p-4 rounded-xl border-l-4 flex gap-4 shadow-sm ' + (getEventColor(ev.type).replace('text-white', 'bg-slate-50')) + ' '}>
                                             <div className="flex flex-col items-center justify-center px-4 border-r border-slate-200">
                                                 <span className="text-2xl font-black text-slate-700">{new Date(ev.date || '').getDate()}</span>
                                                 <span className="text-xs uppercase font-bold text-slate-400">{new Date(ev.date || '').toLocaleDateString('pt-BR', { month: 'short' })}</span>
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <span className={'text-[10px] font-bold px-2 py-0.5 rounded text - white ' + ( getEventColor(ev.type).split(' ')[0] ) + ' '}>
+                                                    <span className={'text-[10px] font-bold px-2 py-0.5 rounded text - white ' + (getEventColor(ev.type).split(' ')[0]) + ' '}>
                                                         {getEventLabel(ev.type)}
                                                     </span>
                                                 </div>
@@ -997,7 +997,7 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                                 <X size={20} />
                             </button>
 
-                            <div className={'w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border-4 shadow-inner ' + ( rankingMode === 'ACADEMIC' ? 'bg-yellow-100 border-yellow-200' : 'bg-amber-100 border-amber-300' ) + ' '}>
+                            <div className={'w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border-4 shadow-inner ' + (rankingMode === 'ACADEMIC' ? 'bg-yellow-100 border-yellow-200' : 'bg-amber-100 border-amber-300') + ' '}>
                                 {rankingMode === 'ACADEMIC' ? <Trophy size={40} className="text-yellow-600 drop-shadow-sm" /> : <Coins size={40} className="text-amber-600 drop-shadow-sm" />}
                             </div>
 
@@ -1027,13 +1027,13 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
 
                                 <button 
                                   onClick={() => setView('SURVIVAL_MODE')}
-                                    className={'px-4 py-1 rounded-full text-xs font-bold transition ' + ( rankingMode === 'ACADEMIC' ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500' ) + ' '}
+                                    className={'px-4 py-1 rounded-full text-xs font-bold transition ' + (rankingMode === 'ACADEMIC' ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500') + ' '}
                                 >
                                     Acadêmico (IDG)
                                 </button>
                                 <button
                                     onClick={() => setRankingMode('XP')}
-                                    className={'px-4 py-1 rounded-full text-xs font-bold transition ' + ( rankingMode === 'XP' ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-500' ) + ' '}
+                                    className={'px-4 py-1 rounded-full text-xs font-bold transition ' + (rankingMode === 'XP' ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-500') + ' '}
                                 >
                                     XP / Moedas
                                 </button>
@@ -1050,7 +1050,7 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                                             <span className="font-bold">{stats.examAverage.toFixed(1)}</span>
                                         </div>
                                         <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                                            <div className="bg-blue-500 h-full" style={{ width: ( stats.examAverage * 10 ) + '%' }}></div>
+                                            <div className="bg-blue-500 h-full" style={{ width: (stats.examAverage * 10 ) + '%' }}></div>
                                         </div>
 
                                         <div className="flex justify-between items-center mt-1">
@@ -1058,7 +1058,7 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                                             <span className="font-bold">{stats.projectAverage.toFixed(1)}</span>
                                         </div>
                                         <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                                            <div className="bg-orange-500 h-full" style={{ width: ( stats.projectAverage * 10 ) + '%' }}></div>
+                                            <div className="bg-orange-500 h-full" style={{ width: (stats.projectAverage * 10 ) + '%' }}></div>
                                         </div>
 
                                         {stats.bonusPoints > 0 && (
@@ -1077,7 +1077,7 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                                         <div className="font-bold text-slate-700">Na Turma</div>
                                         <div className="text-xs text-slate-400">Entre {ranks.totalClass} alunos</div>
                                     </div>
-                                    <div className={'text-2xl font - black ' + ( rankingMode === 'XP' ? 'text-amber-600' : 'text-brand-primary' ) + ' '}>#{ranks.classRank}</div>
+                                    <div className={'text-2xl font - black ' + (rankingMode === 'XP' ? 'text-amber-600' : 'text-brand-primary') + ' '}>#{ranks.classRank}</div>
                                 </div>
 
                                 <div className="flex items-center justify-between p-4 bg-white shadow-sm rounded-xl border border-slate-200">
@@ -1085,7 +1085,7 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                                         <div className="font-bold text-slate-700">Na Escola</div>
                                         <div className="text-xs text-slate-400">Entre {ranks.totalSchool} alunos</div>
                                     </div>
-                                    <div className={'text-2xl font - black ' + ( rankingMode === 'XP' ? 'text-amber-700' : 'text-brand-secondary' ) + ' '}>#{ranks.schoolRank}</div>
+                                    <div className={'text-2xl font - black ' + (rankingMode === 'XP' ? 'text-amber-700' : 'text-brand-secondary') + ' '}>#{ranks.schoolRank}</div>
                                 </div>
                             </div>
 
