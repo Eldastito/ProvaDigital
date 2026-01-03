@@ -23,7 +23,7 @@ const EvolutionChart = ({ data }: { data: { label: string, value: number }[] }) 
     const points = data.map((d, i) => {
         const x = padding + (i / (data.length - 1)) * (width - 2 * padding);
         const y = height - padding - (d.value / maxY) * (height - 2 * padding);
-        return `${ x },${ y } `;
+        return x + ',' + y;
     }).join(' ');
 
     return (
