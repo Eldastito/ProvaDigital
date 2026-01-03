@@ -9,6 +9,7 @@ import { LoginPage } from './components/Auth/LoginPage';
 // Infrastructure
 import { Layout } from './components/Layout';
 import { ViewRouter } from './components/ViewRouter';
+import { PrivacyPolicyModal } from './components/Legal/PrivacyPolicyModal';
 
 // Tablet Apps
 import { TabletLauncher } from './components/TabletApp/TabletLauncher';
@@ -33,6 +34,12 @@ export default function App() {
 
   // --- INIT: LOAD DATA FROM SUPABASE ---
   useEffect(() => {
+    // 0. Check LGPD Consent
+    const storedConsent = localStorage.getItem('lgpd_consent');
+    if (storedConsent === 'true') {
+      store.setHasConsented(true);
+    }
+
     // 1. Check & Load Data
     checkConnection().then(connected => {
       if (connected) loadRemoteData();
@@ -217,6 +224,19 @@ export default function App() {
         onPrintExam={handlePrintExam}
         onGradeExam={handleGradeExam}
       />
+
+      {/* LGPD Compliance Modal - Blocks usage until accepted */}
+      {!store.hasConsented && (
+        <PrivacyPolicyModal
+          onAccept={() => {
+            store.setHasConsented(true);
+            localStorage.setItem('lgpd_consent', 'true');
+          }}
+          onReject={() => {
+            alert("O aceite da Política de Privacidade é obrigatório para utilizar a plataforma.");
+          }}
+        />
+      )}
     </Layout>
   );
 }

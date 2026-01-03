@@ -87,6 +87,7 @@ interface AppActions {
     addMentorshipRequest: (request: MentorshipRequest) => void;
     acceptMentorshipRequest: (requestId: string, mentorId: string, mentorName: string) => void;
     confirmMentorship: (requestId: string, pinInput: string) => boolean; // Returns true if PIN matches
+    setHasConsented: (hasConsented: boolean) => void;
 }
 
 type AppStore = AppState & AppActions;
@@ -115,6 +116,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
     userProfiles: INITIAL_USER_PROFILES,
     settings: INITIAL_SETTINGS,
     globalPermissions: DEFAULT_PERMISSIONS,
+    hasConsented: false,
+
+    setHasConsented: (val) => set({ hasConsented: val }),
 
     setCurrentUser: (user) => set({ currentUser: user, selectedChildId: null }),
     setSelectedChildId: (childId) => set({ selectedChildId: childId }),

@@ -540,4 +540,5 @@ export interface AppState {
   userProfiles: UserProfileExtended[];
   settings: AppSettings;
   globalPermissions: PermissionMatrix;
+  hasConsented: boolean; // LGPD Consent Status
 }
