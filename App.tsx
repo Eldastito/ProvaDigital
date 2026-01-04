@@ -24,7 +24,7 @@ import { ProfileSwitcher } from './components/ProfileSwitcher';
 
 export default function App() {
   const store = useAppStore();
-  const { currentUser, setCurrentUser, users, setSelectedChildId, loadRemoteData } = store;
+  const { currentUser, setCurrentUser, users, setSelectedChildId, loadRemoteData, isInitialized } = store;
 
   // Global View State
   const [view, setView] = useState('LOGIN');
@@ -34,7 +34,7 @@ export default function App() {
   const [selectedExamIdForPrint, setSelectedExamIdForPrint] = useState<string | null>(null);
   const [selectedExamIdForResults, setSelectedExamIdForResults] = useState<string | null>(null);
 
-  // --- INIT: LOAD DATA FROM SUPABASE ---
+  // --- 1. INIT & DATA LOADING ---
   useEffect(() => {
     // 0. Check LGPD Consent
     const storedConsent = localStorage.getItem('lgpd_consent');
@@ -42,19 +42,31 @@ export default function App() {
       store.setHasConsented(true);
     }
 
-    // 1. Check & Load Data
+    // 1. Check & Load Data (Async)
     checkConnection().then(connected => {
-      if (connected) loadRemoteData();
+      if (connected) {
+        loadRemoteData();
+      } else {
+        // If offline or error, we still need to set initialized to allow app to function (e.g. tablet mode)
+        useAppStore.setState({ isInitialized: true });
+      }
     });
+  }, []); // Run once on mount
 
-    // 2. Auth Listener
+  // --- 2. AUTH LISTENER (SAFE) ---
+  // Only subscribe to auth changes AFTER data is initialized to avoid race conditions
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    console.log('🔌 Iniciando conexão com Supabase...');
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔐 Auth Event:', event, 'Session:', session?.user?.email);
 
       if (event === 'SIGNED_IN' && session?.user) {
         console.log('✅ User signed in:', session.user.email);
 
-        // Buscar perfil extendido do usuário na store local (pode ter vindo do loadRemoteData)
+        // Buscar perfil extendido do usuário na store local (agora garantido que está carregada)
         let userMatch = users.find(u => u.email === session.user.email);
 
         if (userMatch) {
@@ -104,32 +116,12 @@ export default function App() {
           } else if (testProfileLocked) {
             // Profile already locked, use the test profile from localStorage
             console.log('🔒 Test profile locked, maintaining:', testProfile);
-            userMatch = { ...userMatch, role: testProfile as UserRole };
+            if (testProfile) {
+              userMatch = { ...userMatch, role: testProfile as UserRole };
 
-            // 🧒 Se for perfil PAIS, adicionar filhos de teste
-            if (testProfile === 'PAIS') {
-              userMatch = {
-                ...userMatch,
-                childrenIds: ['st_muni', 'st_state', 'st_fed', 'st_priv']
-              };
-            }
-
-            // 🎓 Se for perfil ALUNO, garantir que estudante existe
-            if (testProfile === 'ALUNO') {
-              const studentExists = store.students.find(s => s.id === userMatch.id);
-              if (!studentExists) {
-                const newStudent = {
-                  id: userMatch.id,
-                  name: userMatch.name,
-                  registrationNumber: 'TEST-' + userMatch.id.slice(0, 6),
-                  classId: 'c1',
-                  schoolId: userMatch.schoolId || 's1',
-                  tenantId: userMatch.tenantId
-                };
-                // ✅ Fix: Use immutable update instead of direct mutation
-                useAppStore.setState((state) => ({
-                  students: [...state.students, newStudent]
-                }));
+              // Re-apply special handling for mocked profiles
+              if (testProfile === 'PAIS') {
+                userMatch = { ...userMatch, childrenIds: ['st_muni', 'st_state', 'st_fed', 'st_priv'] };
               }
             }
           }
@@ -140,7 +132,11 @@ export default function App() {
           else setView('DASHBOARD');
         } else {
           // Fallback: Criar perfil dinâmico para novos usuários do Supabase
-          console.warn("⚠️ Usuário novo detectado. Criando perfil local...");
+          if (users.length > 0) {
+            console.warn("⚠️ Usuário não encontrado na lista carregada. Criando perfil local...");
+          } else {
+            console.warn("⚠️ Lista de usuários vazia. Criando perfil inicial...");
+          }
 
           const newUser: any = {
             id: session.user.id,
@@ -167,7 +163,7 @@ export default function App() {
     });
 
     return () => subscription.unsubscribe();
-  }, [users, setCurrentUser]); // Depend on users to match email
+  }, [isInitialized, users, setCurrentUser]); // Depend on isInitialized
 
   // ... (Demo Mode Logic Remains) ...
 

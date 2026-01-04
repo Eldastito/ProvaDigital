@@ -583,4 +583,5 @@ export interface AppState {
   settings: AppSettings;
   globalPermissions: PermissionMatrix;
   hasConsented: boolean; // LGPD Consent Status
+  isInitialized: boolean;
 }

@@ -123,6 +123,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     userProfiles: USE_MOCK_DATA ? INITIAL_USER_PROFILES : [],
     settings: USE_MOCK_DATA ? INITIAL_SETTINGS : INITIAL_SETTINGS, // Always use settings
     globalPermissions: DEFAULT_PERMISSIONS,
+    isInitialized: false,
     hasConsented: false,
 
     setHasConsented: (val) => set({ hasConsented: val }),
