@@ -210,9 +210,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 });
             }
 
-            console.log("✅ Dados sincronizados!");
-        } catch (e) {
-            console.error("Erro no loadRemoteData:", e);
+            console.log("✅ Dados da nuvem sincronizados (users, items, exams, results).");
+            set({ isInitialized: true });
+        } catch (error) {
+            console.error("❌ Erro ao sincronizar dados:", error);
+            // Mesmo com erro, marcamos como inicializado para não bloquear o app
+            set({ isInitialized: true });
         }
     },
 
