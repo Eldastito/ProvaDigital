@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import {
   LayoutDashboard, BookOpen, GraduationCap, Users, FileText,
-  LogOut, Menu, ChevronRight, Tablet, PieChart, MessageCircle, Bot, Target, UserCircle, Shield, Stethoscope, Map, Home, ChevronDown, Swords, Flame, Trophy, Cast, Calendar
+  LogOut, Menu, ChevronRight, Tablet, PieChart, MessageCircle, Bot, Target, UserCircle, Shield, Stethoscope, Map, Home, ChevronDown, Swords, Flame, Trophy, Cast, Calendar, Gamepad2
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { UserRole, TenantType } from '../types';
@@ -19,10 +18,10 @@ interface LayoutProps {
 const NavItem = ({ icon: Icon, label, target, active, onClick }: any) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all border-l-4 ${active
+    className={`w - full flex items - center gap - 3 px - 4 py - 3 text - sm font - medium transition - all border - l - 4 ${active
       ? 'bg-[#162a42] text-white border-brand-secondary'
       : 'text-slate-400 hover:bg-[#112336] hover:text-white border-transparent'
-      }`}
+      } `}
   >
     <Icon size={20} strokeWidth={active ? 2.5 : 2} />
     {label}
@@ -37,7 +36,7 @@ const TenantBadge = ({ type }: { type: TenantType }) => {
     [TenantType.PRIVATE]: { color: 'bg-amber-500', label: 'Priv' },
   };
   const c = config[type] || config[TenantType.PUBLIC_MUNICIPAL];
-  return <span className={`text-[9px] text-white px-1.5 py-0.5 rounded font-bold ${c.color}`}>{c.label}</span>;
+  return <span className={`text - [9px] text - white px - 1.5 py - 0.5 rounded font - bold ${c.color} `}>{c.label}</span>;
 };
 
 export const Layout = ({ children, currentView, setView }: LayoutProps) => {
@@ -85,10 +84,10 @@ export const Layout = ({ children, currentView, setView }: LayoutProps) => {
   return (
     <div className="flex h-screen bg-[#f8fafc] overflow-hidden font-sans">
       {/* SIDEBAR */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-0'} bg-brand-dark border-r border-[#1e3a8a] flex-shrink-0 transition-all duration-300 flex flex-col shadow-xl`}>
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-0'} bg - brand - dark border - r border - [#1e3a8a] flex - shrink - 0 transition - all duration - 300 flex flex - col shadow - xl`}>
         <div className="h-20 border-b border-[#1e3a8a] flex items-center justify-center gap-3 overflow-hidden px-4">
           <div className="w-8 h-8 bg-brand-secondary rounded-lg flex items-center justify-center text-white font-bold flex-shrink-0 shadow-lg shadow-brand-secondary/20">E</div>
-          <div className={`${!sidebarOpen && 'opacity-0'} transition-opacity duration-200`}>
+          <div className={`${!sidebarOpen && 'opacity-0'} transition - opacity duration - 200`}>
             <h2 className="text-xl font-bold text-white tracking-tight">ExamePad</h2>
           </div>
         </div>
@@ -105,7 +104,7 @@ export const Layout = ({ children, currentView, setView }: LayoutProps) => {
                   className="w-full p-3 flex items-center justify-between text-xs font-bold text-brand-secondary uppercase"
                 >
                   <span>Aluno Selecionado</span>
-                  <ChevronDown size={14} className={`transition-transform ${childMenuOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown size={14} className={`transition - transform ${childMenuOpen ? 'rotate-180' : ''} `} />
                 </button>
                 {childMenuOpen && (
                   <div className="bg-[#0b1826] py-1">
@@ -116,7 +115,7 @@ export const Layout = ({ children, currentView, setView }: LayoutProps) => {
                         <button
                           key={child.id}
                           onClick={() => setSelectedChildId(child.id)}
-                          className={`w-full text-left px-4 py-3 text-sm flex flex-col gap-1 hover:bg-white/5 transition border-l-2 ${selectedChildId === child.id ? 'border-brand-secondary bg-white/10' : 'border-transparent'}`}
+                          className={`w - full text - left px - 4 py - 3 text - sm flex flex - col gap - 1 hover: bg - white / 5 transition border - l - 2 ${selectedChildId === child.id ? 'border-brand-secondary bg-white/10' : 'border-transparent'} `}
                         >
                           <div className="font-bold text-white flex items-center gap-2">
                             <TenantBadge type={childTenant?.type || TenantType.PUBLIC_MUNICIPAL} />
@@ -136,12 +135,8 @@ export const Layout = ({ children, currentView, setView }: LayoutProps) => {
 
           {isParent && (
             <>
-              <NavItem icon={LayoutDashboard} label="Desempenho" target="STUDENT_PORTAL" active={currentView === 'STUDENT_PORTAL'} onClick={() => setView('STUDENT_PORTAL')} />
+              <NavItem icon={LayoutDashboard} label="Desempenho" target="STUDENT_PORTAL" active={currentView === 'STUDY_PLANS' ? false : currentView === 'STUDENT_PORTAL'} onClick={() => setView('STUDENT_PORTAL')} />
               <NavItem icon={MessageCircle} label="Comunicação" target="COMMUNICATION" active={currentView === 'COMMUNICATION'} onClick={() => setView('COMMUNICATION')} />
-              <NavItem icon={Target} label="Plano de Estudos" target="STUDY_PLANS" active={currentView === 'STUDY_PLANS'} onClick={() => setView('STUDY_PLANS')} />
-              {canView('NEURO_SCREENING') && (
-                <NavItem icon={Stethoscope} label="Triagem Neuro." target="NEURO_SCREENING" active={currentView === 'NEURO_SCREENING'} onClick={() => setView('NEURO_SCREENING')} />
-              )}
             </>
           )}
 
@@ -192,7 +187,10 @@ export const Layout = ({ children, currentView, setView }: LayoutProps) => {
               )}
 
               {canManageCapabilities && (
-                <NavItem icon={Shield} label="Governança" target="GOVERNANCE" active={currentView === 'GOVERNANCE'} onClick={() => setView('GOVERNANCE')} />
+                <NavItem icon={Shield} label="Governança" target="CAPABILITIES" active={currentView === 'CAPABILITIES'} onClick={() => setView('CAPABILITIES')} />
+              )}
+              {currentUser.role === UserRole.SUPER_ADMIN && (
+                <NavItem icon={Gamepad2} label="Gerenciar Arcade" target="GOVERNANCE" active={currentView === 'GOVERNANCE'} onClick={() => setView('GOVERNANCE')} />
               )}
 
               {!isStrategic && canView('OFFLINE_OPS') && (

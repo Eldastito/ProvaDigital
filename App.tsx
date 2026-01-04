@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { UserRole } from './types';
 import { useAppStore } from './store/useAppStore';
@@ -88,7 +89,10 @@ export default function App() {
                   schoolId: userMatch.schoolId || 's1',
                   tenantId: userMatch.tenantId
                 };
-                store.students.push(newStudent);
+                // ✅ Fix: Use immutable update instead of direct mutation
+                useAppStore.setState((state) => ({
+                  students: [...state.students, newStudent]
+                }));
                 console.log('🎓 Criando registro de estudante para teste:', newStudent.name);
               }
             }
@@ -122,7 +126,10 @@ export default function App() {
                   schoolId: userMatch.schoolId || 's1',
                   tenantId: userMatch.tenantId
                 };
-                store.students.push(newStudent);
+                // ✅ Fix: Use immutable update instead of direct mutation
+                useAppStore.setState((state) => ({
+                  students: [...state.students, newStudent]
+                }));
               }
             }
           }

@@ -524,12 +524,14 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                         </h3>
                         <p className="text-sm text-indigo-700">Ajude colegas e ganhe XP ou peça ajuda para subir sua nota!</p>
                     </div>
-                    <button
-                        onClick={handleCreateRequest}
-                        className="bg-white text-indigo-700 px-4 py-2 rounded-lg font-bold shadow-sm border border-indigo-200 hover:bg-indigo-50 transition flex items-center gap-2"
-                    >
-                        <Zap size={16} /> Pedir Ajuda
-                    </button>
+                    {!isParent && (
+                        <button
+                            onClick={handleCreateRequest}
+                            className="bg-white text-indigo-700 px-4 py-2 rounded-lg font-bold shadow-sm border border-indigo-200 hover:bg-indigo-50 transition flex items-center gap-2"
+                        >
+                            <Zap size={16} /> Pedir Ajuda
+                        </button>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 relative z-10">
@@ -550,7 +552,7 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                             <h4 className="font-bold text-indigo-900 leading-tight mb-1">{m.description}</h4>
                             <div className="text-xs text-indigo-500 mb-4">Por: {m.studentName}</div>
 
-                            {m.studentId !== student.id ? (
+                            {m.studentId !== student.id && !isParent ? (
                                 <button
                                     onClick={() => handleAcceptMentorship(m.id)}
                                     className="w-full py-2 bg-indigo-600 text-white rounded-lg font-bold text-sm hover:bg-indigo-700 transition"
@@ -558,7 +560,9 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                                     Aceitar Mentoria
                                 </button>
                             ) : (
-                                <div className="text-center text-xs text-slate-400 font-bold py-2 border rounded bg-slate-50">Seu Pedido</div>
+                                <div className="text-center text-xs text-slate-400 font-bold py-2 border rounded bg-slate-50">
+                                    {isParent ? 'Apenas Visualização' : 'Seu Pedido'}
+                                </div>
                             )}
                         </div>
                     ))}
@@ -702,13 +706,15 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                                         >
                                             <UserIcon size={20} />
                                         </button>
-                                        <button
-                                            onClick={() => setView('AVATAR_SHOP')}
-                                            className="p-2 bg-brand-primary text-white rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition-all flex items-center gap-2 font-bold text-xs"
-                                            title="Loja de Avatares"
-                                        >
-                                            <ShoppingBag size={16} /> <span>LOJA</span>
-                                        </button>
+                                        {!isParent && (
+                                            <button
+                                                onClick={() => setView('AVATAR_SHOP')}
+                                                className="p-2 bg-brand-primary text-white rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition-all flex items-center gap-2 font-bold text-xs"
+                                                title="Loja de Avatares"
+                                            >
+                                                <ShoppingBag size={16} /> <span>LOJA</span>
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             ) : (

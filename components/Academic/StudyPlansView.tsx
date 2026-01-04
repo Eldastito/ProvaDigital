@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, CheckSquare, Plus, BookOpen, Target, Brain, User as UserIcon, GraduationCap, ChevronRight, Sparkles, Trash2, Save, X, History, Clock, Play, Pause, RotateCcw, CheckCircle, XCircle, AlertCircle, Timer, Trophy } from 'lucide-react';
 import { AppState, User, UserRole, LessonPlan, StudyPlan, QuestionType } from '../../types';
@@ -289,7 +288,7 @@ export const StudyPlansView = ({ state, user }: StudyPlansViewProps) => {
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
-        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        return `${mins}:${secs < 10 ? '0' : ''}${secs} `;
     };
 
     const filteredStudyPlans = isProfessor
@@ -311,7 +310,7 @@ export const StudyPlansView = ({ state, user }: StudyPlansViewProps) => {
                 <div>
                     <h1 className="text-2xl font-bold text-brand-dark flex items-center gap-2">
                         {isProfessor ? <BookOpen className="text-brand-secondary" /> : <Target className="text-brand-secondary" />}
-                        {isProfessor ? 'Planejamento Acadêmico' : (isParent ? `Histórico de Roteiros: ${targetStudentName}` : 'Planos de Estudo & Ferramentas')}
+                        {isProfessor ? 'Planejamento Acadêmico' : (isParent ? `Histórico de Roteiros: ${targetStudentName} ` : 'Planos de Estudo & Ferramentas')}
                     </h1>
                     {isParent && <p className="text-sm text-slate-500">Acompanhe as tarefas geradas.</p>}
                 </div>
@@ -341,24 +340,24 @@ export const StudyPlansView = ({ state, user }: StudyPlansViewProps) => {
             <div className="flex gap-6 border-b border-slate-200">
                 {isProfessor ? (
                     <>
-                        <button onClick={() => setActiveTab('LESSON')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 ${activeTab === 'LESSON' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
+                        <button onClick={() => setActiveTab('LESSON')} className={`pb - 3 text - sm font - medium border - b - 2 transition flex items - center gap - 2 ${activeTab === 'LESSON' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'} `}>
                             <GraduationCap size={18} /> Planos de Aula (Turma)
                         </button>
-                        <button onClick={() => setActiveTab('STUDY')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 ${activeTab === 'STUDY' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-500'}`}>
+                        <button onClick={() => setActiveTab('STUDY')} className={`pb - 3 text - sm font - medium border - b - 2 transition flex items - center gap - 2 ${activeTab === 'STUDY' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-500'} `}>
                             <Target size={18} /> Roteiros de Estudo (Individual)
                         </button>
                     </>
                 ) : (
                     <>
-                        <button onClick={() => setActiveTab('STUDY')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 ${activeTab === 'STUDY' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
+                        <button onClick={() => setActiveTab('STUDY')} className={`pb - 3 text - sm font - medium border - b - 2 transition flex items - center gap - 2 ${activeTab === 'STUDY' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'} `}>
                             <Target size={18} /> Meus Planos
                         </button>
                         {!isParent && (
                             <>
-                                <button onClick={() => setActiveTab('POMODORO')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 ${activeTab === 'POMODORO' ? 'border-rose-500 text-rose-600' : 'border-transparent text-slate-500'}`}>
+                                <button onClick={() => setActiveTab('POMODORO')} className={`pb - 3 text - sm font - medium border - b - 2 transition flex items - center gap - 2 ${activeTab === 'POMODORO' ? 'border-rose-500 text-rose-600' : 'border-transparent text-slate-500'} `}>
                                     <Clock size={18} /> Foco (Pomodoro)
                                 </button>
-                                <button onClick={() => setActiveTab('SIMULATOR')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 ${activeTab === 'SIMULATOR' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500'}`}>
+                                <button onClick={() => setActiveTab('SIMULATOR')} className={`pb - 3 text - sm font - medium border - b - 2 transition flex items - center gap - 2 ${activeTab === 'SIMULATOR' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500'} `}>
                                     <CheckSquare size={18} /> Simulado
                                 </button>
                             </>
@@ -396,8 +395,8 @@ export const StudyPlansView = ({ state, user }: StudyPlansViewProps) => {
                         {/* Background Pulse & Effects */}
                         {pomoIsActive && (
                             <>
-                                <div className={`absolute inset-0 opacity-10 animate-pulse ${pomoMode === 'FOCUS' ? 'bg-rose-500' : 'bg-emerald-500'}`}></div>
-                                <div className="absolute top-0 left-0 w-full h-1 bg-slate-100"><div className="h-full bg-rose-500 transition-all duration-1000" style={{ width: `${(pomoTime / (25 * 60)) * 100}%` }}></div></div>
+                                <div className={`absolute inset - 0 opacity - 10 animate - pulse ${pomoMode === 'FOCUS' ? 'bg-rose-500' : 'bg-emerald-500'} `}></div>
+                                <div className="absolute top-0 left-0 w-full h-1 bg-slate-100"><div className="h-full bg-rose-500 transition-all duration-1000" style={{ width: `${(pomoTime / (25 * 60)) * 100}% ` }}></div></div>
                             </>
                         )}
 
@@ -405,14 +404,14 @@ export const StudyPlansView = ({ state, user }: StudyPlansViewProps) => {
                             <h2 className="text-3xl font-black text-slate-800 mb-2 tracking-tight">{pomoMode === 'FOCUS' ? 'Hora de Focar 🚀' : 'Pausa Merecida ☕'}</h2>
                             <p className="text-slate-500 mb-8 font-medium">{pomoMode === 'FOCUS' ? 'Bloqueie distrações e ganhe +50 XP!' : 'Respire fundo e prepare-se para o próximo round.'}</p>
 
-                            <div className={`text-8xl font-black font-mono mb-8 tracking-tighter tabular-nums ${pomoMode === 'FOCUS' ? 'text-rose-500 drop-shadow-sm' : 'text-emerald-500'}`}>
+                            <div className={`text - 8xl font - black font - mono mb - 8 tracking - tighter tabular - nums ${pomoMode === 'FOCUS' ? 'text-rose-500 drop-shadow-sm' : 'text-emerald-500'} `}>
                                 {formatTime(pomoTime)}
                             </div>
 
                             <div className="flex justify-center gap-4">
                                 <button
                                     onClick={() => setPomoIsActive(!pomoIsActive)}
-                                    className={`w-20 h-20 rounded-2xl flex items-center justify-center shadow-xl transition-all transform active:scale-95 ${pomoIsActive ? 'bg-amber-400 text-amber-900 border-b-4 border-amber-600' : 'bg-brand-primary text-white border-b-4 border-blue-700 hover:brightness-110'}`}
+                                    className={`w - 20 h - 20 rounded - 2xl flex items - center justify - center shadow - xl transition - all transform active: scale - 95 ${pomoIsActive ? 'bg-amber-400 text-amber-900 border-b-4 border-amber-600' : 'bg-brand-primary text-white border-b-4 border-blue-700 hover:brightness-110'} `}
                                 >
                                     {pomoIsActive ? <Pause size={36} fill="currentColor" /> : <Play size={36} fill="currentColor" className="ml-1" />}
                                 </button>
@@ -440,10 +439,10 @@ export const StudyPlansView = ({ state, user }: StudyPlansViewProps) => {
                                         {['OFF', 'WHITE_NOISE'].map((sound) => (
                                             <button
                                                 key={sound}
-                                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ${(activeSound === sound)
-                                                    ? 'bg-slate-800 text-white shadow-md transform scale-105'
-                                                    : 'bg-white border hover:bg-slate-50 text-slate-600'
-                                                    }`}
+                                                className={`px - 3 py - 1.5 rounded - lg text - xs font - bold transition flex items - center gap - 1 ${(activeSound === sound)
+                                                        ? 'bg-slate-800 text-white shadow-md transform scale-105'
+                                                        : 'bg-white border hover:bg-slate-50 text-slate-600'
+                                                    } `}
                                                 onClick={() => handleSoundChange(sound as any)}
                                             >
                                                 {sound === 'OFF' ? <XCircle size={12} /> : <Play size={10} />}
@@ -516,7 +515,7 @@ export const StudyPlansView = ({ state, user }: StudyPlansViewProps) => {
                                 <div className="text-sm font-bold text-slate-500">
                                     Questão {simCurrentQ + 1} de {simQuestions.length}
                                 </div>
-                                <div className={`text-xl font-mono font-bold ${simTimeLeft < 60 ? 'text-rose-500 animate-pulse' : 'text-slate-700'}`}>
+                                <div className={`text - xl font - mono font - bold ${simTimeLeft < 60 ? 'text-rose-500 animate-pulse' : 'text-slate-700'} `}>
                                     {formatTime(simTimeLeft)}
                                 </div>
                             </div>
@@ -538,10 +537,10 @@ export const StudyPlansView = ({ state, user }: StudyPlansViewProps) => {
                                                 if (!currentQuestion) return;
                                                 setSimAnswers(prev => ({ ...prev, [currentQuestion.id]: alt.id }));
                                             }}
-                                            className={`w-full p-4 rounded-lg border-2 text-left transition flex justify-between items-center ${currentQuestion && simAnswers[currentQuestion.id] === alt.id
-                                                ? 'border-brand-primary bg-blue-50 text-brand-dark'
-                                                : 'border-slate-200 hover:border-slate-300'
-                                                }`}
+                                            className={`w - full p - 4 rounded - lg border - 2 text - left transition flex justify - between items - center ${currentQuestion && simAnswers[currentQuestion.id] === alt.id
+                                                    ? 'border-brand-primary bg-blue-50 text-brand-dark'
+                                                    : 'border-slate-200 hover:border-slate-300'
+                                                } `}
                                         >
                                             <span>{alt.text}</span>
                                             {currentQuestion && simAnswers[currentQuestion.id] === alt.id && <CheckCircle size={20} className="text-brand-primary" />}
@@ -695,9 +694,65 @@ export const StudyPlansView = ({ state, user }: StudyPlansViewProps) => {
                                 <X size={24} />
                             </button>
                         </div>
-                        {/* Form fields simplified for brevity, assume implemented if needed or just placeholder */}
-                        <p className="text-center text-slate-500 py-8">Formulário de Plano de Aula (Implementação Padrão)</p>
-                        <button onClick={() => setIsLessonFormOpen(false)} className="w-full py-2 bg-slate-200 rounded-lg">Fechar</button>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">Turma</label>
+                                <select
+                                    value={lpForm.classId}
+                                    onChange={e => setLpForm({ ...lpForm, classId: e.target.value })}
+                                    className="w-full p-3 border border-slate-300 rounded-lg"
+                                >
+                                    <option value="">Selecione a turma...</option>
+                                    {state.classes.map(c => (
+                                        <option key={c.id} value={c.id}>{c.name} - {c.series}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">Tópico / Aula</label>
+                                <input
+                                    type="text"
+                                    value={lpForm.topic}
+                                    onChange={e => setLpForm({ ...lpForm, topic: e.target.value })}
+                                    placeholder="Ex: Introdução a Equações"
+                                    className="w-full p-3 border border-slate-300 rounded-lg"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">Objetivos</label>
+                                <textarea
+                                    value={lpForm.objectives}
+                                    onChange={e => setLpForm({ ...lpForm, objectives: e.target.value })}
+                                    rows={2}
+                                    className="w-full p-3 border border-slate-300 rounded-lg"
+                                    placeholder="O que os alunos devem aprender?"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-1">Desenvolvimento / Conteúdo</label>
+                                <textarea
+                                    value={lpForm.content}
+                                    onChange={e => setLpForm({ ...lpForm, content: e.target.value })}
+                                    rows={4}
+                                    className="w-full p-3 border border-slate-300 rounded-lg"
+                                    placeholder="Detalhes da aula..."
+                                />
+                            </div>
+                            <div className="flex gap-3 mt-6">
+                                <button
+                                    onClick={handleCreateLessonPlan}
+                                    className="flex-1 py-3 bg-brand-primary text-white font-bold rounded-lg hover:bg-brand-dark transition"
+                                >
+                                    Salvar Plano de Aula
+                                </button>
+                                <button
+                                    onClick={() => setIsLessonFormOpen(false)}
+                                    className="px-6 py-3 border border-slate-200 text-slate-500 font-bold rounded-lg hover:bg-slate-50 transition"
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
@@ -731,12 +786,12 @@ export const StudyPlansView = ({ state, user }: StudyPlansViewProps) => {
                                             <div
                                                 key={task.id}
                                                 onClick={() => toggleTask(plan.id, task.id)}
-                                                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${task.completed ? 'bg-emerald-50/50 opacity-60' : 'bg-white border border-slate-200 hover:border-brand-primary'}`}
+                                                className={`flex items - center gap - 3 p - 3 rounded - lg cursor - pointer transition - all ${task.completed ? 'bg-emerald-50/50 opacity-60' : 'bg-white border border-slate-200 hover:border-brand-primary'} `}
                                             >
-                                                <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${task.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-slate-300'}`}>
+                                                <div className={`w - 5 h - 5 rounded border flex items - center justify - center transition - colors ${task.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-slate-300'} `}>
                                                     {task.completed && <CheckSquare size={14} />}
                                                 </div>
-                                                <span className={`text-sm ${task.completed ? 'line-through text-slate-400' : 'text-slate-700 font-medium'}`}>{task.description}</span>
+                                                <span className={`text - sm ${task.completed ? 'line-through text-slate-400' : 'text-slate-700 font-medium'} `}>{task.description}</span>
                                             </div>
                                         ))}
                                     </div>
