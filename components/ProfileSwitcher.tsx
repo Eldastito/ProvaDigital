@@ -34,14 +34,12 @@ export const ProfileSwitcher: React.FC = () => {
         // Update store immediately
         setCurrentUser(updatedUser);
 
-        console.log('🧪 ProfileSwitcher: Switching to', role);
+        console.log('🧪 ProfileSwitcher: Switched to', role, '- React will handle re-render');
 
         setIsOpen(false);
 
-        // Force reload to ensure clean state
-        setTimeout(() => {
-            window.location.reload();
-        }, 100);
+        // ✅ Removed forced reload - let React handle state updates naturally
+        // This fixes the issue where profile wasn't switching properly
     };
 
     return (
@@ -125,7 +123,7 @@ export const ProfileSwitcher: React.FC = () => {
                         {/* Footer */}
                         <div className="px-4 py-2 bg-slate-800/30 border-t border-slate-700">
                             <p className="text-[10px] text-slate-500 text-center">
-                                💡 A página será recarregada ao trocar de perfil
+                                💡 O perfil será alterado instantaneamente
                             </p>
                         </div>
                     </div>
