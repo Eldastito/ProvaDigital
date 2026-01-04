@@ -114,12 +114,6 @@ export interface ShopItem {
   price: number;
   category: ShopItemCategory;
   imageUrl: string; // Emoji ou URL
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  category: ShopItemCategory;
-  imageUrl: string;
   minLevel?: number;
 }
 
@@ -362,6 +356,7 @@ export interface Announcement {
   type: 'AVISO' | 'EVENTO' | 'URGENTE';
   createdAt: string;
   eventDate?: string;
+  priority?: string;
 }
 
 export interface ChatAttachment {
