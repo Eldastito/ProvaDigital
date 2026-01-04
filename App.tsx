@@ -171,6 +171,16 @@ export default function App() {
     // Legacy Handler (Mantido para compatibilidade se necessário, mas não usado na UI nova)
   };
 
+  // --- 0. LOADING SCREEN ---
+  if (!isInitialized) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-[#0f172a] flex-col gap-4">
+        <div className="w-12 h-12 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-slate-400 text-sm font-medium animate-pulse">Carregando sistema...</p>
+      </div>
+    );
+  }
+
   // --- 1. LOGIN VIEW ---
   if (!currentUser && view === 'LOGIN') {
     return <LoginPage />;

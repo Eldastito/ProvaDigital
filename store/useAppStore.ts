@@ -135,89 +135,126 @@ export const useAppStore = create<AppStore>((set, get) => ({
     // --- CARREGAMENTO DO SUPABASE (Sincronização) ---
     loadRemoteData: async () => {
         console.log("🔄 Sincronizando dados com a nuvem...");
-        try {
-            // 1. Carregar Items
-            const { data: dbItems } = await supabase.from('items').select('*');
-            if (dbItems && dbItems.length > 0) {
-                const formattedItems: Item[] = dbItems.map((i: any) => ({
-                    id: i.id,
-                    tenantId: i.tenant_id,
-                    ownerId: i.owner_id || '',
-                    subject: i.subject,
-                    knowledgeArea: i.knowledge_area || i.subject,
-                    statement: i.statement,
-                    type: i.type,
-                    difficulty: i.difficulty,
-                    alternatives: i.alternatives,
-                    correctAnswerJustification: i.correct_justification,
-                    bnccCode: i.bncc_code,
-                    origin: i.origin,
-                    score: i.score || 1.0,
-                    tags: [],
-                    usageCount: 0,
-                    createdAt: i.created_at
-                }));
-                // Mescla com mocks, evitando duplicatas por ID
-                set(state => {
-                    const existingIds = new Set(state.items.map(x => x.id));
-                    const newItems = formattedItems.filter((x: any) => !existingIds.has(x.id));
-                    return { items: [...state.items, ...newItems] };
-                });
-            }
-
-            // 2. Carregar Provas (Exams)
-            const { data: dbExams } = await supabase.from('exams').select('*');
-            if (dbExams && dbExams.length > 0) {
-                const formattedExams: Exam[] = dbExams.map((e: any) => ({
-                    id: e.id,
-                    title: e.title,
-                    tenantId: e.tenant_id,
-                    schoolId: e.school_id,
-                    creatorId: e.creator_id || '',
-                    subject: e.subject,
-                    status: e.status,
-                    items: e.items_config,
-                    classIds: e.class_ids,
-                    model: e.model || 'SOMATIVO',
-                    durationMinutes: e.duration_minutes || 60,
-                    targetQuestionCount: e.target_question_count || 10,
-                    scheduledDate: e.scheduled_date,
-                    createdAt: e.created_at
-                }));
-                set(state => {
-                    const existingIds = new Set(state.exams.map(x => x.id));
-                    const newExams = formattedExams.filter((x: any) => !existingIds.has(x.id));
-                    return { exams: [...state.exams, ...newExams] };
-                });
-            }
-
-            // 3. Carregar Resultados
-            const { data: dbResults } = await supabase.from('exam_results').select('*');
-            if (dbResults && dbResults.length > 0) {
-                const formattedResults = dbResults.map((r: any) => ({
-                    id: r.id,
-                    examId: r.exam_id,
-                    studentId: r.student_id,
-                    answers: r.answers,
-                    totalScore: r.total_score,
-                    gradedAt: r.graded_at,
-                    securityFlags: r.security_flags
-                }));
-                set(state => {
-                    const existingIds = new Set(state.results.map(x => x.id));
-                    const newResults = formattedResults.filter((x: any) => !existingIds.has(x.id));
-                    return { results: [...state.results, ...newResults] };
-                });
-            }
-
-            console.log("✅ Dados da nuvem sincronizados (users, items, exams, results).");
-            set({ isInitialized: true });
-        } catch (error) {
-            console.error("❌ Erro ao sincronizar dados:", error);
-            // Mesmo com erro, marcamos como inicializado para não bloquear o app
-            set({ isInitialized: true });
+        // 0. Carregar Usuários (Users)
+        const { data: dbUsers } = await supabase.from('users').select('*');
+        if (dbUsers && dbUsers.length > 0) {
+            const formattedUsers: User[] = dbUsers.map((u: any) => ({
+                id: u.id,
+                name: u.name,
+                email: u.email,
+                role: u.role,
+                tenantId: u.tenant_id,
+                schoolId: u.school_id,
+                childrenIds: u.children_ids || [],
+                status: u.status
+            }));
+            set(state => {
+                const existingIds = new Set(state.users.map(x => x.id));
+                const newUsers = formattedUsers.filter((x: any) => !existingIds.has(x.id));
+                return { users: [...state.users, ...newUsers] };
+            });
         }
-    },
+
+        // 0.1 Carregar Estudantes (Students)
+        const { data: dbStudents } = await supabase.from('students').select('*');
+        if (dbStudents && dbStudents.length > 0) {
+            const formattedStudents = dbStudents.map((s: any) => ({
+                id: s.id,
+                name: s.name,
+                registrationNumber: s.registration_number,
+                classId: s.class_id,
+                schoolId: s.school_id,
+                tenantId: s.tenant_id
+            }));
+            set(state => {
+                const existingIds = new Set(state.students.map(x => x.id));
+                const newStudents = formattedStudents.filter((x: any) => !existingIds.has(x.id));
+                return { students: [...state.students, ...newStudents] };
+            });
+        }
+
+        // 1. Carregar Items
+        const { data: dbItems } = await supabase.from('items').select('*');
+        if (dbItems && dbItems.length > 0) {
+            const formattedItems: Item[] = dbItems.map((i: any) => ({
+                id: i.id,
+                tenantId: i.tenant_id,
+                ownerId: i.owner_id || '',
+                subject: i.subject,
+                knowledgeArea: i.knowledge_area || i.subject,
+                statement: i.statement,
+                type: i.type,
+                difficulty: i.difficulty,
+                alternatives: i.alternatives,
+                correctAnswerJustification: i.correct_justification,
+                bnccCode: i.bncc_code,
+                origin: i.origin,
+                score: i.score || 1.0,
+                tags: [],
+                usageCount: 0,
+                createdAt: i.created_at
+            }));
+            // Mescla com mocks, evitando duplicatas por ID
+            set(state => {
+                const existingIds = new Set(state.items.map(x => x.id));
+                const newItems = formattedItems.filter((x: any) => !existingIds.has(x.id));
+                return { items: [...state.items, ...newItems] };
+            });
+        }
+
+        // 2. Carregar Provas (Exams)
+        const { data: dbExams } = await supabase.from('exams').select('*');
+        if (dbExams && dbExams.length > 0) {
+            const formattedExams: Exam[] = dbExams.map((e: any) => ({
+                id: e.id,
+                title: e.title,
+                tenantId: e.tenant_id,
+                schoolId: e.school_id,
+                creatorId: e.creator_id || '',
+                subject: e.subject,
+                status: e.status,
+                items: e.items_config,
+                classIds: e.class_ids,
+                model: e.model || 'SOMATIVO',
+                durationMinutes: e.duration_minutes || 60,
+                targetQuestionCount: e.target_question_count || 10,
+                scheduledDate: e.scheduled_date,
+                createdAt: e.created_at
+            }));
+            set(state => {
+                const existingIds = new Set(state.exams.map(x => x.id));
+                const newExams = formattedExams.filter((x: any) => !existingIds.has(x.id));
+                return { exams: [...state.exams, ...newExams] };
+            });
+        }
+
+        // 3. Carregar Resultados
+        const { data: dbResults } = await supabase.from('exam_results').select('*');
+        if (dbResults && dbResults.length > 0) {
+            const formattedResults = dbResults.map((r: any) => ({
+                id: r.id,
+                examId: r.exam_id,
+                studentId: r.student_id,
+                answers: r.answers,
+                totalScore: r.total_score,
+                gradedAt: r.graded_at,
+                securityFlags: r.security_flags
+            }));
+            set(state => {
+                const existingIds = new Set(state.results.map(x => x.id));
+                const newResults = formattedResults.filter((x: any) => !existingIds.has(x.id));
+                return { results: [...state.results, ...newResults] };
+            });
+        }
+
+        console.log("✅ Dados da nuvem sincronizados (users, items, exams, results).");
+        set({ isInitialized: true });
+    } catch(error) {
+        console.error("❌ Erro ao sincronizar dados:", error);
+        // Mesmo com erro, marcamos como inicializado para não bloquear o app
+        set({ isInitialized: true });
+    }
+},
 
     // --- AÇÕES DE ESCRITA (Com Persistência Supabase + Error Handling) ---
     addItem: async (item) => {
