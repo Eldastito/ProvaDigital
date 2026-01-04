@@ -395,8 +395,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 role: user.role,
                 tenant_id: user.tenantId,
                 school_id: user.schoolId || null,
-                children_ids: user.childrenIds || [],
-                status: user.status || 'ACTIVE'
+                children_ids: user.childrenIds || []
+                // Removed 'status' field - doesn't exist in Supabase schema
             });
             if (error) {
                 console.error('❌ Error saving user:', error);
