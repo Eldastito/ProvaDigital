@@ -18,15 +18,16 @@ interface LayoutProps {
 const NavItem = ({ icon: Icon, label, target, active, onClick }: any) => (
   <button
     onClick={onClick}
-    className={`w - full flex items - center gap - 3 px - 4 py - 3 text - sm font - medium transition - all border - l - 4 ${active
+    className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all border-l-4 ${active
       ? 'bg-[#162a42] text-white border-brand-secondary'
       : 'text-slate-400 hover:bg-[#112336] hover:text-white border-transparent'
-      } `}
+      }`}
   >
     <Icon size={20} strokeWidth={active ? 2.5 : 2} />
     {label}
   </button>
 );
+
 
 const TenantBadge = ({ type }: { type: TenantType }) => {
   const config = {
