@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { UserRole } from '../types';
 import { useAppStore } from '../store/useAppStore';
 import { ChevronDown, User, RefreshCw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const PROFILE_OPTIONS = [
     { role: 'SUPER_ADMIN' as UserRole, label: '🏛️ MEC (SUPERADMIN)', color: 'purple', description: 'Visão Nacional' },
@@ -17,6 +18,7 @@ const PROFILE_OPTIONS = [
 export const ProfileSwitcher: React.FC = () => {
     const { currentUser, setCurrentUser } = useAppStore();
     const [isOpen, setIsOpen] = useState(false);
+    const navigate = useNavigate();
 
     if (!currentUser) return null;
 
@@ -34,12 +36,13 @@ export const ProfileSwitcher: React.FC = () => {
         // Update store immediately
         setCurrentUser(updatedUser);
 
-        console.log('🧪 ProfileSwitcher: Switched to', role, '- React will handle re-render');
+        console.log('🧪 ProfileSwitcher: Switched to', role, '- Redirecting...');
+
+        // Redirect to appropriate dashboard
+        if (role === UserRole.ALUNO) navigate('/aluno');
+        else navigate('/dashboard');
 
         setIsOpen(false);
-
-        // ✅ Removed forced reload - let React handle state updates naturally
-        // This fixes the issue where profile wasn't switching properly
     };
 
     return (
