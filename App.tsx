@@ -220,4 +220,3 @@ const ViewRouterWrapper = ({ store, setView, printId, resultId, setPrintId, setR
     onGradeExam={onGradeExam}
   />;
 };
-```
