@@ -43,6 +43,11 @@ const TenantBadge = ({ type }: { type: TenantType }) => {
   const c = config[type] || config[TenantType.PUBLIC_MUNICIPAL];
   return <span className={`text - [9px] text - white px - 1.5 py - 0.5 rounded font - bold ${ c.color } `}>{c.label}</span>;
 };
+    [TenantType.PRIVATE]: { color: 'bg-amber-500', label: 'Priv' },
+  };
+  const c = config[type] || config[TenantType.PUBLIC_MUNICIPAL];
+  return <span className={`text - [9px] text - white px - 1.5 py - 0.5 rounded font - bold ${ c.color } `}>{c.label}</span>;
+};
 
 export const Layout = ({ children }: LayoutProps) => {
   const { currentUser, setCurrentUser, tenants, students, schools, selectedChildId, setSelectedChildId } = useAppStore();
