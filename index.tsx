@@ -9,10 +9,14 @@ if (!container) {
   throw new Error("Elemento #root não encontrado no DOM");
 }
 
+import { BrowserRouter } from 'react-router-dom';
+
 const root = createRoot(container);
 
 root.render(
   <React.StrictMode>
-    <App />
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </React.StrictMode>
 );

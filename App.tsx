@@ -24,111 +24,77 @@ import { ProfileSwitcher } from './components/ProfileSwitcher';
 
 export default function App() {
   const store = useAppStore();
-  const { currentUser, setCurrentUser, users, setSelectedChildId, loadRemoteData, isInitialized } = store;
+  const { currentUser, setCurrentUser, users, loadRemoteData, isInitialized } = store;
+  const navigate = useNavigate();
 
-  // Global View State
-  const [view, setView] = useState('LOGIN');
-  const [tabletPayload, setTabletPayload] = useState<any>(null);
-
-  // Specific Context State
+  // Specific Context State (Keep for now, move to URL later)
   const [selectedExamIdForPrint, setSelectedExamIdForPrint] = useState<string | null>(null);
   const [selectedExamIdForResults, setSelectedExamIdForResults] = useState<string | null>(null);
 
   // --- 1. INIT & DATA LOADING ---
   useEffect(() => {
-    // 0. Check LGPD Consent
     const storedConsent = localStorage.getItem('lgpd_consent');
-    if (storedConsent === 'true') {
-      store.setHasConsented(true);
-    }
+    if (storedConsent === 'true') store.setHasConsented(true);
 
-    // 1. Check & Load Data (Async)
     checkConnection().then(connected => {
-      if (connected) {
-        loadRemoteData();
-      } else {
-        // If offline or error, we still need to set initialized to allow app to function (e.g. tablet mode)
-        useAppStore.setState({ isInitialized: true });
-      }
+      if (connected) loadRemoteData();
+      else useAppStore.setState({ isInitialized: true });
     });
-  }, []); // Run once on mount
+  }, []);
 
-  // --- 2. AUTH LISTENER (SAFE) ---
-  // Only subscribe to auth changes AFTER data is initialized to avoid race conditions
+  // --- 2. AUTH LISTENER ---
   useEffect(() => {
     if (!isInitialized) return;
 
-    console.log('🔌 Iniciando conexão com Supabase...');
-
-    // Unified Auth Handler
     const handleAuthUser = async (sessionUser: any) => {
-      console.log('✅ User authenticated:', sessionUser.email);
-
       let userMatch = users.find(u => u.email === sessionUser.email);
 
       if (userMatch) {
-        console.log('👤 User found in store:', userMatch.name);
-
-        // 🧪 Check for Test Profile
+        // Test Profile Logic
         const testProfile = localStorage.getItem('test_profile');
         const testProfileLocked = sessionStorage.getItem('test_profile_locked');
-
-        if (testProfile && !testProfileLocked) {
+        if (testProfile && (!testProfileLocked || testProfileLocked)) {
           userMatch = { ...userMatch, role: testProfile as UserRole };
           if (testProfile === 'PAIS') userMatch = { ...userMatch, childrenIds: ['st_muni', 'st_state', 'st_fed', 'st_priv'] };
           sessionStorage.setItem('test_profile_locked', 'true');
-        } else if (testProfileLocked && testProfile) {
-          userMatch = { ...userMatch, role: testProfile as UserRole };
-          if (testProfile === 'PAIS') userMatch = { ...userMatch, childrenIds: ['st_muni', 'st_state', 'st_fed', 'st_priv'] };
         }
-
         setCurrentUser(userMatch);
-        if (userMatch.role === UserRole.ALUNO) setView('STUDENT_PORTAL');
-        else setView('DASHBOARD');
+
+        // Redirect Logic
+        if (window.location.pathname === '/' || window.location.pathname === '/login') {
+          if (userMatch.role === UserRole.ALUNO) navigate('/aluno');
+          else navigate('/dashboard');
+        }
       } else {
-        // Fallback for new users
-        console.warn("⚠️ User not found in store. Creating temp profile...");
+        // Fallback
         const newUser: any = {
           id: sessionUser.id,
-          name: sessionUser.user_metadata?.full_name || sessionUser.email?.split('@')[0] || 'Novo Usuário',
+          name: sessionUser.user_metadata?.full_name || 'Novo Usuário',
           email: sessionUser.email!,
           role: UserRole.TENANT_ADMIN,
-          tenantId: 't1',
-          schoolId: 's1'
+          tenantId: 't1', schoolId: 's1'
         };
         setCurrentUser(newUser);
-        setView('DASHBOARD');
+        navigate('/dashboard');
       }
     };
 
-    // 1. Initial Check
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) handleAuthUser(session.user);
     });
 
-    // 2. Listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔐 Auth Event:', event);
-      if (event === 'SIGNED_IN' && session?.user) {
-        handleAuthUser(session.user);
-      }
+      if (event === 'SIGNED_IN' && session?.user) handleAuthUser(session.user);
       if (event === 'SIGNED_OUT') {
-        console.log('👋 User signed out');
         setCurrentUser(null);
-        setView('LOGIN');
+        navigate('/login');
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [isInitialized, users, setCurrentUser]); // Depend on isInitialized
+  }, [isInitialized, users, setCurrentUser, navigate]);
 
-  // ... (Demo Mode Logic Remains) ...
-
-  const handleLogin = (userId: string) => {
-    // Legacy Handler (Mantido para compatibilidade se necessário, mas não usado na UI nova)
-  };
-
-  // --- 0. LOADING SCREEN ---
+  // --- LOADING SCREEN ---
   if (!isInitialized) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-[#0f172a] flex-col gap-4">
@@ -138,76 +104,88 @@ export default function App() {
     );
   }
 
-  // --- 1. LOGIN VIEW ---
-  if (!currentUser && view === 'LOGIN') {
-    return <LoginPage />;
-  }
-
-  // --- 2. OFFLINE / TABLET ECOSYSTEM ---
-  const handleCoordinatorSyncUp = (events: any[]) => {
-    alert("Simulação: Dados sincronizados com sucesso para a nuvem SaaS.");
-    console.log("Synced Events:", events);
+  // --- HANDLERS (Adapters for Legacy ViewRouter) ---
+  const handleSetView = (viewName: string) => {
+    // Map legacy view names to routes
+    const routeMap: Record<string, string> = {
+      'LOGIN': '/login',
+      'DASHBOARD': '/dashboard',
+      'STUDENT_PORTAL': '/aluno',
+      'ITEMS': '/itens',
+      'EXAMS': '/provas',
+      'MANAGEMENT': '/admin/gestao',
+      'GOVERNANCE': '/admin/governanca' // Mapeamento manual
+    };
+    const path = routeMap[viewName];
+    if (path) navigate(path);
+    else console.warn("Rota não mapeada para view:", viewName);
   };
 
-  if (view === 'TABLET_LAUNCHER') {
-    return <TabletLauncher
-      state={store}
-      onBack={() => setView('DASHBOARD')}
-      onSelectApp={(app, payload) => {
-        setTabletPayload(payload);
-        if (app === 'COORDINATOR') setView('TABLET_COORD');
-        if (app === 'PROFESSOR') setView('TABLET_PROF');
-        if (app === 'STUDENT') setView('TABLET_STUDENT');
-      }}
-    />;
-  }
-  if (view === 'TABLET_COORD') return <CoordinatorApp state={store} initialPayload={tabletPayload} onBack={() => setView('TABLET_LAUNCHER')} onSyncUp={handleCoordinatorSyncUp} />;
-  if (view === 'TABLET_PROF') return <ProfessorApp state={store} onBack={() => setView('TABLET_LAUNCHER')} />;
-  if (view === 'TABLET_STUDENT') return <StudentApp state={store} onBack={() => setView('TABLET_LAUNCHER')} />;
-
-  // --- 3. DEMO LOBBY (PRESENTATION MODE) ---
-  if (view === 'LIVE_DEMO') {
-    return <LiveDemoLobby onClose={() => setView('DASHBOARD')} />;
-  }
-
-  // --- 4. MAIN SAAS APP (DESKTOP LAYOUT) ---
-  const handlePrintExam = (examId: string) => { setSelectedExamIdForPrint(examId); setView('PRINT_PREVIEW'); };
-  const handleGradeExam = (examId: string) => { setSelectedExamIdForResults(examId); setView('RESULTS_ENTRY'); };
-
-  if (view === 'PRINT_PREVIEW') {
-    return <ViewRouter
-      view={view}
-      setView={setView}
-      selectedExamIdForPrint={selectedExamIdForPrint}
-      selectedExamIdForResults={null}
-      onPrintExam={handlePrintExam}
-      onGradeExam={handleGradeExam}
-    />;
-  }
+  const currentPath = window.location.pathname; // Helper for Layout
 
   return (
-    <Layout currentView={view} setView={setView}>
-      <ViewRouter
-        view={view}
-        setView={setView}
-        selectedExamIdForPrint={selectedExamIdForPrint}
-        selectedExamIdForResults={selectedExamIdForResults}
-        onPrintExam={handlePrintExam}
-        onGradeExam={handleGradeExam}
-      />
+    <>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
 
-      {/* LGPD Compliance Modal - Blocks usage until accepted */}
+        {/* Protected Routes Wrapper */}
+        <Route path="/" element={
+          currentUser ? (
+            <Layout currentView={currentPath} setView={handleSetView}>
+              <ViewRouterWrapper
+                store={store}
+                setView={handleSetView}
+                printId={selectedExamIdForPrint}
+                resultId={selectedExamIdForResults}
+                setPrintId={setSelectedExamIdForPrint}
+                setResultId={setSelectedExamIdForResults}
+              />
+            </Layout>
+          ) : <Navigate to="/login" />
+        }>
+          <Route index element={<Navigate to="/dashboard" />} />
+          <Route path="dashboard" element={<div />} /> {/* Rendered by ViewRouterWrapper for now */}
+          <Route path="aluno/*" element={<div />} />
+          <Route path="itens" element={<div />} />
+          <Route path="provas" element={<div />} />
+          <Route path="admin/*" element={<div />} />
+          <Route path="*" element={<div />} /> {/* Catch all for ViewRouter */}
+        </Route>
+      </Routes>
+
       {!store.hasConsented && (
         <PrivacyPolicyModal
-          onAccept={() => {
-            store.setHasConsented(true);
-            localStorage.setItem('lgpd_consent', 'true');
-          }}
-          onReject={() => {
-            alert("O aceite da Política de Privacidade é obrigatório para utilizar a plataforma.");
-          }}
+          onAccept={() => { store.setHasConsented(true); localStorage.setItem('lgpd_consent', 'true'); }}
+          onReject={() => alert("O aceite é obrigatório.")}
         />
       )}
-    </Layout>
+    </>
   );
 }
+
+// --- ADAPTER COMPONENT ---
+// This bridges the URL path back to the String expected by ViewRouter
+// allowing us to keep all the ViewRouter logic for now.
+const ViewRouterWrapper = ({ store, setView, printId, resultId, setPrintId, setResultId }: any) => {
+  const { pathname } = window.location;
+  let view = 'DASHBOARD'; // Default
+
+  if (pathname.includes('/aluno')) view = 'STUDENT_PORTAL';
+  else if (pathname.includes('/itens')) view = 'ITEMS';
+  else if (pathname.includes('/provas')) view = 'EXAMS';
+  else if (pathname.includes('/admin/gestao')) view = 'MANAGEMENT';
+  else if (pathname.includes('/admin/governanca')) view = 'GOVERNANCE'; // Correção para Governança
+
+  // Handlers
+  const onPrintExam = (id: string) => { setPrintId(id); /* Need Route for Print */ };
+  const onGradeExam = (id: string) => { setResultId(id); /* Need Route for Grade */ };
+
+  return <ViewRouter
+    view={view}
+    setView={setView}
+    selectedExamIdForPrint={printId}
+    selectedExamIdForResults={resultId}
+    onPrintExam={onPrintExam}
+    onGradeExam={onGradeExam}
+  />;
+};
