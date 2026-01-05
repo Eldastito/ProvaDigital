@@ -1,9 +1,8 @@
-```
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, BookOpen, GraduationCap, Users, FileText,
-  LogOut, Menu, ChevronRight, Tablet, PieChart, MessageCircle, Bot, Target, UserCircle, Shield, Stethoscope, Map, Home, ChevronDown, Swords, Flame, Trophy, Cast, Calendar, Gamepad2
+  LogOut, Menu, ChevronRight, Tablet, PieChart, MessageCircle, Bot, Target, UserCircle, Shield, Stethoscope, Map, Home, ChevronDown, Swords, Flame, Trophy, Cast, Calendar, Gamepad2, BarChart
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { UserRole, TenantType } from '../types';
@@ -21,11 +20,10 @@ interface LayoutProps {
 const NavItem = ({ icon: Icon, label, active, onClick }: any) => (
   <button
     onClick={onClick}
-    className={`w - full flex items - center gap - 3 px - 4 py - 3 text - sm font - medium transition - all border - l - 4 ${
-  active
-    ? 'bg-[#162a42] text-white border-brand-secondary'
-    : 'text-slate-400 hover:bg-[#112336] hover:text-white border-transparent'
-} `}
+    className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all border-l-4 ${active
+        ? 'bg-[#162a42] text-white border-brand-secondary'
+        : 'text-slate-400 hover:bg-[#112336] hover:text-white border-transparent'
+      } `}
   >
     <Icon size={20} strokeWidth={active ? 2.5 : 2} />
     {label}
@@ -41,12 +39,7 @@ const TenantBadge = ({ type }: { type: TenantType }) => {
     [TenantType.PRIVATE]: { color: 'bg-amber-500', label: 'Priv' },
   };
   const c = config[type] || config[TenantType.PUBLIC_MUNICIPAL];
-  return <span className={`text - [9px] text - white px - 1.5 py - 0.5 rounded font - bold ${ c.color } `}>{c.label}</span>;
-};
-    [TenantType.PRIVATE]: { color: 'bg-amber-500', label: 'Priv' },
-  };
-  const c = config[type] || config[TenantType.PUBLIC_MUNICIPAL];
-  return <span className={`text - [9px] text - white px - 1.5 py - 0.5 rounded font - bold ${ c.color } `}>{c.label}</span>;
+  return <span className={`text-[9px] text-white px-1.5 py-0.5 rounded font-bold ${c.color} `}>{c.label}</span>;
 };
 
 export const Layout = ({ children }: LayoutProps) => {
@@ -54,7 +47,7 @@ export const Layout = ({ children }: LayoutProps) => {
   const { canView } = usePermissions();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [childMenuOpen, setChildMenuOpen] = useState(true);
-  
+
   const navigate = useNavigate();
   const location = useLocation();
   const path = location.pathname;
@@ -98,10 +91,10 @@ export const Layout = ({ children }: LayoutProps) => {
   return (
     <div className="flex h-screen bg-[#f8fafc] overflow-hidden font-sans">
       {/* SIDEBAR */}
-      <aside className={`${ sidebarOpen ? 'w-64' : 'w-0' } bg - brand - dark border - r border - [#1e3a8a] flex - shrink - 0 transition - all duration - 300 flex flex - col shadow - xl`}>
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-0'} bg-brand-dark border-r border-[#1e3a8a] flex-shrink-0 transition-all duration-300 flex flex-col shadow-xl`}>
         <div className="h-20 border-b border-[#1e3a8a] flex items-center justify-center gap-3 overflow-hidden px-4">
           <div className="w-8 h-8 bg-brand-secondary rounded-lg flex items-center justify-center text-white font-bold flex-shrink-0 shadow-lg shadow-brand-secondary/20">E</div>
-          <div className={`${ !sidebarOpen && 'opacity-0' } transition - opacity duration - 200`}>
+          <div className={`${!sidebarOpen && 'opacity-0'} transition-opacity duration-200`}>
             <h2 className="text-xl font-bold text-white tracking-tight">ExamePad</h2>
           </div>
         </div>
@@ -118,7 +111,7 @@ export const Layout = ({ children }: LayoutProps) => {
                   className="w-full p-3 flex items-center justify-between text-xs font-bold text-brand-secondary uppercase"
                 >
                   <span>Aluno Selecionado</span>
-                  <ChevronDown size={14} className={`transition - transform ${ childMenuOpen ? 'rotate-180' : '' } `} />
+                  <ChevronDown size={14} className={`transition-transform ${childMenuOpen ? 'rotate-180' : ''} `} />
                 </button>
                 {childMenuOpen && (
                   <div className="bg-[#0b1826] py-1">
@@ -129,7 +122,7 @@ export const Layout = ({ children }: LayoutProps) => {
                         <button
                           key={child.id}
                           onClick={() => setSelectedChildId(child.id)}
-                          className={`w - full text - left px - 4 py - 3 text - sm flex flex - col gap - 1 hover: bg - white / 5 transition border - l - 2 ${ selectedChildId === child.id ? 'border-brand-secondary bg-white/10' : 'border-transparent' } `}
+                          className={`w-full text-left px-4 py-3 text-sm flex flex-col gap-1 hover:bg-white/5 transition border-l-2 ${selectedChildId === child.id ? 'border-brand-secondary bg-white/10' : 'border-transparent'} `}
                         >
                           <div className="font-bold text-white flex items-center gap-2">
                             <TenantBadge type={childTenant?.type || TenantType.PUBLIC_MUNICIPAL} />
@@ -168,31 +161,38 @@ export const Layout = ({ children }: LayoutProps) => {
 
           {isManagement && (
             <>
-              <NavItem icon={PieChart} label="Dashboard" active={path === '/dashboard'} onClick={() => navigate('/dashboard')} />
-              <NavItem icon={FileText} label="Banco de Questões" active={path.includes('/itens')} onClick={() => navigate('/itens')} />
-              <NavItem icon={BookOpen} label="Gestão de Provas" active={path.includes('/provas')} onClick={() => navigate('/provas')} />
-              
-              <NavItem icon={Map} label="Alocação" active={path === '/allocation'} onClick={() => navigate('/allocation')} />
-              <NavItem icon={Users} label="Gestão de Pessoas" active={path.includes('/admin/gestao')} onClick={() => navigate('/admin/gestao')} />
-              <NavItem icon={Shield} label="Governança & Jogos" active={path.includes('/admin/governanca')} onClick={() => navigate('/admin/governanca')} />
-              
-              {canManageCapabilities && (
-                  <NavItem icon={Target} label="Matriz de Habilidades" active={path === '/capabilities'} onClick={() => navigate('/capabilities')} />
-              )}
-               
-              <NavItem icon={Stethoscope} label="Triagem Neuro" active={path === '/neuro-screening'} onClick={() => navigate('/neuro-screening')} />
+              <NavItem icon={PieChart} label="Visão Geral" active={path === '/dashboard'} onClick={() => navigate('/dashboard')} />
+
+              <div className="px-4 pt-4 pb-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Acadêmico</div>
+              <NavItem icon={FileText} label="Banco de Itens" active={path.includes('/itens')} onClick={() => navigate('/itens')} />
+              <NavItem icon={BookOpen} label="Provas" active={path.includes('/provas')} onClick={() => navigate('/provas')} />
               <NavItem icon={Calendar} label="Diário de Classe" active={path === '/class-diary'} onClick={() => navigate('/class-diary')} />
-              <NavItem icon={Cast} label="Eventos Gamificados" active={path === '/gamified-events'} onClick={() => navigate('/gamified-events')} />
+              <NavItem icon={Map} label="Alocação" active={path === '/allocation'} onClick={() => navigate('/allocation')} />
+              <NavItem icon={Cast} label="Eventos & Competições" active={path === '/gamified-events'} onClick={() => navigate('/gamified-events')} />
+              <NavItem icon={GraduationCap} label="Planos de Ensino" active={path === '/teaching-plans'} onClick={() => navigate('/teaching-plans')} />
+
+              <div className="px-4 pt-4 pb-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Gestão & BI</div>
+              <NavItem icon={BarChart} label="Analytics" active={path === '/analytics'} onClick={() => navigate('/analytics')} />
+              <NavItem icon={MessageCircle} label="Comunicação" active={path === '/communication'} onClick={() => navigate('/communication')} />
+              <NavItem icon={Users} label="Gestão de Rede" active={path.includes('/admin/gestao')} onClick={() => navigate('/admin/gestao')} />
+              <NavItem icon={Stethoscope} label="Saúde Mental" active={path === '/neuro-screening'} onClick={() => navigate('/neuro-screening')} />
+              <NavItem icon={Shield} label="Governança" active={path.includes('/admin/governanca')} onClick={() => navigate('/admin/governanca')} />
+
+              {canManageCapabilities && (
+                <NavItem icon={Target} label="Matriz de Habilidades" active={path === '/capabilities'} onClick={() => navigate('/capabilities')} />
+              )}
+
               <NavItem icon={Shield} label="Gestão de Risco" active={path === '/risk-dashboard'} onClick={() => navigate('/risk-dashboard')} />
             </>
           )}
 
           {isOperational && !isManagement && (
-             <>
-                <NavItem icon={PieChart} label="Minhas Turmas" active={path === '/dashboard'} onClick={() => navigate('/dashboard')} />
-                <NavItem icon={FileText} label="Banco de Questões" active={path.includes('/itens')} onClick={() => navigate('/itens')} />
-                <NavItem icon={BookOpen} label="Minhas Provas" active={path.includes('/provas')} onClick={() => navigate('/provas')} />
-             </>
+            <>
+              <NavItem icon={PieChart} label="Minhas Turmas" active={path === '/dashboard'} onClick={() => navigate('/dashboard')} />
+              <NavItem icon={FileText} label="Banco de Questões" active={path.includes('/itens')} onClick={() => navigate('/itens')} />
+              <NavItem icon={BookOpen} label="Minhas Provas" active={path.includes('/provas')} onClick={() => navigate('/provas')} />
+              <NavItem icon={GraduationCap} label="Planos de Ensino" active={path === '/teaching-plans'} onClick={() => navigate('/teaching-plans')} />
+            </>
           )}
 
         </nav>
