@@ -112,9 +112,24 @@ export default function App() {
       'DASHBOARD': '/dashboard',
       'STUDENT_PORTAL': '/aluno',
       'ITEMS': '/itens',
+      'ITEM_NEW': '/itens/novo',
       'EXAMS': '/provas',
+      'EXAM_NEW': '/provas/nova',
+      'ALLOCATION': '/allocation',
       'MANAGEMENT': '/admin/gestao',
-      'GOVERNANCE': '/admin/governanca' // Mapeamento manual
+      'GOVERNANCE': '/admin/governanca',
+      'CAPABILITIES': '/capabilities',
+      'NEURO_SCREENING': '/neuro-screening',
+      'CLASS_DIARY': '/class-diary',
+      'GAMIFIED_EVENTS': '/gamified-events',
+      'RISK_DASHBOARD': '/risk-dashboard',
+      'STUDY_PLANS': '/study-plans',
+      'BATTLE_ARENA': '/battle-arena',
+      'SURVIVAL_MODE': '/survival-mode',
+      'ARCADE': '/arcade',
+      'AVATAR_SHOP': '/shop',
+      'MY_PROFILE': '/my-profile',
+      'COMMUNICATION': '/communication'
     };
     const path = routeMap[viewName];
     if (path) navigate(path);
@@ -146,8 +161,8 @@ export default function App() {
           <Route index element={<Navigate to="/dashboard" />} />
           <Route path="dashboard" element={<div />} /> {/* Rendered by ViewRouterWrapper for now */}
           <Route path="aluno/*" element={<div />} />
-          <Route path="itens" element={<div />} />
-          <Route path="provas" element={<div />} />
+          <Route path="itens/*" element={<div />} />
+          <Route path="provas/*" element={<div />} />
           <Route path="admin/*" element={<div />} />
           <Route path="*" element={<div />} /> {/* Catch all for ViewRouter */}
         </Route>
@@ -170,11 +185,27 @@ const ViewRouterWrapper = ({ store, setView, printId, resultId, setPrintId, setR
   const { pathname } = window.location;
   let view = 'DASHBOARD'; // Default
 
-  if (pathname.includes('/aluno')) view = 'STUDENT_PORTAL';
+  // Order matters! Check specific sub-paths first
+  if (pathname.includes('/itens/novo')) view = 'ITEM_NEW';
   else if (pathname.includes('/itens')) view = 'ITEMS';
+  else if (pathname.includes('/provas/nova')) view = 'EXAM_NEW';
   else if (pathname.includes('/provas')) view = 'EXAMS';
   else if (pathname.includes('/admin/gestao')) view = 'MANAGEMENT';
-  else if (pathname.includes('/admin/governanca')) view = 'GOVERNANCE'; // Correção para Governança
+  else if (pathname.includes('/admin/governanca')) view = 'GOVERNANCE';
+  else if (pathname.includes('/aluno')) view = 'STUDENT_PORTAL';
+  else if (pathname.includes('/allocation')) view = 'ALLOCATION';
+  else if (pathname.includes('/capabilities')) view = 'CAPABILITIES';
+  else if (pathname.includes('/neuro-screening')) view = 'NEURO_SCREENING';
+  else if (pathname.includes('/class-diary')) view = 'CLASS_DIARY';
+  else if (pathname.includes('/gamified-events')) view = 'GAMIFIED_EVENTS';
+  else if (pathname.includes('/risk-dashboard')) view = 'RISK_DASHBOARD';
+  else if (pathname.includes('/study-plans')) view = 'STUDY_PLANS';
+  else if (pathname.includes('/battle-arena')) view = 'BATTLE_ARENA';
+  else if (pathname.includes('/survival-mode')) view = 'SURVIVAL_MODE';
+  else if (pathname.includes('/arcade')) view = 'ARCADE';
+  else if (pathname.includes('/shop')) view = 'AVATAR_SHOP';
+  else if (pathname.includes('/my-profile')) view = 'MY_PROFILE';
+  else if (pathname.includes('/communication')) view = 'COMMUNICATION';
 
   // Handlers
   const onPrintExam = (id: string) => { setPrintId(id); /* Need Route for Print */ };
@@ -189,3 +220,4 @@ const ViewRouterWrapper = ({ store, setView, printId, resultId, setPrintId, setR
     onGradeExam={onGradeExam}
   />;
 };
+```
