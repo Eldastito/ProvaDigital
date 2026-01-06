@@ -9,6 +9,7 @@ import { UserRole, TenantType } from '../types';
 import { usePermissions } from '../hooks/usePermissions';
 import { Badge } from './ui/Badge';
 import { ProfileSwitcher } from './ProfileSwitcher';
+import { checkConnection, supabase } from '../services/supabaseClient';
 
 interface LayoutProps {
   children?: React.ReactNode;
@@ -54,7 +55,8 @@ export const Layout = ({ children }: LayoutProps) => {
 
   if (!currentUser) return null;
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setCurrentUser(null);
     navigate('/login');
   };
@@ -67,8 +69,9 @@ export const Layout = ({ children }: LayoutProps) => {
 
   // Lógica de Visibilidade Baseada em Perfil
   const isStrategic = isStateAdmin || isTenantAdmin;
-  const isOperational = currentUser.role === UserRole.PROFESSOR || currentUser.role === UserRole.SUPERVISOR;
-  const isManagement = currentUser.role === UserRole.DIRETOR || isStrategic || currentUser.role === UserRole.SUPER_ADMIN;
+  // Supervisor MOVED to Management as per user request (Superior to Professor)
+  const isOperational = currentUser.role === UserRole.PROFESSOR;
+  const isManagement = currentUser.role === UserRole.DIRETOR || isStrategic || currentUser.role === UserRole.SUPER_ADMIN || currentUser.role === UserRole.SUPERVISOR;
 
   const canManageCapabilities = currentUser.role === UserRole.SUPER_ADMIN || isStrategic || currentUser.role === UserRole.DIRETOR;
 
@@ -179,7 +182,7 @@ export const Layout = ({ children }: LayoutProps) => {
               <NavItem icon={Shield} label="Governança" active={path.includes('/admin/governanca')} onClick={() => navigate('/admin/governanca')} />
 
               {canManageCapabilities && (
-                <NavItem icon={Target} label="Matriz de Habilidades" active={path === '/capabilities'} onClick={() => navigate('/capabilities')} />
+                <NavItem icon={Target} label="Matriz de Habilidades" active={path === '/admin/capabilities'} onClick={() => navigate('/admin/capabilities')} />
               )}
 
               <NavItem icon={Shield} label="Gestão de Risco" active={path === '/risk-dashboard'} onClick={() => navigate('/risk-dashboard')} />
