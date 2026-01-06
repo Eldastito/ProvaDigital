@@ -62,7 +62,14 @@ export const AvatarShopView = ({ onBack }: AvatarShopViewProps) => {
         alert(`Você equipou: ${item.name}`);
     };
 
-    if (!userProfile) return <div className="p-8 text-center text-slate-500">Perfil não encontrado.</div>;
+    if (!userProfile) {
+        return (
+            <div className="flex h-full w-full items-center justify-center flex-col gap-4">
+                <div className="w-10 h-10 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-slate-500 font-medium">Carregando perfil do aluno...</p>
+            </div>
+        );
+    }
 
     const { level } = GamificationService.calculateLevel(userProfile.xp || 0);
 
@@ -101,8 +108,8 @@ export const AvatarShopView = ({ onBack }: AvatarShopViewProps) => {
                                     key={cat.id}
                                     onClick={() => setSelectedCategory(cat.id)}
                                     className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all flex items-center gap-2 ${selectedCategory === cat.id
-                                            ? 'bg-white text-slate-800 shadow-sm ring-1 ring-slate-200'
-                                            : 'text-slate-400 hover:text-slate-600'
+                                        ? 'bg-white text-slate-800 shadow-sm ring-1 ring-slate-200'
+                                        : 'text-slate-400 hover:text-slate-600'
                                         }`}
                                 >
                                     <span className="text-lg">{cat.icon}</span> {cat.label}
@@ -135,10 +142,10 @@ export const AvatarShopView = ({ onBack }: AvatarShopViewProps) => {
                             <div
                                 key={item.id}
                                 className={`bg-white rounded-2xl border-2 transition-all duration-300 relative overflow-hidden group ${isOwned
-                                        ? 'border-emerald-200 shadow-sm'
-                                        : isLocked
-                                            ? 'border-slate-100 opacity-70 grayscale-[0.5]'
-                                            : 'border-slate-100 hover:border-brand-primary hover:shadow-xl'
+                                    ? 'border-emerald-200 shadow-sm'
+                                    : isLocked
+                                        ? 'border-slate-100 opacity-70 grayscale-[0.5]'
+                                        : 'border-slate-100 hover:border-brand-primary hover:shadow-xl'
                                     }`}
                             >
                                 {/* ITEM PREVIEW */}
@@ -176,10 +183,10 @@ export const AvatarShopView = ({ onBack }: AvatarShopViewProps) => {
                                             onClick={() => handleBuy(item)}
                                             disabled={isLocked || !canBuy}
                                             className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${isLocked
-                                                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                                    : canBuy
-                                                        ? 'bg-slate-900 text-white hover:bg-brand-primary hover:shadow-lg hover:-translate-y-1'
-                                                        : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                                : canBuy
+                                                    ? 'bg-slate-900 text-white hover:bg-brand-primary hover:shadow-lg hover:-translate-y-1'
+                                                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                                                 }`}
                                         >
                                             {isLocked ? 'Bloqueado' : item.price === 0 ? 'Grátis' : (

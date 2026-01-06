@@ -33,12 +33,23 @@ const ACTIONS: Action[] = ['VIEW', 'CREATE', 'EDIT', 'DELETE'];
 export const CapabilitiesView = () => {
     const { globalPermissions, updatePermissions, tenants, updateTenantFeatures } = useAppStore();
     const [localMatrix, setLocalMatrix] = useState<PermissionMatrix>(JSON.parse(JSON.stringify(globalPermissions)));
-    const [selectedTenant, setSelectedTenant] = useState<string>(tenants?.[0]?.id || '');
+    const [selectedTenant, setSelectedTenant] = useState<string>('');
 
-    const currentTenant = tenants.find(t => t.id === selectedTenant);
+    React.useEffect(() => {
+        if (tenants && tenants.length > 0 && !selectedTenant) {
+            setSelectedTenant(tenants[0].id);
+        }
+    }, [tenants, selectedTenant]);
+
+    const currentTenant = tenants?.find(t => t.id === selectedTenant);
 
     if (!tenants || tenants.length === 0) {
-        return <div className="p-8 text-center text-slate-500">Carregando dados das secretarias...</div>;
+        return (
+            <div className="flex h-[50vh] w-full items-center justify-center flex-col gap-4">
+                <div className="w-10 h-10 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-slate-500 font-medium">Carregando dados das secretarias...</p>
+            </div>
+        );
     }
 
     const togglePermission = (role: UserRole, resource: Resource, action: Action) => {

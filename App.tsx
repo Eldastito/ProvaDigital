@@ -50,14 +50,9 @@ export default function App() {
       let userMatch = users.find(u => u.email === sessionUser.email);
 
       if (userMatch) {
-        // Test Profile Logic
-        const testProfile = localStorage.getItem('test_profile');
-        const testProfileLocked = sessionStorage.getItem('test_profile_locked');
-        if (testProfile && (!testProfileLocked || testProfileLocked)) {
-          userMatch = { ...userMatch, role: testProfile as UserRole };
-          if (testProfile === 'PAIS') userMatch = { ...userMatch, childrenIds: ['st_muni', 'st_state', 'st_fed', 'st_priv'] };
-          sessionStorage.setItem('test_profile_locked', 'true');
-        }
+        // Test Profile Logic (DISABLED FOR SECURITY)
+        // const testProfile = localStorage.getItem('test_profile');
+        // ... (removed auto-login logic)
         setCurrentUser(userMatch);
 
         // Redirect Logic
@@ -66,16 +61,11 @@ export default function App() {
           else navigate('/dashboard');
         }
       } else {
-        // Fallback
-        const newUser: any = {
-          id: sessionUser.id,
-          name: sessionUser.user_metadata?.full_name || 'Novo Usuário',
-          email: sessionUser.email!,
-          role: UserRole.TENANT_ADMIN,
-          tenantId: 't1', schoolId: 's1'
-        };
-        setCurrentUser(newUser);
-        navigate('/dashboard');
+        // SECURITY FIX: Se o usuário existe no Supabase mas não no banco local, NÃO logar automaticamente como Admin.
+        console.warn("Usuário autenticado no Supabase mas não encontrado no registro local:", sessionUser.email);
+        await supabase.auth.signOut();
+        setCurrentUser(null);
+        navigate('/login');
       }
     };
 

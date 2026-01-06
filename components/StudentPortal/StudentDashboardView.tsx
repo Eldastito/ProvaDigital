@@ -91,11 +91,14 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
     // Event Modal
     const [showEventRules, setShowEventRules] = useState<string | null>(null);
 
-    if (!student || !stats) return (
-        <div className="p-8 text-center text-slate-500">
-            Nenhum aluno selecionado ou dados não encontrados.
-        </div>
-    );
+    if (!student || !stats) {
+        return (
+            <div className="flex h-[50vh] w-full items-center justify-center flex-col gap-4">
+                <div className="w-10 h-10 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-slate-500 font-medium">Carregando dados do aluno...</p>
+            </div>
+        );
+    }
 
     const getRiskColor = (level: RiskLevel) => {
         if (level === RiskLevel.HIGH) return 'bg-rose-100 text-rose-700 border-rose-200';
@@ -634,16 +637,16 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                     </div>
                 </div>
 
-                <div className={'p-5 rounded-xl border shadow-sm ' + (getRiskColor(stats.riskLevel)) + ' '}>
+                <div className={'p-5 rounded-xl border shadow-sm ' + (getRiskColor(stats.riskLevel || RiskLevel.LOW)) + ' '}>
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold uppercase opacity-70">Status de Risco</span>
                         <AlertTriangle size={20} />
                     </div>
                     <div className="text-xl font-black">
-                        {stats.riskLevel === RiskLevel.LOW ? 'Zona Segura' : stats.riskLevel === RiskLevel.MEDIUM ? 'Atenção' : 'Crítico'}
+                        {(stats.riskLevel === RiskLevel.LOW || !stats.riskLevel) ? 'Zona Segura' : stats.riskLevel === RiskLevel.MEDIUM ? 'Atenção' : 'Crítico'}
                     </div>
                     <div className="text-xs mt-1 opacity-80">
-                        {stats.riskLevel === RiskLevel.LOW ? 'Continue assim!' : 'Procure o Corujão.'}
+                        {(stats.riskLevel === RiskLevel.LOW || !stats.riskLevel) ? 'Continue assim!' : 'Procure o Corujão.'}
                     </div>
                 </div>
 
