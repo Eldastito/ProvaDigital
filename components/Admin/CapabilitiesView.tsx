@@ -33,9 +33,13 @@ const ACTIONS: Action[] = ['VIEW', 'CREATE', 'EDIT', 'DELETE'];
 export const CapabilitiesView = () => {
     const { globalPermissions, updatePermissions, tenants, updateTenantFeatures } = useAppStore();
     const [localMatrix, setLocalMatrix] = useState<PermissionMatrix>(JSON.parse(JSON.stringify(globalPermissions)));
-    const [selectedTenant, setSelectedTenant] = useState<string>(tenants[0].id);
-    
+    const [selectedTenant, setSelectedTenant] = useState<string>(tenants?.[0]?.id || '');
+
     const currentTenant = tenants.find(t => t.id === selectedTenant);
+
+    if (!tenants || tenants.length === 0) {
+        return <div className="p-8 text-center text-slate-500">Carregando dados das secretarias...</div>;
+    }
 
     const togglePermission = (role: UserRole, resource: Resource, action: Action) => {
         // Bloqueia a edição do SUPER_ADMIN para evitar lockout acidental
@@ -48,9 +52,9 @@ export const CapabilitiesView = () => {
             const newMatrix = { ...prev };
             // Initialize role/resource if undefined
             if (!newMatrix[role]) newMatrix[role] = {};
-            
+
             const currentActions = newMatrix[role][resource] || [];
-            
+
             if (currentActions.includes(action)) {
                 newMatrix[role][resource] = currentActions.filter(a => a !== action);
             } else {
@@ -64,7 +68,7 @@ export const CapabilitiesView = () => {
         if (!currentTenant) return;
         const currentDisabled = currentTenant.disabledResources || [];
         const isDisabled = currentDisabled.includes(resource);
-        
+
         let newDisabled;
         if (isDisabled) {
             newDisabled = currentDisabled.filter(r => r !== resource);
@@ -84,12 +88,12 @@ export const CapabilitiesView = () => {
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-bold text-brand-dark flex items-center gap-2">
-                        <Shield className="text-brand-primary"/> Governança Hierárquica
+                        <Shield className="text-brand-primary" /> Governança Hierárquica
                     </h1>
                     <p className="text-slate-500 mt-1">Defina a cascata de permissões do nível Super Admin até Pais/Responsáveis.</p>
                 </div>
                 <button onClick={saveGlobal} className="btn-gradient px-6 py-3 rounded-lg font-bold flex items-center gap-2 shadow-lg hover:shadow-xl transition">
-                    <Save size={20}/> Salvar Alterações Globais
+                    <Save size={20} /> Salvar Alterações Globais
                 </button>
             </div>
 
@@ -99,7 +103,7 @@ export const CapabilitiesView = () => {
                     <h2 className="font-bold text-lg text-slate-800">Matriz de Capacidades (Padrão Global)</h2>
                     <p className="text-xs text-slate-500">Estas regras aplicam-se a toda a hierarquia.</p>
                 </div>
-                
+
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left border-collapse">
                         <thead className="bg-slate-100 text-slate-600 font-bold">
@@ -125,7 +129,7 @@ export const CapabilitiesView = () => {
                                             <div className="flex justify-center gap-1 flex-wrap">
                                                 {ACTIONS.map(action => {
                                                     const isActive = localMatrix[role]?.[res.id]?.includes(action);
-                                                    
+
                                                     // Visual styling based on action type
                                                     let colorClass = 'bg-slate-100 text-slate-400 border-slate-200';
                                                     if (isActive) {
@@ -175,10 +179,10 @@ export const CapabilitiesView = () => {
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                        <h2 className="font-bold text-lg text-slate-800 flex items-center gap-2"><Building size={20}/> Configuração por Cliente (Prefeitura)</h2>
+                        <h2 className="font-bold text-lg text-slate-800 flex items-center gap-2"><Building size={20} /> Configuração por Cliente (Prefeitura)</h2>
                         <p className="text-xs text-slate-500">Desabilite módulos inteiros para clientes específicos (Cascata de Restrição).</p>
                     </div>
-                    <select 
+                    <select
                         className="border border-slate-300 rounded-lg p-2 text-sm font-medium"
                         value={selectedTenant}
                         onChange={(e) => setSelectedTenant(e.target.value)}
@@ -190,10 +194,10 @@ export const CapabilitiesView = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {RESOURCES.map(res => {
                         const isDisabled = currentTenant?.disabledResources?.includes(res.id);
-                        
+
                         return (
-                            <div 
-                                key={res.id} 
+                            <div
+                                key={res.id}
                                 onClick={() => toggleTenantFeature(res.id)}
                                 className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${isDisabled ? 'bg-slate-50 border-slate-200 opacity-60 grayscale' : 'bg-white border-brand-secondary shadow-sm hover:shadow-md'}`}
                             >
@@ -209,7 +213,7 @@ export const CapabilitiesView = () => {
                     })}
                 </div>
                 <div className="mt-4 p-3 bg-amber-50 text-amber-800 text-xs rounded border border-amber-200 flex items-center gap-2">
-                    <AlertTriangle size={16}/>
+                    <AlertTriangle size={16} />
                     <span>Atenção: Desabilitar um módulo aqui remove o acesso para <strong>TODOS</strong> os usuários desta prefeitura, independente da matriz acima.</span>
                 </div>
             </div>

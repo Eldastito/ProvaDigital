@@ -22,8 +22,8 @@ const NavItem = ({ icon: Icon, label, active, onClick }: any) => (
   <button
     onClick={onClick}
     className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all border-l-4 ${active
-        ? 'bg-[#162a42] text-white border-brand-secondary'
-        : 'text-slate-400 hover:bg-[#112336] hover:text-white border-transparent'
+      ? 'bg-[#162a42] text-white border-brand-secondary'
+      : 'text-slate-400 hover:bg-[#112336] hover:text-white border-transparent'
       } `}
   >
     <Icon size={20} strokeWidth={active ? 2.5 : 2} />
@@ -56,7 +56,14 @@ export const Layout = ({ children }: LayoutProps) => {
   if (!currentUser) return null;
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error("Erro ao fazer logout Supabase:", error);
+    }
+    // Forçar limpeza total para garantir Login Screen
+    localStorage.clear();
+    sessionStorage.clear();
     setCurrentUser(null);
     navigate('/login');
   };
