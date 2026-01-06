@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { UserRole } from './types';
 import { useAppStore } from './store/useAppStore';
@@ -182,7 +182,7 @@ export default function App() {
 // This bridges the URL path back to the String expected by ViewRouter
 // allowing us to keep all the ViewRouter logic for now.
 const ViewRouterWrapper = ({ store, setView, printId, resultId, setPrintId, setResultId }: any) => {
-  const { pathname } = window.location;
+  const { pathname } = useLocation();
   let view = 'DASHBOARD'; // Default
 
   // Order matters! Check specific sub-paths first
