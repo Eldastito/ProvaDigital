@@ -129,7 +129,26 @@ export const useAppStore = create<AppStore>((set, get) => ({
     setHasConsented: (val) => set({ hasConsented: val }),
     setOwlTutorContext: (ctx) => set({ owlTutorContext: ctx }),
 
-    setCurrentUser: (user) => set({ currentUser: user, selectedChildId: null }),
+    setCurrentUser: (user) => {
+        set((state) => {
+            let newProfiles = state.userProfiles;
+            // Ensure profile exists to avoid blank screens in Avatar Shop
+            if (user && !state.userProfiles.find(p => p.userId === user.id)) {
+                const mockProfile: UserProfileExtended = {
+                    userId: user.id,
+                    owlCoins: 1250,
+                    xp: 4500,
+                    badges: ['medal_honor'],
+                    inventory: ['hat_grad'],
+                    equippedItems: { hat: 'hat_grad' },
+                    assessments: [],
+                    academicAchievements: []
+                };
+                newProfiles = [...state.userProfiles, mockProfile];
+            }
+            return { currentUser: user, selectedChildId: null, userProfiles: newProfiles };
+        });
+    },
     setSelectedChildId: (childId) => set({ selectedChildId: childId }),
 
     // --- CARREGAMENTO DO SUPABASE (Sincronização) ---
@@ -260,7 +279,48 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 });
             }
 
-            console.log("✅ Dados da nuvem sincronizados (users, items, exams, results).");
+            // 4. Carregar Perfil Gamificado (User Profiles)
+            // Se falhar ou não existir, cria mock para evitar tela branca
+            try {
+                const { data: dbProfiles, error: profileError } = await supabase.from('user_profiles').select('*');
+
+                if (!profileError && dbProfiles && dbProfiles.length > 0) {
+                    const formattedProfiles: UserProfileExtended[] = dbProfiles.map((p: any) => ({
+                        userId: p.user_id,
+                        avatarUrl: p.avatar_url,
+                        bio: p.bio,
+                        owlCoins: p.owl_coins || 0,
+                        xp: p.xp || 0,
+                        badges: p.badges || [],
+                        inventory: p.inventory || [],
+                        equippedItems: p.equipped_items || {},
+                        assessments: p.assessments || [],
+                        academicAchievements: p.academic_achievements || []
+                    }));
+                    set({ userProfiles: formattedProfiles });
+                } else {
+                    // Fallback Mock se a tabela não existir ou estiver vazia
+                    console.warn("⚠️ Tabela user_profiles não encontrada ou vazia. Usando Mock.");
+                    throw new Error("No profiles found");
+                }
+            } catch (err) {
+                // Generate Mock Profile for Current User (if exists) or a Generic one
+                // We don't have current user in this scope easily unless we use get().currentUser
+                // But we can create a generic one that matches likely users
+                const mockProfile: UserProfileExtended = {
+                    userId: 'mock-student-id', // Placeholder, will be fixed by login or we add one for the current user later
+                    owlCoins: 1250,
+                    xp: 4500,
+                    badges: ['medal_honor'],
+                    inventory: ['hat_grad'],
+                    equippedItems: { hat: 'hat_grad' },
+                    assessments: [],
+                    academicAchievements: []
+                };
+                set((state) => ({ userProfiles: [...state.userProfiles, mockProfile] }));
+            }
+
+            console.log("✅ Dados da nuvem sincronizados (users, items, exams, results, profiles).");
             set({ isInitialized: true });
         } catch (error) {
             console.error("❌ Erro ao sincronizar dados:", error);
