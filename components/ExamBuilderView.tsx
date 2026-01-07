@@ -35,7 +35,7 @@ export const ExamBuilderView = ({ state, onSave, onCancel }: { state: AppState, 
             model: config.model,
             durationMinutes: config.duration,
             targetQuestionCount: selectedItems.length,
-            status: publish ? ExamStatus.PUBLISHED : ExamStatus.DRAFT,
+            status: publish ? ExamStatus.ACTIVE : ExamStatus.DRAFT,
             items: selectedItems.map((item, idx) => ({
                 itemId: item.id,
                 order: idx + 1,

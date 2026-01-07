@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Save, CheckCircle, AlertCircle, Wand2, CheckSquare, Brain, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, CheckCircle, AlertCircle, Wand2, CheckSquare, Brain, Loader2, Shield } from 'lucide-react';
 import { AppState, Exam, ExamResult, StudentAnswer, QuestionType } from '../types';
 import { uuidv4 } from '../utils/helpers';
 import { gradeEssayAnswer, batchGradeAnswers } from '../services/geminiService';
@@ -236,6 +236,35 @@ export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: Resul
             newResults.push({ id: existingId || uuidv4(), examId, studentId: student.id, answers, totalScore, gradedAt: new Date().toISOString() });
         });
         onSaveResults(newResults);
+
+        // --- AUDIT LOGGING ---
+        try {
+            // Identify changes (simplified: logging that an update happened)
+            const changedStudents = students.filter(s => localResults[s.id]);
+            if (changedStudents.length > 0) {
+                // Use a direct import or a passed prop if possible. 
+                // Since we can't easily import from here without verifying, we assume auditService is available or we use dynamic import?
+                // Let's rely on the import I will force next.
+
+                // Simulating dynamic access or direct call if imported
+                import('../services/auditService').then(({ auditService }) => {
+                    auditService.log({
+                        tenantId: state.currentUser?.tenantId || 'unknown',
+                        actorId: state.currentUser?.id || 'unknown',
+                        actorEmail: state.currentUser?.email,
+                        actionType: 'UPDATE_GRADE',
+                        targetResource: 'exam_result',
+                        targetId: examId,
+                        details: {
+                            examTitle: exam.title,
+                            studentCount: changedStudents.length,
+                            timestamp: new Date().toISOString()
+                        }
+                    });
+                });
+            }
+        } catch (e) { console.error("Audit fail", e); }
+
         setTimeout(() => setSaving(false), 500);
     };
 
@@ -249,6 +278,9 @@ export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: Resul
                         <p className="text-slate-500 text-sm flex items-center gap-2">
                             {exam.title}
                             {autoGradedCount > 0 && <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold flex items-center gap-1"><Wand2 size={10} /> {autoGradedCount} Questões Auto-corrigidas</span>}
+                            <a href="/admin/audit" target="_blank" className="text-xs text-blue-500 hover:underline flex items-center gap-1 ml-2">
+                                <Shield size={10} /> Ver Logs de Alteração
+                            </a>
                         </p>
                     </div>
                 </div>

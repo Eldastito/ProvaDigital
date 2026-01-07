@@ -39,6 +39,7 @@ import { ParentsDashboardView } from './components/Parents/ParentsDashboardView'
 import { ArcadeView } from './components/StudentPortal/ArcadeView';
 import { AvatarShopView } from './components/StudentPortal/AvatarShopView';
 import { GovernanceView } from './components/Admin/GovernanceView';
+import { AuditLogView } from './components/Admin/AuditLogView';
 import { TabletLauncher } from './components/TabletApp/TabletLauncher';
 import { LiveDemoLobby } from './components/Demo/LiveDemoLobby';
 
@@ -194,6 +195,7 @@ export default function App() {
                       <Route path="admin/gestao" element={<ManagementView state={store} onAddSchool={store.addSchool} onAddClass={store.addClass} onAddStudent={store.addStudent} onAddUser={store.addUser} onUpdateUser={store.updateUser} onResetPassword={store.resetUserPassword} onUpdateSettings={store.updateSettings} />} />
                       <Route path="admin/governanca" element={<GovernanceView state={store} />} />
                       <Route path="admin/capabilities" element={<CapabilitiesView />} />
+                      <Route path="admin/audit" element={<AuditLogView />} />
                       <Route path="allocation" element={<AllocationView state={store} onUpdate={store.updateExamAllocation} />} />
                       <Route path="risk-dashboard" element={<RiskDashboard />} />
                       <Route path="analytics" element={<SchoolDashboardView state={store} />} />

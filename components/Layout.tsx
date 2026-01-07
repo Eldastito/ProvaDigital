@@ -194,6 +194,9 @@ export const Layout = ({ children }: LayoutProps) => {
                 <NavItem icon={Target} label="Governança Hierárquica" active={path === '/admin/capabilities'} onClick={() => navigate('/admin/capabilities')} />
               )}
 
+              {currentUser.role !== UserRole.SUPERVISOR && (
+                <NavItem icon={Shield} label="Auditoria & Logs" active={path === '/admin/audit'} onClick={() => navigate('/admin/audit')} />
+              )}
               <NavItem icon={Shield} label="Gestão de Risco" active={path === '/risk-dashboard'} onClick={() => navigate('/risk-dashboard')} />
             </>
           )}

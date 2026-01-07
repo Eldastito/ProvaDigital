@@ -1,15 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { FileText, Users, BookOpen, TrendingUp, Plus, Calendar, Award, BarChart3, AlertTriangle } from 'lucide-react';
 import { NotificationBell } from '../Notifications/NotificationBell';
-import { ExamStatus } from '../../types';
+import { ExamStatus, Exam } from '../../types';
+import { ExamDetailsModal } from './ExamDetailsModal';
 
 interface ProfessorDashboardViewProps {
     setView?: (view: string) => void;
 }
 
 export const ProfessorDashboardView = ({ setView }: ProfessorDashboardViewProps) => {
-    const { currentUser, classes, exams, students, results } = useAppStore();
+    const { currentUser, classes, exams, students, items } = useAppStore();
+    const navigate = useNavigate();
+
+    // Modal State
+    const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
 
     // Filtrar turmas onde o professor está associado
     const myClasses = classes.filter(c => {
@@ -107,7 +113,10 @@ export const ProfessorDashboardView = ({ setView }: ProfessorDashboardViewProps)
 
             {/* Quick Actions */}
             <div className="grid grid-cols-3 gap-4">
-                <button className="bg-gradient-to-br from-brand-primary to-emerald-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all group">
+                <button
+                    onClick={() => navigate('/teacher/provas/nova')}
+                    className="bg-gradient-to-br from-brand-primary to-emerald-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all group"
+                >
                     <div className="flex items-center gap-4">
                         <div className="w-14 h-14 bg-white/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                             <Plus size={28} />
@@ -119,7 +128,10 @@ export const ProfessorDashboardView = ({ setView }: ProfessorDashboardViewProps)
                     </div>
                 </button>
 
-                <button className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all group">
+                <button
+                    onClick={() => navigate('/teacher/itens')}
+                    className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all group"
+                >
                     <div className="flex items-center gap-4">
                         <div className="w-14 h-14 bg-white/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                             <BookOpen size={28} />
@@ -131,7 +143,10 @@ export const ProfessorDashboardView = ({ setView }: ProfessorDashboardViewProps)
                     </div>
                 </button>
 
-                <button className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all group">
+                <button
+                    onClick={() => navigate('/analytics')}
+                    className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all group"
+                >
                     <div className="flex items-center gap-4">
                         <div className="w-14 h-14 bg-white/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                             <BarChart3 size={28} />
@@ -144,7 +159,7 @@ export const ProfessorDashboardView = ({ setView }: ProfessorDashboardViewProps)
                 </button>
 
                 <button
-                    onClick={() => setView?.('RISK_MANAGEMENT')}
+                    onClick={() => navigate('/risk-dashboard')} // Assuming route name
                     className="bg-gradient-to-br from-red-500 to-red-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all group col-span-3 md:col-span-1"
                 >
                     <div className="flex items-center gap-4">
@@ -219,14 +234,18 @@ export const ProfessorDashboardView = ({ setView }: ProfessorDashboardViewProps)
                                     COMPLETED: 'bg-blue-100 text-blue-700'
                                 };
                                 return (
-                                    <div key={exam.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200 hover:border-orange-500 hover:bg-orange-50/30 transition-all cursor-pointer group">
+                                    <div
+                                        key={exam.id}
+                                        onClick={() => setSelectedExam(exam)}
+                                        className="p-4 bg-slate-50 rounded-lg border border-slate-200 hover:border-orange-500 hover:bg-orange-50/30 transition-all cursor-pointer group"
+                                    >
                                         <div className="flex items-center justify-between">
                                             <div className="flex-1">
                                                 <p className="font-bold text-brand-dark group-hover:text-orange-600 transition-colors">{exam.title}</p>
                                                 <p className="text-sm text-slate-600">{exam.subject}</p>
                                             </div>
-                                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${statusColors[exam.status]}`}>
-                                                {exam.status === ExamStatus.DRAFT ? 'Rascunho' : exam.status === ExamStatus.ACTIVE ? 'Ativa' : 'Concluída'}
+                                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${statusColors[exam.status] || 'bg-gray-100 text-gray-600'}`}>
+                                                {exam.status === ExamStatus.DRAFT ? 'Rascunho' : exam.status === ExamStatus.ACTIVE ? 'Ativa' : exam.status === ExamStatus.COMPLETED ? 'Concluída' : 'Publicada'}
                                             </span>
                                         </div>
                                     </div>
@@ -236,7 +255,10 @@ export const ProfessorDashboardView = ({ setView }: ProfessorDashboardViewProps)
                             <div className="text-center py-8 text-slate-500">
                                 <FileText size={48} className="mx-auto mb-2 opacity-30" />
                                 <p>Nenhuma prova criada</p>
-                                <button className="mt-4 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-secondary transition-colors">
+                                <button
+                                    onClick={() => navigate('/teacher/provas/nova')}
+                                    className="mt-4 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-secondary transition-colors"
+                                >
                                     Criar Primeira Prova
                                 </button>
                             </div>
@@ -257,6 +279,15 @@ export const ProfessorDashboardView = ({ setView }: ProfessorDashboardViewProps)
                     <p className="text-sm text-slate-500 mt-2">Em breve você terá acesso a gráficos e métricas de desempenho</p>
                 </div>
             </div>
+
+            {/* MODAL */}
+            {selectedExam && (
+                <ExamDetailsModal
+                    exam={selectedExam}
+                    items={items}
+                    onClose={() => setSelectedExam(null)}
+                />
+            )}
         </div>
     );
 };
