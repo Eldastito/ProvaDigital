@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ArrowLeft, Coins, ShoppingBag, Lock, Check, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Coins, ShoppingBag, Lock, Check, AlertCircle, Trophy } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { GamificationService } from '../../services/gamificationService';
 import { ShopItem, ShopItemCategory } from '../../types';
@@ -136,6 +136,17 @@ export const AvatarShopView = ({ onBack }: AvatarShopViewProps) => {
 
                             <div className="text-white/50 text-[10px] font-bold uppercase tracking-widest mb-2 flex items-center gap-1">
                                 Seu Visual <AlertCircle size={10} />
+                            </div>
+
+                            {/* RULE CLARIFICATION: Coins vs Ranking */}
+                            <div className="absolute top-2 right-full mr-4 w-60 bg-white p-3 rounded-xl shadow-xl border border-slate-100 hidden md:block">
+                                <h4 className="font-bold text-slate-800 text-xs flex items-center gap-2 mb-1">
+                                    <Trophy size={12} className="text-yellow-500" /> Regra do Jogo
+                                </h4>
+                                <p className="text-[10px] text-slate-500 leading-tight">
+                                    Pode gastar à vontade! Usar suas moedas <strong>não diminui</strong> sua posição no Ranking nem seu Nível.
+                                </p>
+                                <div className="absolute top-6 -right-1.5 w-3 h-3 bg-white border-t border-r border-slate-100 transform rotate-45"></div>
                             </div>
 
                             <div className="relative flex flex-col items-center h-32 w-full">
