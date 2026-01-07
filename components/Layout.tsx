@@ -187,6 +187,8 @@ export const Layout = ({ children }: LayoutProps) => {
               <NavItem icon={Users} label="Gestão de Rede" active={path.includes('/admin/gestao')} onClick={() => navigate('/admin/gestao')} />
               <NavItem icon={Stethoscope} label="Saúde Mental" active={path === '/neuro-screening'} onClick={() => navigate('/neuro-screening')} />
               <NavItem icon={Gamepad2} label="Gestão Arcade Zone" active={path.includes('/admin/governanca')} onClick={() => navigate('/admin/governanca')} />
+              <NavItem icon={Tablet} label="App Tablet (Aplicação)" active={path.includes('/apps/tablet')} onClick={() => navigate('/apps/tablet')} />
+              <NavItem icon={Cast} label="Demo Live (Apresentação)" active={path.includes('/apps/demo')} onClick={() => navigate('/apps/demo')} />
 
               {canManageCapabilities && (
                 <NavItem icon={Target} label="Governança Hierárquica" active={path === '/admin/capabilities'} onClick={() => navigate('/admin/capabilities')} />

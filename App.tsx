@@ -39,6 +39,8 @@ import { ParentsDashboardView } from './components/Parents/ParentsDashboardView'
 import { ArcadeView } from './components/StudentPortal/ArcadeView';
 import { AvatarShopView } from './components/StudentPortal/AvatarShopView';
 import { GovernanceView } from './components/Admin/GovernanceView';
+import { TabletLauncher } from './components/TabletApp/TabletLauncher';
+import { LiveDemoLobby } from './components/Demo/LiveDemoLobby';
 
 export default function App() {
   const store = useAppStore();
@@ -211,6 +213,10 @@ export default function App() {
                       <Route path="class-diary" element={<ClassDiaryView />} />
                       <Route path="neuro-screening" element={<NeuroScreeningView state={store} onUpdateProfile={store.updateUserProfile} />} />
                       <Route path="gamified-events" element={<GamifiedEventsManager state={store} user={currentUser} />} />
+
+                      {/* APPS & DEMO (Full Screen Modes) */}
+                      <Route path="apps/tablet" element={<div className="fixed inset-0 z-50 bg-slate-900"><TabletLauncher state={store} onSelectApp={() => { }} onBack={() => navigate('/dashboard')} /></div>} />
+                      <Route path="apps/demo" element={<LiveDemoLobby onClose={() => navigate('/dashboard')} />} />
 
                       {/* UTILS */}
                       <Route path="print-exam/:id" element={<PrintUtilWrapper store={store} />} />
