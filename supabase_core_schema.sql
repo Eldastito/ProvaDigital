@@ -174,3 +174,23 @@ CREATE TABLE IF NOT EXISTS public.exam_results (
 ALTER TABLE public.exam_results ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Auth read results" ON public.exam_results FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Auth insert results" ON public.exam_results FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+-- 9. USER PROFILES (Gamification & Avatar)
+CREATE TABLE IF NOT EXISTS public.user_profiles (
+  user_id TEXT PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
+  avatar_url TEXT,
+  bio TEXT,
+  owl_coins INTEGER DEFAULT 0,
+  xp INTEGER DEFAULT 0,
+  badges TEXT[] DEFAULT '{}',
+  inventory TEXT[] DEFAULT '{}',
+  equipped_items JSONB DEFAULT '{}'::jsonb,
+  assessments JSONB DEFAULT '[]'::jsonb,
+  academic_achievements JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view own profile" ON public.user_profiles FOR SELECT USING (auth.uid()::text = user_id);
+CREATE POLICY "Users can update own profile" ON public.user_profiles FOR UPDATE USING (auth.uid()::text = user_id);
+CREATE POLICY "Users can insert own profile" ON public.user_profiles FOR INSERT WITH CHECK (auth.uid()::text = user_id);
+

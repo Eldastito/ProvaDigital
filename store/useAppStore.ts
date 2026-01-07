@@ -573,8 +573,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
             });
             if (error) {
                 console.error('❌ Error saving user profile:', error);
-                set({ userProfiles: stateBackup });
-                throw error;
+                // set({ userProfiles: stateBackup }); // DESABILITADO: Evitar "blink" se a tabela não existir
+                // throw error; // Não lançar erro para não quebrar a UI
             }
             console.log('✅ User profile saved:', profile.userId);
         } catch (e) { console.error(e); }

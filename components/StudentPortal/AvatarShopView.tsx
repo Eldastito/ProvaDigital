@@ -127,21 +127,33 @@ export const AvatarShopView = ({ onBack }: AvatarShopViewProps) => {
                             <p className="text-slate-500 mt-1">Gaste suas moedas e personalize seu visual!</p>
                         </div>
 
-                        {/* LIVE AVATAR PREVIEW CARD */}
-                        <div className="bg-slate-900 rounded-2xl p-4 flex items-center gap-4 shadow-xl border-4 border-white -mb-16 transform translate-y-4 md:translate-y-0 relative z-20">
-                            <div className="relative w-20 h-20 bg-slate-800 rounded-xl flex items-center justify-center text-[50px] overflow-hidden border border-slate-700">
-                                {/* Compositing Emojis is hard, just show body for now or stacked */}
-                                <div className="z-10">{currentBody}</div>
-                                {getEquippedImage('HAT') && <div className="absolute -top-2 left-1/2 -translate-x-1/2 text-[40px] z-20 drop-shadow-md">{getEquippedImage('HAT')}</div>}
-                                {getEquippedImage('ACCESSORY') && <div className="absolute top-4 left-1/2 -translate-x-1/2 text-[30px] z-30">{getEquippedImage('ACCESSORY')}</div>}
-                            </div>
-                            <div>
-                                <div className="text-white text-xs font-bold uppercase opacity-50">Seu Visual</div>
-                                <div className="flex gap-1 mt-1 text-lg">
-                                    {getEquippedImage('OUTFIT') && <span>{getEquippedImage('OUTFIT')}</span>}
-                                    {!getEquippedImage('OUTFIT') && <span className="opacity-20">👕</span>}
+                        {/* LIVE AVATAR PREVIEW CARD (VERTICAL STACK) */}
+                        <div className="bg-slate-900 rounded-3xl p-6 flex flex-col items-center gap-1 shadow-2xl border-4 border-white transform translate-y-4 md:translate-y-0 relative z-20 w-40">
+                            <div className="text-white/50 text-[10px] font-bold uppercase tracking-widest mb-2">Seu Visual</div>
+
+                            <div className="relative flex flex-col items-center h-24">
+                                {/* 1. HAT (Top) */}
+                                <div className="absolute -top-4 z-30 text-[40px] drop-shadow-lg filter">
+                                    {getEquippedImage('HAT') || <span className="opacity-0">🎩</span>}
+                                </div>
+
+                                {/* 2. BODY/HEAD (Middle) */}
+                                <div className="z-20 text-[50px] drop-shadow-md top-2 relative">
+                                    {currentBody}
+                                </div>
+
+                                {/* 3. OUTFIT (Bottom/Overlay) */}
+                                <div className="absolute top-10 z-25 text-[30px] drop-shadow-md">
+                                    {getEquippedImage('OUTFIT') || <div className="w-8 h-8" />}
                                 </div>
                             </div>
+
+                            {/* ACCESSORY (Side) */}
+                            {getEquippedImage('ACCESSORY') && (
+                                <div className="absolute top-2 right-2 bg-white/20 p-1 rounded backdrop-blur text-[16px]">
+                                    {getEquippedImage('ACCESSORY')}
+                                </div>
+                            )}
                         </div>
 
                         {/* CATEGORY TABS */}
