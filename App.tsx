@@ -159,49 +159,63 @@ export default function App() {
                        Let's use the standard pattern: Layout wraps the Routes.
                    */}
                 <Routes>
-                  {/* DASHBOARDS */}
-                  <Route path="dashboard" element={
-                    currentUser.role === 'PROFESSOR' ? <ProfessorDashboardView setView={handleSetViewLegacy} /> :
-                      currentUser.role === 'PAIS' ? <ParentsDashboardView /> :
-                        <DashboardView state={store} setView={handleSetViewLegacy} />
-                  } />
+                  {/* GLOBAL DATA LOADING GUARD */}
+                  {/* Se o usuário está logado, mas os dados críticos ainda não carregaram (array vazio), mostra Loading */}
+                  {/* Isso previne a Tela Branca no Dashboard que assume que já existem dados */}
+                  {(currentUser && (!store.users?.length || !store.schools?.length)) ? (
+                    <Route path="*" element={
+                      <div className="flex h-full w-full items-center justify-center flex-col gap-4 bg-slate-50">
+                        <div className="w-10 h-10 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-slate-500 font-medium">Sincronizando dados...</p>
+                      </div>
+                    } />
+                  ) : (
+                    <>
+                      {/* DASHBOARDS */}
+                      <Route path="dashboard" element={
+                        currentUser.role === 'PROFESSOR' ? <ProfessorDashboardView setView={handleSetViewLegacy} /> :
+                          currentUser.role === 'PAIS' ? <ParentsDashboardView /> :
+                            <DashboardView state={store} setView={handleSetViewLegacy} />
+                      } />
 
-                  {/* TEACHER / ACADEMIC */}
-                  <Route path="teacher/itens" element={<ItemsListView state={store} onNew={() => navigate('/teacher/itens/novo')} />} />
-                  <Route path="teacher/itens/novo" element={<ItemEditorView state={store} onSave={(i) => { store.addItem(i); navigate('/teacher/itens'); }} onCancel={() => navigate('/teacher/itens')} />} />
-                  <Route path="teacher/provas" element={<ExamsListView state={store} onNew={() => navigate('/teacher/provas/nova')} onPrint={(id) => navigate(`/print-exam/${id}`)} onGrade={(id) => navigate(`/results/${id}`)} />} />
-                  <Route path="teacher/provas/nova" element={<ExamBuilderView state={store} onSave={(e) => { store.addExam(e); navigate('/teacher/provas'); }} onCancel={() => navigate('/teacher/provas')} />} />
+                      {/* TEACHER / ACADEMIC */}
+                      <Route path="teacher/itens" element={<ItemsListView state={store} onNew={() => navigate('/teacher/itens/novo')} />} />
+                      <Route path="teacher/itens/novo" element={<ItemEditorView state={store} onSave={(i) => { store.addItem(i); navigate('/teacher/itens'); }} onCancel={() => navigate('/teacher/itens')} />} />
+                      <Route path="teacher/provas" element={<ExamsListView state={store} onNew={() => navigate('/teacher/provas/nova')} onPrint={(id) => navigate(`/print-exam/${id}`)} onGrade={(id) => navigate(`/results/${id}`)} />} />
+                      <Route path="teacher/provas/nova" element={<ExamBuilderView state={store} onSave={(e) => { store.addExam(e); navigate('/teacher/provas'); }} onCancel={() => navigate('/teacher/provas')} />} />
 
-                  {/* ADMIN */}
-                  <Route path="admin/gestao" element={<ManagementView state={store} onAddSchool={store.addSchool} onAddClass={store.addClass} onAddStudent={store.addStudent} onAddUser={store.addUser} onUpdateUser={store.updateUser} onResetPassword={store.resetUserPassword} onUpdateSettings={store.updateSettings} />} />
-                  <Route path="admin/governanca" element={<GovernanceView state={store} />} />
-                  <Route path="admin/capabilities" element={<CapabilitiesView />} />
-                  <Route path="allocation" element={<AllocationView state={store} onUpdate={store.updateExamAllocation} />} />
-                  <Route path="risk-dashboard" element={<RiskDashboard />} />
-                  <Route path="analytics" element={<SchoolDashboardView state={store} />} />
+                      {/* ADMIN */}
+                      <Route path="admin/gestao" element={<ManagementView state={store} onAddSchool={store.addSchool} onAddClass={store.addClass} onAddStudent={store.addStudent} onAddUser={store.addUser} onUpdateUser={store.updateUser} onResetPassword={store.resetUserPassword} onUpdateSettings={store.updateSettings} />} />
+                      <Route path="admin/governanca" element={<GovernanceView state={store} />} />
+                      <Route path="admin/capabilities" element={<CapabilitiesView />} />
+                      <Route path="allocation" element={<AllocationView state={store} onUpdate={store.updateExamAllocation} />} />
+                      <Route path="risk-dashboard" element={<RiskDashboard />} />
+                      <Route path="analytics" element={<SchoolDashboardView state={store} />} />
 
-                  {/* STUDENT */}
-                  <Route path="aluno" element={<StudentDashboardView state={store} user={currentUser} setView={handleSetViewLegacy} />} />
-                  <Route path="aluno/loja" element={<AvatarShopView onBack={() => navigate('/aluno')} />} />
-                  <Route path="aluno/arcade" element={<ArcadeView onBack={() => navigate('/aluno')} />} />
-                  <Route path="aluno/tutor" element={<OwlTutorView state={store} user={currentUser} />} />
-                  <Route path="battle-arena" element={<StudentBattleView state={store} user={currentUser} onUpdateProfile={store.updateUserProfile} />} />
-                  <Route path="survival-mode" element={<SurvivalView state={store} user={currentUser} onUpdateProfile={store.updateUserProfile} />} />
+                      {/* STUDENT */}
+                      <Route path="aluno" element={<StudentDashboardView state={store} user={currentUser} setView={handleSetViewLegacy} />} />
+                      <Route path="aluno/loja" element={<AvatarShopView onBack={() => navigate('/aluno')} />} />
+                      <Route path="aluno/arcade" element={<ArcadeView onBack={() => navigate('/aluno')} />} />
+                      <Route path="aluno/tutor" element={<OwlTutorView state={store} user={currentUser} />} />
+                      <Route path="battle-arena" element={<StudentBattleView state={store} user={currentUser} onUpdateProfile={store.updateUserProfile} />} />
+                      <Route path="survival-mode" element={<SurvivalView state={store} user={currentUser} onUpdateProfile={store.updateUserProfile} />} />
 
-                  {/* COMMON */}
-                  <Route path="communication" element={<CommunicationView state={store} user={currentUser} onUpdateMessages={store.updateMessages} onUpdateGroups={store.updateChatGroups} onUpdateUser={store.updateCurrentUser} />} />
-                  <Route path="my-profile" element={<UserProfileView state={store} user={currentUser} onUpdateProfile={store.updateUserProfile} />} />
-                  <Route path="study-plans" element={<StudyPlansView state={store} user={currentUser} />} />
-                  <Route path="class-diary" element={<ClassDiaryView />} />
-                  <Route path="neuro-screening" element={<NeuroScreeningView state={store} onUpdateProfile={store.updateUserProfile} />} />
-                  <Route path="gamified-events" element={<GamifiedEventsManager state={store} user={currentUser} />} />
+                      {/* COMMON */}
+                      <Route path="communication" element={<CommunicationView state={store} user={currentUser} onUpdateMessages={store.updateMessages} onUpdateGroups={store.updateChatGroups} onUpdateUser={store.updateCurrentUser} />} />
+                      <Route path="my-profile" element={<UserProfileView state={store} user={currentUser} onUpdateProfile={store.updateUserProfile} />} />
+                      <Route path="study-plans" element={<StudyPlansView state={store} user={currentUser} />} />
+                      <Route path="class-diary" element={<ClassDiaryView />} />
+                      <Route path="neuro-screening" element={<NeuroScreeningView state={store} onUpdateProfile={store.updateUserProfile} />} />
+                      <Route path="gamified-events" element={<GamifiedEventsManager state={store} user={currentUser} />} />
 
-                  {/* UTILS */}
-                  <Route path="print-exam/:id" element={<PrintUtilWrapper store={store} />} />
-                  <Route path="results/:id" element={<ResultsUtilWrapper store={store} navigate={navigate} />} />
+                      {/* UTILS */}
+                      <Route path="print-exam/:id" element={<PrintUtilWrapper store={store} />} />
+                      <Route path="results/:id" element={<ResultsUtilWrapper store={store} navigate={navigate} />} />
 
-                  {/* Catch */}
-                  <Route path="*" element={<Navigate to="/dashboard" />} />
+                      {/* Catch */}
+                      <Route path="*" element={<Navigate to="/dashboard" />} />
+                    </>
+                  )}
                 </Routes>
               </div>
             </Layout>
