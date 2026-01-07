@@ -149,23 +149,25 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 newProfiles = [...state.userProfiles, mockProfile];
             }
 
-            // 2. Ensure Results exist (Performance Dashboard)
-            if (user && state.exams.length > 0 && !state.results.some(r => r.studentId === user.id)) {
-                console.log("Generating mock results for user", user.id);
-                // Create 3 mock results linked to the first 3 available exams
-                const mockResultsToAdd = state.exams.slice(0, 3).map((exam, idx) => ({
-                    id: `mock-result-${user.id}-${idx}`,
-                    examId: exam.id,
-                    studentId: user.id,
-                    answers: [], // Empty for dashboard view (only totalScore matters for chart)
-                    totalScore: 7.0 + (idx * 1.2), // 7.0, 8.2, 9.4
-                    gradedAt: new Date(Date.now() - (idx * 86400000 * 5)).toISOString(), // 5 days apart
-                    securityFlags: []
-                }));
-                newResults = [...state.results, ...mockResultsToAdd];
+            // 2. Ensure Results exist (Performance Dashboard) - OPTIONAL: We keep it empty as per previous request or re-enable if needed.
+            // (Previously mocked results here, now removed as per user request to show empty state)
+
+            // 3. Ensure Student Record exists (CRITICAL for Dashboard Loading Check)
+            let newStudents = state.students;
+            if (user && user.role === 'ALUNO' && !state.students.find(s => s.id === user.id)) {
+                console.log("Generating mock student record for user", user.id);
+                const mockStudent: any = {
+                    id: user.id,
+                    name: user.name,
+                    registrationNumber: 'AUTO-' + Math.floor(Math.random() * 10000),
+                    classId: state.classes[0]?.id || 'class-demo',
+                    schoolId: user.schoolId || state.schools[0]?.id || 'school-demo',
+                    tenantId: user.tenantId
+                };
+                newStudents = [...state.students, mockStudent];
             }
 
-            return { currentUser: user, selectedChildId: null, userProfiles: newProfiles, results: newResults };
+            return { currentUser: user, selectedChildId: null, userProfiles: newProfiles, students: newStudents };
         });
     },
     setSelectedChildId: (childId) => set({ selectedChildId: childId }),
