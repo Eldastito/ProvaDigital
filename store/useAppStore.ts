@@ -132,7 +132,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
     setCurrentUser: (user) => {
         set((state) => {
             let newProfiles = state.userProfiles;
-            // Ensure profile exists to avoid blank screens in Avatar Shop
+            let newResults = state.results;
+
+            // 1. Ensure profile exists (Avatar Shop & Gamification)
             if (user && !state.userProfiles.find(p => p.userId === user.id)) {
                 const mockProfile: UserProfileExtended = {
                     userId: user.id,
@@ -146,7 +148,24 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 };
                 newProfiles = [...state.userProfiles, mockProfile];
             }
-            return { currentUser: user, selectedChildId: null, userProfiles: newProfiles };
+
+            // 2. Ensure Results exist (Performance Dashboard)
+            if (user && state.exams.length > 0 && !state.results.some(r => r.studentId === user.id)) {
+                console.log("Generating mock results for user", user.id);
+                // Create 3 mock results linked to the first 3 available exams
+                const mockResultsToAdd = state.exams.slice(0, 3).map((exam, idx) => ({
+                    id: `mock-result-${user.id}-${idx}`,
+                    examId: exam.id,
+                    studentId: user.id,
+                    answers: [], // Empty for dashboard view (only totalScore matters for chart)
+                    totalScore: 7.0 + (idx * 1.2), // 7.0, 8.2, 9.4
+                    gradedAt: new Date(Date.now() - (idx * 86400000 * 5)).toISOString(), // 5 days apart
+                    securityFlags: []
+                }));
+                newResults = [...state.results, ...mockResultsToAdd];
+            }
+
+            return { currentUser: user, selectedChildId: null, userProfiles: newProfiles, results: newResults };
         });
     },
     setSelectedChildId: (childId) => set({ selectedChildId: childId }),
