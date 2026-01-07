@@ -31,44 +31,37 @@ export const RiskDashboard = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [lastSaved, setLastSaved] = useState<string | null>(null);
 
-    // Calcular risco para todos os alunos da escola
-    const riskAssessments = useMemo(() => {
-        if (!currentUser?.schoolId) return [];
-        return calculateSchoolRisk(currentUser.schoolId, state);
-    }, [currentUser, state]);
-
-    // Aplicar filtros
-    const filteredAssessments = useMemo(() => {
-        let filtered = riskAssessments;
-
-        if (filterLevel !== 'ALL') {
-            filtered = filtered.filter(a => a.riskLevel === filterLevel);
-        }
-
-        if (filterClass !== 'ALL') {
-            filtered = filtered.filter(a => a.classId === filterClass);
-        }
-
-        return filtered;
-    }, [riskAssessments, filterLevel, filterClass]);
-
-    // Estatísticas
-    const stats = useMemo(() => {
-        const total = riskAssessments.length;
-        const high = riskAssessments.filter(a => a.riskLevel === RiskLevel.HIGH).length;
-        const medium = riskAssessments.filter(a => a.riskLevel === RiskLevel.MEDIUM).length;
-        const low = riskAssessments.filter(a => a.riskLevel === RiskLevel.LOW).length;
-
-        return { total, high, medium, low };
-    }, [riskAssessments]);
-
     const schoolClasses = useMemo(() => {
         if (!currentUser?.schoolId) return [];
-        return classes.filter(c => {
+
+        // Base classes from the school
+        let relevantClasses = classes.filter(c => {
             const school = schools.find(s => s.id === currentUser.schoolId);
             return school && state.classes.some(cl => cl.schoolId === school.id);
         });
+
+        // Filter for Professor: Only their assigned classes
+        if (currentUser.role === 'PROFESSOR' && currentUser.classIds) {
+            relevantClasses = relevantClasses.filter(c => currentUser.classIds?.includes(c.id));
+        }
+
+        return relevantClasses;
     }, [currentUser, classes, schools, state]);
+
+    // Calcular risco para todos os alunos da escola (Filter by relevant classes)
+    const riskAssessments = useMemo(() => {
+        if (!currentUser?.schoolId) return [];
+
+        const allAssessments = calculateSchoolRisk(currentUser.schoolId, state);
+
+        // If Professor, filter assessments to only their classes
+        if (currentUser.role === 'PROFESSOR') {
+            const allowedClassIds = schoolClasses.map(c => c.id);
+            return allAssessments.filter(a => allowedClassIds.includes(a.classId));
+        }
+
+        return allAssessments;
+    }, [currentUser, state, schoolClasses]);
 
     // Função para salvar alertas
     const handleSaveAlerts = async () => {
