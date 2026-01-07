@@ -9,27 +9,41 @@ import { LoginPage } from './components/Auth/LoginPage';
 
 // Infrastructure
 import { Layout } from './components/Layout';
-import { ViewRouter } from './components/ViewRouter';
 import { PrivacyPolicyModal } from './components/Legal/PrivacyPolicyModal';
 
-// Tablet Apps
-import { TabletLauncher } from './components/TabletApp/TabletLauncher';
-import { CoordinatorApp } from './components/TabletApp/CoordinatorApp';
-import { ProfessorApp } from './components/TabletApp/ProfessorApp';
-import { StudentApp } from './components/TabletApp/StudentApp';
-
-// Demo
-import { LiveDemoLobby } from './components/Demo/LiveDemoLobby';
-import { ProfileSwitcher } from './components/ProfileSwitcher';
+// Views Imports
+import { DashboardView } from './components/DashboardView';
+import { ItemsListView } from './components/ItemsListView';
+import { ItemEditorView } from './components/ItemEditorView';
+import { ExamsListView } from './components/ExamsListView';
+import { ExamBuilderView } from './components/ExamBuilderView';
+import { AllocationView } from './components/AllocationView';
+import { ManagementView } from './components/ManagementView';
+import { PrintableExamView } from './components/PrintableExamView';
+import { ResultsEntryView } from './components/ResultsEntryView';
+import { StudentDashboardView } from './components/StudentPortal/StudentDashboardView';
+import { OwlTutorView } from './components/StudentPortal/OwlTutorView';
+import { SchoolDashboardView } from './components/Analytics/SchoolDashboardView';
+import { CommunicationView } from './components/Communication/CommunicationView';
+import { StudyPlansView } from './components/Academic/StudyPlansView';
+import { UserProfileView } from './components/Profile/UserProfileView';
+import { CapabilitiesView } from './components/Admin/CapabilitiesView';
+import { NeuroScreeningView } from './components/NeuroScreening/NeuroScreeningView';
+import { StudentBattleView } from './components/StudentPortal/StudentBattleView';
+import { SurvivalView } from './components/StudentPortal/SurvivalView';
+import { GamifiedEventsManager } from './components/GamifiedEvents/GamifiedEventsManager';
+import { RiskDashboard } from './components/RiskManagement/RiskDashboard';
+import { ClassDiaryView } from './components/ClassDiary/ClassDiaryView';
+import { ProfessorDashboardView } from './components/Professor/ProfessorDashboardView';
+import { ParentsDashboardView } from './components/Parents/ParentsDashboardView';
+import { ArcadeView } from './components/StudentPortal/ArcadeView';
+import { AvatarShopView } from './components/StudentPortal/AvatarShopView';
+import { GovernanceView } from './components/Admin/GovernanceView';
 
 export default function App() {
   const store = useAppStore();
   const { currentUser, setCurrentUser, users, loadRemoteData, isInitialized } = store;
   const navigate = useNavigate();
-
-  // Specific Context State (Keep for now, move to URL later)
-  const [selectedExamIdForPrint, setSelectedExamIdForPrint] = useState<string | null>(null);
-  const [selectedExamIdForResults, setSelectedExamIdForResults] = useState<string | null>(null);
 
   // --- 1. INIT & DATA LOADING ---
   useEffect(() => {
@@ -37,7 +51,6 @@ export default function App() {
     if (storedConsent === 'true') store.setHasConsented(true);
 
     checkConnection().then(connected => {
-      // if (connected) loadRemoteData(); // Removido: Deve ser chamado apenas após Auth
       useAppStore.setState({ isInitialized: true });
     });
   }, []);
@@ -51,11 +64,10 @@ export default function App() {
 
       if (userMatch) {
         // Test Profile Logic (DISABLED FOR SECURITY)
-        // const testProfile = localStorage.getItem('test_profile');
-        // ... (removed auto-login logic)
+        // ... 
         setCurrentUser(userMatch);
 
-        // Redirect Logic
+        // Redirect Logic: Only if at root or login
         if (window.location.pathname === '/' || window.location.pathname === '/login') {
           if (userMatch.role === UserRole.ALUNO) navigate('/aluno');
           else navigate('/dashboard');
@@ -64,8 +76,8 @@ export default function App() {
         // DATA SYNC: Agora que temos login, carregar dados protegidos
         loadRemoteData();
       } else {
-        // SECURITY FIX: Se o usuário existe no Supabase mas não no banco local, NÃO logar automaticamente como Admin.
-        console.warn("Usuário autenticado no Supabase mas não encontrado no registro local:", sessionUser.email);
+        // SECURITY FIX
+        console.warn("Usuário autenticado no Supabase mas não encontrado.", sessionUser.email);
         await supabase.auth.signOut();
         setCurrentUser(null);
         navigate('/login');
@@ -97,39 +109,23 @@ export default function App() {
     );
   }
 
-  // --- HANDLERS (Adapters for Legacy ViewRouter) ---
-  const handleSetView = (viewName: string) => {
-    // Map legacy view names to routes
-    const routeMap: Record<string, string> = {
-      'LOGIN': '/login',
-      'DASHBOARD': '/dashboard',
+  // --- LEGACY ADAPTER FOR setView ---
+  // Pass this to components that still call setView('SOME_VIEW')
+  const handleSetViewLegacy = (viewName: string) => {
+    const map: Record<string, string> = {
+      'ITEMS': '/teacher/itens',
+      'ITEM_NEW': '/teacher/itens/novo',
+      'EXAMS': '/teacher/provas',
+      'EXAM_NEW': '/teacher/provas/nova',
       'STUDENT_PORTAL': '/aluno',
-      'ITEMS': '/itens',
-      'ITEM_NEW': '/itens/novo',
-      'EXAMS': '/provas',
-      'EXAM_NEW': '/provas/nova',
-      'ALLOCATION': '/allocation',
-      'MANAGEMENT': '/admin/gestao',
-      'GOVERNANCE': '/admin/governanca',
-      'CAPABILITIES': '/capabilities',
-      'NEURO_SCREENING': '/neuro-screening',
-      'CLASS_DIARY': '/class-diary',
-      'GAMIFIED_EVENTS': '/gamified-events',
-      'RISK_DASHBOARD': '/risk-dashboard',
-      'STUDY_PLANS': '/study-plans',
-      'BATTLE_ARENA': '/battle-arena',
-      'SURVIVAL_MODE': '/survival-mode',
-      'ARCADE': '/arcade',
-      'AVATAR_SHOP': '/shop',
-      'MY_PROFILE': '/my-profile',
-      'COMMUNICATION': '/communication'
+      'AVATAR_SHOP': '/aluno/loja',
+      'ARCADE': '/aluno/arcade',
+      'DASHBOARD': '/dashboard',
+      // Add others as needed for back buttons inside components
     };
-    const path = routeMap[viewName];
-    if (path) navigate(path);
-    else console.warn("Rota não mapeada para view:", viewName);
+    if (map[viewName]) navigate(map[viewName]);
+    else console.warn("Legacy view navigation not mapped:", viewName);
   };
-
-  const currentPath = window.location.pathname; // Helper for Layout
 
   return (
     <>
@@ -139,26 +135,63 @@ export default function App() {
         {/* Protected Routes Wrapper */}
         <Route path="/" element={
           currentUser ? (
-            <Layout currentView={currentPath} setView={handleSetView}>
-              <ViewRouterWrapper
-                store={store}
-                setView={handleSetView}
-                printId={selectedExamIdForPrint}
-                resultId={selectedExamIdForResults}
-                setPrintId={setSelectedExamIdForPrint}
-                setResultId={setSelectedExamIdForResults}
-              />
+            <Layout>
+              {/* This Layout renders the sidebar and header, and {children} is the Outlet content */}
+              <div className="h-full w-full">
+                {/* We don't use Outlet here because Layout uses {children}. 
+                       Ideally Layout should use <Outlet /> but for now we wrap standard Routes inside it? 
+                       Wait, react-router v6 supports nesting.
+                       Let's use the standard pattern: Layout wraps the Routes.
+                   */}
+                <Routes>
+                  {/* DASHBOARDS */}
+                  <Route path="dashboard" element={
+                    currentUser.role === 'PROFESSOR' ? <ProfessorDashboardView setView={handleSetViewLegacy} /> :
+                      currentUser.role === 'PAIS' ? <ParentsDashboardView /> :
+                        <DashboardView state={store} setView={handleSetViewLegacy} />
+                  } />
+
+                  {/* TEACHER / ACADEMIC */}
+                  <Route path="teacher/itens" element={<ItemsListView state={store} onNew={() => navigate('/teacher/itens/novo')} />} />
+                  <Route path="teacher/itens/novo" element={<ItemEditorView state={store} onSave={(i) => { store.addItem(i); navigate('/teacher/itens'); }} onCancel={() => navigate('/teacher/itens')} />} />
+                  <Route path="teacher/provas" element={<ExamsListView state={store} onNew={() => navigate('/teacher/provas/nova')} onPrint={(id) => navigate(`/print-exam/${id}`)} onGrade={(id) => navigate(`/results/${id}`)} />} />
+                  <Route path="teacher/provas/nova" element={<ExamBuilderView state={store} onSave={(e) => { store.addExam(e); navigate('/teacher/provas'); }} onCancel={() => navigate('/teacher/provas')} />} />
+
+                  {/* ADMIN */}
+                  <Route path="admin/gestao" element={<ManagementView state={store} onAddSchool={store.addSchool} onAddClass={store.addClass} onAddStudent={store.addStudent} onAddUser={store.addUser} onUpdateUser={store.updateUser} onResetPassword={store.resetUserPassword} onUpdateSettings={store.updateSettings} />} />
+                  <Route path="admin/governanca" element={<GovernanceView state={store} />} />
+                  <Route path="admin/capabilities" element={<CapabilitiesView />} />
+                  <Route path="allocation" element={<AllocationView state={store} onUpdate={store.updateExamAllocation} />} />
+                  <Route path="risk-dashboard" element={<RiskDashboard />} />
+                  <Route path="analytics" element={<SchoolDashboardView state={store} />} />
+
+                  {/* STUDENT */}
+                  <Route path="aluno" element={<StudentDashboardView state={store} user={currentUser} setView={handleSetViewLegacy} />} />
+                  <Route path="aluno/loja" element={<AvatarShopView onBack={() => navigate('/aluno')} />} />
+                  <Route path="aluno/arcade" element={<ArcadeView onBack={() => navigate('/aluno')} />} />
+                  <Route path="aluno/tutor" element={<OwlTutorView state={store} user={currentUser} />} />
+                  <Route path="battle-arena" element={<StudentBattleView state={store} user={currentUser} onUpdateProfile={store.updateUserProfile} />} />
+                  <Route path="survival-mode" element={<SurvivalView state={store} user={currentUser} onUpdateProfile={store.updateUserProfile} />} />
+
+                  {/* COMMON */}
+                  <Route path="communication" element={<CommunicationView state={store} user={currentUser} onUpdateMessages={store.updateMessages} onUpdateGroups={store.updateChatGroups} onUpdateUser={store.updateCurrentUser} />} />
+                  <Route path="my-profile" element={<UserProfileView state={store} user={currentUser} onUpdateProfile={store.updateUserProfile} />} />
+                  <Route path="study-plans" element={<StudyPlansView state={store} user={currentUser} />} />
+                  <Route path="class-diary" element={<ClassDiaryView />} />
+                  <Route path="neuro-screening" element={<NeuroScreeningView state={store} onUpdateProfile={store.updateUserProfile} />} />
+                  <Route path="gamified-events" element={<GamifiedEventsManager state={store} user={currentUser} />} />
+
+                  {/* UTILS */}
+                  <Route path="print-exam/:id" element={<PrintUtilWrapper store={store} />} />
+                  <Route path="results/:id" element={<ResultsUtilWrapper store={store} navigate={navigate} />} />
+
+                  {/* Catch */}
+                  <Route path="*" element={<Navigate to="/dashboard" />} />
+                </Routes>
+              </div>
             </Layout>
           ) : <Navigate to="/login" />
-        }>
-          <Route index element={<Navigate to="/dashboard" />} />
-          <Route path="dashboard" element={<div />} /> {/* Rendered by ViewRouterWrapper for now */}
-          <Route path="aluno/*" element={<div />} />
-          <Route path="itens/*" element={<div />} />
-          <Route path="provas/*" element={<div />} />
-          <Route path="admin/*" element={<div />} />
-          <Route path="*" element={<div />} /> {/* Catch all for ViewRouter */}
-        </Route>
+        } />
       </Routes>
 
       {!store.hasConsented && (
@@ -171,47 +204,13 @@ export default function App() {
   );
 }
 
-// --- ADAPTER COMPONENT ---
-// This bridges the URL path back to the String expected by ViewRouter
-// allowing us to keep all the ViewRouter logic for now.
-const ViewRouterWrapper = ({ store, setView, printId, resultId, setPrintId, setResultId }: any) => {
-  const { pathname } = useLocation();
-  let view = 'DASHBOARD'; // Default
+// Helper Wrappers for Params
+const PrintUtilWrapper = ({ store }: any) => {
+  const { id } = useParams();
+  return id ? <PrintableExamView state={store} examId={id} onBack={() => window.history.back()} /> : null;
+};
 
-  // Order matters! Check specific sub-paths first
-  if (pathname.includes('/itens/novo')) view = 'ITEM_NEW';
-  else if (pathname.includes('/itens')) view = 'ITEMS';
-  else if (pathname.includes('/provas/nova')) view = 'EXAM_NEW';
-  else if (pathname.includes('/provas')) view = 'EXAMS';
-  else if (pathname.includes('/admin/gestao')) view = 'MANAGEMENT';
-  else if (pathname.includes('/admin/governanca')) view = 'GOVERNANCE';
-  else if (pathname.includes('/aluno')) view = 'STUDENT_PORTAL';
-  else if (pathname.includes('/allocation')) view = 'ALLOCATION';
-  else if (pathname.includes('/admin/capabilities')) view = 'CAPABILITIES';
-  else if (pathname.includes('/neuro-screening')) view = 'NEURO_SCREENING';
-  else if (pathname.includes('/class-diary')) view = 'CLASS_DIARY';
-  else if (pathname.includes('/gamified-events')) view = 'GAMIFIED_EVENTS';
-  else if (pathname.includes('/risk-dashboard')) view = 'RISK_MANAGEMENT';
-  else if (pathname.includes('/analytics')) view = 'ANALYTICS';
-  else if (pathname.includes('/teaching-plans')) view = 'STUDY_PLANS';
-  else if (pathname.includes('/study-plans')) view = 'STUDY_PLANS';
-  else if (pathname.includes('/battle-arena')) view = 'BATTLE_ARENA';
-  else if (pathname.includes('/survival-mode')) view = 'SURVIVAL_MODE';
-  else if (pathname.includes('/arcade')) view = 'ARCADE';
-  else if (pathname.includes('/shop')) view = 'AVATAR_SHOP';
-  else if (pathname.includes('/my-profile')) view = 'MY_PROFILE';
-  else if (pathname.includes('/communication')) view = 'COMMUNICATION';
-
-  // Handlers
-  const onPrintExam = (id: string) => { setPrintId(id); /* Need Route for Print */ };
-  const onGradeExam = (id: string) => { setResultId(id); /* Need Route for Grade */ };
-
-  return <ViewRouter
-    view={view}
-    setView={setView}
-    selectedExamIdForPrint={printId}
-    selectedExamIdForResults={resultId}
-    onPrintExam={onPrintExam}
-    onGradeExam={onGradeExam}
-  />;
+const ResultsUtilWrapper = ({ store, navigate }: any) => {
+  const { id } = useParams();
+  return id ? <ResultsEntryView state={store} examId={id} onBack={() => navigate('/teacher/provas')} onSaveResults={store.updateResults} /> : null;
 };

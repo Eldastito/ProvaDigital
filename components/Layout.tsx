@@ -164,8 +164,8 @@ export const Layout = ({ children }: LayoutProps) => {
               <div className="px-4 pt-6 pb-2 text-[11px] font-bold text-[#48cae4] uppercase tracking-wider opacity-70">Gamificação</div>
               <NavItem icon={Swords} label="Desafio de Turma" active={path === '/battle-arena'} onClick={() => navigate('/battle-arena')} />
               <NavItem icon={Flame} label="Modo Sobrevivência" active={path === '/survival-mode'} onClick={() => navigate('/survival-mode')} />
-              <NavItem icon={Gamepad2} label="Games Arcade" active={path === '/arcade'} onClick={() => navigate('/arcade')} />
-              <NavItem icon={Trophy} label="Loja de Avatares" active={path === '/shop'} onClick={() => navigate('/shop')} />
+              <NavItem icon={Gamepad2} label="Games Arcade" active={path === '/aluno/arcade'} onClick={() => navigate('/aluno/arcade')} />
+              <NavItem icon={Trophy} label="Loja de Avatares" active={path === '/aluno/loja'} onClick={() => navigate('/aluno/loja')} />
             </>
           )}
 
@@ -174,12 +174,12 @@ export const Layout = ({ children }: LayoutProps) => {
               <NavItem icon={PieChart} label="Visão Geral" active={path === '/dashboard'} onClick={() => navigate('/dashboard')} />
 
               <div className="px-4 pt-4 pb-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Acadêmico</div>
-              <NavItem icon={FileText} label="Banco de Itens" active={path.includes('/itens')} onClick={() => navigate('/itens')} />
-              <NavItem icon={BookOpen} label="Provas" active={path.includes('/provas')} onClick={() => navigate('/provas')} />
+              <NavItem icon={FileText} label="Banco de Itens" active={path.includes('/teacher/itens')} onClick={() => navigate('/teacher/itens')} />
+              <NavItem icon={BookOpen} label="Provas" active={path.includes('/teacher/provas')} onClick={() => navigate('/teacher/provas')} />
               <NavItem icon={Calendar} label="Diário de Classe" active={path === '/class-diary'} onClick={() => navigate('/class-diary')} />
               <NavItem icon={Map} label="Alocação" active={path === '/allocation'} onClick={() => navigate('/allocation')} />
               <NavItem icon={Cast} label="Eventos & Competições" active={path === '/gamified-events'} onClick={() => navigate('/gamified-events')} />
-              <NavItem icon={GraduationCap} label="Planos de Ensino" active={path === '/teaching-plans'} onClick={() => navigate('/teaching-plans')} />
+              <NavItem icon={GraduationCap} label="Planos de Ensino" active={path === '/study-plans'} onClick={() => navigate('/study-plans')} />
 
               <div className="px-4 pt-4 pb-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Gestão & BI</div>
               <NavItem icon={BarChart} label="Analytics" active={path === '/analytics'} onClick={() => navigate('/analytics')} />
@@ -199,9 +199,9 @@ export const Layout = ({ children }: LayoutProps) => {
           {isOperational && !isManagement && (
             <>
               <NavItem icon={PieChart} label="Minhas Turmas" active={path === '/dashboard'} onClick={() => navigate('/dashboard')} />
-              <NavItem icon={FileText} label="Banco de Questões" active={path.includes('/itens')} onClick={() => navigate('/itens')} />
-              <NavItem icon={BookOpen} label="Minhas Provas" active={path.includes('/provas')} onClick={() => navigate('/provas')} />
-              <NavItem icon={GraduationCap} label="Planos de Ensino" active={path === '/teaching-plans'} onClick={() => navigate('/teaching-plans')} />
+              <NavItem icon={FileText} label="Banco de Questões" active={path.includes('/teacher/itens')} onClick={() => navigate('/teacher/itens')} />
+              <NavItem icon={BookOpen} label="Minhas Provas" active={path.includes('/teacher/provas')} onClick={() => navigate('/teacher/provas')} />
+              <NavItem icon={GraduationCap} label="Planos de Ensino" active={path === '/study-plans'} onClick={() => navigate('/study-plans')} />
             </>
           )}
 
