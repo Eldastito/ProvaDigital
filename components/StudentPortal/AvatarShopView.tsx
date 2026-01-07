@@ -128,32 +128,39 @@ export const AvatarShopView = ({ onBack }: AvatarShopViewProps) => {
                         </div>
 
                         {/* LIVE AVATAR PREVIEW CARD (VERTICAL STACK) */}
-                        <div className="bg-slate-900 rounded-3xl p-6 flex flex-col items-center gap-1 shadow-2xl border-4 border-white transform translate-y-4 md:translate-y-0 relative z-20 w-40">
-                            <div className="text-white/50 text-[10px] font-bold uppercase tracking-widest mb-2">Seu Visual</div>
+                        <div className="bg-slate-900 rounded-3xl p-6 flex flex-col items-center gap-1 shadow-2xl border-4 border-white transform translate-y-4 md:translate-y-0 relative z-20 w-48 group cursor-help">
+                            {/* TOOLTIP: Explained Purpose */}
+                            <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-48 bg-black/90 text-white text-[10px] p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity text-center pointer-events-none">
+                                Seu personagem nos Rankings e Games!
+                            </div>
 
-                            <div className="relative flex flex-col items-center h-24">
-                                {/* 1. HAT (Top) */}
-                                <div className="absolute -top-4 z-30 text-[40px] drop-shadow-lg filter">
+                            <div className="text-white/50 text-[10px] font-bold uppercase tracking-widest mb-2 flex items-center gap-1">
+                                Seu Visual <AlertCircle size={10} />
+                            </div>
+
+                            <div className="relative flex flex-col items-center h-32 w-full">
+                                {/* 1. HAT (Top) - High Z-Index to cover hair */}
+                                <div className="absolute -top-6 z-40 text-[45px] drop-shadow-lg filter hover:scale-110 transition-transform origin-bottom">
                                     {getEquippedImage('HAT') || <span className="opacity-0">🎩</span>}
                                 </div>
 
                                 {/* 2. BODY/HEAD (Middle) */}
-                                <div className="z-20 text-[50px] drop-shadow-md top-2 relative">
+                                <div className="z-30 text-[60px] drop-shadow-xl relative bg-[#f0f0f0] rounded-full leading-none p-1 border-2 border-white/10">
                                     {currentBody}
+
+                                    {/* 2.1 ACCESSORY (On Face) - Absolute to Head */}
+                                    {getEquippedImage('ACCESSORY') && (
+                                        <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-[35px] z-50 w-full text-center">
+                                            {getEquippedImage('ACCESSORY')}
+                                        </div>
+                                    )}
                                 </div>
 
-                                {/* 3. OUTFIT (Bottom/Overlay) */}
-                                <div className="absolute top-10 z-25 text-[30px] drop-shadow-md">
-                                    {getEquippedImage('OUTFIT') || <div className="w-8 h-8" />}
+                                {/* 3. OUTFIT (Torso) - Under Head, slightly shifted up */}
+                                <div className="absolute top-12 z-20 text-[65px] drop-shadow-md -mt-2 grayscale-[0.1]">
+                                    {getEquippedImage('OUTFIT') || <div className="w-10 h-10 opacity-20 bg-white/20 rounded-full mt-4" />}
                                 </div>
                             </div>
-
-                            {/* ACCESSORY (Side) */}
-                            {getEquippedImage('ACCESSORY') && (
-                                <div className="absolute top-2 right-2 bg-white/20 p-1 rounded backdrop-blur text-[16px]">
-                                    {getEquippedImage('ACCESSORY')}
-                                </div>
-                            )}
                         </div>
 
                         {/* CATEGORY TABS */}
