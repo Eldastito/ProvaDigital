@@ -12,7 +12,13 @@ interface StudentDashboardViewProps {
 
 // Simple SVG Line Chart Component
 const EvolutionChart = ({ data }: { data: { label: string, value: number }[] }) => {
-    if (data.length < 2) return <div className="h-40 flex items-center justify-center text-slate-400 text-sm">Dados insuficientes para gráfico de evolução.</div>;
+    if (data.length < 2) return (
+        <div className="h-40 flex flex-col items-center justify-center text-slate-400 text-sm border-2 border-dashed border-slate-200 rounded-lg bg-slate-50">
+            <Activity size={24} className="mb-2 opacity-50" />
+            <span>Ainda sem dados suficientes para gráfico.</span>
+            <span className="text-xs">Realize mais provas!</span>
+        </div>
+    );
 
     const height = 150;
     const width = 300;
@@ -612,7 +618,9 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                         <TrendingUp size={20} className="text-brand-primary" />
                     </div>
                     <div className="flex items-baseline gap-2">
-                        <div className="text-3xl font-black text-slate-800">{stats.idgScore.toFixed(1)}</div>
+                        <div className="text-3xl font-black text-slate-800">
+                            {stats.examsTaken > 0 ? stats.idgScore.toFixed(1) : <span className="text-slate-300 text-2xl">--</span>}
+                        </div>
                         {trend !== 0 && (
                             <div className={'flex items-center text-xs font-bold ' + (trend > 0 ? 'text-emerald-500' : 'text-rose-500') + ' '}>
                                 {trend > 0 ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
@@ -620,7 +628,9 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                             </div>
                         )}
                     </div>
-                    <div className="text-xs text-slate-500 mt-1">Média Ponderada (Provas + Trabalhos)</div>
+                    <div className="text-xs text-slate-500 mt-1">
+                        {stats.examsTaken > 0 ? "Média Ponderada (Provas + Trabalhos)" : "Realize sua primeira avaliação!"}
+                    </div>
                 </div>
 
                 <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
