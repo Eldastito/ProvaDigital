@@ -148,7 +148,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
 
         {/* Protected Routes Wrapper */}
-        <Route path="/" element={
+        <Route path="/*" element={
           currentUser ? (
             <Layout>
               {/* This Layout renders the sidebar and header, and {children} is the Outlet content */}
