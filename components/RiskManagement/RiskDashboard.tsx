@@ -32,26 +32,48 @@ export const RiskDashboard = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [lastSaved, setLastSaved] = useState<string>('');
 
-    // HIERARQUIA DE ACESSO: Definir quais provas/alunos este usuário pode ver
-    const canViewAllSchools = ['SUPER_ADMIN', 'STATE_ADMIN', 'TENANT_ADMIN'].includes(currentUser?.role || '');
+    // HIERARQUIA DE ACESSO
+    const isMEC = currentUser?.role === 'SUPER_ADMIN';
+    const isStateAdmin = currentUser?.role === 'STATE_ADMIN';
+    const isMunicipalAdmin = currentUser?.role === 'TENANT_ADMIN';
+
+    // MEC e Estadual veem tudo (No MVP, assumimos que Estadual vê todo o estado/deployment)
+    const canViewAllSchools = isMEC || isStateAdmin;
 
     // Obter lista de escolas visíveis
     const visibleSchools = useMemo(() => {
         if (canViewAllSchools) return state.schools;
-        if (currentUser?.schoolId) return state.schools.filter(s => s.id === currentUser.schoolId);
-        return [];
-    }, [currentUser, state.schools, canViewAllSchools]);
 
-    // Obter lista de turmas visíveis (filtradas pela escola selecionada ou todas permitidas)
+        // Secretaria Municipal: Vê todas as escolas do seu município (Tenant)
+        if (isMunicipalAdmin && currentUser?.tenantId) {
+            return state.schools.filter(s => s.tenantId === currentUser.tenantId);
+        }
+
+        // Diretor/Supervisor: Vê apenas sua escola
+        if (currentUser?.schoolId) {
+            return state.schools.filter(s => s.id === currentUser.schoolId);
+        }
+
+        return [];
+    }, [currentUser, state.schools, canViewAllSchools, isMunicipalAdmin]);
+
+    // Obter lista de turmas visíveis
     const schoolClasses = useMemo(() => {
         let baseClasses = state.classes;
 
         // Se uma escola específica estiver selecionada no filtro
         if (filterSchool !== 'ALL') {
             baseClasses = baseClasses.filter(c => c.schoolId === filterSchool);
-        } else if (!canViewAllSchools && currentUser?.schoolId) {
-            // Se não pode ver tudo, restringe à sua escola
-            baseClasses = baseClasses.filter(c => c.schoolId === currentUser.schoolId);
+        } else {
+            // Se não selecionou, filtra pelo escopo possível
+            if (isMunicipalAdmin && currentUser?.tenantId) {
+                // Classes de escolas do tenant
+                const tenantSchoolIds = visibleSchools.map(s => s.id);
+                baseClasses = baseClasses.filter(c => tenantSchoolIds.includes(c.schoolId));
+            } else if (!canViewAllSchools && currentUser?.schoolId) {
+                // Diretor/Prof na sua escola
+                baseClasses = baseClasses.filter(c => c.schoolId === currentUser.schoolId);
+            }
         }
 
         // Restrição do Professor (apenas suas turmas)
@@ -60,18 +82,23 @@ export const RiskDashboard = () => {
         }
 
         return baseClasses;
-    }, [currentUser, state.classes, filterSchool, canViewAllSchools]);
+    }, [currentUser, state.classes, filterSchool, canViewAllSchools, isMunicipalAdmin, visibleSchools]);
 
     // Calcular risco (Hierárquico)
     const riskAssessments = useMemo(() => {
         // 1. Identificar alunos elegíveis
         let eligibleStudents = state.students;
 
-        // Filtrar por escola (se selecionada ou restrita)
+        // Filtrar por escola (se selecionada)
         if (filterSchool !== 'ALL') {
             eligibleStudents = eligibleStudents.filter(s => s.schoolId === filterSchool);
-        } else if (!canViewAllSchools && currentUser?.schoolId) {
-            eligibleStudents = eligibleStudents.filter(s => s.schoolId === currentUser.schoolId);
+        } else {
+            // Se não tem escola selecionada, aplica filtro de escopo
+            if (isMunicipalAdmin && currentUser?.tenantId) {
+                eligibleStudents = eligibleStudents.filter(s => s.tenantId === currentUser.tenantId);
+            } else if (!canViewAllSchools && currentUser?.schoolId) {
+                eligibleStudents = eligibleStudents.filter(s => s.schoolId === currentUser.schoolId);
+            }
         }
 
         // 2. Se for professor, filtrar alunos das suas turmas
@@ -82,7 +109,7 @@ export const RiskDashboard = () => {
         // 3. Calcular risco em lote
         return calculateBatchRisk(eligibleStudents, state);
 
-    }, [currentUser, state, filterSchool, canViewAllSchools]);
+    }, [currentUser, state, filterSchool, canViewAllSchools, isMunicipalAdmin]);
 
     // Aplicar filtros de UI (Nível e Turma)
     const filteredAssessments = useMemo(() => {
@@ -272,7 +299,7 @@ export const RiskDashboard = () => {
                     </div>
 
                     {/* Filtro por Escola (Apenas para Admins/Secretaria) */}
-                    {canViewAllSchools && (
+                    {(canViewAllSchools || isMunicipalAdmin) && (
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-2">
                                 Escola / Unidade
