@@ -63,6 +63,32 @@ export const RiskDashboard = () => {
         return allAssessments;
     }, [currentUser, state, schoolClasses]);
 
+    // Aplicar filtros de UI
+    const filteredAssessments = useMemo(() => {
+        let filtered = riskAssessments;
+
+        if (filterLevel !== 'ALL') {
+            filtered = filtered.filter(a => a.riskLevel === filterLevel);
+        }
+
+        if (filterClass !== 'ALL') {
+            filtered = filtered.filter(a => a.classId === filterClass);
+        }
+
+        return filtered;
+    }, [riskAssessments, filterLevel, filterClass]);
+
+    // Estatísticas
+    const stats = useMemo(() => {
+        const total = riskAssessments.length;
+        const high = riskAssessments.filter(a => a.riskLevel === RiskLevel.HIGH).length;
+        const medium = riskAssessments.filter(a => a.riskLevel === RiskLevel.MEDIUM).length;
+        const low = riskAssessments.filter(a => a.riskLevel === RiskLevel.LOW).length;
+
+        return { total, high, medium, low };
+    }, [riskAssessments]);
+
+
     // Função para salvar alertas
     const handleSaveAlerts = async () => {
         if (!currentUser?.schoolId) return;
