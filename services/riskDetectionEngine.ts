@@ -148,11 +148,21 @@ export const calculateRiskScore = (student: Student, results: ExamResult[]): Ris
 /**
  * Calcula o risco para todos os alunos de uma escola
  */
+/**
+ * Calcula o risco para todos os alunos de uma escola
+ */
 export const calculateSchoolRisk = (schoolId: string, state: AppState): RiskAssessment[] => {
     // 1. Filtrar alunos da escola
     const students = state.students.filter(s => s.schoolId === schoolId);
+    return calculateBatchRisk(students, state);
+};
 
-    // 2. Para cada aluno, calcular risco
+/**
+ * Calcula o risco para um conjunto arbitrário de alunos
+ * Útil para Secretarias e MEC que veem múltiplas escolas
+ */
+export const calculateBatchRisk = (students: Student[], state: AppState): RiskAssessment[] => {
+    // Para cada aluno, calcular risco
     const assessments = students.map(student => {
         // Obter resultados do aluno
         const studentResults = state.results.filter(r => r.studentId === student.id);
@@ -161,6 +171,6 @@ export const calculateSchoolRisk = (schoolId: string, state: AppState): RiskAsse
         return calculateRiskScore(student, studentResults);
     });
 
-    // 3. Ordenar por score (maior risco primeiro)
+    // Ordenar por score (maior risco primeiro)
     return assessments.sort((a, b) => b.riskScore - a.riskScore);
 };

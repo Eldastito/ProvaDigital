@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { calculateSchoolRisk, RiskAssessment } from '../../services/riskDetectionEngine';
+import { calculateSchoolRisk, calculateBatchRisk, RiskAssessment } from '../../services/riskDetectionEngine';
 import { RiskLevel } from '../../types';
 import { processSchoolRiskAlerts } from '../../services/alertService';
 import {
@@ -27,43 +27,64 @@ export const RiskDashboard = () => {
 
     const [filterLevel, setFilterLevel] = useState<FilterLevel>('ALL');
     const [filterClass, setFilterClass] = useState<string>('ALL');
+    const [filterSchool, setFilterSchool] = useState<string>('ALL');
     const [expandedStudent, setExpandedStudent] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
-    const [lastSaved, setLastSaved] = useState<string | null>(null);
+    const [lastSaved, setLastSaved] = useState<string>('');
 
+    // HIERARQUIA DE ACESSO: Definir quais provas/alunos este usuário pode ver
+    const canViewAllSchools = ['SUPER_ADMIN', 'STATE_ADMIN', 'TENANT_ADMIN'].includes(currentUser?.role || '');
+
+    // Obter lista de escolas visíveis
+    const visibleSchools = useMemo(() => {
+        if (canViewAllSchools) return state.schools;
+        if (currentUser?.schoolId) return state.schools.filter(s => s.id === currentUser.schoolId);
+        return [];
+    }, [currentUser, state.schools, canViewAllSchools]);
+
+    // Obter lista de turmas visíveis (filtradas pela escola selecionada ou todas permitidas)
     const schoolClasses = useMemo(() => {
-        if (!currentUser?.schoolId) return [];
+        let baseClasses = state.classes;
 
-        // Base classes from the school
-        let relevantClasses = classes.filter(c => {
-            const school = schools.find(s => s.id === currentUser.schoolId);
-            return school && state.classes.some(cl => cl.schoolId === school.id);
-        });
-
-        // Filter for Professor: Only their assigned classes
-        if (currentUser.role === 'PROFESSOR' && currentUser.classIds) {
-            relevantClasses = relevantClasses.filter(c => currentUser.classIds?.includes(c.id));
+        // Se uma escola específica estiver selecionada no filtro
+        if (filterSchool !== 'ALL') {
+            baseClasses = baseClasses.filter(c => c.schoolId === filterSchool);
+        } else if (!canViewAllSchools && currentUser?.schoolId) {
+            // Se não pode ver tudo, restringe à sua escola
+            baseClasses = baseClasses.filter(c => c.schoolId === currentUser.schoolId);
         }
 
-        return relevantClasses;
-    }, [currentUser, classes, schools, state]);
+        // Restrição do Professor (apenas suas turmas)
+        if (currentUser?.role === 'PROFESSOR' && currentUser.classIds) {
+            baseClasses = baseClasses.filter(c => currentUser.classIds?.includes(c.id));
+        }
 
-    // Calcular risco para todos os alunos da escola (Filter by relevant classes)
+        return baseClasses;
+    }, [currentUser, state.classes, filterSchool, canViewAllSchools]);
+
+    // Calcular risco (Hierárquico)
     const riskAssessments = useMemo(() => {
-        if (!currentUser?.schoolId) return [];
+        // 1. Identificar alunos elegíveis
+        let eligibleStudents = state.students;
 
-        const allAssessments = calculateSchoolRisk(currentUser.schoolId, state);
-
-        // If Professor, filter assessments to only their classes
-        if (currentUser.role === 'PROFESSOR') {
-            const allowedClassIds = schoolClasses.map(c => c.id);
-            return allAssessments.filter(a => allowedClassIds.includes(a.classId));
+        // Filtrar por escola (se selecionada ou restrita)
+        if (filterSchool !== 'ALL') {
+            eligibleStudents = eligibleStudents.filter(s => s.schoolId === filterSchool);
+        } else if (!canViewAllSchools && currentUser?.schoolId) {
+            eligibleStudents = eligibleStudents.filter(s => s.schoolId === currentUser.schoolId);
         }
 
-        return allAssessments;
-    }, [currentUser, state, schoolClasses]);
+        // 2. Se for professor, filtrar alunos das suas turmas
+        if (currentUser?.role === 'PROFESSOR' && currentUser.classIds) {
+            eligibleStudents = eligibleStudents.filter(s => currentUser.classIds?.includes(s.classId));
+        }
 
-    // Aplicar filtros de UI
+        // 3. Calcular risco em lote
+        return calculateBatchRisk(eligibleStudents, state);
+
+    }, [currentUser, state, filterSchool, canViewAllSchools]);
+
+    // Aplicar filtros de UI (Nível e Turma)
     const filteredAssessments = useMemo(() => {
         let filtered = riskAssessments;
 
@@ -91,11 +112,25 @@ export const RiskDashboard = () => {
 
     // Função para salvar alertas
     const handleSaveAlerts = async () => {
-        if (!currentUser?.schoolId) return;
+        // Se for admin geral, pode não ter schoolId definido, então processamos por lote ou escola?
+        // O backend espera schoolId. Se estivermos vendo MÚLTIPLAS escolas, isso é complexo.
+        // Por simplificação: Salvar alertas funciona melhor "Por Escola selecionada" ou ignora school_id no backend se for nulo.
+
+        const targetSchoolId = filterSchool !== 'ALL' ? filterSchool : currentUser?.schoolId;
+
+        if (!targetSchoolId && !canViewAllSchools) return; // Segurança
 
         setIsSaving(true);
         try {
-            const result = await processSchoolRiskAlerts(currentUser.schoolId, riskAssessments);
+            // Se tivermos múltiplas escolas, teríamos que agrupar.
+            // Para MVP, vamos salvar passando o first schoolId ou tratar no serviço.
+            // O serviço `processSchoolRiskAlerts` itera sobre assessments.
+            // Ele usa `saveRiskAlert` que precisa de `schoolId`. O Assessment JÁ TEM `schoolId`.
+            // Então podemos refatorar `processSchoolRiskAlerts` para não exigir schoolId como parametro principal, ou ignorá-lo.
+
+            // Vou chamar passando targetSchoolId ou o primeiro da lista, mas o importante é que o assessment tenha os dados.
+            const result = await processSchoolRiskAlerts(targetSchoolId || 'MULTI_SCHOOL', riskAssessments);
+
             setLastSaved(new Date().toISOString());
             alert(
                 `✅ Alertas processados com sucesso!\n\n` +
@@ -118,13 +153,17 @@ export const RiskDashboard = () => {
         <div className="p-4 md:p-8 max-w-7xl mx-auto">
             {/* Header */}
             <div className="mb-8">
-                <h1 className="text-2xl md:text-3xl font-bold text-brand-dark mb-2 flex items-center gap-3">
-                    <AlertTriangle className="text-orange-500" size={32} />
-                    Gestão de Risco de Evasão
-                </h1>
-                <p className="text-slate-600">
-                    Sistema de detecção precoce e intervenção para prevenir evasão escolar
-                </p>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl md:text-3xl font-bold text-brand-dark mb-2 flex items-center gap-3">
+                            <AlertTriangle className="text-orange-500" size={32} />
+                            Gestão de Risco de Evasão
+                        </h1>
+                        <p className="text-slate-600">
+                            {canViewAllSchools ? 'Visão Consolidada da Rede de Ensino' : 'Sistema de detecção precoce e intervenção'}
+                        </p>
+                    </div>
+                </div>
                 {lastSaved && (
                     <div className="mt-2 text-sm text-green-600 flex items-center gap-2">
                         <CheckCircle size={16} />
@@ -231,6 +270,28 @@ export const RiskDashboard = () => {
                             <option value={RiskLevel.LOW}>🟢 Risco Baixo</option>
                         </select>
                     </div>
+
+                    {/* Filtro por Escola (Apenas para Admins/Secretaria) */}
+                    {canViewAllSchools && (
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                Escola / Unidade
+                            </label>
+                            <select
+                                value={filterSchool}
+                                onChange={(e) => {
+                                    setFilterSchool(e.target.value);
+                                    setFilterClass('ALL'); // Reset class filter when school changes
+                                }}
+                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                            >
+                                <option value="ALL">Todas as Escolas</option>
+                                {visibleSchools.map(s => (
+                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
 
                     {/* Filtro por Turma */}
                     <div>
