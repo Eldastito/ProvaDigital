@@ -101,11 +101,12 @@ export interface UserProfileExtended {
     hat?: string;
     outfit?: string;
     accessory?: string;
+    body?: string; // Base Avatar ID
   };
   academicAchievements?: AcademicAchievement[]; // Conquistas com peso acadêmico
 }
 
-export type ShopItemCategory = 'HAT' | 'OUTFIT' | 'ACCESSORY';
+export type ShopItemCategory = 'HAT' | 'OUTFIT' | 'ACCESSORY' | 'BODY';
 
 export interface ShopItem {
   id: string;

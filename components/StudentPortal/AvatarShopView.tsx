@@ -22,6 +22,7 @@ export const AvatarShopView = ({ onBack }: AvatarShopViewProps) => {
     const filteredItems = shopItems.filter(i => i.category === selectedCategory);
 
     const categories: { id: ShopItemCategory, label: string, icon: string }[] = [
+        { id: 'BODY', label: 'Avatares', icon: '👤' },
         { id: 'HAT', label: 'Chapéus', icon: '🎩' },
         { id: 'OUTFIT', label: 'Roupas', icon: '👕' },
         { id: 'ACCESSORY', label: 'Acessórios', icon: '👓' }
@@ -43,10 +44,15 @@ export const AvatarShopView = ({ onBack }: AvatarShopViewProps) => {
             const newInventory = [...(userProfile.inventory || []), item.id];
             const newBalance = userProfile.owlCoins - item.price;
 
+            // Auto-equip if it's a Body
+            let newEquipped = { ...userProfile.equippedItems };
+            if (item.category === 'BODY') newEquipped.body = item.id;
+
             updateUserProfile({
                 ...userProfile,
                 owlCoins: newBalance,
-                inventory: newInventory
+                inventory: newInventory,
+                equippedItems: newEquipped
             });
 
             setPurchaseMessage({ type: 'success', text: 'Compra realizada com sucesso!' });
@@ -57,9 +63,19 @@ export const AvatarShopView = ({ onBack }: AvatarShopViewProps) => {
     const handleEquip = (item: ShopItem) => {
         if (!userProfile) return;
 
-        // Logic to equip would go here (update equippedItems in profile)
-        // For now just a visual feedback
-        alert(`Você equipou: ${item.name}`);
+        const newEquipped = { ...userProfile.equippedItems };
+        if (item.category === 'BODY') newEquipped.body = item.id;
+        else if (item.category === 'HAT') newEquipped.hat = item.id;
+        else if (item.category === 'OUTFIT') newEquipped.outfit = item.id;
+        else if (item.category === 'ACCESSORY') newEquipped.accessory = item.id;
+
+        updateUserProfile({
+            ...userProfile,
+            equippedItems: newEquipped
+        });
+
+        setPurchaseMessage({ type: 'success', text: `${item.name} equipado!` });
+        setTimeout(() => setPurchaseMessage(null), 2000);
     };
 
     if (!userProfile) {
@@ -72,6 +88,16 @@ export const AvatarShopView = ({ onBack }: AvatarShopViewProps) => {
     }
 
     const { level } = GamificationService.calculateLevel(userProfile.xp || 0);
+
+    // Resolve Equipped Item Images for Preview
+    const getEquippedImage = (cat: ShopItemCategory) => {
+        const itemId = userProfile.equippedItems?.[cat.toLowerCase() as keyof typeof userProfile.equippedItems];
+        if (!itemId) return null;
+        return shopItems.find(i => i.id === itemId)?.imageUrl;
+    };
+
+    // Default Avatar
+    const currentBody = getEquippedImage('BODY') || '🧑';
 
     return (
         <div className="h-full flex flex-col bg-slate-50 animate-in fade-in duration-300">
@@ -99,6 +125,23 @@ export const AvatarShopView = ({ onBack }: AvatarShopViewProps) => {
                                 Avatar Shop
                             </h1>
                             <p className="text-slate-500 mt-1">Gaste suas moedas e personalize seu visual!</p>
+                        </div>
+
+                        {/* LIVE AVATAR PREVIEW CARD */}
+                        <div className="bg-slate-900 rounded-2xl p-4 flex items-center gap-4 shadow-xl border-4 border-white -mb-16 transform translate-y-4 md:translate-y-0 relative z-20">
+                            <div className="relative w-20 h-20 bg-slate-800 rounded-xl flex items-center justify-center text-[50px] overflow-hidden border border-slate-700">
+                                {/* Compositing Emojis is hard, just show body for now or stacked */}
+                                <div className="z-10">{currentBody}</div>
+                                {getEquippedImage('HAT') && <div className="absolute -top-2 left-1/2 -translate-x-1/2 text-[40px] z-20 drop-shadow-md">{getEquippedImage('HAT')}</div>}
+                                {getEquippedImage('ACCESSORY') && <div className="absolute top-4 left-1/2 -translate-x-1/2 text-[30px] z-30">{getEquippedImage('ACCESSORY')}</div>}
+                            </div>
+                            <div>
+                                <div className="text-white text-xs font-bold uppercase opacity-50">Seu Visual</div>
+                                <div className="flex gap-1 mt-1 text-lg">
+                                    {getEquippedImage('OUTFIT') && <span>{getEquippedImage('OUTFIT')}</span>}
+                                    {!getEquippedImage('OUTFIT') && <span className="opacity-20">👕</span>}
+                                </div>
+                            </div>
                         </div>
 
                         {/* CATEGORY TABS */}

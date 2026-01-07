@@ -6,6 +6,15 @@ const XP_FACTOR = 1.5; // Factor exponencial de dificuldade
 
 // LISTA DE ITENS DA LOJA (MOCK)
 export const SHOP_ITEMS: ShopItem[] = [
+    // BASES (AVATARS)
+    { id: 'base_boy_1', name: 'Menino (Claro)', description: 'Avatar base.', price: 0, category: 'BODY', imageUrl: '👦🏻', minLevel: 1 },
+    { id: 'base_boy_2', name: 'Menino (Moreno)', description: 'Avatar base.', price: 0, category: 'BODY', imageUrl: '👦🏽', minLevel: 1 },
+    { id: 'base_boy_3', name: 'Menino (Negro)', description: 'Avatar base.', price: 0, category: 'BODY', imageUrl: '👦🏿', minLevel: 1 },
+    { id: 'base_girl_1', name: 'Menina (Clara)', description: 'Avatar base.', price: 0, category: 'BODY', imageUrl: '👧🏻', minLevel: 1 },
+    { id: 'base_girl_2', name: 'Menina (Morena)', description: 'Avatar base.', price: 0, category: 'BODY', imageUrl: '👧🏽', minLevel: 1 },
+    { id: 'base_girl_3', name: 'Menina (Negra)', description: 'Avatar base.', price: 0, category: 'BODY', imageUrl: '👧🏿', minLevel: 1 },
+    { id: 'base_neutral_1', name: 'Neutro', description: 'Avatar base.', price: 0, category: 'BODY', imageUrl: '🧑', minLevel: 1 },
+
     // HATS
     { id: 'hat_grad', name: 'Capelo de Formatura', description: 'Um clássico acadêmico.', price: 0, category: 'HAT', imageUrl: '🎓', minLevel: 1 },
     { id: 'hat_viking', name: 'Elmo Viking', description: 'Para guerreiros do conhecimento.', price: 150, category: 'HAT', imageUrl: '🪖', minLevel: 2 },
