@@ -62,6 +62,21 @@ export default function App() {
     const handleAuthUser = async (sessionUser: any) => {
       let userMatch = users.find(u => u.email === sessionUser.email);
 
+      // FALLBACK: Se não estiver na memória (primeiro login limpo), buscar no Supabase
+      if (!userMatch) {
+        try {
+          const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', sessionUser.email)
+            .single();
+
+          if (data) userMatch = data;
+        } catch (err) {
+          console.error("Erro ao buscar usuário no login:", err);
+        }
+      }
+
       if (userMatch) {
         // Test Profile Logic (DISABLED FOR SECURITY)
         // ... 
@@ -77,7 +92,7 @@ export default function App() {
         loadRemoteData();
       } else {
         // SECURITY FIX
-        console.warn("Usuário autenticado no Supabase mas não encontrado.", sessionUser.email);
+        console.warn("Usuário autenticado no Supabase mas não encontrado no Banco.", sessionUser.email);
         await supabase.auth.signOut();
         setCurrentUser(null);
         navigate('/login');
