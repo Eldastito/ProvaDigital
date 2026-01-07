@@ -162,7 +162,7 @@ export default function App() {
                   {/* GLOBAL DATA LOADING GUARD */}
                   {/* Se o usuário está logado, mas os dados críticos ainda não carregaram (array vazio), mostra Loading */}
                   {/* Isso previne a Tela Branca no Dashboard que assume que já existem dados */}
-                  {(currentUser && (!store.users?.length || !store.schools?.length)) ? (
+                  {(currentUser && (!store.users?.length || !store.schools?.length) && !store.isInitialized) ? (
                     <Route path="*" element={
                       <div className="flex h-full w-full items-center justify-center flex-col gap-4 bg-slate-50">
                         <div className="w-10 h-10 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>

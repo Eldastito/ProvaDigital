@@ -136,6 +136,17 @@ export const useAppStore = create<AppStore>((set, get) => ({
     loadRemoteData: async () => {
         console.log("🔄 Sincronizando dados com a nuvem...");
         try {
+            // -1. Carregar Tenants e Escolas (CRÍTICO para evitar white screen)
+            const { data: dbTenants } = await supabase.from('tenants').select('*');
+            if (dbTenants && dbTenants.length > 0) {
+                set({ tenants: dbTenants });
+            }
+
+            const { data: dbSchools } = await supabase.from('schools').select('*');
+            if (dbSchools && dbSchools.length > 0) {
+                set({ schools: dbSchools });
+            }
+
             // 0. Carregar Usuários (Users)
             const { data: dbUsers } = await supabase.from('users').select('*');
             if (dbUsers && dbUsers.length > 0) {
