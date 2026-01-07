@@ -78,8 +78,12 @@ export default function App() {
       }
 
       if (userMatch) {
-        // Test Profile Logic (DISABLED FOR SECURITY)
-        // ... 
+        // Test Profile Logic (Restored for Testing)
+        const testProfileRole = localStorage.getItem('test_profile');
+        if (testProfileRole) {
+          console.log("🧪 Aplicando Perfil de Teste:", testProfileRole);
+          userMatch = { ...userMatch, role: testProfileRole as UserRole };
+        }
         setCurrentUser(userMatch);
 
         // Redirect Logic: Only if at root or login

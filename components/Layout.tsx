@@ -186,10 +186,10 @@ export const Layout = ({ children }: LayoutProps) => {
               <NavItem icon={MessageCircle} label="Comunicação" active={path === '/communication'} onClick={() => navigate('/communication')} />
               <NavItem icon={Users} label="Gestão de Rede" active={path.includes('/admin/gestao')} onClick={() => navigate('/admin/gestao')} />
               <NavItem icon={Stethoscope} label="Saúde Mental" active={path === '/neuro-screening'} onClick={() => navigate('/neuro-screening')} />
-              <NavItem icon={Shield} label="Governança" active={path.includes('/admin/governanca')} onClick={() => navigate('/admin/governanca')} />
+              <NavItem icon={Gamepad2} label="Gestão Arcade Zone" active={path.includes('/admin/governanca')} onClick={() => navigate('/admin/governanca')} />
 
               {canManageCapabilities && (
-                <NavItem icon={Target} label="Matriz de Habilidades" active={path === '/admin/capabilities'} onClick={() => navigate('/admin/capabilities')} />
+                <NavItem icon={Target} label="Governança Hierárquica" active={path === '/admin/capabilities'} onClick={() => navigate('/admin/capabilities')} />
               )}
 
               <NavItem icon={Shield} label="Gestão de Risco" active={path === '/risk-dashboard'} onClick={() => navigate('/risk-dashboard')} />
