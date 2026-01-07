@@ -37,8 +37,8 @@ export default function App() {
     if (storedConsent === 'true') store.setHasConsented(true);
 
     checkConnection().then(connected => {
-      if (connected) loadRemoteData();
-      else useAppStore.setState({ isInitialized: true });
+      // if (connected) loadRemoteData(); // Removido: Deve ser chamado apenas após Auth
+      useAppStore.setState({ isInitialized: true });
     });
   }, []);
 
@@ -60,6 +60,9 @@ export default function App() {
           if (userMatch.role === UserRole.ALUNO) navigate('/aluno');
           else navigate('/dashboard');
         }
+
+        // DATA SYNC: Agora que temos login, carregar dados protegidos
+        loadRemoteData();
       } else {
         // SECURITY FIX: Se o usuário existe no Supabase mas não no banco local, NÃO logar automaticamente como Admin.
         console.warn("Usuário autenticado no Supabase mas não encontrado no registro local:", sessionUser.email);
