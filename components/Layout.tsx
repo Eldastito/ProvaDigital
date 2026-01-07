@@ -201,6 +201,7 @@ export const Layout = ({ children }: LayoutProps) => {
           {isOperational && !isManagement && (
             <>
               <NavItem icon={PieChart} label="Minhas Turmas" active={path === '/dashboard'} onClick={() => navigate('/dashboard')} />
+              <NavItem icon={Calendar} label="Diário de Classe" active={path === '/class-diary'} onClick={() => navigate('/class-diary')} />
               <NavItem icon={FileText} label="Banco de Questões" active={path.includes('/teacher/itens')} onClick={() => navigate('/teacher/itens')} />
               <NavItem icon={BookOpen} label="Minhas Provas" active={path.includes('/teacher/provas')} onClick={() => navigate('/teacher/provas')} />
               <NavItem icon={GraduationCap} label="Planos de Ensino" active={path === '/study-plans'} onClick={() => navigate('/study-plans')} />
