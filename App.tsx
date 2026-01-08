@@ -131,24 +131,6 @@ export default function App() {
     );
   }
 
-  // --- LEGACY ADAPTER FOR setView ---
-  // Pass this to components that still call setView('SOME_VIEW')
-  const handleSetViewLegacy = (viewName: string) => {
-    const map: Record<string, string> = {
-      'ITEMS': '/teacher/itens',
-      'ITEM_NEW': '/teacher/itens/novo',
-      'EXAMS': '/teacher/provas',
-      'EXAM_NEW': '/teacher/provas/nova',
-      'STUDENT_PORTAL': '/aluno',
-      'AVATAR_SHOP': '/aluno/loja',
-      'ARCADE': '/aluno/arcade',
-      'DASHBOARD': '/dashboard',
-      // Add others as needed for back buttons inside components
-    };
-    if (map[viewName]) navigate(map[viewName]);
-    else console.warn("Legacy view navigation not mapped:", viewName);
-  };
-
   return (
     <>
       <Routes>
@@ -182,7 +164,7 @@ export default function App() {
                       <Route path="dashboard" element={
                         currentUser.role === 'PROFESSOR' ? <ProfessorDashboardView /> :
                           currentUser.role === 'PAIS' ? <ParentsDashboardView /> :
-                            <DashboardView state={store} setView={handleSetViewLegacy} />
+                            <DashboardView state={store} />
                       } />
 
                       {/* TEACHER / ACADEMIC */}

@@ -7,7 +7,7 @@ import { PedagogicalDashboard } from './Analytics/PedagogicalDashboard';
 import { ProfessorDashboardView } from './Analytics/ProfessorDashboardView';
 import { StudentDashboardView } from './StudentPortal/StudentDashboardView';
 
-export const DashboardView = ({ state, setView }: { state: AppState, setView: (v: any) => void }) => {
+export const DashboardView = ({ state }: { state: AppState }) => {
     const { currentUser } = state;
 
     // --- 1. DASHBOARD ESTRATÉGICO (SECRETÁRIO / DONO / SECRETÁRIA ESTADUAL) ---
@@ -19,7 +19,7 @@ export const DashboardView = ({ state, setView }: { state: AppState, setView: (v
     if (currentUser?.role === UserRole.PAIS) {
         // Em um app real, o pai selecionaria qual filho visualizar.
         // Para este MVP, assumimos o vinculo com o primeiro estudante do mock ou passamos o user do pai e o componente resolve.
-        return <StudentDashboardView state={state} user={currentUser} setView={setView} />;
+        return <StudentDashboardView state={state} user={currentUser} />;
     }
 
     // --- 3. DASHBOARD DE GESTÃO (DIRETOR) ---
@@ -34,9 +34,9 @@ export const DashboardView = ({ state, setView }: { state: AppState, setView: (v
 
     // --- 5. DASHBOARD ALUNO ---
     if (currentUser?.role === UserRole.ALUNO) {
-        return <StudentDashboardView state={state} user={currentUser} setView={setView} />;
+        return <StudentDashboardView state={state} user={currentUser} />;
     }
 
     // --- 6. DASHBOARD OPERACIONAL (PROFESSOR) ---
-    return <ProfessorDashboardView state={state} setView={setView} />;
+    return <ProfessorDashboardView />;
 };
