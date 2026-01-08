@@ -13,7 +13,14 @@ export const ParentsDashboardView = () => {
         ? students.filter(s => currentUser.childrenIds?.includes(s.id))
         : [];
 
-    const selectedChild = myChildren.find(c => c.id === selectedChildId) || myChildren[0];
+    // Initialize selectedChildId if not set
+    React.useEffect(() => {
+        if (myChildren.length > 0 && !selectedChildId) {
+            setSelectedChildId(myChildren[0].id);
+        }
+    }, [myChildren, selectedChildId, setSelectedChildId]);
+
+    const selectedChild = myChildren.find(c => c.id === selectedChildId);
 
     // Get Data
     const childResults = selectedChild ? results.filter(r => r.studentId === selectedChild.id) : [];
@@ -211,15 +218,25 @@ export const ParentsDashboardView = () => {
 };
 
 // Helper Component for Metrics
-const MetricCard = ({ icon, color, value, label }: any) => (
-    <div className={`bg-white rounded-xl p-4 shadow-md border border-slate-100 hover:shadow-lg transition flex items-center gap-4`}>
-        <div className={`w-12 h-12 rounded-lg flex items-center justify-center bg-${color}-100 text-${color}-600`}>
-            {icon}
+const MetricCard = ({ icon, color, value, label }: any) => {
+    const colorClasses = {
+        emerald: 'bg-emerald-100 text-emerald-600',
+        blue: 'bg-blue-100 text-blue-600',
+        purple: 'bg-purple-100 text-purple-600',
+        orange: 'bg-orange-100 text-orange-600',
+        red: 'bg-red-100 text-red-600'
+    };
+
+    return (
+        <div className="bg-white rounded-xl p-4 shadow-md border border-slate-100 hover:shadow-lg transition flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${colorClasses[color as keyof typeof colorClasses]}`}>
+                {icon}
+            </div>
+            <div>
+                <p className="text-2xl font-black text-brand-dark">{value}</p>
+                <p className="text-xs text-slate-500 font-bold uppercase">{label}</p>
+            </div>
         </div>
-        <div>
-            <p className="text-2xl font-black text-brand-dark">{value}</p>
-            <p className="text-xs text-slate-500 font-bold uppercase">{label}</p>
-        </div>
-    </div>
-);
+    );
+};
 
