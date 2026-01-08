@@ -75,7 +75,13 @@ export const GovernanceView: React.FC<GovernanceViewProps> = ({ state }) => {
         setJogos(jogos.map(j => j.id === id ? { ...j, ativo: !j.ativo } : j));
     };
 
-    const FormJogo = ({ jogo, onSalvar, onCancelar }: { jogo: Partial<ArcadeGame>, onSalvar: (j: Partial<ArcadeGame>) => void, onCancelar: () => void }) => {
+
+    const FormJogo = ({ jogo, onSalvar, onCancelar, categorias }: {
+        jogo: Partial<ArcadeGame>,
+        onSalvar: (j: Partial<ArcadeGame>) => void,
+        onCancelar: () => void,
+        categorias: string[]
+    }) => {
         const [form, setForm] = useState(jogo);
 
         return (
@@ -92,7 +98,7 @@ export const GovernanceView: React.FC<GovernanceViewProps> = ({ state }) => {
                             type="text"
                             value={form.titulo || ''}
                             onChange={(e) => setForm({ ...form, titulo: e.target.value })}
-                            className="w-full px-3 py-2 border rounded-lg"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-brand-primary outline-none"
                             placeholder="Ex: Math Quest"
                         />
                     </div>
@@ -103,7 +109,7 @@ export const GovernanceView: React.FC<GovernanceViewProps> = ({ state }) => {
                             type="url"
                             value={form.url || ''}
                             onChange={(e) => setForm({ ...form, url: e.target.value })}
-                            className="w-full px-3 py-2 border rounded-lg"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-brand-primary outline-none"
                             placeholder="https://..."
                         />
                     </div>
@@ -113,7 +119,7 @@ export const GovernanceView: React.FC<GovernanceViewProps> = ({ state }) => {
                         <select
                             value={form.categoria || 'Matemática'}
                             onChange={(e) => setForm({ ...form, categoria: e.target.value })}
-                            className="w-full px-3 py-2 border rounded-lg"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-brand-primary outline-none"
                         >
                             {categorias.map(cat => (
                                 <option key={cat} value={cat}>{cat}</option>
@@ -126,7 +132,7 @@ export const GovernanceView: React.FC<GovernanceViewProps> = ({ state }) => {
                         <textarea
                             value={form.descricao || ''}
                             onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-                            className="w-full px-3 py-2 border rounded-lg"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-brand-primary outline-none"
                             rows={3}
                             placeholder="Breve descrição do jogo..."
                         />
@@ -151,7 +157,8 @@ export const GovernanceView: React.FC<GovernanceViewProps> = ({ state }) => {
         );
     };
 
-    return (
+    export const GovernanceView: React.FC<GovernanceViewProps> = ({ state }) => {
+
         <div className="p-6 max-w-6xl mx-auto">
             {/* Header */}
             <div className="mb-6">
@@ -179,6 +186,7 @@ export const GovernanceView: React.FC<GovernanceViewProps> = ({ state }) => {
                         jogo={novoJogo}
                         onSalvar={handleSalvar}
                         onCancelar={() => setNovoJogo(null)}
+                        categorias={categorias}
                     />
                 </div>
             )}
@@ -196,6 +204,7 @@ export const GovernanceView: React.FC<GovernanceViewProps> = ({ state }) => {
                                 jogo={jogo}
                                 onSalvar={handleSalvar}
                                 onCancelar={() => setEditando(null)}
+                                categorias={categorias}
                             />
                         ) : (
                             <div className="bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
