@@ -180,16 +180,16 @@ export default function App() {
                     <>
                       {/* DASHBOARDS */}
                       <Route path="dashboard" element={
-                        currentUser.role === 'PROFESSOR' ? <ProfessorDashboardView setView={handleSetViewLegacy} /> :
+                        currentUser.role === 'PROFESSOR' ? <ProfessorDashboardView /> :
                           currentUser.role === 'PAIS' ? <ParentsDashboardView /> :
                             <DashboardView state={store} setView={handleSetViewLegacy} />
                       } />
 
                       {/* TEACHER / ACADEMIC */}
-                      <Route path="teacher/itens" element={<ItemsListView state={store} onNew={() => navigate('/teacher/itens/novo')} />} />
-                      <Route path="teacher/itens/novo" element={<ItemEditorView state={store} onSave={(i) => { store.addItem(i); navigate('/teacher/itens'); }} onCancel={() => navigate('/teacher/itens')} />} />
-                      <Route path="teacher/provas" element={<ExamsListView state={store} onNew={() => navigate('/teacher/provas/nova')} onPrint={(id) => navigate(`/print-exam/${id}`)} onGrade={(id) => navigate(`/results/${id}`)} />} />
-                      <Route path="teacher/provas/nova" element={<ExamBuilderView state={store} onSave={(e) => { store.addExam(e); navigate('/teacher/provas'); }} onCancel={() => navigate('/teacher/provas')} />} />
+                      <Route path="teacher/itens" element={<ItemsListView state={store} />} />
+                      <Route path="teacher/itens/novo" element={<ItemEditorView state={store} />} />
+                      <Route path="teacher/provas" element={<ExamsListView state={store} />} />
+                      <Route path="teacher/provas/nova" element={<ExamBuilderView state={store} />} />
 
                       {/* ADMIN */}
                       <Route path="admin/gestao" element={<ManagementView state={store} onAddSchool={store.addSchool} onAddClass={store.addClass} onAddStudent={store.addStudent} onAddUser={store.addUser} onUpdateUser={store.updateUser} onResetPassword={store.resetUserPassword} onUpdateSettings={store.updateSettings} />} />
@@ -201,9 +201,9 @@ export default function App() {
                       <Route path="analytics" element={<SchoolDashboardView state={store} />} />
 
                       {/* STUDENT */}
-                      <Route path="aluno" element={<StudentDashboardView state={store} user={currentUser} setView={handleSetViewLegacy} />} />
-                      <Route path="aluno/loja" element={<AvatarShopView onBack={() => navigate('/aluno')} />} />
-                      <Route path="aluno/arcade" element={<ArcadeView onBack={() => navigate('/aluno')} />} />
+                      <Route path="aluno" element={<StudentDashboardView state={store} user={currentUser} />} />
+                      <Route path="aluno/loja" element={<AvatarShopView />} />
+                      <Route path="aluno/arcade" element={<ArcadeView />} />
                       <Route path="aluno/tutor" element={<OwlTutorView state={store} user={currentUser} />} />
                       <Route path="battle-arena" element={<StudentBattleView state={store} user={currentUser} onUpdateProfile={store.updateUserProfile} />} />
                       <Route path="survival-mode" element={<SurvivalView state={store} user={currentUser} onUpdateProfile={store.updateUserProfile} />} />
