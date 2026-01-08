@@ -47,6 +47,7 @@ export default function App() {
   const store = useAppStore();
   const { currentUser, setCurrentUser, users, loadRemoteData, isInitialized } = store;
   const navigate = useNavigate();
+  const [authChecking, setAuthChecking] = useState(true); // Track auth verification state
 
   // --- 1. INIT & DATA LOADING ---
   useEffect(() => {
@@ -63,6 +64,7 @@ export default function App() {
     if (!isInitialized) return;
 
     const handleAuthUser = async (sessionUser: any) => {
+      setAuthChecking(true); // Start auth processing
       let userMatch = users.find(u => u.email === sessionUser.email);
 
       // FALLBACK: Se não estiver na memória (primeiro login limpo), buscar no Supabase
@@ -89,10 +91,24 @@ export default function App() {
         }
         setCurrentUser(userMatch);
 
-        // Redirect Logic: Only if at root or login
-        if (window.location.pathname === '/' || window.location.pathname === '/login') {
-          if (userMatch.role === UserRole.ALUNO) navigate('/aluno');
-          else navigate('/dashboard');
+        // IMPROVED Redirect Logic with Route Persistence
+        const currentPath = window.location.pathname;
+        const lastRoute = localStorage.getItem('examepad_last_route');
+
+        // Only redirect if at root or login
+        if (currentPath === '/' || currentPath === '/login') {
+          if (lastRoute && lastRoute !== '/login' && lastRoute !== '/') {
+            console.log('🔄 Restaurando última rota:', lastRoute);
+            navigate(lastRoute);
+            localStorage.removeItem('examepad_last_route'); // Clear after use
+          } else {
+            // Default redirect based on role
+            if (userMatch.role === UserRole.ALUNO) navigate('/aluno');
+            else navigate('/dashboard');
+          }
+        } else {
+          // Keep current route (user refreshed on a specific page)
+          console.log('✅ Mantendo rota atual:', currentPath);
         }
 
         // DATA SYNC: Agora que temos login, carregar dados protegidos
@@ -104,16 +120,24 @@ export default function App() {
         setCurrentUser(null);
         navigate('/login');
       }
+
+      setAuthChecking(false); // Auth processing complete
     };
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) handleAuthUser(session.user);
+      if (session?.user) {
+        handleAuthUser(session.user);
+      } else {
+        setAuthChecking(false); // No session, stop checking
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) handleAuthUser(session.user);
       if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
+        setAuthChecking(false);
+        localStorage.removeItem('examepad_last_route'); // Clear saved route on logout
         navigate('/login');
       }
     });
@@ -121,12 +145,41 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, [isInitialized, users, setCurrentUser, navigate]);
 
+  // --- 3. ROUTE PERSISTENCE ---
+  // Save current route before unload/refresh to restore after F5
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const saveCurrentRoute = () => {
+      const currentPath = window.location.pathname;
+      // Don't save login or root routes
+      if (currentPath !== '/login' && currentPath !== '/') {
+        try {
+          localStorage.setItem('examepad_last_route', currentPath);
+          console.log('💾 Rota salva para restauração:', currentPath);
+        } catch (e) {
+          console.warn('Não foi possível salvar rota:', e);
+        }
+      }
+    };
+
+    // Save on navigation
+    saveCurrentRoute();
+
+    // Save before page unload (F5, close tab, etc)
+    window.addEventListener('beforeunload', saveCurrentRoute);
+    return () => window.removeEventListener('beforeunload', saveCurrentRoute);
+  }, [currentUser, window.location.pathname]);
+
   // --- LOADING SCREEN ---
-  if (!isInitialized) {
+  // Show loading while initializing OR checking authentication
+  if (!isInitialized || authChecking) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-[#0f172a] flex-col gap-4">
         <div className="w-12 h-12 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-slate-400 text-sm font-medium animate-pulse">Carregando sistema...</p>
+        <p className="text-slate-400 text-sm font-medium animate-pulse">
+          {!isInitialized ? 'Carregando sistema...' : 'Verificando autenticação...'}
+        </p>
       </div>
     );
   }

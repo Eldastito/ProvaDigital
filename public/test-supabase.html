@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Conexão Supabase - ExamePad</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #10b981;
+            font-size: 2em;
+        }
+
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border: 1px solid #334155;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .status.success {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid #10b981;
+            color: #10b981;
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            color: #ef4444;
+        }
+
+        .status.warning {
+            background: rgba(251, 191, 36, 0.2);
+            border: 1px solid #fbbf24;
+            color: #fbbf24;
+        }
+
+        .status.info {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid #3b82f6;
+            color: #3b82f6;
+        }
+
+        button {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px 5px;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 6px;
+            background: rgba(51, 65, 85, 0.5);
+        }
+
+        .test-result.pass {
+            border-left: 4px solid #10b981;
+        }
+
+        .test-result.fail {
+            border-left: 4px solid #ef4444;
+        }
+
+        pre {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 10px 0;
+            border: 1px solid #334155;
+        }
+
+        code {
+            color: #10b981;
+            font-family: 'Courier New', monospace;
+        }
+
+        .loader {
+            border: 4px solid #334155;
+            border-top: 4px solid #10b981;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔍 Diagnóstico de Conexão Supabase</h1>
+
+        <div class="card">
+            <h2>📋 Informações do Sistema</h2>
+            <div id="systemInfo"></div>
+        </div>
+
+        <div class="card">
+            <h2>🔧 Variáveis de Ambiente</h2>
+            <div id="envVars"></div>
+        </div>
+
+        <div class="card">
+            <h2>🧪 Testes de Conexão</h2>
+            <button onclick="runAllTests()">▶️ Executar Todos os Testes</button>
+            <button onclick="clearResults()">🗑️ Limpar Resultados</button>
+            <div id="testResults"></div>
+        </div>
+
+        <div class="card">
+            <h2>💡 Soluções Recomendadas</h2>
+            <div id="solutions"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+        let supabase = null;
+        const results = [];
+
+        // Detectar variáveis de ambiente
+        function checkEnvVars() {
+            const url = import.meta.env?.VITE_SUPABASE_URL || '';
+            const key = import.meta.env?.VITE_SUPABASE_ANON_KEY || '';
+
+            const envDiv = document.getElementById('envVars');
+
+            let html = '';
+
+            if (url) {
+                html += `<div class="status success">✅ VITE_SUPABASE_URL: ${url}</div>`;
+            } else {
+                html += `<div class="status error">❌ VITE_SUPABASE_URL: NÃO CONFIGURADO</div>`;
+            }
+
+            if (key) {
+                html += `<div class="status success">✅ VITE_SUPABASE_ANON_KEY: Configurado (${key.length} caracteres)</div>`;
+            } else {
+                html += `<div class="status error">❌ VITE_SUPABASE_ANON_KEY: NÃO CONFIGURADO</div>`;
+            }
+
+            envDiv.innerHTML = html;
+
+            if (url && key) {
+                try {
+                    supabase = createClient(url, key);
+                    return true;
+                } catch (e) {
+                    envDiv.innerHTML += `<div class="status error">❌ Erro ao criar cliente: ${e.message}</div>`;
+                    return false;
+                }
+            }
+
+            return false;
+        }
+
+        // Informações do sistema
+        function showSystemInfo() {
+            const info = {
+                'User Agent': navigator.userAgent,
+                'Plataforma': navigator.platform,
+                'Idioma': navigator.language,
+                'Online': navigator.onLine ? 'Sim' : 'Não',
+                'URL Atual': window.location.href,
+                'Protocolo': window.location.protocol,
+            };
+
+            let html = '';
+            for (const [key, value] of Object.entries(info)) {
+                html += `<div class="test-result"><strong>${key}:</strong> ${value}</div>`;
+            }
+
+            document.getElementById('systemInfo').innerHTML = html;
+        }
+
+        // Testes
+        async function test1_PingSupabase() {
+            if (!supabase) return { pass: false, message: 'Cliente Supabase não inicializado' };
+
+            try {
+                const { data, error } = await supabase.from('tenants').select('count').limit(1);
+
+                if (error) {
+                    return { pass: false, message: `Erro: ${error.message}`, details: error };
+                }
+
+                return { pass: true, message: 'Conexão com Supabase OK' };
+            } catch (e) {
+                return { pass: false, message: `Exceção: ${e.message}` };
+            }
+        }
+
+        async function test2_CheckAuth() {
+            if (!supabase) return { pass: false, message: 'Cliente Supabase não inicializado' };
+
+            try {
+                const { data, error } = await supabase.auth.getSession();
+
+                if (error) {
+                    return { pass: false, message: `Erro: ${error.message}` };
+                }
+
+                return { pass: true, message: `Sessão: ${data.session ? 'Ativa' : 'Inativa'}` };
+            } catch (e) {
+                return { pass: false, message: `Exceção: ${e.message}` };
+            }
+        }
+
+        async function test3_ListTables() {
+            if (!supabase) return { pass: false, message: 'Cliente Supabase não inicializado' };
+
+            const tables = ['tenants', 'schools', 'users', 'students'];
+            const results = [];
+
+            for (const table of tables) {
+                try {
+                    const { data, error } = await supabase.from(table).select('*').limit(1);
+
+                    if (error) {
+                        results.push(`❌ ${table}: ${error.message}`);
+                    } else {
+                        results.push(`✅ ${table}: ${data?.length || 0} registros`);
+                    }
+                } catch (e) {
+                    results.push(`❌ ${table}: ${e.message}`);
+                }
+            }
+
+            return { pass: true, message: results.join('<br>') };
+        }
+
+        async function test4_NetworkFetch() {
+            const url = import.meta.env?.VITE_SUPABASE_URL;
+            if (!url) return { pass: false, message: 'URL não configurado' };
+
+            try {
+                const response = await fetch(`${url}/rest/v1/`, {
+                    method: 'HEAD',
+                    headers: {
+                        'apikey': import.meta.env?.VITE_SUPABASE_ANON_KEY || '',
+                    }
+                });
+
+                return {
+                    pass: response.ok || response.status === 404,
+                    message: `Status HTTP: ${response.status} ${response.statusText}`
+                };
+            } catch (e) {
+                return { pass: false, message: `Erro de rede: ${e.message}` };
+            }
+        }
+
+        // Executar todos os testes
+        async function runAllTests() {
+            const testsDiv = document.getElementById('testResults');
+            testsDiv.innerHTML = '<div class="loader"></div><p style="text-align: center;">Executando testes...</p>';
+
+            results.length = 0;
+
+            const tests = [
+                { name: '1. Ping Supabase', fn: test1_PingSupabase },
+                { name: '2. Verificar Autenticação', fn: test2_CheckAuth },
+                { name: '3. Listar Tabelas', fn: test3_ListTables },
+                { name: '4. Teste de Rede (Fetch)', fn: test4_NetworkFetch },
+            ];
+
+            let html = '';
+
+            for (const test of tests) {
+                const result = await test.fn();
+                results.push({ name: test.name, ...result });
+
+                const className = result.pass ? 'pass' : 'fail';
+                const icon = result.pass ? '✅' : '❌';
+
+                html += `
+                    <div class="test-result ${className}">
+                        <strong>${icon} ${test.name}</strong><br>
+                        ${result.message}
+                        ${result.details ? `<pre>${JSON.stringify(result.details, null, 2)}</pre>` : ''}
+                    </div>
+                `;
+            }
+
+            testsDiv.innerHTML = html;
+
+            // Gerar soluções
+            generateSolutions();
+        }
+
+        function generateSolutions() {
+            const solutionsDiv = document.getElementById('solutions');
+            const failedTests = results.filter(r => !r.pass);
+
+            if (failedTests.length === 0) {
+                solutionsDiv.innerHTML = '<div class="status success">✅ Todos os testes passaram! Supabase está funcionando corretamente.</div>';
+                return;
+            }
+
+            let html = '<div class="status warning">⚠️ Problemas detectados:</div>';
+
+            failedTests.forEach(test => {
+                html += `<div class="test-result fail"><strong>${test.name}</strong><br>${test.message}</div>`;
+            });
+
+            html += '<h3>🛠️ Soluções Recomendadas:</h3>';
+
+            if (results.some(r => r.message.includes('não inicializado'))) {
+                html += `
+                    <div class="status error">
+                        <strong>1. Configure as variáveis de ambiente</strong><br>
+                        Crie um arquivo <code>.env.local</code> com:<br>
+                        <pre>VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+VITE_SUPABASE_ANON_KEY=sua-chave-aqui</pre>
+                    </div>
+                `;
+            }
+
+            if (results.some(r => r.message.includes('Invalid API key'))) {
+                html += `
+                    <div class="status error">
+                        <strong>2. API Key Inválida</strong><br>
+                        Vá para Supabase Dashboard → Settings → API<br>
+                        Copie a "anon public" key e atualize <code>VITE_SUPABASE_ANON_KEY</code>
+                    </div>
+                `;
+            }
+
+            if (results.some(r => r.message.includes('fetch failed') || r.message.includes('Erro de rede'))) {
+                html += `
+                    <div class="status error">
+                        <strong>3. Problema de Conexão</strong><br>
+                        • Verifique sua conexão com a internet<br>
+                        • Verifique se o projeto Supabase está ativo<br>
+                        • Verifique configurações de CORS no Supabase
+                    </div>
+                `;
+            }
+
+            if (results.some(r => r.message.includes('does not exist'))) {
+                html += `
+                    <div class="status error">
+                        <strong>4. Tabelas Não Criadas</strong><br>
+                        Execute os scripts SQL no Supabase SQL Editor:<br>
+                        • supabase_core_schema.sql<br>
+                        • supabase_schema_risk_alerts.sql
+                    </div>
+                `;
+            }
+
+            solutionsDiv.innerHTML = html;
+        }
+
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '<div class="status info">Clique em "Executar Todos os Testes" para começar</div>';
+            document.getElementById('solutions').innerHTML = '';
+        }
+
+        // Inicializar
+        window.addEventListener('DOMContentLoaded', () => {
+            showSystemInfo();
+            checkEnvVars();
+            clearResults();
+        });
+
+        // Expor funções globalmente
+        window.runAllTests = runAllTests;
+        window.clearResults = clearResults;
+    </script>
+</body>
+
+</html>

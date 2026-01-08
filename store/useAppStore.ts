@@ -1,6 +1,6 @@
 
 import { create } from 'zustand';
-import { AppState, User, Item, Exam, ExamResult, ChatMessage, ChatGroup, Announcement, LessonPlan, StudyPlan, UserProfileExtended, AppSettings, PermissionMatrix, UserRole, GamifiedEvent, OwlTutorContext, MentorshipRequest, MentorshipStatus, ExamRegistration, RegistrationStatus } from '../types';
+import { AppState, User, Item, Exam, ExamResult, ChatMessage, ChatGroup, Announcement, LessonPlan, StudyPlan, UserProfileExtended, AppSettings, PermissionMatrix, UserRole, GamifiedEvent, OwlTutorContext, MentorshipRequest, MentorshipStatus, ExamRegistration, RegistrationStatus, ItemOrigin } from '../types';
 import { INITIAL_TENANTS, INITIAL_SCHOOLS, INITIAL_CLASSES, INITIAL_USERS, INITIAL_ITEMS, INITIAL_STUDENTS, INITIAL_RESULTS, INITIAL_EXAMS, INITIAL_REGISTRATIONS, INITIAL_ANNOUNCEMENTS, INITIAL_MESSAGES, INITIAL_LESSON_PLANS, INITIAL_STUDY_PLANS, INITIAL_STUDENT_PROFILES, INITIAL_USER_PROFILES, INITIAL_SETTINGS, INITIAL_GAMIFIED_EVENTS } from '../utils/mockData';
 import { supabase } from '../services/supabaseClient';
 
@@ -131,43 +131,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
     setCurrentUser: (user) => {
         set((state) => {
-            let newProfiles = state.userProfiles;
-            let newResults = state.results;
-
-            // 1. Ensure profile exists (Avatar Shop & Gamification)
-            if (user && !state.userProfiles.find(p => p.userId === user.id)) {
-                const mockProfile: UserProfileExtended = {
-                    userId: user.id,
-                    owlCoins: 1250,
-                    xp: 4500,
-                    badges: ['medal_honor'],
-                    inventory: ['hat_grad'],
-                    equippedItems: { hat: 'hat_grad' },
-                    assessments: [],
-                    academicAchievements: []
-                };
-                newProfiles = [...state.userProfiles, mockProfile];
-            }
-
-            // 2. Ensure Results exist (Performance Dashboard) - OPTIONAL: We keep it empty as per previous request or re-enable if needed.
-            // (Previously mocked results here, now removed as per user request to show empty state)
-
-            // 3. Ensure Student Record exists (CRITICAL for Dashboard Loading Check)
-            let newStudents = state.students;
-            if (user && user.role === 'ALUNO' && !state.students.find(s => s.id === user.id)) {
-                console.log("Generating mock student record for user", user.id);
-                const mockStudent: any = {
-                    id: user.id,
-                    name: user.name,
-                    registrationNumber: 'AUTO-' + Math.floor(Math.random() * 10000),
-                    classId: state.classes[0]?.id || 'class-demo',
-                    schoolId: user.schoolId || state.schools[0]?.id || 'school-demo',
-                    tenantId: user.tenantId
-                };
-                newStudents = [...state.students, mockStudent];
-            }
-
-            return { currentUser: user, selectedChildId: null, userProfiles: newProfiles, students: newStudents };
+            // No longer generating mock profiles or student records.
+            // Data should come from Supabase via loadRemoteData.
+            return { currentUser: user, selectedChildId: null };
         });
     },
     setSelectedChildId: (childId) => set({ selectedChildId: childId }),
@@ -234,15 +200,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
                     tenantId: i.tenant_id,
                     ownerId: i.owner_id || '',
                     subject: i.subject,
-                    knowledgeArea: i.knowledge_area || i.subject,
+                    knowledgeArea: i.subject, // Map to subject as fallback
                     statement: i.statement,
                     type: i.type,
                     difficulty: i.difficulty,
                     alternatives: i.alternatives,
                     correctAnswerJustification: i.correct_justification,
-                    bnccCode: i.bncc_code,
-                    origin: i.origin,
-                    score: i.score || 1.0,
+                    bnccCode: '', // Not in schema
+                    origin: ItemOrigin.MANUAL, // Not in schema
+                    score: 1.0, // Not in schema
                     tags: [],
                     usageCount: 0,
                     createdAt: i.created_at
@@ -301,44 +267,25 @@ export const useAppStore = create<AppStore>((set, get) => ({
             }
 
             // 4. Carregar Perfil Gamificado (User Profiles)
-            // Se falhar ou não existir, cria mock para evitar tela branca
-            try {
-                const { data: dbProfiles, error: profileError } = await supabase.from('user_profiles').select('*');
+            const { data: dbProfiles, error: profileError } = await supabase.from('user_profiles').select('*');
 
-                if (!profileError && dbProfiles && dbProfiles.length > 0) {
-                    const formattedProfiles: UserProfileExtended[] = dbProfiles.map((p: any) => ({
-                        userId: p.user_id,
-                        avatarUrl: p.avatar_url,
-                        bio: p.bio,
-                        owlCoins: p.owl_coins || 0,
-                        xp: p.xp || 0,
-                        badges: p.badges || [],
-                        inventory: p.inventory || [],
-                        equippedItems: p.equipped_items || {},
-                        assessments: p.assessments || [],
-                        academicAchievements: p.academic_achievements || []
-                    }));
-                    set({ userProfiles: formattedProfiles });
-                } else {
-                    // Fallback Mock se a tabela não existir ou estiver vazia
-                    console.warn("⚠️ Tabela user_profiles não encontrada ou vazia. Usando Mock.");
-                    throw new Error("No profiles found");
-                }
-            } catch (err) {
-                // Generate Mock Profile for Current User (if exists) or a Generic one
-                // We don't have current user in this scope easily unless we use get().currentUser
-                // But we can create a generic one that matches likely users
-                const mockProfile: UserProfileExtended = {
-                    userId: 'mock-student-id', // Placeholder, will be fixed by login or we add one for the current user later
-                    owlCoins: 1250,
-                    xp: 4500,
-                    badges: ['medal_honor'],
-                    inventory: ['hat_grad'],
-                    equippedItems: { hat: 'hat_grad' },
-                    assessments: [],
-                    academicAchievements: []
-                };
-                set((state) => ({ userProfiles: [...state.userProfiles, mockProfile] }));
+            if (!profileError && dbProfiles && dbProfiles.length > 0) {
+                const formattedProfiles: UserProfileExtended[] = dbProfiles.map((p: any) => ({
+                    userId: p.user_id,
+                    avatarUrl: p.avatar_url,
+                    bio: p.bio,
+                    owlCoins: p.owl_coins || 0,
+                    xp: p.xp || 0,
+                    badges: p.badges || [],
+                    inventory: p.inventory || [],
+                    equippedItems: p.equipped_items || {},
+                    assessments: p.assessments || [],
+                    academicAchievements: p.academic_achievements || []
+                }));
+                set({ userProfiles: formattedProfiles });
+            } else {
+                console.warn("⚠️ Nenhum perfil encontrado no Supabase.");
+                set({ userProfiles: [] });
             }
 
             console.log("✅ Dados da nuvem sincronizados (users, items, exams, results, profiles).");
@@ -362,15 +309,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 tenant_id: item.tenantId,
                 owner_id: item.ownerId,
                 subject: item.subject,
-                knowledge_area: item.knowledgeArea || item.subject,
                 statement: item.statement,
                 type: item.type,
                 difficulty: item.difficulty,
                 alternatives: item.alternatives,
                 correct_justification: item.correctAnswerJustification,
-                bncc_code: item.bnccCode,
-                origin: item.origin,
-                score: item.score || 1.0,
                 created_at: item.createdAt
             });
 
