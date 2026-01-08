@@ -1,10 +1,11 @@
-
 import React, { useState, useRef } from 'react';
 import { Brain, X, Trash2, Image as ImageIcon, Upload, GripVertical, BookOpen, Eye, CheckSquare, Save, Wand2, Loader2, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { AppState, Item, DifficultyLevel, QuestionType, ItemOrigin } from '../types';
 import { generateQuestionsFromText, improveItemStatement, generateDistractors, suggestBNCC } from '../services/geminiService';
 import { uuidv4 } from '../utils/helpers';
 import { RichTextEditor } from './RichTextEditor';
+import { useAppStore } from '../store/useAppStore';
 
 // Lista de disciplinas padrão do currículo brasileiro (Fundamental e Médio)
 const BRAZILIAN_SUBJECTS = [
@@ -27,7 +28,9 @@ const BRAZILIAN_SUBJECTS = [
     'Sociologia'
 ];
 
-export const ItemEditorView = ({ state, onSave, onCancel }: { state: AppState, onSave: (item: Item) => void, onCancel: () => void }) => {
+export const ItemEditorView = ({ state }: { state: AppState }) => {
+    const navigate = useNavigate();
+    const { addItem } = useAppStore();
     const [mode, setMode] = useState<'MANUAL' | 'AI'>('MANUAL');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -158,7 +161,8 @@ export const ItemEditorView = ({ state, onSave, onCancel }: { state: AppState, o
             usageCount: 0,
             createdAt: new Date().toISOString()
         };
-        onSave(newItem);
+        addItem(newItem);
+        navigate('/items');
     };
 
     const saveManual = () => {
@@ -208,7 +212,8 @@ export const ItemEditorView = ({ state, onSave, onCancel }: { state: AppState, o
             createdAt: new Date().toISOString()
         };
 
-        onSave(newItem);
+        addItem(newItem);
+        navigate('/items');
     };
 
     return (
@@ -222,7 +227,7 @@ export const ItemEditorView = ({ state, onSave, onCancel }: { state: AppState, o
                         <Brain size={14} /> Gerar com IA
                     </button>
                 </div>
-                <button onClick={onCancel} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
+                <button onClick={() => navigate('/items')} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">

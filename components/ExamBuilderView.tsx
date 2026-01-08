@@ -1,11 +1,14 @@
-
 import React, { useState } from 'react';
 import { X, ChevronRight, Search, Plus, Tablet, ChevronLeft, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { AppState, Exam, Item, ExamModel, ExamStatus, QuestionType } from '../types';
 import { Badge } from './ui/Badge';
 import { uuidv4 } from '../utils/helpers';
+import { useAppStore } from '../store/useAppStore';
 
-export const ExamBuilderView = ({ state, onSave, onCancel }: { state: AppState, onSave: (e: Exam) => void, onCancel: () => void }) => {
+export const ExamBuilderView = ({ state }: { state: AppState }) => {
+    const navigate = useNavigate();
+    const { addExam } = useAppStore();
     const [step, setStep] = useState(1);
     const [config, setConfig] = useState({
         title: '',
@@ -44,7 +47,8 @@ export const ExamBuilderView = ({ state, onSave, onCancel }: { state: AppState, 
             classIds: [],
             createdAt: new Date().toISOString()
         };
-        onSave(newExam);
+        addExam(newExam);
+        navigate('/exams');
     };
 
     const toggleItem = (item: Item) => {
@@ -110,7 +114,7 @@ export const ExamBuilderView = ({ state, onSave, onCancel }: { state: AppState, 
                 </div>
                 <div className="flex gap-3">
                     {step === 2 && <button onClick={() => setStep(1)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium">Voltar</button>}
-                    <button onClick={onCancel} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
+                    <button onClick={() => navigate('/exams')} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
                 </div>
             </div>
 
