@@ -7,6 +7,7 @@ import { NotificationBell } from '../Notifications/NotificationBell';
 
 export const ParentsDashboardView = () => {
     const { currentUser, students, results, exams, selectedChildId, setSelectedChildId } = useAppStore();
+    const [isLoading, setIsLoading] = React.useState(true);
 
     // Get children
     const myChildren = currentUser?.childrenIds
@@ -18,7 +19,10 @@ export const ParentsDashboardView = () => {
         if (myChildren.length > 0 && !selectedChildId) {
             setSelectedChildId(myChildren[0].id);
         }
-    }, [myChildren, selectedChildId, setSelectedChildId]);
+        // Set loading to false after initialization
+        const timer = setTimeout(() => setIsLoading(false), 500);
+        return () => clearTimeout(timer);
+    }, [myChildren.length, selectedChildId, setSelectedChildId]);
 
     const selectedChild = myChildren.find(c => c.id === selectedChildId);
 
@@ -37,6 +41,16 @@ export const ParentsDashboardView = () => {
     const averageScore = childResults.length > 0
         ? (childResults.reduce((sum, r) => sum + (r.totalScore || 0), 0) / childResults.length).toFixed(1)
         : '0.0';
+
+    // Show loading state
+    if (isLoading && myChildren.length === 0) {
+        return (
+            <div className="flex h-screen w-full items-center justify-center flex-col gap-4 bg-slate-50">
+                <div className="w-16 h-16 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-slate-500 font-medium">Carregando dados...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="p-6 space-y-6 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
