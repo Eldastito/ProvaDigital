@@ -1,14 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { ArrowLeft, Coins, ShoppingBag, Lock, Check, AlertCircle, Trophy } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { GamificationService } from '../../services/gamificationService';
 import { ShopItem, ShopItemCategory } from '../../types';
 
-interface AvatarShopViewProps {
-    onBack: () => void;
-}
-
-export const AvatarShopView = ({ onBack }: AvatarShopViewProps) => {
+export const AvatarShopView = () => {
+    const navigate = useNavigate();
     const { currentUser, userProfiles, updateUserProfile } = useAppStore();
 
     // Find extended profile
@@ -106,7 +104,7 @@ export const AvatarShopView = ({ onBack }: AvatarShopViewProps) => {
                 <div className="max-w-6xl mx-auto w-full">
                     <div className="flex justify-between items-center mb-6">
                         <button
-                            onClick={onBack}
+                            onClick={() => navigate(-1)}
                             className="text-slate-500 hover:text-slate-800 flex items-center gap-2 font-bold transition-colors"
                         >
                             <ArrowLeft size={20} /> Voltar

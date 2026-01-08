@@ -1,13 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { Gamepad2, Search, ExternalLink, Play, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { GamificationService } from '../../services/gamificationService';
 
-interface ArcadeViewProps {
-    onBack: () => void;
-}
-
-export const ArcadeView = ({ onBack }: ArcadeViewProps) => {
+export const ArcadeView = () => {
+    const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
 
@@ -44,7 +42,7 @@ export const ArcadeView = ({ onBack }: ArcadeViewProps) => {
 
                 <div className="max-w-7xl mx-auto w-full relative z-10">
                     <button
-                        onClick={onBack}
+                        onClick={() => navigate(-1)}
                         className="mb-4 text-slate-400 hover:text-white flex items-center gap-2 font-bold text-sm transition-colors"
                     >
                         <ArrowLeft size={16} /> Voltar ao Painel
@@ -83,8 +81,8 @@ export const ArcadeView = ({ onBack }: ArcadeViewProps) => {
                                 key={cat.id}
                                 onClick={() => setSelectedCategory(cat.id)}
                                 className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${selectedCategory === cat.id
-                                        ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/25'
-                                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                                    ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/25'
+                                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                                     }`}
                             >
                                 {cat.label}

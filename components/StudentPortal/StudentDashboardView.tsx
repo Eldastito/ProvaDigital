@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { TrendingUp, AlertTriangle, BookOpen, CheckCircle, Calendar, Clock, Brain, Award, ChevronLeft, ChevronRight, Trophy, X, FileText, Check, Eye, User as UserIcon, List, ArrowUp, ArrowDown, Coins, Star, Activity, Zap, Medal, Sparkles, Target, Users, BookHeart, Play, ArrowRight, Gamepad2, ShoppingBag } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { AppState, RiskLevel, User, Exam, ExamResult, QuestionType, UserRole, GamifiedEventStatus, ExamStatus } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
 import { useAppStore } from '../../store/useAppStore';
@@ -8,7 +9,6 @@ import { useFeatureFlag } from '../../context/FeatureFlagContext'; // [NEW]
 interface StudentDashboardViewProps {
     state: AppState;
     user: User;
-    setView: (view: string) => void;
 }
 
 // Simple SVG Line Chart Component
@@ -59,7 +59,8 @@ const EvolutionChart = ({ data }: { data: { label: string, value: number }[] }) 
     );
 };
 
-export const StudentDashboardView = ({ state, user, setView }: StudentDashboardViewProps) => {
+export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps) => {
+    const navigate = useNavigate();
     const isParent = user.role === UserRole.PAIS;
     const { isEnabled } = useFeatureFlag(); // [NEW]
     const { registerStudentToEvent, setOwlTutorContext } = useAppStore();
@@ -715,7 +716,7 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
 
                                     <div className="flex items-center gap-2 border-l border-slate-200 pl-4 ml-2">
                                         <button
-                                            onClick={() => setView('MY_PROFILE')}
+                                            onClick={() => navigate('/profile')}
                                             className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-brand-primary transition-colors"
                                             title="Meu Perfil"
                                         >
@@ -723,7 +724,7 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                                         </button>
                                         {!isParent && (
                                             <button
-                                                onClick={() => setView('AVATAR_SHOP')}
+                                                onClick={() => navigate('/student/shop')}
                                                 className="p-2 bg-brand-primary text-white rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition-all flex items-center gap-2 font-bold text-xs"
                                                 title="Loja de Avatares"
                                             >
@@ -1033,7 +1034,7 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                             <div className="flex justify-center gap-2 mb-6">
                                 {/* ARCADE BUTTON - NEW */}
                                 <button
-                                    onClick={() => setView('ARCADE')}
+                                    onClick={() => navigate('/student/arcade')}
                                     className="bg-white border-2 border-slate-100 hover:border-purple-200 hover:shadow-lg transition-all rounded-2xl p-6 flex flex-col items-center justify-center gap-3 group relative overflow-hidden"
                                 >
                                     <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-purple-100 to-transparent rounded-bl-full -mr-8 -mt-8"></div>
@@ -1047,7 +1048,7 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                                 </button>
 
                                 <button
-                                    onClick={() => setView('SURVIVAL_MODE')}
+                                    onClick={() => navigate('/student/survival')}
                                     className={'px-4 py-1 rounded-full text-xs font-bold transition ' + (rankingMode === 'ACADEMIC' ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500') + ' '}
                                 >
                                     Acadêmico (IDG)
