@@ -4,7 +4,7 @@ import { AppState, UserRole } from '../types';
 import { NetworkDashboardView } from './Analytics/NetworkDashboardView';
 import { SchoolPrincipalDashboard } from './Analytics/SchoolPrincipalDashboard';
 import { PedagogicalDashboard } from './Analytics/PedagogicalDashboard';
-import { ProfessorDashboardView } from './Analytics/ProfessorDashboardView';
+import { ProfessorDashboardView } from './Professor/ProfessorDashboardView';
 import { StudentDashboardView } from './StudentPortal/StudentDashboardView';
 
 export const DashboardView = ({ state }: { state: AppState }) => {
