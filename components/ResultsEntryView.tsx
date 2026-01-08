@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Save, CheckCircle, AlertCircle, Wand2, CheckSquare, Brain, Loader2, Shield } from 'lucide-react';
+import { ArrowLeft, Save, CheckCircle, AlertCircle, Wand2, CheckSquare, Brain, Loader2, Shield, X } from 'lucide-react';
 import { AppState, Exam, ExamResult, StudentAnswer, QuestionType } from '../types';
 import { uuidv4 } from '../utils/helpers';
 import { gradeEssayAnswer, batchGradeAnswers } from '../services/geminiService';
@@ -20,6 +20,7 @@ export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: Resul
     const [gradingLoading, setGradingLoading] = useState<string | null>(null); // ItemId being graded
     const [bulkGrading, setBulkGrading] = useState(false);
     const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
+    const [aiSuggestions, setAiSuggestions] = useState<Record<string, { score: number, feedback: string }>>({});
 
     if (!exam) return <div>Prova não encontrada.</div>;
 
@@ -103,15 +104,14 @@ export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: Resul
             item.customScore || item.score
         );
 
-        setLocalResults(prev => ({
+        setAiSuggestions(prev => ({
             ...prev,
-            [studentId]: {
-                ...(prev[studentId] || {}),
-                [item.id]: result.score.toFixed(1)
+            [`${studentId}-${item.id}`]: {
+                score: result.score,
+                feedback: result.feedback
             }
         }));
 
-        alert(`IA Sugere: ${result.score} pontos.\nFeedback: ${result.feedback}`);
         setGradingLoading(null);
     };
 
@@ -173,19 +173,20 @@ export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: Resul
             const results = await batchGradeAnswers(pendingContexts);
 
             // 3. Aplicar resultados
-            const newResultsMap = { ...localResults };
-
-            results.forEach(res => {
-                const [studentId, itemId] = res.id.split(':::');
-                if (!newResultsMap[studentId]) newResultsMap[studentId] = {};
-
-                newResultsMap[studentId][itemId] = res.score.toFixed(1);
-                // Opcional: Salvar feedback em algum lugar se tiver UI para isso no futuro
+            setAiSuggestions(prev => {
+                const next = { ...prev };
+                results.forEach(res => {
+                    const [studentId, itemId] = res.id.split(':::');
+                    next[`${studentId}-${itemId}`] = {
+                        score: res.score,
+                        feedback: res.feedback
+                    };
+                });
+                return next;
             });
 
-            setLocalResults(newResultsMap);
             setBulkProgress({ current: pendingContexts.length, total: pendingContexts.length });
-            alert(`✅ ${results.length} provas corrigidas com sucesso!`);
+            alert(`✅ ${results.length} sugestões geradas! Revise e clique em 'Aceitar'.`);
 
         } catch (error) {
             console.error("Erro no Batch Grading:", error);
@@ -387,8 +388,8 @@ export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: Resul
                                                                 }))}
                                                             />
 
-                                                            <div className="flex items-center justify-center gap-1">
-                                                                <span className="text-xs text-slate-500 font-bold">Nota:</span>
+                                                            <div className="flex items-center justify-center gap-1 mt-2">
+                                                                <span className="text-xs text-slate-500 font-bold">Nota Real:</span>
                                                                 <input
                                                                     type="number"
                                                                     className={`w-14 h-8 text-center border rounded text-sm font-bold ${val ? "bg-brand-input text-white border-brand-secondary" : "border-slate-300"}`}
@@ -404,6 +405,41 @@ export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: Resul
                                                                     {isLoading ? <Loader2 size={14} className="animate-spin" /> : <Brain size={16} />}
                                                                 </button>
                                                             </div>
+                                                            {/* AI SUGGESTION CARD */}
+                                                            {localResults[student.id] && aiSuggestions[`${student.id}-${item.id}`] && (
+                                                                <div className="mt-2 text-left bg-purple-50 border border-purple-200 rounded-lg p-3 text-xs shadow-sm animate-in slide-in-from-top-2">
+                                                                    <div className="flex justify-between items-start mb-2">
+                                                                        <div className="font-bold text-purple-800 flex items-center gap-1">
+                                                                            <Brain size={12} /> Sugestão: {aiSuggestions[`${student.id}-${item.id}`].score.toFixed(1)}
+                                                                        </div>
+                                                                        <div className="flex gap-1">
+                                                                            <button
+                                                                                onClick={() => handleInputChange(student.id, item, aiSuggestions[`${student.id}-${item.id}`].score.toString())}
+                                                                                className="p-1 bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200 border border-emerald-200"
+                                                                                title="Aceitar"
+                                                                            >
+                                                                                <CheckCircle size={14} />
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    setAiSuggestions(prev => {
+                                                                                        const next = { ...prev };
+                                                                                        delete next[`${student.id}-${item.id}`];
+                                                                                        return next;
+                                                                                    })
+                                                                                }}
+                                                                                className="p-1 bg-slate-100 text-slate-500 rounded hover:bg-slate-200 border border-slate-200"
+                                                                                title="Dispensar"
+                                                                            >
+                                                                                <X size={14} />
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                    <p className="text-purple-700 italic border-l-2 border-purple-300 pl-2">
+                                                                        "{aiSuggestions[`${student.id}-${item.id}`].feedback}"
+                                                                    </p>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </td>
                                                 );

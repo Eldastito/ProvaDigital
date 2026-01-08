@@ -9,11 +9,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
     "@google/genai": "^1.30.0",
     "@sentry/react": "^10.32.1",
     "@supabase/supabase-js": "^2.39.0",
+    "@types/papaparse": "^5.5.2",
     "dexie": "^4.2.1",
     "lucide-react": "^0.554.0",
+    "papaparse": "^5.5.3",
     "posthog-js": "^1.313.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

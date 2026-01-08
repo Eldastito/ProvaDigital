@@ -3,6 +3,7 @@ import { TrendingUp, AlertTriangle, BookOpen, CheckCircle, Calendar, Clock, Brai
 import { AppState, RiskLevel, User, Exam, ExamResult, QuestionType, UserRole, GamifiedEventStatus, ExamStatus } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
 import { useAppStore } from '../../store/useAppStore';
+import { useFeatureFlag } from '../../context/FeatureFlagContext'; // [NEW]
 
 interface StudentDashboardViewProps {
     state: AppState;
@@ -60,6 +61,7 @@ const EvolutionChart = ({ data }: { data: { label: string, value: number }[] }) 
 
 export const StudentDashboardView = ({ state, user, setView }: StudentDashboardViewProps) => {
     const isParent = user.role === UserRole.PAIS;
+    const { isEnabled } = useFeatureFlag(); // [NEW]
     const { registerStudentToEvent, setOwlTutorContext } = useAppStore();
 
     // Se for pai, pega o filho selecionado na store (selectedChildId)
@@ -394,7 +396,7 @@ export const StudentDashboardView = ({ state, user, setView }: StudentDashboardV
                                             )}
 
                                             {/* --- EXPLAIN ERROR BUTTON (NEW) --- */}
-                                            {!answer?.isCorrect && (
+                                            {!answer?.isCorrect && isEnabled('AI_TUTOR') && (
                                                 <div className="mt-3 pl-7">
                                                     <button
                                                         onClick={() => {

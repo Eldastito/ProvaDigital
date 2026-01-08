@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ExamePad</string>
+    <string name="title_activity_main">ExamePad</string>
+    <string name="package_name">com.examepad.app</string>
+    <string name="custom_url_scheme">com.examepad.app</string>
+</resources>

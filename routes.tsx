@@ -1,5 +1,6 @@
 import { RouteObject } from 'react-router-dom';
 import { LoginPage } from './components/Auth/LoginPage';
+import { BulkImportView } from './components/Admin/BulkImportView'; // [NEW] Import
 import { DashboardView } from './components/DashboardView';
 import { ItemsListView } from './components/ItemsListView';
 import { ItemEditorView } from './components/ItemEditorView';
@@ -113,6 +114,10 @@ export const appRoutes: RouteObject[] = [
     {
         path: '/risk',
         element: <RiskDashboard />
+    },
+    {
+        path: '/admin/import',
+        element: <BulkImportView />
     },
 
     // Communication
