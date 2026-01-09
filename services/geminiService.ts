@@ -265,7 +265,7 @@ async function callGeminiAPI<T>(
     console.log(`[GeminiService] Usando chave: ${apiKey.substring(0, 7)}...`);
 
     try {
-        const ai = new GoogleGenAI({ apiKey: apiKey });
+        const ai = new GoogleGenAI({ apiKey });
 
         const config: any = {};
         if (responseSchema) {
@@ -273,9 +273,14 @@ async function callGeminiAPI<T>(
             config.responseSchema = responseSchema;
         }
 
+        // NOVO SDK: contents deve ser um array de objetos
+        const formattedContents = typeof contents === 'string'
+            ? [{ role: 'user', parts: [{ text: contents }] }]
+            : contents;
+
         const response = await ai.models.generateContent({
             model: DEFAULT_MODEL,
-            contents: contents,
+            contents: formattedContents,
             config: config
         });
 
