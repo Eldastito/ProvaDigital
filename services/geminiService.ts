@@ -192,32 +192,36 @@ const getApiKey = (): string | undefined => {
     // 2. Vite Environment Variable
     const meta = import.meta as any;
     if (meta && meta.env && meta.env.VITE_GEMINI_API_KEY) {
+        console.log("[GeminiService] Chave encontrada em import.meta.env.VITE_GEMINI_API_KEY");
         return meta.env.VITE_GEMINI_API_KEY;
     }
-    if (meta && meta.env && meta.env.VITE_API_KEY) {
-        return meta.env.VITE_API_KEY;
-    }
 
-    // 2b. Global Window Check (Injection via Easypanel/HTML)
+    // 2b. Global Window Check
     const win = globalThis as any;
-    if (win.VITE_GEMINI_API_KEY) return win.VITE_GEMINI_API_KEY;
-    if (win.GEMINI_API_KEY) return win.GEMINI_API_KEY;
-
-    // 3. Safe Process Check (Vite Defined or Node)
-    try {
-        // @ts-ignore
-        if (typeof process !== 'undefined') {
-            // @ts-ignore
-            if (process.env?.VITE_GEMINI_API_KEY) return process.env.VITE_GEMINI_API_KEY;
-            // @ts-ignore
-            if (process.env?.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
-            // @ts-ignore
-            if (process.env?.API_KEY) return process.env.API_KEY;
-        }
-    } catch (e) {
-        // Ignore reference errors
+    if (win.VITE_GEMINI_API_KEY) {
+        console.log("[GeminiService] Chave encontrada em globalThis.VITE_GEMINI_API_KEY");
+        return win.VITE_GEMINI_API_KEY;
+    }
+    if (win.GEMINI_API_KEY) {
+        console.log("[GeminiService] Chave encontrada em globalThis.GEMINI_API_KEY");
+        return win.GEMINI_API_KEY;
     }
 
+    // 3. Safe Process Check
+    try {
+        if (typeof process !== 'undefined' && process.env) {
+            if (process.env.VITE_GEMINI_API_KEY) {
+                console.log("[GeminiService] Chave encontrada em process.env.VITE_GEMINI_API_KEY");
+                return process.env.VITE_GEMINI_API_KEY;
+            }
+            if (process.env.GEMINI_API_KEY) {
+                console.log("[GeminiService] Chave encontrada em process.env.GEMINI_API_KEY");
+                return process.env.GEMINI_API_KEY;
+            }
+        }
+    } catch (e) { }
+
+    console.error("[GeminiService] Nenhuma chave de API foi encontrada em nenhuma fonte!");
     return undefined;
 };
 
@@ -278,14 +282,30 @@ async function callGeminiAPI<T>(
             ? [{ role: 'user', parts: [{ text: contents }] }]
             : contents;
 
+        console.log("[GeminiService] Enviando prompt para o modelo:", DEFAULT_MODEL);
+
         const response = await ai.models.generateContent({
             model: DEFAULT_MODEL,
             contents: formattedContents,
             config: config
         });
 
-        let text = response.text;
-        if (!text) throw new Error("Empty response received from Gemini.");
+        console.log("[GeminiService] Resposta bruta recebida:", response);
+
+        // Extrair texto de forma resiliente
+        let text = "";
+        if (typeof response.text === 'string') {
+            text = response.text;
+        } else if (typeof (response as any).text === 'function') {
+            text = (response as any).text();
+        } else if (response.candidates && response.candidates[0]?.content?.parts?.[0]?.text) {
+            text = response.candidates[0].content.parts[0].text;
+        }
+
+        if (!text) {
+            console.error("[GeminiService] Falha ao extrair texto da resposta:", response);
+            throw new Error("Não foi possível extrair o texto da resposta da IA.");
+        }
 
         if (responseSchema) {
             // Sanitize Markdown code blocks if present
