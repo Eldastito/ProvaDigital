@@ -198,6 +198,11 @@ const getApiKey = (): string | undefined => {
         return meta.env.VITE_API_KEY;
     }
 
+    // 2b. Global Window Check (Injection via Easypanel/HTML)
+    const win = globalThis as any;
+    if (win.VITE_GEMINI_API_KEY) return win.VITE_GEMINI_API_KEY;
+    if (win.GEMINI_API_KEY) return win.GEMINI_API_KEY;
+
     // 3. Safe Process Check (Vite Defined or Node)
     try {
         // @ts-ignore
@@ -253,6 +258,9 @@ async function callGeminiAPI<T>(
         console.warn("[GeminiService] API Key missing. Returning fallback data (offline mode).");
         return fallbackValue;
     }
+
+    // DEBUG: Log the start of the key to verify correct injection (Safely)
+    console.log(`[GeminiService] Usando chave: ${apiKey.substring(0, 7)}...`);
 
     try {
         const ai = new GoogleGenAI({ apiKey: apiKey });
