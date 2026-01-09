@@ -29,6 +29,7 @@ export const AIDiagnosticView: React.FC = () => {
             // Tentar listar modelos primeiro para depuração
             const models = await listAvailableModels();
             console.log("[AIDiagnosticView] Modelos disponíveis:", models);
+            setDebugInfo((prev: any) => ({ ...prev, availableModels: models }));
             (globalThis as any).AVAILABLE_MODELS = models;
 
             const result = await improveItemStatement(testText);
@@ -93,13 +94,27 @@ export const AIDiagnosticView: React.FC = () => {
                     )}
 
                     {status === 'error' && (
-                        <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
-                            <ShieldAlert className="text-red-500 shrink-0" />
-                            <div>
-                                <p className="font-bold text-red-800">Falha na Conexão</p>
-                                <p className="text-sm text-red-600">{errorMsg}</p>
-                                <p className="mt-2 text-xs text-red-400">Verifique os logs do console para mais detalhes técnicos.</p>
+                        <div className="space-y-4">
+                            <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
+                                <ShieldAlert className="text-red-500 shrink-0" />
+                                <div>
+                                    <p className="font-bold text-red-800">Falha na Conexão</p>
+                                    <p className="text-sm text-red-600">{errorMsg}</p>
+                                </div>
                             </div>
+
+                            {debugInfo.availableModels && debugInfo.availableModels.length > 0 && (
+                                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                                    <p className="text-xs font-bold text-slate-500 mb-2 uppercase">Modelos que sua chave permite usar:</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {debugInfo.availableModels.map((m: any) => (
+                                            <span key={m.name} className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] font-mono text-slate-700">
+                                                {m.name.replace('models/', '')}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
