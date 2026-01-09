@@ -14,15 +14,23 @@ export const ParentsDashboardView = () => {
         ? students.filter(s => currentUser.childrenIds?.includes(s.id))
         : [];
 
-    // Initialize selectedChildId if not set
+    // Initialize selectedChildId
     React.useEffect(() => {
-        if (myChildren.length > 0 && !selectedChildId) {
-            setSelectedChildId(myChildren[0].id);
+        if (myChildren.length > 0) {
+            if (!selectedChildId) {
+                setSelectedChildId(myChildren[0].id);
+            }
+            setIsLoading(false);
         }
-        // Set loading to false after initialization
-        const timer = setTimeout(() => setIsLoading(false), 500);
+    }, [myChildren, selectedChildId, setSelectedChildId]);
+
+    // Cleanup loading if no children linked after sync
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            if (isLoading) setIsLoading(false);
+        }, 2000);
         return () => clearTimeout(timer);
-    }, [myChildren.length, selectedChildId, setSelectedChildId]);
+    }, [isLoading]);
 
     const selectedChild = myChildren.find(c => c.id === selectedChildId);
 

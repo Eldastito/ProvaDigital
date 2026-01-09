@@ -64,72 +64,71 @@ export default function App() {
     if (!isInitialized) return;
 
     const handleAuthUser = async (sessionUser: any) => {
-      setAuthChecking(true); // Start auth processing
-      let userMatch = users.find(u => u.email === sessionUser.email);
+      setAuthChecking(true);
 
-      // FALLBACK: Se não estiver na memória (primeiro login limpo), buscar no Supabase
-      if (!userMatch) {
-        try {
-          const { data, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('email', sessionUser.email)
-            .single();
+      // BUSCA DIRETA: Sempre buscar no Supabase para garantir que temos o dado mais fresco
+      // sem depender do estado global 'users' que flutua durante o loadRemoteData
+      let userMatch = null;
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', sessionUser.email)
+          .single();
 
-          if (data) userMatch = data;
-        } catch (err) {
-          console.error("Erro ao buscar usuário no login:", err);
+        if (data) {
+          userMatch = {
+            id: data.id,
+            name: data.name,
+            email: data.email,
+            role: data.role,
+            tenantId: data.tenant_id,
+            schoolId: data.school_id,
+            childrenIds: data.children_ids || [],
+            status: data.status
+          };
         }
+      } catch (err) {
+        console.error("Erro ao buscar usuário no login:", err);
       }
 
       if (userMatch) {
-        // Test Profile Logic (Restored for Testing)
+        // Test Profile Logic
         const testProfileRole = localStorage.getItem('test_profile');
         if (testProfileRole) {
-          console.log("🧪 Aplicando Perfil de Teste:", testProfileRole);
           userMatch = { ...userMatch, role: testProfileRole as UserRole };
         }
+
         setCurrentUser(userMatch);
 
-        // IMPROVED Redirect Logic with Route Persistence
         const currentPath = window.location.pathname;
         const lastRoute = localStorage.getItem('examepad_last_route');
 
-        // Only redirect if at root or login
         if (currentPath === '/' || currentPath === '/login') {
           if (lastRoute && lastRoute !== '/login' && lastRoute !== '/') {
-            console.log('🔄 Restaurando última rota:', lastRoute);
             navigate(lastRoute);
-            localStorage.removeItem('examepad_last_route'); // Clear after use
+            localStorage.removeItem('examepad_last_route');
           } else {
-            // Default redirect based on role
             if (userMatch.role === UserRole.ALUNO) navigate('/aluno');
             else navigate('/dashboard');
           }
-        } else {
-          // Keep current route (user refreshed on a specific page)
-          console.log('✅ Mantendo rota atual:', currentPath);
         }
 
-        // DATA SYNC: Agora que temos login, carregar dados protegidos
+        // Carregar o restante dos dados (uma única vez por sessão bem-sucedida)
         loadRemoteData();
       } else {
-        // SECURITY FIX
-        console.warn("Usuário autenticado no Supabase mas não encontrado no Banco.", sessionUser.email);
+        console.warn("Usuário autenticado mas não encontrado no Banco.", sessionUser.email);
         await supabase.auth.signOut();
         setCurrentUser(null);
         navigate('/login');
       }
 
-      setAuthChecking(false); // Auth processing complete
+      setAuthChecking(false);
     };
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        handleAuthUser(session.user);
-      } else {
-        setAuthChecking(false); // No session, stop checking
-      }
+      if (session?.user) handleAuthUser(session.user);
+      else setAuthChecking(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -137,13 +136,13 @@ export default function App() {
       if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
         setAuthChecking(false);
-        localStorage.removeItem('examepad_last_route'); // Clear saved route on logout
+        localStorage.removeItem('examepad_last_route');
         navigate('/login');
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [isInitialized, users, setCurrentUser, navigate]);
+  }, [isInitialized, setCurrentUser, navigate]); // REMOVIDO 'users' das dependências
 
   // --- 3. ROUTE PERSISTENCE ---
   // Save current route before unload/refresh to restore after F5

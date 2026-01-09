@@ -131,9 +131,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
     setCurrentUser: (user) => {
         set((state) => {
-            // No longer generating mock profiles or student records.
-            // Data should come from Supabase via loadRemoteData.
-            return { currentUser: user, selectedChildId: null };
+            // Se o usuário for o mesmo, não reseta a seleção do filho para evitar loop de UI
+            const isSameUser = state.currentUser?.id === user?.id;
+            return {
+                currentUser: user,
+                selectedChildId: isSameUser ? state.selectedChildId : null
+            };
         });
     },
     setSelectedChildId: (childId) => set({ selectedChildId: childId }),

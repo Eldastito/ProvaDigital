@@ -9,7 +9,8 @@ Write-Host "[1/4] Verificando Java..." -ForegroundColor Yellow
 try {
     $javaVersion = java -version 2>&1 | Select-String "version"
     Write-Host "✓ Java encontrado: $javaVersion" -ForegroundColor Green
-} catch {
+}
+catch {
     Write-Host "✗ Java não encontrado!" -ForegroundColor Red
     Write-Host "Instale o JDK 17: https://adoptium.net/" -ForegroundColor Yellow
     exit 1
@@ -40,7 +41,7 @@ Write-Host ""
 Write-Host "[4/4] Gerando APK..." -ForegroundColor Yellow
 Write-Host "Isso pode levar alguns minutos na primeira vez..." -ForegroundColor Gray
 
-cd android
+Set-Location android
 .\gradlew.bat assembleDebug
 
 if ($LASTEXITCODE -eq 0) {
@@ -56,7 +57,8 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "1. Conecte o tablet via USB" -ForegroundColor White
     Write-Host "2. Ative 'Depuração USB' nas configurações do Android" -ForegroundColor White
     Write-Host "3. Execute: adb install app\build\outputs\apk\debug\app-debug.apk" -ForegroundColor White
-} else {
+}
+else {
     Write-Host ""
     Write-Host "✗ Erro ao gerar APK!" -ForegroundColor Red
     Write-Host ""
@@ -66,4 +68,4 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "3. Abra o projeto 'android/' no Android Studio e deixe sincronizar" -ForegroundColor White
 }
 
-cd ..
+Set-Location ..
