@@ -25,6 +25,12 @@ export const AIDiagnosticView: React.FC = () => {
 
         try {
             const testText = "O gato subiu no telhado.";
+
+            // Tentar listar modelos primeiro para depuração
+            const models = await listAvailableModels();
+            console.log("[AIDiagnosticView] Modelos disponíveis:", models);
+            (globalThis as any).AVAILABLE_MODELS = models;
+
             const result = await improveItemStatement(testText);
 
             console.log("[AIDiagnosticView] Resultado do teste:", result);

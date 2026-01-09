@@ -331,6 +331,21 @@ async function callGeminiAPI<T>(
     }
 }
 
+export const listAvailableModels = async (): Promise<any[]> => {
+    const apiKey = getApiKey();
+    if (!apiKey) return [];
+    try {
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.list();
+        // Acesso resiliente aos modelos (SDK pode retornar estrutura variada)
+        const models = (response as any).models || (Array.isArray(response) ? response : []);
+        return models;
+    } catch (error) {
+        console.error("[GeminiService] Error listing models:", error);
+        return [];
+    }
+};
+
 // --- Exported Services ---
 
 export const generateQuestionsFromText = async (
