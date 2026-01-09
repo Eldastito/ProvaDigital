@@ -208,6 +208,8 @@ const getApiKey = (): string | undefined => {
         // @ts-ignore
         if (typeof process !== 'undefined') {
             // @ts-ignore
+            if (process.env?.VITE_GEMINI_API_KEY) return process.env.VITE_GEMINI_API_KEY;
+            // @ts-ignore
             if (process.env?.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
             // @ts-ignore
             if (process.env?.API_KEY) return process.env.API_KEY;

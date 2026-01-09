@@ -25,10 +25,12 @@ export const AIDiagnosticView: React.FC = () => {
 
         try {
             const result = await improveItemStatement("Teste de conectividade da IA.");
-            if (result && result.length > 5) {
+            // Verificamos se o resultado não é o fallback "offline"
+            if (result && result.length > 5 && !result.toLowerCase().includes("offline")) {
                 setStatus('success');
             } else {
-                throw new Error("Resposta da IA vazia ou inválida.");
+                const lastError = (globalThis as any).LAST_GEMINI_ERROR;
+                throw new Error(lastError || "A IA retornou uma resposta de fallback (Modo Offline). Verifique se a chave está correta no Easypanel.");
             }
         } catch (err: any) {
             setStatus('error');
