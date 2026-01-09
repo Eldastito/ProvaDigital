@@ -179,6 +179,11 @@ CREATE POLICY "Manage classes" ON public.classes FOR ALL USING (
 DROP POLICY IF EXISTS "Read users" ON public.users;
 CREATE POLICY "Read users" ON public.users FOR SELECT USING (auth.role() = 'authenticated');
 
+-- -------- STUDENTS --------
+-- Read: Auth users (needed for parent/staff lookups)
+DROP POLICY IF EXISTS "Read students" ON public.students;
+CREATE POLICY "Read students" ON public.students FOR SELECT USING (auth.role() = 'authenticated');
+
 -- Update: Users can update their own non-sensitive data? Ideally only profile.
 -- IMPORTANT: We separate `public.users` (Critical Auth Data) from `public.user_profiles` (Bio, Avatar).
 -- `public.users` creation should be handled by trigger on auth.users OR by Admin.
@@ -213,11 +218,16 @@ CREATE POLICY "Manage exams" ON public.exams FOR ALL USING (
 );
 
 -- -------- EXAM RESULTS (CRITICAL) --------
--- Read: Students see OWN results. Profs/Admins see ALL results.
+-- Read: Students see OWN results. Profs/Admins see ALL results. Parents see THEIR CHILDREN'S results.
 DROP POLICY IF EXISTS "Read results" ON public.exam_results;
 CREATE POLICY "Read results" ON public.exam_results FOR SELECT USING (
   auth.uid()::text = student_id OR -- Own result
-  public.get_current_user_role() IN ('PROFESSOR', 'SUPERVISOR', 'DIRETOR', 'TENANT_ADMIN', 'STATE_ADMIN', 'SUPER_ADMIN') -- Staff
+  public.get_current_user_role() IN ('PROFESSOR', 'SUPERVISOR', 'DIRETOR', 'TENANT_ADMIN', 'STATE_ADMIN', 'SUPER_ADMIN') OR -- Staff
+  EXISTS (
+    SELECT 1 FROM public.users 
+    WHERE id = auth.uid()::text 
+    AND student_id = ANY(children_ids)
+  ) -- Parent of this student
 );
 
 -- Write: 

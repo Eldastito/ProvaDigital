@@ -116,6 +116,41 @@ export default function App() {
 
         // Carregar o restante dos dados (uma única vez por sessão bem-sucedida)
         loadRemoteData();
+      } else if (sessionUser) {
+        // AUTO-SYNC: Criar registro no banco se não existir
+        console.log("🛠️ Sincronizando novo perfil de usuário com o banco...", sessionUser.email);
+
+        const newProfile = {
+          id: sessionUser.id,
+          name: sessionUser.user_metadata?.full_name || 'Usuário',
+          email: sessionUser.email,
+          role: sessionUser.user_metadata?.role || UserRole.PAIS,
+          tenant_id: 't1', // Default tenant
+          status: 'ACTIVE'
+        };
+
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert([newProfile]);
+
+        if (!insertError) {
+          setCurrentUser({
+            id: newProfile.id,
+            name: newProfile.name,
+            email: newProfile.email,
+            role: newProfile.role,
+            tenantId: newProfile.tenant_id,
+            childrenIds: []
+          });
+          navigate('/dashboard');
+          loadRemoteData();
+        } else {
+          console.error("Erro ao criar perfil automático:", insertError);
+          // Fallback final
+          await supabase.auth.signOut();
+          setCurrentUser(null);
+          navigate('/login');
+        }
       } else {
         console.warn("Usuário autenticado mas não encontrado no Banco.", sessionUser.email);
         await supabase.auth.signOut();
