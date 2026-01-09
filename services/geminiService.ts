@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { QuestionType, DifficultyLevel, AssessmentType } from "../types";
 
 // --- Configuration ---
-const DEFAULT_MODEL = 'gemini-2.0-flash';
+const DEFAULT_MODEL = 'gemini-2.5-flash';
 
 // --- Prompts ---
 const PROMPTS = {
@@ -284,15 +284,11 @@ async function callGeminiAPI<T>(
             ? [{ role: 'user', parts: [{ text: contents }] }]
             : contents;
 
-        console.log("[GeminiService] Enviando prompt para o modelo:", DEFAULT_MODEL);
-
         const response = await ai.models.generateContent({
             model: DEFAULT_MODEL,
             contents: formattedContents,
             config: config
         });
-
-        console.log("[GeminiService] Resposta bruta recebida:", response);
 
         // Extrair texto de forma resiliente
         let text = "";
