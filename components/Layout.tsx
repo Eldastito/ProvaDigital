@@ -152,7 +152,7 @@ export const Layout = ({ children }: LayoutProps) => {
 
           {isParent && (
             <>
-              <NavItem icon={LayoutDashboard} label="Desempenho" active={path === '/aluno'} onClick={() => navigate('/aluno')} />
+              <NavItem icon={LayoutDashboard} label="Desempenho" active={path === '/dashboard' || path === '/'} onClick={() => navigate('/dashboard')} />
               <NavItem icon={MessageCircle} label="Comunicação" active={path === '/communication'} onClick={() => navigate('/communication')} />
             </>
           )}

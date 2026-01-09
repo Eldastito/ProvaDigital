@@ -102,9 +102,23 @@ export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps)
 
     if (!student || !stats) {
         return (
-            <div className="flex h-[50vh] w-full items-center justify-center flex-col gap-4">
-                <div className="w-10 h-10 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-slate-500 font-medium">Carregando dados do aluno...</p>
+            <div className="flex h-[80vh] w-full items-center justify-center flex-col gap-6 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200">
+                <div className="relative">
+                    <div className="w-16 h-16 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
+                    <UserIcon size={24} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-brand-primary/50" />
+                </div>
+                <div className="text-center">
+                    <p className="text-slate-600 font-bold text-lg">Preparando painel do aluno...</p>
+                    <p className="text-slate-400 text-sm max-w-xs mx-auto mt-2">Isso pode levar alguns segundos enquanto sincronizamos os dados mais recentes.</p>
+                </div>
+                {isParent && (
+                    <button
+                        onClick={() => navigate('/dashboard')}
+                        className="bg-brand-primary text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center gap-2"
+                    >
+                        <ChevronLeft size={20} /> Ir para Portal dos Pais
+                    </button>
+                )}
             </div>
         );
     }
