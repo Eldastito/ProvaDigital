@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Brain, X, Trash2, Image as ImageIcon, Upload, GripVertical, BookOpen, Eye, CheckSquare, Save, Wand2, Loader2, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppState, Item, DifficultyLevel, QuestionType, ItemOrigin } from '../types';
-import { generateQuestionsFromText, improveItemStatement, generateDistractors, suggestBNCC } from '../services/geminiService';
+import { generateQuestionsFromText, improveItemStatement, generateDistractors, suggestBNCC, generateJustification } from '../services/geminiService';
 import { uuidv4 } from '../utils/helpers';
 import { RichTextEditor } from './RichTextEditor';
 import { useAppStore } from '../store/useAppStore';
@@ -126,6 +126,17 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
         setIsBNCCLoading(false);
     };
 
+    const handleGenerateJustification = async () => {
+        const correctAlt = alternatives.find(a => a.isCorrect && a.text.trim());
+        if (!correctAlt) return alert('Defina a alternativa correta primeiro.');
+        if (!form.statement.trim()) return alert('O enunciado é necessário.');
+
+        setIsImproving(true); // Reusing improving state for justification loading
+        const justification = await generateJustification(form.statement, correctAlt.text);
+        setForm(prev => ({ ...prev, correctAnswerJustification: justification }));
+        setIsImproving(false);
+    };
+
     const handleGenerate = async () => {
         if (!aiContext) return alert('Insira um texto de contexto.');
         setAiLoading(true);
@@ -155,14 +166,21 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
             // 2. Sugerir BNCC
             const bncc = await suggestBNCC(improved);
 
+            // 3. Gerar Justificativa (se tiver a correta)
+            const correctAlt = alternatives.find(a => a.isCorrect && a.text.trim());
+            let justification = form.correctAnswerJustification;
+            if (correctAlt) {
+                justification = await generateJustification(improved, correctAlt.text);
+            }
+
             setForm(prev => ({
                 ...prev,
                 statement: improved,
-                bnccCode: bncc.code
+                bnccCode: bncc.code,
+                correctAnswerJustification: justification
             }));
 
-            // 3. Gerar Alternativas (se for múltipla escolha e tiver a correta marcada)
-            const correctAlt = alternatives.find(a => a.isCorrect && a.text.trim());
+            // 4. Gerar Alternativas (se for múltipla escolha e tiver a correta marcada)
             if (form.type === QuestionType.MULTIPLE_CHOICE && correctAlt) {
                 const distratores = await generateDistractors(improved, correctAlt.text);
                 setAlternatives([

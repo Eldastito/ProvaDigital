@@ -100,6 +100,12 @@ const PROMPTS = {
         3. Gere um feedback curto (1 frase) e construtivo.
         
         RETORNE APENAS UM ARRAY JSON com objetos contendo: { "id": "...", "score": number, "feedback": "string" }
+    `,
+    GENERATE_JUSTIFICATION: (statement: string, correct: string) => `
+        Você é um professor especialista. Escreva uma justificativa clara, pedagógica e concisa para a resposta correta da questão abaixo.
+        Enunciado: "${statement}"
+        Resposta Correta: "${correct}"
+        Retorne apenas o texto da justificativa, sem prefixos como "Justificativa:".
     `
 };
 
@@ -185,6 +191,9 @@ const getApiKey = (): string | undefined => {
 
     // 2. Vite Environment Variable
     const meta = import.meta as any;
+    if (meta && meta.env && meta.env.VITE_GEMINI_API_KEY) {
+        return meta.env.VITE_GEMINI_API_KEY;
+    }
     if (meta && meta.env && meta.env.VITE_API_KEY) {
         return meta.env.VITE_API_KEY;
     }
@@ -451,6 +460,11 @@ export const suggestBNCC = async (statement: string): Promise<{ code: string; re
         code: "EF00MOCK",
         reason: "Modo offline habilitado."
     });
+};
+
+export const generateJustification = async (statement: string, correct: string): Promise<string> => {
+    const prompt = PROMPTS.GENERATE_JUSTIFICATION(statement, correct);
+    return callGeminiAPI<string>(prompt, undefined, "Justificativa gerada em modo offline.");
 };
 
 // --- Internal Mock Generator (Fallback) ---
