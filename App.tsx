@@ -42,6 +42,7 @@ import { GovernanceView } from './components/Admin/GovernanceView';
 import { AuditLogView } from './components/Admin/AuditLogView';
 import { TabletLauncher } from './components/TabletApp/TabletLauncher';
 import { LiveDemoLobby } from './components/Demo/LiveDemoLobby';
+import { AIDiagnosticView } from './components/Diagnostics/AIDiagnosticView';
 
 export default function App() {
   const store = useAppStore();
@@ -290,6 +291,7 @@ export default function App() {
                       <Route path="apps/demo" element={<LiveDemoLobby onClose={() => navigate('/dashboard')} />} />
 
                       {/* UTILS */}
+                      <Route path="diag-ai" element={<AIDiagnosticView />} />
                       <Route path="print-exam/:id" element={<PrintUtilWrapper store={store} />} />
                       <Route path="results/:id" element={<ResultsUtilWrapper store={store} navigate={navigate} />} />
 

@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { QuestionType, DifficultyLevel, AssessmentType } from "../types";
 
 // --- Configuration ---
-const DEFAULT_MODEL = 'gemini-2.5-flash';
+const DEFAULT_MODEL = 'gemini-1.5-flash';
 
 // --- Prompts ---
 const PROMPTS = {
@@ -198,12 +198,14 @@ const getApiKey = (): string | undefined => {
         return meta.env.VITE_API_KEY;
     }
 
-    // 3. Safe Process Check (Node/Server environment)
+    // 3. Safe Process Check (Vite Defined or Node)
     try {
         // @ts-ignore
-        if (typeof process !== 'undefined' && process?.env?.API_KEY) {
+        if (typeof process !== 'undefined') {
             // @ts-ignore
-            return process.env.API_KEY;
+            if (process.env?.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
+            // @ts-ignore
+            if (process.env?.API_KEY) return process.env.API_KEY;
         }
     } catch (e) {
         // Ignore reference errors
