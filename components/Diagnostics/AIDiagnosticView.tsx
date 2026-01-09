@@ -27,9 +27,9 @@ export const AIDiagnosticView: React.FC = () => {
             const testText = "O gato subiu no telhado.";
             const result = await improveItemStatement(testText);
 
+            console.log("[AIDiagnosticView] Resultado do teste:", result);
+
             // Validação rigorosa:
-            // 1. O resultado tem que ser diferente do texto original (se for igual, é fallback)
-            // 2. Não pode conter marcas de modo offline
             const isFallback = (result === testText) ||
                 result.toLowerCase().includes("offline") ||
                 result.includes("EF00MOCK");
@@ -38,11 +38,12 @@ export const AIDiagnosticView: React.FC = () => {
                 setStatus('success');
             } else {
                 const lastError = (globalThis as any).LAST_GEMINI_ERROR;
-                throw new Error(lastError || "A IA não processou o texto (fallback ativado). Verifique a chave ou o formato do SDK.");
+                throw new Error(lastError || "A IA não processou o texto (fallback ativado). Verifique os logs do console.");
             }
         } catch (err: any) {
             setStatus('error');
-            setErrorMsg(err.message || "Erro desconhecido ao chamar API.");
+            const globalErr = (globalThis as any).LAST_GEMINI_ERROR;
+            setErrorMsg(globalErr || err.message || "Erro desconhecido ao chamar API.");
             console.error("DIAGNOSTICO IA FAILED:", err);
         }
     };
