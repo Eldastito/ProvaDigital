@@ -269,10 +269,8 @@ async function callGeminiAPI<T>(
     console.log(`[GeminiService] Usando chave: ${apiKey.substring(0, 7)}...`);
 
     try {
-        // @ts-ignore - Forçando v1 para evitar erros de v1beta (404 not found)
         const ai = new GoogleGenAI({
-            apiKey,
-            model: 'gemini-2.0-flash'
+            apiKey
         });
 
         const config: any = {};
@@ -339,20 +337,21 @@ export const listAvailableModels = async (): Promise<any[]> => {
     const apiKey = getApiKey();
     if (!apiKey) return [];
     try {
-        // @ts-ignore
-        const ai = new GoogleGenAI({ apiKey, apiVersion: 'v1' });
+        const ai = new GoogleGenAI({ apiKey });
         const response = await ai.models.list();
         console.log("[GeminiService] Resposta bruta de listModels:", response);
 
-        // O SDK @google/genai pode retornar modelos em diferentes propriedades ou diretamente
-        const models = (response as any).models ||
-            (response as any).candidates ||
-            (Array.isArray(response) ? response : []);
+        // Acesso ultra-resiliente
+        let models: any[] = [];
+        if (Array.isArray(response)) {
+            models = response;
+        } else if (response && typeof response === 'object') {
+            models = (response as any).models || (response as any).candidates || Object.values(response).find(v => Array.isArray(v)) || [];
+        }
 
         return models;
     } catch (error: any) {
         console.error("[GeminiService] Error listing models:", error);
-        // Retornamos um objeto de erro para mostrar na tela
         return [{ name: `ERRO: ${error.message || 'Falha na listagem'}` }];
     }
 };
