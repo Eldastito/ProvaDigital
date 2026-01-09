@@ -22,7 +22,7 @@ export const ExamsListView = ({ state }: { state: AppState }) => {
                     </h1>
                     <p className="text-sm text-slate-500">Visualize e reutilize provas de toda a rede de ensino.</p>
                 </div>
-                <button onClick={() => navigate('/exams/new')} className="btn-gradient px-4 py-2 rounded-lg flex items-center gap-2 font-medium">
+                <button onClick={() => navigate('/teacher/provas/nova')} className="btn-gradient px-4 py-2 rounded-lg flex items-center gap-2 font-medium">
                     <Plus size={18} /> Nova Prova
                 </button>
             </div>
@@ -58,7 +58,7 @@ export const ExamsListView = ({ state }: { state: AppState }) => {
 
                                     <div className="flex gap-3">
                                         <button
-                                            onClick={() => navigate(`/exams/${exam.id}/print`)}
+                                            onClick={() => navigate(`/print-exam/${exam.id}`)}
                                             className="text-slate-500 font-medium text-sm hover:text-brand-primary flex items-center gap-1 transition"
                                             title="Imprimir / Visualizar"
                                         >
@@ -67,7 +67,7 @@ export const ExamsListView = ({ state }: { state: AppState }) => {
                                         {/* Enable Grading for ACTIVE and COMPLETED exams (and legacy PUBLISHED) */}
                                         {(exam.status === ExamStatus.ACTIVE || exam.status === ExamStatus.COMPLETED || (exam.status as any) === 'PUBLISHED') && (
                                             <button
-                                                onClick={() => navigate(`/exams/${exam.id}/results`)}
+                                                onClick={() => navigate(`/results/${exam.id}`)}
                                                 className="text-brand-secondary font-medium text-sm hover:text-cyan-700 flex items-center gap-1 transition"
                                                 title="Lançar Notas / Corrigir"
                                             >
