@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { QuestionType, DifficultyLevel, AssessmentType } from "../types";
 
 // --- Configuration ---
-const DEFAULT_MODEL = 'gemini-1.5-flash';
+const DEFAULT_MODEL = 'gemini-2.0-flash';
 
 // --- Prompts ---
 const PROMPTS = {
@@ -272,7 +272,7 @@ async function callGeminiAPI<T>(
         // @ts-ignore - Forçando v1 para evitar erros de v1beta (404 not found)
         const ai = new GoogleGenAI({
             apiKey,
-            apiVersion: 'v1'
+            model: 'gemini-2.0-flash'
         });
 
         const config: any = {};
@@ -342,7 +342,13 @@ export const listAvailableModels = async (): Promise<any[]> => {
         // @ts-ignore
         const ai = new GoogleGenAI({ apiKey, apiVersion: 'v1' });
         const response = await ai.models.list();
-        const models = (response as any).models || (Array.isArray(response) ? response : []);
+        console.log("[GeminiService] Resposta bruta de listModels:", response);
+
+        // O SDK @google/genai pode retornar modelos em diferentes propriedades ou diretamente
+        const models = (response as any).models ||
+            (response as any).candidates ||
+            (Array.isArray(response) ? response : []);
+
         return models;
     } catch (error: any) {
         console.error("[GeminiService] Error listing models:", error);
