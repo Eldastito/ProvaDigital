@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { QuestionType, DifficultyLevel, AssessmentType } from "../types";
 
 // --- Configuration ---
-const DEFAULT_MODEL = 'gemini-1.5-flash-latest';
+const DEFAULT_MODEL = 'gemini-1.5-flash';
 
 // --- Prompts ---
 const PROMPTS = {
@@ -269,7 +269,11 @@ async function callGeminiAPI<T>(
     console.log(`[GeminiService] Usando chave: ${apiKey.substring(0, 7)}...`);
 
     try {
-        const ai = new GoogleGenAI({ apiKey });
+        // @ts-ignore - Forçando v1 para evitar erros de v1beta (404 not found)
+        const ai = new GoogleGenAI({
+            apiKey,
+            apiVersion: 'v1'
+        });
 
         const config: any = {};
         if (responseSchema) {
@@ -335,14 +339,15 @@ export const listAvailableModels = async (): Promise<any[]> => {
     const apiKey = getApiKey();
     if (!apiKey) return [];
     try {
-        const ai = new GoogleGenAI({ apiKey });
+        // @ts-ignore
+        const ai = new GoogleGenAI({ apiKey, apiVersion: 'v1' });
         const response = await ai.models.list();
-        // Acesso resiliente aos modelos (SDK pode retornar estrutura variada)
         const models = (response as any).models || (Array.isArray(response) ? response : []);
         return models;
-    } catch (error) {
+    } catch (error: any) {
         console.error("[GeminiService] Error listing models:", error);
-        return [];
+        // Retornamos um objeto de erro para mostrar na tela
+        return [{ name: `ERRO: ${error.message || 'Falha na listagem'}` }];
     }
 };
 
