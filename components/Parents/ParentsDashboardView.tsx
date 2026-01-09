@@ -233,6 +233,20 @@ export const ParentsDashboardView = () => {
                     <User size={64} className="mx-auto text-slate-300 mb-4" />
                     <h2 className="text-2xl font-black text-brand-dark">Nenhum filho vinculado</h2>
                     <p className="text-slate-600">Entre em contato com a secretaria.</p>
+
+                    {/* Debug Info for Admin/Dev troubleshooting */}
+                    <div className="mt-8 p-4 bg-slate-50 rounded-lg text-left border border-slate-200">
+                        <p className="text-xs font-bold text-slate-400 uppercase mb-2">Debug Context:</p>
+                        <pre className="text-[10px] text-slate-500 overflow-auto max-h-40">
+                            {JSON.stringify({
+                                userEmail: currentUser?.email,
+                                userRole: currentUser?.role,
+                                userChildrenIds: currentUser?.childrenIds,
+                                totalStudentsLoaded: students.length,
+                                studentsSample: students.slice(0, 3).map(s => ({ id: s.id, name: s.name }))
+                            }, null, 2)}
+                        </pre>
+                    </div>
                 </div>
             )}
         </div>
