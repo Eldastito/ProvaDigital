@@ -24,13 +24,21 @@ export const AIDiagnosticView: React.FC = () => {
         setDebugInfo(info);
 
         try {
-            const result = await improveItemStatement("Teste de conectividade da IA.");
-            // Verificamos se o resultado não é o fallback "offline"
-            if (result && result.length > 5 && !result.toLowerCase().includes("offline")) {
+            const testText = "O gato subiu no telhado.";
+            const result = await improveItemStatement(testText);
+
+            // Validação rigorosa:
+            // 1. O resultado tem que ser diferente do texto original (se for igual, é fallback)
+            // 2. Não pode conter marcas de modo offline
+            const isFallback = (result === testText) ||
+                result.toLowerCase().includes("offline") ||
+                result.includes("EF00MOCK");
+
+            if (result && result.length > 5 && !isFallback) {
                 setStatus('success');
             } else {
                 const lastError = (globalThis as any).LAST_GEMINI_ERROR;
-                throw new Error(lastError || "A IA retornou uma resposta de fallback (Modo Offline). Verifique se a chave está correta no Easypanel.");
+                throw new Error(lastError || "A IA não processou o texto (fallback ativado). Verifique a chave ou o formato do SDK.");
             }
         } catch (err: any) {
             setStatus('error');
