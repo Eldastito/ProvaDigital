@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Brain, ShieldCheck, ShieldAlert, Loader2, Sparkles } from 'lucide-react';
-import { improveItemStatement } from '../../services/geminiService';
+import { improveItemStatement, listAvailableModels } from '../../services/geminiService';
 
 export const AIDiagnosticView: React.FC = () => {
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
