@@ -292,8 +292,14 @@ async function callGeminiAPI<T>(
 
         return text as unknown as T;
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("[GeminiService] API Error:", error);
+        // If it's a critical error (like safety or API key), we might want to know
+        const errorMessage = error.message || "Erro desconhecido na API do Gemini";
+
+        // Em vez de apenas o fallback, vamos logar o erro de forma que o Diagnóstico capture
+        (globalThis as any).LAST_GEMINI_ERROR = errorMessage;
+
         return fallbackValue;
     }
 }
