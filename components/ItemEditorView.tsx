@@ -141,6 +141,45 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
         }
     };
 
+    const handleMagicPolish = async () => {
+        if (!form.statement.replace(/<[^>]*>/g, '').trim()) return alert('Escreva algo no enunciado primeiro para o Polimento Mágico.');
+
+        setIsImproving(true);
+        setIsGeneratingAlts(true);
+        setIsBNCCLoading(true);
+
+        try {
+            // 1. Melhorar Enunciado
+            const improved = await improveItemStatement(form.statement);
+
+            // 2. Sugerir BNCC
+            const bncc = await suggestBNCC(improved);
+
+            setForm(prev => ({
+                ...prev,
+                statement: improved,
+                bnccCode: bncc.code
+            }));
+
+            // 3. Gerar Alternativas (se for múltipla escolha e tiver a correta marcada)
+            const correctAlt = alternatives.find(a => a.isCorrect && a.text.trim());
+            if (form.type === QuestionType.MULTIPLE_CHOICE && correctAlt) {
+                const distratores = await generateDistractors(improved, correctAlt.text);
+                setAlternatives([
+                    correctAlt,
+                    ...distratores.map(d => ({ text: d, isCorrect: false }))
+                ]);
+            }
+        } catch (err) {
+            console.error("Erro no Polimento Mágico:", err);
+            alert("Ocorreu um erro no polimento. Tente as funções individuais.");
+        } finally {
+            setIsImproving(false);
+            setIsGeneratingAlts(false);
+            setIsBNCCLoading(false);
+        }
+    };
+
     const approveItem = (genItem: any) => {
         const newItem: Item = {
             id: uuidv4(),
@@ -226,6 +265,17 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
                     <button onClick={() => setMode('AI')} className={`pb-1 text-sm font-medium border-b-2 transition flex items-center gap-2 ${mode === 'AI' ? 'border-brand-secondary text-brand-secondary' : 'border-transparent text-slate-500'}`}>
                         <Brain size={14} /> Gerar com IA
                     </button>
+                    {mode === 'MANUAL' && (
+                        <button
+                            onClick={handleMagicPolish}
+                            disabled={isImproving || isGeneratingAlts || isBNCCLoading}
+                            className="pb-1 text-sm font-bold text-indigo-600 flex items-center gap-2 hover:text-indigo-800 transition border-b-2 border-transparent hover:border-indigo-400"
+                            title="Aprimora enunciado, gera alternativas e sugere BNCC de uma só vez"
+                        >
+                            {isImproving || isGeneratingAlts || isBNCCLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                            Polimento Mágico
+                        </button>
+                    )}
                 </div>
                 <button onClick={() => navigate('/items')} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
             </div>

@@ -52,6 +52,7 @@ export const NetworkDashboardView = ({ state }: { state: AppState }) => {
 
     const mapPoints = useMemo(() => {
         if (dashboardLevel === 'FEDERAL') {
+            // ... (keep federal static for demo context if needed, but schools are more important)
             return [
                 { id: 'ac', x: 10.5, y: 40.1, label: 'Acre (AC)', status: 'NORMAL', value: 6.2 },
                 { id: 'al', x: 92.0, y: 38.0, label: 'Alagoas (AL)', status: 'WARNING', value: 5.5 },
@@ -82,23 +83,29 @@ export const NetworkDashboardView = ({ state }: { state: AppState }) => {
                 { id: 'to', x: 63.7, y: 40.0, label: 'Tocantins (TO)', status: 'NORMAL', value: 6.2 },
             ];
         } else {
-            // Escolas reais ou mockadas para níveis menores (Posições fictícias)
+            // Escolas reais
             return state.schools.map((school) => {
                 const pseudoRandom = (seed: string) => {
                     let val = 0;
                     for (let j = 0; j < seed.length; j++) val += seed.charCodeAt(j);
                     return val;
                 };
-                const x = (pseudoRandom(school.id + 'x') % 50) + 25;
-                const y = (pseudoRandom(school.id + 'y') % 50) + 25;
+                const x = (pseudoRandom(school.id + 'x') % 60) + 20;
+                const y = (pseudoRandom(school.id + 'y') % 60) + 20;
 
                 const students = state.students.filter(s => s.schoolId === school.id);
                 const stats = students.map(s => analytics.getStudentStats(s.id)).filter(Boolean) as any[];
-                const avg = stats.reduce((acc, curr) => acc + curr.idgScore, 0) / (stats.length || 1);
+
+                const avg = stats.length > 0
+                    ? stats.reduce((acc, curr) => acc + curr.idgScore, 0) / stats.length
+                    : 0;
 
                 let status: 'NORMAL' | 'WARNING' | 'CRITICAL' = 'NORMAL';
-                if (avg < 5) status = 'CRITICAL';
-                else if (avg < 7) status = 'WARNING';
+                // Only mark as Critical/Warning if there's actually data
+                if (stats.length > 0) {
+                    if (avg < 5) status = 'CRITICAL';
+                    else if (avg < 7) status = 'WARNING';
+                }
 
                 return {
                     id: school.id,
@@ -169,19 +176,20 @@ export const NetworkDashboardView = ({ state }: { state: AppState }) => {
         );
     };
 
-    // --- GRÁFICO 2: DESEMPENHO POR DISCIPLINA (Bar Chart) ---
-    const subjectsData = [
-        { label: 'Português', value: 7.5, color: '#3b82f6' },
-        { label: 'Matemática', value: 6.2, color: '#2563eb' },
-        { label: 'Ciências', value: 6.8, color: '#1d4ed8' },
-        { label: 'História', value: 7.9, color: '#1e40af' },
-        { label: 'Geografia', value: 7.1, color: '#172554' },
-    ];
+    // --- DATA FETCHING ---
+    const networkStats = analytics.getNetworkStats();
+    const realSubjectsData = analytics.getSubjectBreakdown();
+
+    // --- GRÁFICO 1: PROJEÇÃO IDEB (SVG Line Chart) ---
 
     const renderBarChart = () => {
+        const displayData = realSubjectsData.length > 0 ? realSubjectsData : [
+            { label: 'Sem Dados', value: 0, color: '#cbd5e1' }
+        ];
+
         return (
             <div className="h-48 flex items-end justify-between gap-3 pt-6">
-                {subjectsData.map((s, i) => (
+                {displayData.map((s, i) => (
                     <div key={i} className="flex-1 flex flex-col items-center group relative">
                         <div className="relative w-full flex items-end justify-center h-full bg-slate-100 rounded-t-lg overflow-hidden">
                             <div
@@ -189,7 +197,7 @@ export const NetworkDashboardView = ({ state }: { state: AppState }) => {
                                 style={{ height: `${s.value * 10}%`, backgroundColor: s.color }}
                             >
                                 <div className="absolute top-2 left-1/2 -translate-x-1/2 text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                                    {s.value}
+                                    {s.value.toFixed(1)}
                                 </div>
                             </div>
                         </div>
@@ -258,20 +266,22 @@ export const NetworkDashboardView = ({ state }: { state: AppState }) => {
                         <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                             <div className="text-slate-400 text-[10px] font-bold uppercase mb-1">Índice Geral (IDEB)</div>
                             <div className="text-2xl md:text-3xl font-black text-slate-800 flex items-end gap-2">
-                                6.8 <span className="text-xs text-emerald-500 font-bold mb-1 flex items-center"><ArrowUpRight size={12} /> +0.4</span>
+                                {networkStats.avgIDG.toFixed(1)} <span className="text-xs text-emerald-500 font-bold mb-1 flex items-center"><ArrowUpRight size={12} /> +0.4</span>
                             </div>
                         </div>
                         <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                             <div className="text-slate-400 text-[10px] font-bold uppercase mb-1">Total Alunos</div>
-                            <div className="text-2xl md:text-3xl font-black text-slate-800">14.2k</div>
+                            <div className="text-2xl md:text-3xl font-black text-slate-800">
+                                {networkStats.totalStudents > 1000 ? `${(networkStats.totalStudents / 1000).toFixed(1)}k` : networkStats.totalStudents}
+                            </div>
                         </div>
                         <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                             <div className="text-slate-400 text-[10px] md:text-xs font-bold uppercase mb-1">Risco Acadêmico</div>
-                            <div className="text-2xl md:text-3xl font-black text-rose-500">12%</div>
+                            <div className="text-2xl md:text-3xl font-black text-rose-500">{networkStats.riskPercentage.toFixed(0)}%</div>
                         </div>
                         <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                             <div className="text-slate-400 text-[10px] md:text-xs font-bold uppercase mb-1">Conectividade</div>
-                            <div className="text-2xl md:text-3xl font-black text-brand-primary">98%</div>
+                            <div className="text-2xl md:text-3xl font-black text-brand-primary">100%</div>
                         </div>
                     </div>
 
