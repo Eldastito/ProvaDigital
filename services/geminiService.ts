@@ -183,45 +183,45 @@ export const batchGradeAnswers = async (answers: AnswerContext[]): Promise<Batch
 // --- Helper: Safe Env Access ---
 // This function is critical for stability in Web Containers where 'process' is undefined.
 const getApiKey = (): string | undefined => {
-    // 1. Browser / Web Container: Global variable injection
-    const globalKey = (globalThis as any)?.GEMINI_API_KEY;
-    if (typeof globalKey === 'string' && globalKey.trim().length > 0) {
-        return globalKey;
+    // 1. Vite Environment Variable (Static access is required for build injection)
+    // @ts-ignore
+    const viteKey = import.meta.env?.VITE_GEMINI_API_KEY;
+    if (viteKey && viteKey.trim().length > 0) {
+        console.log("[GeminiService] Chave detectada via import.meta.env.VITE_GEMINI_API_KEY");
+        return viteKey;
     }
 
-    // 2. Vite Environment Variable
-    const meta = import.meta as any;
-    if (meta && meta.env && meta.env.VITE_GEMINI_API_KEY) {
-        console.log("[GeminiService] Chave encontrada em import.meta.env.VITE_GEMINI_API_KEY");
-        return meta.env.VITE_GEMINI_API_KEY;
-    }
-
-    // 2b. Global Window Check
+    // 2. Global Window Check (Injection via Easypanel/HTML)
     const win = globalThis as any;
     if (win.VITE_GEMINI_API_KEY) {
-        console.log("[GeminiService] Chave encontrada em globalThis.VITE_GEMINI_API_KEY");
+        console.log("[GeminiService] Chave detectada via globalThis.VITE_GEMINI_API_KEY");
         return win.VITE_GEMINI_API_KEY;
     }
     if (win.GEMINI_API_KEY) {
-        console.log("[GeminiService] Chave encontrada em globalThis.GEMINI_API_KEY");
+        console.log("[GeminiService] Chave detectada via globalThis.GEMINI_API_KEY");
         return win.GEMINI_API_KEY;
     }
 
-    // 3. Safe Process Check
+    // 3. Safe Process Check (Vite Defined or Node)
     try {
+        // @ts-ignore
         if (typeof process !== 'undefined' && process.env) {
+            // @ts-ignore
             if (process.env.VITE_GEMINI_API_KEY) {
-                console.log("[GeminiService] Chave encontrada em process.env.VITE_GEMINI_API_KEY");
+                console.log("[GeminiService] Chave detectada via process.env.VITE_GEMINI_API_KEY");
                 return process.env.VITE_GEMINI_API_KEY;
             }
+            // @ts-ignore
             if (process.env.GEMINI_API_KEY) {
-                console.log("[GeminiService] Chave encontrada em process.env.GEMINI_API_KEY");
+                console.log("[GeminiService] Chave detectada via process.env.GEMINI_API_KEY");
                 return process.env.GEMINI_API_KEY;
             }
         }
-    } catch (e) { }
+    } catch (e) {
+        // Ignore reference errors
+    }
 
-    console.error("[GeminiService] Nenhuma chave de API foi encontrada em nenhuma fonte!");
+    console.error("[GeminiService] Nenhuma chave de API encontrada em nenhuma fonte!");
     return undefined;
 };
 

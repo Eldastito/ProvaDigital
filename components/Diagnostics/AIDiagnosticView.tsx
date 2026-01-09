@@ -15,9 +15,9 @@ export const AIDiagnosticView: React.FC = () => {
             timestamp: new Date().toISOString(),
             userAgent: navigator.userAgent,
             env: {
-                VITE_GEMINI_API_KEY: (import.meta as any).env?.VITE_GEMINI_API_KEY ? 'Presente ✅' : 'AUSENTE ❌',
+                VITE_GEMINI_API_KEY: (import.meta as any).env?.VITE_GEMINI_API_KEY ? `Presente (${(import.meta as any).env.VITE_GEMINI_API_KEY.substring(0, 7)}...) ✅` : 'AUSENTE ❌',
                 GEMINI_API_KEY: (import.meta as any).env?.GEMINI_API_KEY ? 'Presente ✅' : 'AUSENTE ❌',
-                process_env_GEMINI: typeof process !== 'undefined' && process.env?.GEMINI_API_KEY ? 'Presente ✅' : 'AUSENTE ❌',
+                process_env_GEMINI: (typeof process !== 'undefined' && (process as any).env?.VITE_GEMINI_API_KEY) ? 'Presente ✅' : 'AUSENTE ❌',
                 global_key: (globalThis as any).GEMINI_API_KEY ? 'Presente ✅' : 'AUSENTE ❌'
             }
         };
