@@ -88,6 +88,11 @@ CREATE TABLE IF NOT EXISTS public.items (
   difficulty TEXT,
   alternatives JSONB DEFAULT '[]'::jsonb,
   correct_justification TEXT,
+  bncc_code TEXT,
+  origin TEXT DEFAULT 'MANUAL',
+  score NUMERIC DEFAULT 1.0,
+  tags TEXT[] DEFAULT '{}',
+  tri_params JSONB,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

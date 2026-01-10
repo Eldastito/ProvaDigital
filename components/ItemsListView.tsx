@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Filter, Plus, Eye, X, Check, Brain, ChevronDown, ChevronUp, History, BookOpen, AlignLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { AppState, Item, DifficultyLevel, ItemOrigin, Exam, QuestionType } from '../types';
+import { AppState, Item, DifficultyLevel, ItemOrigin, Exam, QuestionType, UserRole } from '../types';
 import { Badge } from './ui/Badge';
 import { useAppStore } from '../store/useAppStore';
 
@@ -85,16 +85,27 @@ export const ItemsListView = ({ state }: { state: AppState }) => {
     const [filterDifficulty, setFilterDifficulty] = useState('');
     const [filterBncc, setFilterBncc] = useState('');
 
+    const normalizeText = (text: string) =>
+        text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
     // FILTER LOGIC
     const filteredItems = state.items.filter(i => {
-        const matchesTenant = i.tenantId === userTenantId;
+        // More lenient tenant check: allow if same tenant OR if current user is super admin
+        const matchesTenant = !userTenantId || i.tenantId === userTenantId || currentUser?.role === UserRole.SUPER_ADMIN;
         if (!matchesTenant) return false;
 
-        const matchesText = i.statement.toLowerCase().includes(filterText.toLowerCase()) ||
-            i.tags.some(t => t.toLowerCase().includes(filterText.toLowerCase()));
-        const matchesSubject = filterSubject ? i.subject.toLowerCase().includes(filterSubject.toLowerCase()) : true;
-        const matchesDifficulty = filterDifficulty ? i.difficulty === filterDifficulty : true;
-        const matchesBncc = filterBncc ? i.bnccCode?.toLowerCase().includes(filterBncc.toLowerCase()) : true;
+        const searchText = normalizeText(filterText);
+        const matchesText = !filterText ||
+            normalizeText(i.statement).includes(searchText) ||
+            i.tags.some(t => normalizeText(t).includes(searchText));
+
+        const subjectQuery = normalizeText(filterSubject);
+        const matchesSubject = !filterSubject || normalizeText(i.subject).includes(subjectQuery);
+
+        const matchesDifficulty = !filterDifficulty || i.difficulty === filterDifficulty;
+
+        const bnccQuery = normalizeText(filterBncc);
+        const matchesBncc = !filterBncc || (i.bnccCode && normalizeText(i.bnccCode).includes(bnccQuery));
 
         return matchesText && matchesSubject && matchesDifficulty && matchesBncc;
     });
@@ -108,15 +119,21 @@ export const ItemsListView = ({ state }: { state: AppState }) => {
     return (
         <div className="space-y-6 max-w-7xl mx-auto h-[calc(100vh-100px)] flex flex-col">
             <div className="flex justify-between items-center flex-shrink-0">
-                <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-brand-secondary" size={18} />
-                    <input
-                        type="text"
-                        placeholder="Buscar por enunciado ou tag..."
-                        className="w-full pl-10 pr-4 py-2 border border-brand-secondary/30 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none text-sm shadow-sm"
-                        value={filterText}
-                        onChange={(e) => setFilterText(e.target.value)}
-                    />
+                <div className="flex flex-1 max-w-md gap-2">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-brand-secondary" size={18} />
+                        <input
+                            type="text"
+                            placeholder="Buscar por enunciado ou tag..."
+                            className="w-full pl-10 pr-4 py-2 border border-brand-secondary/30 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none text-sm shadow-sm"
+                            value={filterText}
+                            onChange={(e) => setFilterText(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && setShowFilters(false)}
+                        />
+                    </div>
+                    <button className="bg-brand-primary text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-sky-700 transition flex items-center gap-2">
+                        <Search size={16} /> Buscar
+                    </button>
                 </div>
                 <div className="flex gap-3">
                     <button
@@ -165,10 +182,16 @@ export const ItemsListView = ({ state }: { state: AppState }) => {
                             onChange={e => setFilterBncc(e.target.value)}
                         />
                     </div>
-                    <div className="flex items-end">
+                    <div className="flex items-end gap-3">
+                        <button
+                            onClick={() => setShowFilters(false)}
+                            className="bg-brand-primary text-white px-6 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-sky-700 transition flex items-center justify-center gap-2 flex-1"
+                        >
+                            <Filter size={16} /> Filtrar Resultados
+                        </button>
                         <button
                             onClick={() => { setFilterSubject(''); setFilterDifficulty(''); setFilterText(''); setFilterBncc(''); }}
-                            className="text-xs text-brand-primary hover:underline font-medium mb-2"
+                            className="text-xs text-slate-500 hover:text-rose-600 font-medium mb-2 whitespace-nowrap"
                         >
                             Limpar Filtros
                         </button>

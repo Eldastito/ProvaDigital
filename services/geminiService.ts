@@ -97,6 +97,34 @@ const PROMPTS = {
         Retorne apenas o código (ex: EF09HI01) e uma breve descrição do porquê.
         Formato JSON: { "code": "...", "reason": "..." }
     `,
+    CLONE_AND_VARIATE: (item: string) => `
+        Você é um Professor Especialista em Avaliação. 
+        Sua tarefa é criar uma VARIAÇÃO de uma questão existente para evitar colas.
+        
+        QUESTÃO ORIGINAL: ${item}
+        
+        REGRAS:
+        1. Mantenha a mesma HABILIDADE BNCC e DIFICULDADE.
+        2. Mude o CENÁRIO, os VALORES NUMÉRICOS (se houver) e os NOMES.
+        3. Mude a ordem e o conteúdo das alternativas, mantendo a coerência.
+        4. O objetivo é que quem resolveu a orignal não consiga simplesmente "decorar" a resposta da nova.
+        
+        Retorne em JSON seguindo o schema de GeneratedQuestion.
+    `,
+    ADAPT_FOR_ACCESSIBILITY: (item: string, profile: 'TEA' | 'TDAH' | 'VISUAL' | 'GERAL') => `
+        Você é um Especialista em Educação Especial e Inclusiva. 
+        Adapte a questão abaixo para o perfil: ${profile}.
+        
+        QUESTÃO ORIGINAL: ${item}
+        
+        DIRETRIZES:
+        - TEA: Linguagem literal, sem metáforas, comandos diretos, suporte visual descrito.
+        - TDAH: Enunciados curtos, pontos-chave em negrito, uma informação por vez.
+        - VISUAL: Descrições detalhadas de imagens (Alt text), redundância sonora sugerida.
+        - GERAL: Linguagem simples (Easy-to-read), sem ambiguidades.
+        
+        Retorne em JSON adicionando campos 'isAccessible: true' e 'accessibilityInstructions'.
+    `,
     BATCH_GRADE: (items: string) => `
         Você é um corretor de provas especialista. Receba um lote de respostas de alunos e avalie cada uma.
         
@@ -555,6 +583,67 @@ export const suggestBNCC = async (statement: string): Promise<{ code: string; re
 export const generateJustification = async (statement: string, correct: string): Promise<string> => {
     const prompt = PROMPTS.GENERATE_JUSTIFICATION(statement, correct);
     return callGeminiAPI<string>(prompt, undefined, "Justificativa gerada em modo offline.");
+};
+
+export const variateItem = async (itemJson: string): Promise<GeneratedQuestion> => {
+    const prompt = PROMPTS.CLONE_AND_VARIATE(itemJson);
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            statement: { type: Type.STRING },
+            alternatives: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        text: { type: Type.STRING },
+                        isCorrect: { type: Type.BOOLEAN }
+                    }
+                }
+            },
+            justification: { type: Type.STRING },
+            difficulty: { type: Type.STRING },
+            bnccCode: { type: Type.STRING },
+            triParams: {
+                type: Type.OBJECT,
+                properties: {
+                    difficulty: { type: Type.NUMBER },
+                    discrimination: { type: Type.NUMBER },
+                    guessing: { type: Type.NUMBER },
+                    bloomTaxonomy: { type: Type.STRING }
+                }
+            }
+        },
+        required: ["statement", "alternatives", "justification"]
+    };
+    return callGeminiAPI<GeneratedQuestion>(prompt, schema, JSON.parse(itemJson));
+};
+
+export const adaptItemForAccessibility = async (itemJson: string, profile: 'TEA' | 'TDAH' | 'VISUAL' | 'GERAL'): Promise<GeneratedQuestion & { isAccessible: boolean; accessibilityInstructions: string }> => {
+    const prompt = PROMPTS.ADAPT_FOR_ACCESSIBILITY(itemJson, profile);
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            statement: { type: Type.STRING },
+            alternatives: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        text: { type: Type.STRING },
+                        isCorrect: { type: Type.BOOLEAN }
+                    }
+                }
+            },
+            justification: { type: Type.STRING },
+            isAccessible: { type: Type.BOOLEAN },
+            accessibilityInstructions: { type: Type.STRING },
+            difficulty: { type: Type.STRING },
+            bnccCode: { type: Type.STRING }
+        },
+        required: ["statement", "alternatives", "isAccessible", "accessibilityInstructions"]
+    };
+    return callGeminiAPI<any>(prompt, schema, { ...JSON.parse(itemJson), isAccessible: true, accessibilityInstructions: "Modo Offline" });
 };
 
 // --- Internal Mock Generator (Fallback) ---

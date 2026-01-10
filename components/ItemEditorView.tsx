@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Brain, X, Trash2, Image as ImageIcon, Upload, GripVertical, BookOpen, Eye, CheckSquare, Save, Wand2, Loader2, Sparkles } from 'lucide-react';
+import { Brain, X, Trash2, Image as ImageIcon, Upload, GripVertical, BookOpen, Eye, CheckSquare, Save, Wand2, Loader2, Sparkles, Video, Music } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppState, Item, DifficultyLevel, QuestionType, ItemOrigin } from '../types';
 import { generateQuestionsFromText, improveItemStatement, generateDistractors, suggestBNCC, generateJustification } from '../services/geminiService';
@@ -84,7 +84,8 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
         bnccCode: '',
         minLines: '',
         maxLines: '',
-        showWordCount: false
+        showWordCount: false,
+        multimedia: [] as { type: 'IMAGE' | 'VIDEO' | 'AUDIO', url: string, description?: string }[]
     });
     const [alternatives, setAlternatives] = useState([{ text: '', isCorrect: false }, { text: '', isCorrect: false }]);
 
@@ -176,6 +177,49 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
         ];
         setAlternatives(newAlts);
         setIsGeneratingAlts(false);
+    };
+
+    // VARIADOR E ACESSIBILIDADE
+    const [isVariating, setIsVariating] = useState(false);
+    const [isAdapting, setIsAdapting] = useState(false);
+
+    const handleVariate = async () => {
+        if (!form.statement) return alert('É necessário um enunciado para clonar.');
+        setIsVariating(true);
+        try {
+            const itemContext = JSON.stringify({ ...form, alternatives });
+            const result = await (await import('../services/geminiService')).variateItem(itemContext);
+            setForm(prev => ({ ...prev, statement: result.statement, bnccCode: result.bnccCode || prev.bnccCode }));
+            setAlternatives(result.alternatives);
+            alert("Questão variada e atualizada! Note que o enunciado e as alternativas mudaram para evitar colas.");
+        } catch (e) {
+            console.error(e);
+            alert("Erro ao variar questão.");
+        } finally {
+            setIsVariating(false);
+        }
+    };
+
+    const handleAccessibility = async (profile: 'TEA' | 'TDAH' | 'VISUAL' | 'GERAL') => {
+        if (!form.statement) return alert('É necessário um enunciado para adaptar.');
+        setIsAdapting(true);
+        try {
+            const itemContext = JSON.stringify({ ...form, alternatives });
+            const result = await (await import('../services/geminiService')).adaptItemForAccessibility(itemContext, profile);
+            setForm(prev => ({
+                ...prev,
+                statement: result.statement,
+                isAccessible: true,
+                accessibilityInstructions: result.accessibilityInstructions
+            }));
+            setAlternatives(result.alternatives);
+            alert(`Questão adaptada com sucesso para o perfil ${profile}!`);
+        } catch (e) {
+            console.error(e);
+            alert("Erro ao adaptar questão.");
+        } finally {
+            setIsAdapting(false);
+        }
     };
 
     const handleSuggestBNCC = async () => {
@@ -326,12 +370,16 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
             maxLines: form.maxLines ? parseInt(form.maxLines) : undefined,
             showWordCount: form.showWordCount,
             triParams: form.triParams,
+            isAccessible: (form as any).isAccessible || false,
+            accessibilityInstructions: (form as any).accessibilityInstructions || '',
+            multimedia: (form as any).multimedia || [],
             usageCount: 0,
             createdAt: new Date().toISOString()
         };
 
         addItem(newItem);
-        navigate('/items');
+        alert("Questão salva com sucesso!");
+        navigate('/teacher/itens');
     };
 
     return (
@@ -430,16 +478,51 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
                                 <label className="block text-sm font-medium text-slate-700">
                                     {form.type === QuestionType.REDACTION ? 'Proposta da Redação / Texto de Apoio' : 'Enunciado da Questão'}
                                 </label>
-                                <button
-                                    onClick={handleImproveStatement}
-                                    disabled={isImproving}
-                                    className="text-xs flex items-center gap-1.5 px-2 py-1 bg-purple-50 text-purple-700 rounded border border-purple-100 hover:bg-purple-100 transition font-bold"
-                                    title="Melhorar clareza e gram\u00e1tica com IA"
-                                >
-                                    {isImproving ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                                    Aprimorar com IA
-                                </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={handleImproveStatement}
+                                        disabled={isImproving}
+                                        className="text-xs flex items-center gap-1.5 px-2 py-1 bg-purple-50 text-purple-700 rounded border border-purple-100 hover:bg-purple-100 transition font-bold"
+                                    >
+                                        {isImproving ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                                        Aprimorar Texto
+                                    </button>
+                                    <button
+                                        onClick={handleVariate}
+                                        disabled={isVariating}
+                                        className="text-xs flex items-center gap-1.5 px-2 py-1 bg-amber-50 text-amber-700 rounded border border-amber-100 hover:bg-amber-100 transition font-bold"
+                                        title="Criar uma variação desta questão para evitar colas"
+                                    >
+                                        {isVariating ? <Loader2 size={12} className="animate-spin" /> : <GripVertical size={12} />}
+                                        Variar Anti-Cola
+                                    </button>
+                                    <div className="relative group">
+                                        <button
+                                            type="button"
+                                            disabled={isAdapting}
+                                            className="text-xs flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-700 rounded border border-emerald-100 hover:bg-emerald-100 transition font-bold"
+                                        >
+                                            {isAdapting ? <Loader2 size={12} className="animate-spin" /> : <Brain size={12} />}
+                                            Adaptar PCD
+                                        </button>
+                                        <div className="absolute right-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 overflow-hidden">
+                                            <button onClick={() => handleAccessibility('TEA')} className="w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 text-slate-700 font-medium border-b border-slate-100">TEA (Autismo)</button>
+                                            <button onClick={() => handleAccessibility('TDAH')} className="w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 text-slate-700 font-medium border-b border-slate-100">TDAH</button>
+                                            <button onClick={() => handleAccessibility('VISUAL')} className="w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 text-slate-700 font-medium border-b border-slate-100">Def. Visual</button>
+                                            <button onClick={() => handleAccessibility('GERAL')} className="w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 text-slate-700 font-medium">Linguagem Simples</button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
+
+                            {/* INFORMAÇÕES DE ACESSIBILIDADE SE ATIVO */}
+                            {(form as any).isAccessible && (
+                                <div className="mb-4 bg-emerald-50 p-3 rounded-lg border border-emerald-100 animate-in slide-in-from-top-2">
+                                    <p className="text-[10px] font-bold text-emerald-700 uppercase mb-1">Instruções de Acessibilidade (IA)</p>
+                                    <p className="text-xs text-emerald-800 italic">{(form as any).accessibilityInstructions || 'A questão foi adaptada para melhor compreensão.'}</p>
+                                </div>
+                            )}
+
                             {/* RICH TEXT EDITOR FOR STATEMENT */}
                             <RichTextEditor
                                 value={form.statement}
@@ -449,16 +532,39 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
                             />
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">URL da Imagem (Opcional)</label>
-                            <div className="relative flex-1">
-                                <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-accent" size={16} />
-                                <input
-                                    className="w-full border rounded-lg pl-9 p-2 text-sm"
-                                    value={form.imageUrl}
-                                    onChange={e => setForm({ ...form, imageUrl: e.target.value })}
-                                    placeholder="https://exemplo.com/figura.jpg"
-                                />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Imagem de Capa (URL)</label>
+                                <div className="relative">
+                                    <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-secondary" size={16} />
+                                    <input
+                                        className="w-full border rounded-lg pl-9 p-2 text-sm"
+                                        value={form.imageUrl}
+                                        onChange={e => setForm(prev => ({ ...prev, imageUrl: e.target.value }))}
+                                        placeholder="https://exemplo.com/imagem.jpg"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Áudio/Vídeo de Apoio (URL)</label>
+                                <div className="relative">
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-secondary">
+                                        {(form as any).multimedia?.[0]?.type === 'VIDEO' ? <Video size={16} /> : <Music size={16} />}
+                                    </div>
+                                    <input
+                                        className="w-full border rounded-lg pl-9 p-2 text-sm"
+                                        placeholder="Link do YouTube ou MP3/MP4"
+                                        onChange={e => {
+                                            const val = e.target.value;
+                                            const type = val.toLowerCase().includes('youtube') || val.toLowerCase().includes('vimeo') || val.toLowerCase().endsWith('.mp4') ? 'VIDEO' : 'AUDIO';
+                                            setForm(prev => ({
+                                                ...prev,
+                                                multimedia: val ? [{ type, url: val }] : []
+                                            }));
+                                        }}
+                                        value={(form as any).multimedia?.[0]?.url || ''}
+                                    />
+                                </div>
                             </div>
                         </div>
 
@@ -639,6 +745,6 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
                     <Save size={18} /> Salvar Item
                 </button>
             </div>
-        </div>
+        </div >
     );
 };

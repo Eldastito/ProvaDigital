@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ChevronRight, Search, Plus, Tablet, ChevronLeft, ArrowRight } from 'lucide-react';
+import { X, ChevronRight, Search, Plus, Tablet, ChevronLeft, ArrowRight, Brain } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppState, Exam, Item, ExamModel, ExamStatus, QuestionType } from '../types';
 import { Badge } from './ui/Badge';
@@ -11,11 +11,10 @@ export const ExamBuilderView = ({ state }: { state: AppState }) => {
     const { addExam } = useAppStore();
     const [step, setStep] = useState(1);
     const [config, setConfig] = useState({
-        title: '',
-        description: '',
         duration: 60,
         subject: '',
-        model: ExamModel.SOMATIVO
+        model: ExamModel.SOMATIVO,
+        shuffleItems: true
     });
     const [selectedItems, setSelectedItems] = useState<Item[]>([]);
     const [filter, setFilter] = useState('');
@@ -45,6 +44,7 @@ export const ExamBuilderView = ({ state }: { state: AppState }) => {
                 customScore: item.score
             })),
             classIds: [],
+            shuffleItems: config.shuffleItems,
             createdAt: new Date().toISOString()
         };
         addExam(newExam);
@@ -146,6 +146,23 @@ export const ExamBuilderView = ({ state }: { state: AppState }) => {
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Descrição/Instruções</label>
                             <textarea className="w-full border rounded-lg p-2 h-24" value={config.description} onChange={e => setConfig({ ...config, description: e.target.value })} />
+                        </div>
+                        <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 flex items-center justify-between shadow-sm">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-amber-100 text-amber-600 rounded-lg">
+                                    <Brain size={20} />
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-bold text-amber-900">Segurança Anti-Cola</h4>
+                                    <p className="text-xs text-amber-700">Embaralhar ordem das questões aleatoriamente para cada aluno.</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setConfig({ ...config, shuffleItems: !config.shuffleItems })}
+                                className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer ${config.shuffleItems ? 'bg-amber-500' : 'bg-slate-300'}`}
+                            >
+                                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${config.shuffleItems ? 'left-7' : 'left-1'}`} />
+                            </button>
                         </div>
                         <div className="flex justify-end pt-4">
                             <button onClick={() => setStep(2)} className="btn-gradient px-6 py-3 rounded-lg flex items-center gap-2 font-bold shadow-lg">

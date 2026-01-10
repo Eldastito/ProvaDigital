@@ -222,6 +222,13 @@ export interface Item {
     bloomTaxonomy?: string;
   };
   usageCount: number;
+  isAccessible?: boolean; // Se a questão foi adaptada para PCD/Neuro
+  accessibilityInstructions?: string; // Orientações p/ ledor/transcritor
+  multimedia?: {
+    type: 'IMAGE' | 'VIDEO' | 'AUDIO';
+    url: string;
+    description?: string; // Alt text p/ acessibilidade
+  }[];
   createdAt: string;
 }
 
@@ -256,6 +263,7 @@ export interface Exam {
   status: ExamStatus;
   items: ExamItemConfig[];
   classIds: string[];
+  shuffleItems?: boolean; // Embaralhamento randômico anti-cola
   createdAt: string;
   scheduledDate?: string;
 }

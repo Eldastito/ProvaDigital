@@ -209,10 +209,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
                     difficulty: i.difficulty,
                     alternatives: i.alternatives,
                     correctAnswerJustification: i.correct_justification,
-                    bnccCode: '', // Not in schema
-                    origin: ItemOrigin.MANUAL, // Not in schema
-                    score: 1.0, // Not in schema
-                    tags: [],
+                    bnccCode: i.bncc_code || '',
+                    origin: i.origin || ItemOrigin.MANUAL,
+                    score: i.score || 1.0,
+                    tags: i.tags || [],
+                    triParams: i.tri_params,
                     usageCount: 0,
                     createdAt: i.created_at
                 }));
@@ -317,6 +318,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 difficulty: item.difficulty,
                 alternatives: item.alternatives,
                 correct_justification: item.correctAnswerJustification,
+                bncc_code: item.bnccCode,
+                origin: item.origin,
+                score: item.score,
+                tags: item.tags,
+                tri_params: item.triParams,
                 created_at: item.createdAt
             });
 
