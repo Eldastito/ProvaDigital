@@ -91,7 +91,7 @@ export const Layout = ({ children }: LayoutProps) => {
     }
   }
 
-  const myChildren = isParent && currentUser.childrenIds
+  const myChildren = isParent && currentUser.childrenIds && students
     ? students.filter(s => currentUser.childrenIds?.includes(s.id))
     : [];
 
