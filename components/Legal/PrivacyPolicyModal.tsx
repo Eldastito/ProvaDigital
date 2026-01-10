@@ -77,20 +77,21 @@ export const PrivacyPolicyModal = ({ onAccept, onReject }: PrivacyPolicyModalPro
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-slate-200 bg-slate-50 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <p className="text-xs text-slate-500 text-center md:text-left">
+                {/* Footer */}
+                <div className="p-6 border-t border-slate-200 bg-slate-50 flex flex-col gap-4">
+                    <p className="text-xs text-slate-500 text-center">
                         Ao clicar em "Aceitar", você concorda com nossos Termos de Uso.
                     </p>
-                    <div className="flex gap-3 w-full md:w-auto">
+                    <div className="flex gap-3 w-full">
                         <button
                             onClick={onReject}
-                            className="flex-1 md:flex-none px-6 py-3 border border-slate-300 text-slate-600 font-bold rounded-xl hover:bg-slate-100 transition flex items-center justify-center gap-2"
+                            className="flex-1 px-6 py-3 border border-slate-300 text-slate-600 font-bold rounded-xl hover:bg-slate-100 transition flex items-center justify-center gap-2"
                         >
                             <XCircle size={18} /> Recusar
                         </button>
                         <button
                             onClick={onAccept}
-                            className="flex-1 md:flex-none px-6 py-3 bg-brand-primary text-white font-bold rounded-xl hover:bg-brand-dark transition shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-2"
+                            className="flex-1 px-6 py-3 bg-brand-primary text-white font-bold rounded-xl hover:bg-brand-dark transition shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-2"
                         >
                             <CheckCircle size={18} /> Aceitar e Continuar
                         </button>
