@@ -103,6 +103,20 @@ export const StudentDashboardView = () => {
     const [showEventRules, setShowEventRules] = useState<string | null>(null);
 
     if (!student || !stats) {
+        if (state.isInitialized && !student) {
+            return (
+                <div className="flex h-[80vh] w-full items-center justify-center flex-col gap-6 bg-slate-50/50 rounded-2xl border-2 border-dashed border-red-200">
+                    <AlertTriangle size={48} className="text-red-400" />
+                    <div className="text-center">
+                        <p className="text-slate-600 font-bold text-lg">Estudante não encontrado</p>
+                        <p className="text-slate-400 text-sm max-w-xs mx-auto mt-2">
+                            Não foi possível localizar os dados do aluno. Verifique se o cadastro está completo.
+                        </p>
+                    </div>
+                </div>
+            );
+        }
+
         return (
             <div className="flex h-[80vh] w-full items-center justify-center flex-col gap-6 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200">
                 <div className="relative">
