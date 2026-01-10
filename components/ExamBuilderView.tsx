@@ -1,23 +1,47 @@
 import React, { useState } from 'react';
-import { X, ChevronRight, Search, Plus, Tablet, ChevronLeft, ArrowRight, Brain } from 'lucide-react';
+import { X, ChevronRight, Search, Plus, Tablet, ChevronLeft, ArrowRight, Brain, Sparkles, Settings2, BarChart, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { AppState, Exam, Item, ExamModel, ExamStatus, QuestionType } from '../types';
+import { AppState, Exam, Item, ExamModel, ExamStatus, QuestionType, DifficultyLevel, ItemOrigin } from '../types';
 import { Badge } from './ui/Badge';
 import { uuidv4 } from '../utils/helpers';
 import { useAppStore } from '../store/useAppStore';
+import { smartSelectItems, ExamCriteria } from '../services/examService';
+// - [x] Criar `services/examService.ts` com algoritmos de seleção
+// - [x] Adicionar modo "Montagem Inteligente" no `ExamBuilderView.tsx`
+// - [x] Implementar painel de critérios (Dificuldade, BNCC, Qtd)
+// - [x] Integrar geração via IA para "Gaps" no banco de itens
+// - [ ] Validar equilíbrio pedagógico e exportação PDF
+import { generateQuestionsFromText } from '../services/geminiService';
 
-export const ExamBuilderView = ({ state }: { state: AppState }) => {
+export const ExamBuilderView = () => {
     const navigate = useNavigate();
-    const { addExam } = useAppStore();
+    const state = useAppStore();
+    const { addExam, addItem, addItems } = state;
     const [step, setStep] = useState(1);
+    const [builderMode, setBuilderMode] = useState<'MANUAL' | 'SMART'>('MANUAL');
     const [config, setConfig] = useState({
+        title: '',
         duration: 60,
         subject: '',
         model: ExamModel.SOMATIVO,
-        shuffleItems: true
+        shuffleItems: true,
+        description: ''
+    });
+    const [smartCriteria, setSmartCriteria] = useState<ExamCriteria>({
+        subject: '',
+        targetCount: 10,
+        difficultyDistribution: {
+            [DifficultyLevel.EASY]: 30,
+            [DifficultyLevel.MEDIUM]: 50,
+            [DifficultyLevel.HARD]: 20
+        },
+        bnccCodes: []
     });
     const [selectedItems, setSelectedItems] = useState<Item[]>([]);
     const [filter, setFilter] = useState('');
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [isFillingGaps, setIsFillingGaps] = useState(false);
+    const [selectionDiagnosis, setSelectionDiagnosis] = useState<any>(null);
 
     // Preview State for "Tablet Simulator"
     const [previewIndex, setPreviewIndex] = useState(0);
@@ -63,6 +87,72 @@ export const ExamBuilderView = ({ state }: { state: AppState }) => {
         }
     };
 
+    const handleSmartGenerate = () => {
+        const result = smartSelectItems({
+            ...smartCriteria,
+            subject: config.subject || smartCriteria.subject
+        }, state.items);
+
+        setSelectedItems(result.selectedItems);
+        setSelectionDiagnosis(result);
+        if (result.selectedItems.length > 0) {
+            setStep(2);
+        } else {
+            alert("Nenhum item encontrado no banco para estes critérios.");
+        }
+    };
+
+    const handleGapGeneration = async () => {
+        if (!selectionDiagnosis || selectionDiagnosis.missingCount <= 0) return;
+
+        setIsFillingGaps(true);
+        try {
+            const promptContext = `Crie questões sobre ${config.subject || smartCriteria.subject}. 
+            Habilidades desejadas: ${smartCriteria.bnccCodes?.join(', ') || 'Geral'}. 
+            Foco em preencher as seguintes lacunas: ${JSON.stringify(selectionDiagnosis.unmetBnccCodes)}`;
+
+            const generated = await generateQuestionsFromText(
+                promptContext,
+                selectionDiagnosis.missingCount,
+                QuestionType.MULTIPLE_CHOICE,
+                DifficultyLevel.MEDIUM, // Fallback, could be smarter
+                config.subject || smartCriteria.subject
+            );
+
+            if (generated) {
+                const newItems: Item[] = generated.map(g => ({
+                    id: uuidv4(),
+                    tenantId: state.currentUser?.tenantId || 't1',
+                    ownerId: state.currentUser?.id || 'sys',
+                    knowledgeArea: 'Geral',
+                    subject: config.subject || smartCriteria.subject,
+                    type: QuestionType.MULTIPLE_CHOICE,
+                    statement: g.statement,
+                    alternatives: g.alternatives.map(a => ({ id: uuidv4(), ...a })),
+                    correctAnswerJustification: g.justification,
+                    difficulty: g.difficulty as DifficultyLevel,
+                    score: 1.0,
+                    origin: ItemOrigin.IA,
+                    tags: ['IA', 'Gerador de Provas'],
+                    bnccCode: g.bnccCode,
+                    usageCount: 0,
+                    createdAt: new Date().toISOString()
+                }));
+
+                // Persiste globalmente no banco via Supabase
+                await addItems(newItems);
+
+                alert(`${newItems.length} questões inéditas geradas e adicionadas à prova para completar a meta!`);
+                setSelectionDiagnosis({ ...selectionDiagnosis, missingCount: 0 });
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Erro ao gerar questões via IA.");
+        } finally {
+            setIsFillingGaps(false);
+        }
+    };
+
     const filteredAvailableItems = state.items.filter(i =>
         !selectedItems.find(s => s.id === i.id) &&
         (i.statement.toLowerCase().includes(filter.toLowerCase()) || i.subject.toLowerCase().includes(filter.toLowerCase()))
@@ -96,11 +186,9 @@ export const ExamBuilderView = ({ state }: { state: AppState }) => {
         }
     };
 
-    const addRecommendedItem = (item: any) => {
-        // Add to state items if not exists (it's a new generated item)
-        // In a real app we would save to DB first
+    const addRecommendedItem = async (item: any) => {
         if (!state.items.find(i => i.id === item.id)) {
-            state.items.push(item); // Temporary local push
+            await addItem(item);
         }
         toggleItem(item);
     };
@@ -122,6 +210,29 @@ export const ExamBuilderView = ({ state }: { state: AppState }) => {
                 {step === 1 ? (
                     <div className="max-w-2xl mx-auto space-y-6 bg-white p-8 rounded-xl shadow-sm border border-slate-200">
                         {/* ... Existing Step 1 Form ... */}
+                        <div className="grid grid-cols-2 gap-4 mb-6">
+                            <button
+                                onClick={() => setBuilderMode('MANUAL')}
+                                className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${builderMode === 'MANUAL' ? 'border-brand-primary bg-brand-light/50 ring-2 ring-brand-primary/20' : 'border-slate-200 hover:border-slate-300'}`}
+                            >
+                                <Settings2 size={24} className={builderMode === 'MANUAL' ? 'text-brand-primary' : 'text-slate-400'} />
+                                <div className="text-center">
+                                    <div className="font-bold text-slate-900 text-sm">Montagem Manual</div>
+                                    <div className="text-[10px] text-slate-500">Escolha questão por questão</div>
+                                </div>
+                            </button>
+                            <button
+                                onClick={() => setBuilderMode('SMART')}
+                                className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${builderMode === 'SMART' ? 'border-brand-primary bg-brand-light/50 ring-2 ring-brand-primary/20' : 'border-slate-200 hover:border-slate-300'}`}
+                            >
+                                <Sparkles size={24} className={builderMode === 'SMART' ? 'text-brand-primary' : 'text-slate-400'} />
+                                <div className="text-center">
+                                    <div className="font-bold text-slate-900 text-sm">Montagem Inteligente</div>
+                                    <div className="text-[10px] text-slate-500">Geração equilibrada por IA</div>
+                                </div>
+                            </button>
+                        </div>
+
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Título da Prova</label>
                             <input className="w-full border rounded-lg p-2" value={config.title} onChange={e => setConfig({ ...config, title: e.target.value })} placeholder="Ex: Avaliação Bimestral de História" />
@@ -129,13 +240,48 @@ export const ExamBuilderView = ({ state }: { state: AppState }) => {
                         <div className="grid grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Disciplina</label>
-                                <input className="w-full border rounded-lg p-2" value={config.subject} onChange={e => setConfig({ ...config, subject: e.target.value })} />
+                                <input className="w-full border rounded-lg p-2" value={config.subject || smartCriteria.subject} onChange={e => {
+                                    setConfig({ ...config, subject: e.target.value });
+                                    setSmartCriteria({ ...smartCriteria, subject: e.target.value });
+                                }} />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Duração (minutos)</label>
                                 <input type="number" className="w-full border rounded-lg p-2" value={config.duration} onChange={e => setConfig({ ...config, duration: parseInt(e.target.value) })} />
                             </div>
                         </div>
+
+                        {builderMode === 'SMART' && (
+                            <div className="animate-in slide-in-from-bottom-4 space-y-4 pt-4 border-t border-slate-100">
+                                <div className="flex items-center gap-2 text-brand-primary font-bold text-sm mb-2">
+                                    <BarChart size={18} /> Critérios de Seleção Inteligente
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Qtd de Questões</label>
+                                        <input type="number" className="w-full border rounded-lg p-2 font-bold" value={smartCriteria.targetCount} onChange={e => setSmartCriteria({ ...smartCriteria, targetCount: parseInt(e.target.value) })} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Distribuição de Dificuldade</label>
+                                        <div className="flex gap-2">
+                                            <div className="flex-1">
+                                                <input type="number" className="w-full border rounded-lg p-1 text-xs text-center border-emerald-200" value={smartCriteria.difficultyDistribution[DifficultyLevel.EASY]} onChange={e => setSmartCriteria({ ...smartCriteria, difficultyDistribution: { ...smartCriteria.difficultyDistribution, [DifficultyLevel.EASY]: parseInt(e.target.value) } })} />
+                                                <div className="text-[8px] text-center text-emerald-600 font-bold mt-1">FÁCIL %</div>
+                                            </div>
+                                            <div className="flex-1">
+                                                <input type="number" className="w-full border rounded-lg p-1 text-xs text-center border-amber-200" value={smartCriteria.difficultyDistribution[DifficultyLevel.MEDIUM]} onChange={e => setSmartCriteria({ ...smartCriteria, difficultyDistribution: { ...smartCriteria.difficultyDistribution, [DifficultyLevel.MEDIUM]: parseInt(e.target.value) } })} />
+                                                <div className="text-[8px] text-center text-amber-600 font-bold mt-1">MÉDIO %</div>
+                                            </div>
+                                            <div className="flex-1">
+                                                <input type="number" className="w-full border rounded-lg p-1 text-xs text-center border-rose-200" value={smartCriteria.difficultyDistribution[DifficultyLevel.HARD]} onChange={e => setSmartCriteria({ ...smartCriteria, difficultyDistribution: { ...smartCriteria.difficultyDistribution, [DifficultyLevel.HARD]: parseInt(e.target.value) } })} />
+                                                <div className="text-[8px] text-center text-rose-600 font-bold mt-1">DIFÍCIL %</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Modelo de Avaliação</label>
                             <select className="w-full border rounded-lg p-2" value={config.model} onChange={e => setConfig({ ...config, model: e.target.value as ExamModel })}>
@@ -165,17 +311,68 @@ export const ExamBuilderView = ({ state }: { state: AppState }) => {
                             </button>
                         </div>
                         <div className="flex justify-end pt-4">
-                            <button onClick={() => setStep(2)} className="btn-gradient px-6 py-3 rounded-lg flex items-center gap-2 font-bold shadow-lg">
-                                Próximo: Selecionar Questões <ChevronRight size={18} />
-                            </button>
+                            {builderMode === 'MANUAL' ? (
+                                <button onClick={() => setStep(2)} className="btn-gradient px-6 py-3 rounded-lg flex items-center gap-2 font-bold shadow-lg">
+                                    Próximo: Selecionar Questões <ChevronRight size={18} />
+                                </button>
+                            ) : (
+                                <button onClick={handleSmartGenerate} className="bg-brand-primary text-white px-6 py-3 rounded-lg flex items-center gap-2 font-bold shadow-lg hover:bg-brand-dark transition">
+                                    <Sparkles size={18} /> Gerar Prova Inteligente <ChevronRight size={18} />
+                                </button>
+                            )}
                         </div>
                     </div>
                 ) : (
                     <div className="flex h-full gap-8">
-                        {/* Left: Available Items (List) */}
+                        {/* Left: Available Items (List) OR Selection Diagnosis */}
                         <div className="flex-1 flex flex-col bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden relative">
+                            {builderMode === 'SMART' && selectionDiagnosis && selectionDiagnosis.missingCount > 0 && (
+                                <div className="p-6 bg-rose-50 border-b border-rose-100 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-rose-100 text-rose-600 rounded-lg">
+                                            <Brain size={20} />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-sm font-bold text-rose-900">Lacuna Detectada no Banco</h4>
+                                            <p className="text-xs text-rose-700">Faltam {selectionDiagnosis.missingCount} questões para atingir a meta selecionada.</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={handleGapGeneration}
+                                        disabled={isFillingGaps}
+                                        className="bg-rose-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-rose-700 transition flex items-center gap-2 shadow-sm"
+                                    >
+                                        {isFillingGaps ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                                        Gerar Questões Inéditas via IA
+                                    </button>
+                                </div>
+                            )}
+
+                            {builderMode === 'SMART' && selectionDiagnosis && (
+                                <div className="p-4 bg-slate-50 border-b flex justify-around text-center">
+                                    <div>
+                                        <div className="text-[8px] font-bold text-slate-400 uppercase">Fácil</div>
+                                        <div className="font-bold text-emerald-600">{selectionDiagnosis.distributionActual[DifficultyLevel.EASY]}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[8px] font-bold text-slate-400 uppercase">Médio</div>
+                                        <div className="font-bold text-amber-600">{selectionDiagnosis.distributionActual[DifficultyLevel.MEDIUM]}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[8px] font-bold text-slate-400 uppercase">Difícil</div>
+                                        <div className="font-bold text-rose-600">{selectionDiagnosis.distributionActual[DifficultyLevel.HARD]}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[8px] font-bold text-slate-400 uppercase">Total</div>
+                                        <div className="font-bold text-slate-900">{selectedItems.length} / {smartCriteria.targetCount}</div>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="p-4 border-b bg-slate-50 flex flex-col gap-3">
-                                <h3 className="font-bold text-slate-800">Banco de Itens Disponível</h3>
+                                <h3 className="font-bold text-slate-800">
+                                    {builderMode === 'SMART' ? 'Questões Selecionadas Automaticamente' : 'Banco de Itens Disponível'}
+                                </h3>
                                 <div className="flex gap-2">
                                     <div className="relative flex-1">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-secondary" size={16} />
@@ -244,16 +441,22 @@ export const ExamBuilderView = ({ state }: { state: AppState }) => {
                                 )}
 
                                 {/* Standard List */}
-                                {filteredAvailableItems.map(item => (
+                                {(builderMode === 'SMART' ? selectedItems : filteredAvailableItems).map(item => (
                                     <div key={item.id} className="p-3 border border-slate-200 rounded-lg hover:border-brand-secondary bg-white cursor-pointer group transition-all hover:shadow-sm" onClick={() => toggleItem(item)}>
                                         <div className="flex justify-between items-start mb-1">
                                             <span className="text-xs font-bold text-slate-500 uppercase">{item.subject}</span>
-                                            <Badge color={item.difficulty === 'FACIL' ? 'green' : 'yellow'}>{item.difficulty}</Badge>
+                                            <div className="flex gap-2">
+                                                {item.origin === ItemOrigin.IA && <Badge color="indigo">IA</Badge>}
+                                                <Badge color={item.difficulty === 'FACIL' ? 'green' : 'yellow'}>{item.difficulty}</Badge>
+                                            </div>
                                         </div>
                                         <p className="text-sm text-slate-800 line-clamp-2 mb-2">{item.statement}</p>
                                         <div className="flex justify-between items-center">
                                             <span className="text-xs text-slate-400">ID: {item.id.slice(0, 6)}</span>
-                                            <button className="text-brand-primary text-xs font-bold opacity-0 group-hover:opacity-100 flex items-center gap-1 bg-brand-light px-2 py-1 rounded">Adicionar <Plus size={12} /></button>
+                                            <button className={`text-brand-primary text-xs font-bold opacity-0 group-hover:opacity-100 flex items-center gap-1 bg-brand-light px-2 py-1 rounded ${builderMode === 'SMART' ? 'text-rose-600 bg-rose-50' : ''}`}>
+                                                {builderMode === 'SMART' ? 'Remover' : 'Adicionar'}
+                                                {builderMode === 'SMART' ? <X size={12} /> : <Plus size={12} />}
+                                            </button>
                                         </div>
                                     </div>
                                 ))}

@@ -19,6 +19,7 @@ ALTER TABLE public.tenant_features ENABLE ROW LEVEL SECURITY;
 -- POLICIES
 
 -- Read: Authenticated users can read valid features for THEIR tenant
+DROP POLICY IF EXISTS "Read tenant features" ON public.tenant_features;
 CREATE POLICY "Read tenant features" ON public.tenant_features
   FOR SELECT USING (
     -- User can only see features for their own tenant
@@ -28,10 +29,11 @@ CREATE POLICY "Read tenant features" ON public.tenant_features
   );
 
 -- Write: Super Admin Only (or specific management role)
+DROP POLICY IF EXISTS "Manage tenant features" ON public.tenant_features;
 CREATE POLICY "Manage tenant features" ON public.tenant_features
   FOR ALL USING (
     public.get_current_user_role() IN ('SUPER_ADMIN', 'STATE_ADMIN')
   );
 
 -- INDEX for fast lookups
-CREATE INDEX idx_tenant_features_lookup ON public.tenant_features(tenant_id, feature_key);
+CREATE INDEX IF NOT EXISTS idx_tenant_features_lookup ON public.tenant_features(tenant_id, feature_key);

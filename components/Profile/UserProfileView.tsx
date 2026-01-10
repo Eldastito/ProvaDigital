@@ -12,7 +12,13 @@ interface UserProfileViewProps {
     onUpdateProfile: (p: UserProfileExtended) => void;
 }
 
-export const UserProfileView = ({ state, user, onUpdateProfile }: UserProfileViewProps) => {
+import { useAppStore } from '../../store/useAppStore';
+
+export const UserProfileView = () => {
+    const state = useAppStore();
+    const { currentUser: user, updateUserProfile: onUpdateProfile } = state;
+
+    if (!user) return null;
     // Buscar perfil estendido ou criar um vazio se não existir
     const userProfile: UserProfileExtended = state.userProfiles?.find(p => p.userId === user.id) || {
         userId: user.id,
@@ -45,10 +51,10 @@ export const UserProfileView = ({ state, user, onUpdateProfile }: UserProfileVie
             id: uuidv4(),
             ...resultData
         };
-        
+
         // Remove previous result of same type if exists to update
         const otherAssessments = userProfile.assessments.filter(a => a.type !== resultData.type);
-        
+
         const newProfile = {
             ...userProfile,
             assessments: [...otherAssessments, newAssessment]
@@ -59,19 +65,19 @@ export const UserProfileView = ({ state, user, onUpdateProfile }: UserProfileVie
     };
 
     const getAssessmentIcon = (type: AssessmentType) => {
-        switch(type) {
-            case AssessmentType.DISC: return <Activity size={32} className="text-blue-600"/>;
-            case AssessmentType.LEARNING_STYLE: return <Brain size={32} className="text-purple-600"/>;
-            case AssessmentType.POSITIVE_PSYCH: return <Zap size={32} className="text-amber-500"/>;
-            case AssessmentType.TEMPERAMENT: return <Smile size={32} className="text-emerald-600"/>;
-            case AssessmentType.TDAH_SCREENING: return <Activity size={32} className="text-rose-600"/>;
-            case AssessmentType.AUTISM_SCREENING: return <Stethoscope size={32} className="text-indigo-600"/>;
-            default: return <Activity size={32}/>;
+        switch (type) {
+            case AssessmentType.DISC: return <Activity size={32} className="text-blue-600" />;
+            case AssessmentType.LEARNING_STYLE: return <Brain size={32} className="text-purple-600" />;
+            case AssessmentType.POSITIVE_PSYCH: return <Zap size={32} className="text-amber-500" />;
+            case AssessmentType.TEMPERAMENT: return <Smile size={32} className="text-emerald-600" />;
+            case AssessmentType.TDAH_SCREENING: return <Activity size={32} className="text-rose-600" />;
+            case AssessmentType.AUTISM_SCREENING: return <Stethoscope size={32} className="text-indigo-600" />;
+            default: return <Activity size={32} />;
         }
     };
 
     const getAssessmentDescription = (type: AssessmentType) => {
-        switch(type) {
+        switch (type) {
             case AssessmentType.DISC: return "Descubra seu estilo de comportamento, liderança e comunicação.";
             case AssessmentType.LEARNING_STYLE: return "Entenda como seu cérebro absorve melhor novas informações.";
             case AssessmentType.POSITIVE_PSYCH: return "Identifique suas forças de caráter e virtudes principais.";
@@ -86,8 +92,8 @@ export const UserProfileView = ({ state, user, onUpdateProfile }: UserProfileVie
     if (activeTest) {
         return (
             <div className="max-w-5xl mx-auto py-4 animate-in zoom-in-95">
-                <AssessmentRunner 
-                    type={activeTest} 
+                <AssessmentRunner
+                    type={activeTest}
                     userName={user.name}
                     onComplete={handleTestComplete}
                     onCancel={() => setActiveTest(null)}
@@ -104,7 +110,7 @@ export const UserProfileView = ({ state, user, onUpdateProfile }: UserProfileVie
                 <div className="h-40 bg-gradient-to-r from-[#0f1d2e] to-[#0077b6] relative">
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
                 </div>
-                
+
                 <div className="px-8 pb-8 flex flex-col md:flex-row items-end md:items-center gap-6 -mt-12 relative z-10">
                     {/* Avatar */}
                     <div className="w-32 h-32 rounded-full border-4 border-white shadow-xl bg-slate-100 flex items-center justify-center overflow-hidden relative group flex-shrink-0">
@@ -150,26 +156,26 @@ export const UserProfileView = ({ state, user, onUpdateProfile }: UserProfileVie
             {/* Assessments Grid */}
             <div className="print:hidden">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-brand-light rounded-lg text-brand-primary"><BarChart2 size={24}/></div>
+                    <div className="p-2 bg-brand-light rounded-lg text-brand-primary"><BarChart2 size={24} /></div>
                     <div>
-                         <h2 className="text-xl font-bold text-slate-800">Central de Inteligência Comportamental</h2>
-                         <p className="text-sm text-slate-500">Realize os testes abaixo para descobrir seus pontos fortes e áreas de desenvolvimento.</p>
+                        <h2 className="text-xl font-bold text-slate-800">Central de Inteligência Comportamental</h2>
+                        <p className="text-sm text-slate-500">Realize os testes abaixo para descobrir seus pontos fortes e áreas de desenvolvimento.</p>
                     </div>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {[
-                        AssessmentType.DISC, 
-                        AssessmentType.LEARNING_STYLE, 
-                        AssessmentType.POSITIVE_PSYCH, 
+                        AssessmentType.DISC,
+                        AssessmentType.LEARNING_STYLE,
+                        AssessmentType.POSITIVE_PSYCH,
                         AssessmentType.TEMPERAMENT
                     ].map((type) => {
                         const result = userProfile.assessments.find(a => a.type === type);
-                        
+
                         return (
                             <div key={type} className={`bg-white rounded-xl border p-6 transition-all duration-300 hover:shadow-lg group relative overflow-hidden ${result ? 'border-emerald-200' : 'border-slate-200 hover:border-brand-primary'}`}>
                                 {result && <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-bl-full -mr-10 -mt-10 z-0"></div>}
-                                
+
                                 <div className="relative z-10">
                                     <div className="flex justify-between items-start mb-4">
                                         <div className="p-3 bg-slate-50 rounded-xl shadow-sm border border-slate-100 group-hover:scale-110 transition-transform">
@@ -177,7 +183,7 @@ export const UserProfileView = ({ state, user, onUpdateProfile }: UserProfileVie
                                         </div>
                                         {result ? (
                                             <span className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-white px-3 py-1 rounded-full border border-emerald-100 shadow-sm">
-                                                <CheckCircle size={14}/> Concluído
+                                                <CheckCircle size={14} /> Concluído
                                             </span>
                                         ) : (
                                             <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
@@ -185,25 +191,25 @@ export const UserProfileView = ({ state, user, onUpdateProfile }: UserProfileVie
                                             </span>
                                         )}
                                     </div>
-                                    
+
                                     <h3 className="text-xl font-bold text-slate-800 mb-2">{type.replace(/_/g, ' ')}</h3>
                                     <p className="text-sm text-slate-600 mb-6 min-h-[40px] leading-relaxed">{getAssessmentDescription(type)}</p>
-                                    
+
                                     {result ? (
                                         <div className="space-y-4">
                                             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
                                                 <div className="text-xs text-slate-400 uppercase font-bold mb-1">Seu Resultado</div>
                                                 <div className="text-slate-900 font-black text-2xl">{result.resultType}</div>
                                             </div>
-                                            <button 
+                                            <button
                                                 onClick={() => setSelectedReport(result)}
                                                 className="w-full py-3 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 hover:border-slate-300 transition text-sm flex items-center justify-center gap-2"
                                             >
-                                                <Lock size={16} className="text-slate-400"/> Ver Relatório Completo
+                                                <Lock size={16} className="text-slate-400" /> Ver Relatório Completo
                                             </button>
                                         </div>
                                     ) : (
-                                        <button 
+                                        <button
                                             onClick={() => setActiveTest(type)}
                                             className="w-full py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-brand-primary shadow-lg shadow-slate-900/10 flex items-center justify-center gap-2 transition-all transform hover:-translate-y-1"
                                         >
@@ -219,7 +225,7 @@ export const UserProfileView = ({ state, user, onUpdateProfile }: UserProfileVie
 
             {/* Reusable Report Modal */}
             {selectedReport && (
-                <ScreeningReportModal 
+                <ScreeningReportModal
                     report={selectedReport}
                     studentName={user.name}
                     studentId={user.id}

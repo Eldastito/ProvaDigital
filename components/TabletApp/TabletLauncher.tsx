@@ -3,16 +3,18 @@ import React, { useState } from 'react';
 import { QrCode, ArrowLeft, ShieldCheck, Users, GraduationCap, Scan, Search, School, User, Lock, ChevronRight, LogIn } from 'lucide-react';
 import { UserRole, AppState, School as SchoolType, User as UserType } from '../../types';
 
+import { useAppStore } from '../../store/useAppStore';
+
 interface TabletLauncherProps {
-    state: AppState;
     onSelectApp: (app: 'COORDINATOR' | 'PROFESSOR' | 'STUDENT', payload?: any) => void;
     onBack: () => void;
 }
 
-export const TabletLauncher = ({ state, onSelectApp, onBack }: TabletLauncherProps) => {
+export const TabletLauncher = ({ onSelectApp, onBack }: TabletLauncherProps) => {
+    const state = useAppStore();
     // Main Mode
     const [mode, setMode] = useState<'SELECT' | 'SCANNING_QR' | 'COORD_FLOW'>('SELECT');
-    
+
     // Coordinator Flow State
     const [coordStep, setCoordStep] = useState<'SCHOOL_SEARCH' | 'AUTH'>('SCHOOL_SEARCH');
     const [searchTerm, setSearchTerm] = useState('');
@@ -63,11 +65,11 @@ export const TabletLauncher = ({ state, onSelectApp, onBack }: TabletLauncherPro
     const handleCoordinatorLogin = () => {
         if (!selectedUser) return alert("Selecione seu usuário.");
         if (!password) return alert("Digite sua senha.");
-        
+
         // Mock Password Check
         if (password.length < 3) return alert("Senha incorreta (Simulação: digite qualquer coisa com 3+ chars).");
 
-        onSelectApp('COORDINATOR', { 
+        onSelectApp('COORDINATOR', {
             auth: 'PASSWORD_VERIFIED',
             schoolId: selectedSchool?.id,
             userId: selectedUser.id,
@@ -76,13 +78,13 @@ export const TabletLauncher = ({ state, onSelectApp, onBack }: TabletLauncherPro
     };
 
     // Filters
-    const filteredSchools = state.schools.filter(s => 
-        s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const filteredSchools = state.schools.filter(s =>
+        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         s.inep.includes(searchTerm)
     );
 
-    const availableCoordinators = state.users.filter(u => 
-        u.schoolId === selectedSchool?.id && 
+    const availableCoordinators = state.users.filter(u =>
+        u.schoolId === selectedSchool?.id &&
         (u.role === UserRole.SUPERVISOR || u.role === UserRole.DIRETOR)
     );
 
@@ -101,8 +103,8 @@ export const TabletLauncher = ({ state, onSelectApp, onBack }: TabletLauncherPro
                             <p className="text-slate-400 mb-8">Selecione a unidade onde a prova será aplicada.</p>
 
                             <div className="relative mb-6">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
-                                <input 
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                                <input
                                     className="w-full bg-slate-800 border border-slate-700 text-white pl-12 pr-4 py-4 rounded-xl text-lg focus:ring-2 focus:ring-brand-primary outline-none placeholder-slate-500"
                                     placeholder="Pesquisar por nome ou INEP..."
                                     value={searchTerm}
@@ -113,7 +115,7 @@ export const TabletLauncher = ({ state, onSelectApp, onBack }: TabletLauncherPro
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[50vh] overflow-y-auto custom-scrollbar">
                                 {filteredSchools.map(school => (
-                                    <button 
+                                    <button
                                         key={school.id}
                                         onClick={() => handleSchoolSelect(school)}
                                         className="bg-white/5 border border-white/10 hover:bg-white/10 hover:border-brand-primary p-4 rounded-xl text-left transition group"
@@ -154,14 +156,14 @@ export const TabletLauncher = ({ state, onSelectApp, onBack }: TabletLauncherPro
                                     <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Selecione seu usuário</label>
                                     <div className="space-y-2">
                                         {availableCoordinators.map(user => (
-                                            <button 
+                                            <button
                                                 key={user.id}
                                                 onClick={() => setSelectedUser(user)}
                                                 className={`w-full flex items-center gap-3 p-3 rounded-lg border transition ${selectedUser?.id === user.id ? 'bg-brand-primary border-brand-primary text-white' : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500'}`}
                                             >
                                                 <User size={18} />
                                                 <span className="font-medium">{user.name}</span>
-                                                {selectedUser?.id === user.id && <ShieldCheck size={18} className="ml-auto"/>}
+                                                {selectedUser?.id === user.id && <ShieldCheck size={18} className="ml-auto" />}
                                             </button>
                                         ))}
                                         {availableCoordinators.length === 0 && <p className="text-slate-500 text-sm">Nenhum coordenador cadastrado nesta unidade.</p>}
@@ -173,7 +175,7 @@ export const TabletLauncher = ({ state, onSelectApp, onBack }: TabletLauncherPro
                                         <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Senha de Acesso</label>
                                         <div className="relative">
                                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                                            <input 
+                                            <input
                                                 type="password"
                                                 className="w-full bg-slate-900 border border-slate-600 text-white pl-10 pr-4 py-3 rounded-lg focus:ring-2 focus:ring-brand-primary outline-none"
                                                 placeholder="Sua senha do SaaS"
@@ -182,14 +184,14 @@ export const TabletLauncher = ({ state, onSelectApp, onBack }: TabletLauncherPro
                                             />
                                         </div>
                                         <p className="text-xs text-yellow-500/80 mt-2 flex items-center gap-1">
-                                            <ShieldCheck size={12}/> Utilize a mesma senha que você usa para logar no sistema web.
+                                            <ShieldCheck size={12} /> Utilize a mesma senha que você usa para logar no sistema web.
                                         </p>
 
-                                        <button 
+                                        <button
                                             onClick={handleCoordinatorLogin}
                                             className="w-full mt-6 bg-brand-primary text-white py-3 rounded-lg font-bold hover:bg-brand-dark transition shadow-lg flex items-center justify-center gap-2"
                                         >
-                                            <LogIn size={20}/> Entrar no Tablet
+                                            <LogIn size={20} /> Entrar no Tablet
                                         </button>
                                     </div>
                                 )}

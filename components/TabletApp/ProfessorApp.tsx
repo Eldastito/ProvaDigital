@@ -5,12 +5,14 @@ import { AppState } from '../../types';
 import { QRDataTransfer } from '../../services/qrCodecService';
 import { supabase } from '../../services/supabaseClient';
 
+import { useAppStore } from '../../store/useAppStore';
+
 interface ProfessorAppProps {
-    state: AppState;
     onBack: () => void;
 }
 
-export const ProfessorApp = ({ state, onBack }: ProfessorAppProps) => {
+export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
+    const state = useAppStore();
     // Check URL params for Live Controller Mode
     const params = new URLSearchParams(window.location.search);
     const isLiveController = params.get('action') === 'CONTROL';
@@ -83,7 +85,7 @@ export const ProfessorApp = ({ state, onBack }: ProfessorAppProps) => {
             // For MVP, we select the first class that has an exam available or just the first class.
             // Ideally, we would have a ClassSelector UI here.
             const selectedClass = availableClasses[0]; // Logic could be improved to pick 'next' class
-            const activeExam = state.exams.find(e => e.classIds.includes(selectedClass.id) && e.status === 'PUBLICADA')
+            const activeExam = state.exams.find(e => e.classIds.includes(selectedClass.id) && e.status === 'ACTIVE')
                 || state.exams.find(e => e.classIds.includes(selectedClass.id)); // or draft
 
             // 3. Populate Data

@@ -11,7 +11,9 @@ interface StudyPlansViewProps {
     user: User;
 }
 
-export const StudyPlansView = ({ state, user }: StudyPlansViewProps) => {
+export const StudyPlansView = () => {
+    const state = useAppStore();
+    const { currentUser: user } = state;
     // Decide which student we are acting on
     const isParent = user.role === UserRole.PAIS;
     const isStudent = user.role === UserRole.ALUNO;
@@ -440,8 +442,8 @@ export const StudyPlansView = ({ state, user }: StudyPlansViewProps) => {
                                             <button
                                                 key={sound}
                                                 className={`px - 3 py - 1.5 rounded - lg text - xs font - bold transition flex items - center gap - 1 ${(activeSound === sound)
-                                                        ? 'bg-slate-800 text-white shadow-md transform scale-105'
-                                                        : 'bg-white border hover:bg-slate-50 text-slate-600'
+                                                    ? 'bg-slate-800 text-white shadow-md transform scale-105'
+                                                    : 'bg-white border hover:bg-slate-50 text-slate-600'
                                                     } `}
                                                 onClick={() => handleSoundChange(sound as any)}
                                             >
@@ -538,8 +540,8 @@ export const StudyPlansView = ({ state, user }: StudyPlansViewProps) => {
                                                 setSimAnswers(prev => ({ ...prev, [currentQuestion.id]: alt.id }));
                                             }}
                                             className={`w - full p - 4 rounded - lg border - 2 text - left transition flex justify - between items - center ${currentQuestion && simAnswers[currentQuestion.id] === alt.id
-                                                    ? 'border-brand-primary bg-blue-50 text-brand-dark'
-                                                    : 'border-slate-200 hover:border-slate-300'
+                                                ? 'border-brand-primary bg-blue-50 text-brand-dark'
+                                                : 'border-slate-200 hover:border-slate-300'
                                                 } `}
                                         >
                                             <span>{alt.text}</span>

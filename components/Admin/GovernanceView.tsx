@@ -98,7 +98,10 @@ const FormJogo = ({ jogo, onSalvar, onCancelar, categorias }: {
     );
 };
 
-export const GovernanceView: React.FC<GovernanceViewProps> = ({ state }) => {
+import { useAppStore } from '../../store/useAppStore';
+
+export const GovernanceView = () => {
+    const state = useAppStore();
     const [jogos, setJogos] = useState<ArcadeGame[]>([
         {
             id: '1',

@@ -5,13 +5,11 @@ import { AppState, GamifiedEvent, GamifiedEventStatus, User, UserRole, GamifiedE
 import { useAppStore } from '../../store/useAppStore';
 import { uuidv4 } from '../../utils/helpers';
 
-interface GamifiedEventsManagerProps {
-    state: AppState;
-    user: User;
-}
+export const GamifiedEventsManager = () => {
+    const state = useAppStore();
+    const { currentUser: user, addGamifiedEvent, updateGamifiedEvent } = state;
 
-export const GamifiedEventsManager = ({ state, user }: GamifiedEventsManagerProps) => {
-    const { addGamifiedEvent, updateGamifiedEvent } = useAppStore();
+    if (!user) return null;
     const [view, setView] = useState<'LIST' | 'CREATE' | 'MANAGE' | 'LIVE'>('LIST');
     const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 

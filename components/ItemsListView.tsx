@@ -81,8 +81,9 @@ const ItemRow: React.FC<ItemRowProps> = ({ item, onSelect, onHistory, getUsageCo
     );
 };
 
-export const ItemsListView = ({ state }: { state: AppState }) => {
-    const { currentUser } = useAppStore();
+export const ItemsListView = () => {
+    const state = useAppStore();
+    const { currentUser } = state;
     const navigate = useNavigate();
     const userTenantId = currentUser?.tenantId;
 

@@ -36,9 +36,10 @@ const BRAZILIAN_SUBJECTS = [
     'Sociologia'
 ];
 
-export const ItemEditorView = ({ state }: { state: AppState }) => {
+export const ItemEditorView = () => {
     const navigate = useNavigate();
-    const { addItem } = useAppStore();
+    const state = useAppStore();
+    const { addItem } = state;
     const [mode, setMode] = useState<'MANUAL' | 'AI'>('MANUAL');
     const fileInputRef = useRef<HTMLInputElement>(null);
 

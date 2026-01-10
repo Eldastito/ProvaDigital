@@ -5,14 +5,16 @@ import { AppState, Exam, ExamResult, StudentAnswer, QuestionType } from '../type
 import { uuidv4 } from '../utils/helpers';
 import { gradeEssayAnswer, batchGradeAnswers } from '../services/geminiService';
 
-interface ResultsEntryViewProps {
-    state: AppState;
-    examId: string;
-    onBack: () => void;
-    onSaveResults: (results: ExamResult[]) => void;
-}
+import { useNavigate, useParams } from 'react-router-dom';
+import { useAppStore } from '../store/useAppStore';
 
-export const ResultsEntryView = ({ state, examId, onBack, onSaveResults }: ResultsEntryViewProps) => {
+export const ResultsEntryView = () => {
+    const { id: examId } = useParams<{ id: string }>();
+    const navigate = useNavigate();
+    const state = useAppStore();
+    const { updateResults: onSaveResults } = state;
+
+    const onBack = () => navigate(-1);
     const exam = state.exams.find(e => e.id === examId);
     const [selectedClassId, setSelectedClassId] = useState<string>('');
     const [localResults, setLocalResults] = useState<Record<string, Record<string, string>>>({});

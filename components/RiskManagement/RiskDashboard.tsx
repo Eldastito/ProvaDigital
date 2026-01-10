@@ -362,13 +362,13 @@ export const RiskDashboard = () => {
                     </div>
                 ) : (
                     <div className="divide-y divide-slate-100">
-                        {filteredAssessments.map(assessment => (
+                        {filteredAssessments.map(risk => (
                             <StudentRiskCard
-                                key={assessment.studentId}
-                                assessment={assessment}
-                                isExpanded={expandedStudent === assessment.studentId}
+                                key={risk.studentId}
+                                assessment={risk}
+                                isExpanded={expandedStudent === risk.studentId}
                                 onToggle={() => setExpandedStudent(
-                                    expandedStudent === assessment.studentId ? null : assessment.studentId
+                                    expandedStudent === risk.studentId ? null : risk.studentId
                                 )}
                             />
                         ))}
@@ -505,12 +505,6 @@ const StudentRiskCard = ({ assessment, isExpanded, onToggle }: {
                                                 </ul>
                                             </div>
                                         )}
-
-                                        {/* Recomendação */}
-                                        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
-                                            <strong className="text-blue-800">Recomendação:</strong>
-                                            <p className="text-blue-700 mt-1">{factor.recommendation}</p>
-                                        </div>
                                     </div>
                                 ))}
                             </div>

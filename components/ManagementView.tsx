@@ -8,18 +8,19 @@ import { ManagementForms } from './Management/ManagementForms';
 
 type ManagementTab = 'SCHOOLS' | 'CLASSES' | 'STUDENTS' | 'USERS' | 'COMMAND_CENTER' | 'SETTINGS' | 'BATCH_IMPORT' | 'HIERARCHY';
 
-interface ManagementViewProps {
-    state: AppState;
-    onAddSchool: (s: School) => void;
-    onAddClass: (c: SchoolClass) => void;
-    onAddStudent: (s: Student) => void;
-    onAddUser: (u: User) => void;
-    onUpdateUser: (u: User) => void;
-    onResetPassword: (email: string) => void;
-    onUpdateSettings?: (s: AppSettings) => void;
-}
+import { useAppStore } from '../store/useAppStore';
 
-export const ManagementView = ({ state, onAddSchool, onAddClass, onAddStudent, onAddUser, onUpdateUser, onResetPassword, onUpdateSettings }: ManagementViewProps) => {
+export const ManagementView = () => {
+    const state = useAppStore();
+    const {
+        addSchool: onAddSchool,
+        addClass: onAddClass,
+        addStudent: onAddStudent,
+        addUser: onAddUser,
+        updateUser: onUpdateUser,
+        resetUserPassword: onResetPassword,
+        updateSettings: onUpdateSettings
+    } = state;
     const [activeTab, setActiveTab] = useState<ManagementTab>('SCHOOLS');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);

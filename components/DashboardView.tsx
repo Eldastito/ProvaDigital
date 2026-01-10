@@ -7,7 +7,10 @@ import { PedagogicalDashboard } from './Analytics/PedagogicalDashboard';
 import { ProfessorDashboardView } from './Professor/ProfessorDashboardView';
 import { StudentDashboardView } from './StudentPortal/StudentDashboardView';
 
-export const DashboardView = ({ state }: { state: AppState }) => {
+import { useAppStore } from '../store/useAppStore';
+
+export const DashboardView = () => {
+    const state = useAppStore();
     const { currentUser } = state;
 
     // --- 1. DASHBOARD ESTRATÉGICO (SECRETÁRIO / DONO / SECRETÁRIA ESTADUAL) ---

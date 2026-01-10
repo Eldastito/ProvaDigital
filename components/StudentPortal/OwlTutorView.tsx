@@ -12,7 +12,11 @@ interface OwlTutorViewProps {
     user: User;
 }
 
-export const OwlTutorView = ({ state, user }: OwlTutorViewProps) => {
+export const OwlTutorView = () => {
+    const state = useAppStore();
+    const { currentUser: user } = state;
+
+    if (!user) return null;
     const student = state.students.find(s => s.id === user.id) || state.students[0];
     const analytics = new AnalyticsService(state);
     const stats = analytics.getStudentStats(student.id);

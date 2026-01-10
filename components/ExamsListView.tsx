@@ -1,10 +1,13 @@
 import React from 'react';
-import { Plus, MoreHorizontal, Clock, FileText, Printer, ClipboardCheck, Globe, School } from 'lucide-react';
+import { Plus, MoreHorizontal, Clock, FileText, Printer, ClipboardCheck, Globe, School, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppState, ExamStatus } from '../types';
 import { Badge } from './ui/Badge';
 
-export const ExamsListView = ({ state }: { state: AppState }) => {
+import { useAppStore } from '../store/useAppStore';
+
+export const ExamsListView = () => {
+    const state = useAppStore();
     const { currentUser } = state;
     const navigate = useNavigate();
     const userTenantId = currentUser?.tenantId;
@@ -64,6 +67,16 @@ export const ExamsListView = ({ state }: { state: AppState }) => {
                                         >
                                             <Printer size={18} />
                                         </button>
+                                        {/* Enable Monitor for ACTIVE exams */}
+                                        {exam.status === ExamStatus.ACTIVE && (
+                                            <button
+                                                onClick={() => navigate(`/monitor/${exam.id}`)}
+                                                className="text-brand-primary font-medium text-sm hover:text-brand-dark flex items-center gap-1 transition"
+                                                title="Monitorar em Tempo Real"
+                                            >
+                                                <Activity size={18} />
+                                            </button>
+                                        )}
                                         {/* Enable Grading for ACTIVE and COMPLETED exams (and legacy PUBLISHED) */}
                                         {(exam.status === ExamStatus.ACTIVE || exam.status === ExamStatus.COMPLETED || (exam.status as any) === 'PUBLISHED') && (
                                             <button

@@ -57,6 +57,7 @@ interface AppActions {
     setSelectedChildId: (childId: string | null) => void;
     loadRemoteData: () => Promise<void>; // NOVA AÇÃO DE CARGA
     addItem: (item: Item) => void;
+    addItems: (items: Item[]) => Promise<void>;
     addExam: (exam: Exam) => void;
     addSchool: (school: any) => void;
     addClass: (cls: any) => void;
@@ -341,6 +342,41 @@ export const useAppStore = create<AppStore>((set, get) => ({
             console.log('✅ Item saved successfully:', item.id);
         } catch (e) {
             console.error('Failed to persist item:', e);
+        }
+    },
+
+    addItems: async (items) => {
+        set((state) => ({ items: [...items, ...state.items] }));
+        if (USE_MOCK_DATA) return;
+        try {
+            const dbPayload = items.map(item => ({
+                id: item.id,
+                tenant_id: item.tenantId,
+                owner_id: item.ownerId,
+                subject: item.subject,
+                statement: item.statement,
+                type: item.type,
+                difficulty: item.difficulty,
+                alternatives: item.alternatives,
+                correct_justification: item.correctAnswerJustification,
+                bncc_code: item.bnccCode,
+                origin: item.origin,
+                score: item.score,
+                tags: item.tags,
+                tri_params: item.triParams,
+                created_at: item.createdAt
+            }));
+            const { error } = await supabase.from('items').insert(dbPayload);
+            if (error) {
+                console.error('Error adding items:', error);
+                const ids = items.map(i => i.id);
+                set((state) => ({ items: state.items.filter(i => !ids.includes(i.id)) }));
+                alert("Erro ao salvar novos itens no banco de dados.");
+                throw error;
+            }
+            console.log('✅ Items saved successfully:', items.map(i => i.id));
+        } catch (e) {
+            console.error('Failed to persist items:', e);
         }
     },
 

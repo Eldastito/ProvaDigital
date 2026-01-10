@@ -21,6 +21,7 @@ import { AllocationView } from './components/AllocationView';
 import { ManagementView } from './components/ManagementView';
 import { PrintableExamView } from './components/PrintableExamView';
 import { ResultsEntryView } from './components/ResultsEntryView';
+import { LiveExamMonitorView } from './components/LiveExamMonitorView';
 import { StudentDashboardView } from './components/StudentPortal/StudentDashboardView';
 import { OwlTutorView } from './components/StudentPortal/OwlTutorView';
 import { SchoolDashboardView } from './components/Analytics/SchoolDashboardView';
@@ -294,6 +295,7 @@ export default function App() {
                       <Route path="diag-ai" element={<AIDiagnosticView />} />
                       <Route path="print-exam/:id" element={<PrintUtilWrapper store={store} />} />
                       <Route path="results/:id" element={<ResultsUtilWrapper store={store} navigate={navigate} />} />
+                      <Route path="monitor/:examId" element={<LiveExamMonitorView state={store} />} />
 
                       {/* Catch */}
                       <Route path="*" element={<Navigate to="/dashboard" />} />

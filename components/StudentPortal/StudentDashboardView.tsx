@@ -59,7 +59,9 @@ const EvolutionChart = ({ data }: { data: { label: string, value: number }[] }) 
     );
 };
 
-export const StudentDashboardView = ({ state, user }: StudentDashboardViewProps) => {
+export const StudentDashboardView = () => {
+    const state = useAppStore();
+    const { currentUser: user } = state;
     const navigate = useNavigate();
     const isParent = user.role === UserRole.PAIS;
     const { isEnabled } = useFeatureFlag(); // [NEW]
