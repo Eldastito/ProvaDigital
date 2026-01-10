@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Swords, Trophy, Users, Timer, CheckCircle, XCircle, Brain, Star, Coins, ArrowRight, Zap, Play, UserPlus, Check, User as UserIcon, Shuffle, LogOut } from 'lucide-react';
 import { AppState, User, QuestionType, UserProfileExtended, Item, DifficultyLevel, ItemOrigin } from '../../types';
 import { uuidv4 } from '../../utils/helpers';
+import { useAppStore } from '../../store/useAppStore';
 
 interface StudentBattleViewProps {
     state: AppState;
