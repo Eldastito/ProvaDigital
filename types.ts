@@ -215,6 +215,12 @@ export interface Item {
   minLines?: number;
   maxLines?: number;
   showWordCount?: boolean;
+  triParams?: {
+    difficulty: number; // b parameter
+    discrimination: number; // a parameter
+    guessing: number; // c parameter
+    bloomTaxonomy?: string;
+  };
   usageCount: number;
   createdAt: string;
 }

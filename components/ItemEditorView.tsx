@@ -7,6 +7,14 @@ import { uuidv4 } from '../utils/helpers';
 import { RichTextEditor } from './RichTextEditor';
 import { useAppStore } from '../store/useAppStore';
 
+// Bibliotecas para leitura de documentos
+import * as pdfjsLib from 'pdfjs-dist';
+import mammoth from 'mammoth';
+import * as XLSX from 'xlsx';
+
+// Configuração do Worker do PDF.js via CDN (Versão compatível com o node_module)
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.530/pdf.worker.mjs`;
+
 // Lista de disciplinas padrão do currículo brasileiro (Fundamental e Médio)
 const BRAZILIAN_SUBJECTS = [
     'Artes',
@@ -35,6 +43,7 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [aiContext, setAiContext] = useState('');
+    const [aiQuantity, setAiQuantity] = useState(3);
     const [aiLoading, setAiLoading] = useState(false);
     const [generatedItems, setGeneratedItems] = useState<any[]>([]);
 
@@ -51,19 +60,25 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
         subject: string;
         difficulty: DifficultyLevel;
         type: QuestionType;
-        justification: string;
+        correctAnswerJustification: string;
         tags: string;
         imageUrl: string;
         bnccCode: string;
         minLines: string;
         maxLines: string;
         showWordCount: boolean;
+        triParams?: {
+            difficulty: number;
+            discrimination: number;
+            guessing: number;
+            bloomTaxonomy: string;
+        };
     }>({
         statement: '',
         subject: '',
         difficulty: DifficultyLevel.MEDIUM,
         type: QuestionType.MULTIPLE_CHOICE,
-        justification: '',
+        correctAnswerJustification: '',
         tags: '',
         imageUrl: '',
         bnccCode: '',
@@ -90,7 +105,53 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
     const handleDragStart = (e: React.DragEvent, index: number) => { setDraggedIdx(index); e.dataTransfer.effectAllowed = "move"; };
     const handleDragOver = (e: React.DragEvent, index: number) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (draggedIdx === null || draggedIdx === index) return; const newAlts = [...alternatives]; const draggedItem = newAlts[draggedIdx]; newAlts.splice(draggedIdx, 1); newAlts.splice(index, 0, draggedItem); setAlternatives(newAlts); setDraggedIdx(index); };
     const handleDragEnd = () => { setDraggedIdx(null); };
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = (event) => { const text = event.target?.result as string; setAiContext(prev => prev + "\n\n--- Conteúdo do Arquivo ---\n" + text); }; reader.readAsText(file); };
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setAiLoading(true);
+        try {
+            let extractedText = "";
+
+            if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                let fullText = "";
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const content = await page.getTextContent();
+                    const pageText = content.items.map((item: any) => item.str).join(" ");
+                    fullText += `\n--- Página ${i} ---\n${pageText}\n`;
+                }
+                extractedText = fullText;
+            } else if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || file.name.endsWith(".docx")) {
+                const arrayBuffer = await file.arrayBuffer();
+                const result = await mammoth.extractRawText({ arrayBuffer });
+                extractedText = result.value;
+            } else if (file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || file.name.endsWith(".xlsx")) {
+                const arrayBuffer = await file.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer);
+                let fullText = "";
+                workbook.SheetNames.forEach(sheetName => {
+                    const worksheet = workbook.Sheets[sheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    fullText += `\n--- Planilha: ${sheetName} ---\n${JSON.stringify(json)}\n`;
+                });
+                extractedText = fullText;
+            } else {
+                // Fallback para .txt ou outros
+                extractedText = await file.text();
+            }
+
+            setAiContext(prev => prev + `\n\n--- Arquivo: ${file.name} ---\n` + extractedText);
+        } catch (error) {
+            console.error("Erro ao processar arquivo:", error);
+            alert("Não foi possível ler este arquivo. Verifique o formato.");
+        } finally {
+            setAiLoading(false);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+        }
+    };
 
     // FUNÇÕES DE AUTOMAÇÃO IA
     const handleImproveStatement = async () => {
@@ -131,7 +192,7 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
         if (!correctAlt) return alert('Defina a alternativa correta primeiro.');
         if (!form.statement.trim()) return alert('O enunciado é necessário.');
 
-        setIsImproving(true); // Reusing improving state for justification loading
+        setIsImproving(true);
         const justification = await generateJustification(form.statement, correctAlt.text);
         setForm(prev => ({ ...prev, correctAnswerJustification: justification }));
         setIsImproving(false);
@@ -142,11 +203,12 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
         setAiLoading(true);
         try {
             const questions = await generateQuestionsFromText(
-                aiContext, 3, QuestionType.MULTIPLE_CHOICE, form.difficulty, form.subject || 'Geral'
+                aiContext, aiQuantity, QuestionType.MULTIPLE_CHOICE, form.difficulty, form.subject || 'Geral'
             );
             setGeneratedItems(questions);
         } catch (e) {
             console.error(e);
+            alert("Erro ao gerar questões. Verifique sua conexão e tente novamente.");
         } finally {
             setAiLoading(false);
         }
@@ -199,27 +261,25 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
     };
 
     const approveItem = (genItem: any) => {
-        const newItem: Item = {
-            id: uuidv4(),
-            tenantId: state.currentUser?.tenantId || 't1',
-            schoolId: state.currentUser?.schoolId,
-            ownerId: state.currentUser?.id || '',
-            knowledgeArea: 'Geral',
-            subject: form.subject || 'Geral',
-            type: QuestionType.MULTIPLE_CHOICE,
+        setForm(prev => ({
+            ...prev,
             statement: genItem.statement,
-            alternatives: genItem.alternatives.map((a: any, i: number) => ({ id: `alt-${i}`, text: a.text, isCorrect: a.isCorrect })),
-            correctAnswerJustification: genItem.justification,
             difficulty: genItem.difficulty as DifficultyLevel,
-            score: 1.0,
-            origin: ItemOrigin.IA,
-            tags: ['IA', 'Gerado'],
-            bnccCode: genItem.bnccCode,
-            usageCount: 0,
-            createdAt: new Date().toISOString()
-        };
-        addItem(newItem);
-        navigate('/items');
+            correctAnswerJustification: genItem.justification,
+            bnccCode: genItem.bnccCode || '',
+            triParams: genItem.triParams
+        }));
+
+        // Mapear alternativas da IA para o formato do formulário
+        if (genItem.alternatives) {
+            setAlternatives(genItem.alternatives.map((a: any) => ({
+                text: a.text,
+                isCorrect: a.isCorrect
+            })));
+        }
+
+        setGeneratedItems([]);
+        setMode('MANUAL');
     };
 
     const saveManual = () => {
@@ -256,7 +316,7 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
             alternatives: (form.type === QuestionType.REDACTION || form.type === QuestionType.ESSAY)
                 ? []
                 : alternatives.map((a, i) => ({ id: `alt-${i}`, text: a.text, isCorrect: a.isCorrect })),
-            correctAnswerJustification: form.justification,
+            correctAnswerJustification: form.correctAnswerJustification,
             difficulty: form.difficulty,
             score: 1.0,
             origin: ItemOrigin.MANUAL,
@@ -265,6 +325,7 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
             minLines: form.minLines ? parseInt(form.minLines) : undefined,
             maxLines: form.maxLines ? parseInt(form.maxLines) : undefined,
             showWordCount: form.showWordCount,
+            triParams: form.triParams,
             usageCount: 0,
             createdAt: new Date().toISOString()
         };
@@ -478,8 +539,8 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
                                 {form.type === QuestionType.ESSAY || form.type === QuestionType.REDACTION ? 'Critérios de Correção / Gabarito Esperado' : 'Justificativa da Resposta Correta'}
                             </label>
                             <RichTextEditor
-                                value={form.justification}
-                                onChange={(val) => setForm({ ...form, justification: val })}
+                                value={form.correctAnswerJustification}
+                                onChange={(val) => setForm({ ...form, correctAnswerJustification: val })}
                                 placeholder={form.type === QuestionType.REDACTION ? "Descreva o que se espera que o aluno aborde na redação..." : "Explique o raciocínio da resposta correta..."}
                                 height="h-32"
                             />
@@ -513,11 +574,11 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
                     // AI Mode (Existing)
                     <div className="space-y-6">
                         <div className="bg-sky-50 p-4 rounded-lg border border-sky-100 text-sm text-sky-900 mb-4">
-                            <p className="font-semibold flex items-center gap-2"><Brain size={16} /> IA Generator + BNCC</p>
-                            Faça upload de um arquivo de texto ou cole o conteúdo abaixo. A IA irá sugerir códigos BNCC automaticamente.
+                            <p className="font-semibold flex items-center gap-2"><Brain size={16} /> IA SAEB/INEP + BNCC + TRI</p>
+                            Faça upload de materiais em <b>PDF, Word (DOCX), Excel ou TXT</b>. A IA seguirá os padrões do INEP/BNCC e estimará parâmetros TRI automaticamente.
                         </div>
-                        <div className="grid grid-cols-2 gap-6">
-                            <div>
+                        <div className="grid grid-cols-3 gap-6">
+                            <div className="col-span-1">
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Disciplina Alvo</label>
                                 <input className="w-full border rounded-lg p-2 text-sm" value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} placeholder="Ex: Geografia" />
                             </div>
@@ -529,15 +590,19 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
                                     <option value="DIFICIL">Difícil</option>
                                 </select>
                             </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Qtd. Questões</label>
+                                <input type="number" min="1" max="50" className="w-full border rounded-lg p-2 text-sm" value={aiQuantity} onChange={e => setAiQuantity(parseInt(e.target.value) || 1)} />
+                            </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Texto de Contexto</label>
-                            <textarea className="w-full border rounded-lg p-3 text-sm h-40 font-mono mb-2" value={aiContext} onChange={e => setAiContext(e.target.value)} placeholder="Cole aqui o texto ou faça upload de um arquivo..." />
-                            <input type="file" accept=".txt,.csv,.md" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
-                            <button onClick={() => fileInputRef.current?.click()} className="text-sm text-white bg-brand-primary hover:bg-sky-700 px-3 py-1 rounded flex items-center gap-2 w-fit"><Upload size={14} /> Carregar Arquivo (.txt)</button>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Texto de Contexto ou Arquivo</label>
+                            <textarea className="w-full border rounded-lg p-3 text-sm h-40 font-mono mb-2" value={aiContext} onChange={e => setAiContext(e.target.value)} placeholder="Cole aqui o texto ou faça upload de um arquivo para análise..." />
+                            <input type="file" accept=".txt,.csv,.md,.pdf,.docx,.xlsx" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+                            <button onClick={() => fileInputRef.current?.click()} className="text-sm text-white bg-brand-primary hover:bg-sky-700 px-4 py-2 rounded-lg flex items-center gap-2 w-fit transition shadow-sm font-bold"><Upload size={16} /> Carregar PDF, Word ou Excel</button>
                         </div>
-                        <button onClick={handleGenerate} disabled={aiLoading} className="w-full py-3 btn-gradient rounded-lg font-bold disabled:opacity-50 flex items-center justify-center gap-2 shadow-md">
-                            {aiLoading ? 'Processando...' : <><Brain size={20} /> Gerar Questões</>}
+                        <button onClick={handleGenerate} disabled={aiLoading} className="w-full py-3 btn-gradient rounded-lg font-bold disabled:opacity-50 flex items-center justify-center gap-2 shadow-md transition-all hover:scale-[1.01]">
+                            {aiLoading ? <><Loader2 size={20} className="animate-spin" /> Processando Documento...</> : <><Brain size={20} /> Gerar Itens Padrão INEP</>}
                         </button>
                         {generatedItems.length > 0 && (
                             <div className="mt-8 border-t pt-6">
@@ -549,7 +614,12 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
                                                 <div className="font-medium text-slate-900">{item.statement}</div>
                                                 <button onClick={() => approveItem(item)} className="bg-emerald-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-emerald-700 h-8 whitespace-nowrap">Aprovar</button>
                                             </div>
-                                            {item.bnccCode && <div className="text-xs font-bold text-indigo-600 mb-2 bg-indigo-50 inline-block px-2 rounded border border-indigo-100">{item.bnccCode}</div>}
+                                            {item.bnccCode && <div className="text-xs font-bold text-indigo-600 mb-2 bg-indigo-50 inline-block px-2 rounded border border-indigo-100 mr-2">{item.bnccCode}</div>}
+                                            {item.triParams && (
+                                                <div className="text-[10px] font-bold text-amber-600 mb-2 bg-amber-50 inline-block px-2 rounded border border-amber-100">
+                                                    TRI: {item.triParams.difficulty.toFixed(1)} | {item.triParams.bloomTaxonomy}
+                                                </div>
+                                            )}
                                             <ul className="pl-4 list-disc text-sm text-slate-600 space-y-1 mb-2">
                                                 {item.alternatives.map((alt: any, i: number) => (
                                                     <li key={i} className={alt.isCorrect ? "text-emerald-700 font-medium" : ""}>{alt.text}</li>

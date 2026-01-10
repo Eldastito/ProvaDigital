@@ -8,18 +8,27 @@ const DEFAULT_MODEL = 'gemini-2.5-flash';
 // --- Prompts ---
 const PROMPTS = {
     GENERATE_QUESTIONS: (qty: number, subject: string, type: QuestionType, difficulty: string, context: string) => `
-        You are an expert teacher aligned with the Brazilian curriculum (BNCC). Generate ${qty} exam questions based on the following text.
+        Você é um Professor Especialista em Avaliação Educacional, seguindo rigorosamente os manuais do INEP (SAEB/ENEM) e as diretrizes da BNCC.
         
-        Subject: ${subject}
-        Type: ${type} (If MULTIPLE_CHOICE, provide 4 or 5 alternatives. If TRUE_FALSE, provide 2 options. If ESSAY, provide empty alternatives but a clear expected answer in justification).
-        Target Difficulty: ${difficulty}
-
-        IMPORTANT: For each question, suggest the most appropriate BNCC code (Base Nacional Comum Curricular) if applicable (e.g., EF09HI02).
-
-        Context Text:
-        "${context.substring(0, 10000)}" 
+        OBJETIVO: Gerar exatamente ${qty} itens de avaliação de ALTA QUALIDADE baseados no texto de contexto abaixo.
         
-        Return the response strictly in JSON format conforming to the schema.
+        TEXTO DE CONTEXTO:
+        "${context.substring(0, 15000)}"
+        
+        DIRETRIZES TÉCNICAS (PADRÃO INEP):
+        1. ENUNCIADO: Deve ser claro, objetivo e conter todos os elementos necessários para a resolução. Use um "Texto-Base" se necessário. Evite termos negativos ("Exceto", "Não").
+        2. ALTERNATIVAS (Para MULTIPLE_CHOICE): Sempre gere exatamente 5 alternativas (A, B, C, D, E).
+        3. HOMOGENEIDADE: Todas as alternativas devem ter extensão e estrutura gramatical similares.
+        4. DISTRATORES: Não devem ser "pegadinhas". Devem representar erros de raciocínio lógico ou interpretações parciais plausíveis.
+        5. JUSTIFICATIVA: Obrigatória para cada item. Explique por que a correta é a correta e qual o erro pedagógico por trás dos distratores.
+        6. TRI (Teoria de Resposta ao Item): Estime o grau de dificuldade (Fácil, Médio, Difícil) e a complexidade cognitiva (Taxonomia de Bloom).
+        
+        ESPECIFICAÇÕES:
+        - Matéria: ${subject}
+        - Tipo: ${type}
+        - Dificuldade Alvo: ${difficulty}
+        
+        Retorne a resposta estritamente em JSON conforme o schema.
     `,
     GRADE_ESSAY: (question: string, expected: string, answer: string, score: number) => `
         Você é um professor corretor experiente. Avalie a resposta do aluno para uma questão discursiva.
@@ -112,12 +121,19 @@ const PROMPTS = {
 // ... (Rest of imports and helpers remain)
 
 // --- Interfaces ---
+// ... Interface atualizada com suporte a TRI
 interface GeneratedQuestion {
     statement: string;
     alternatives: { text: string; isCorrect: boolean }[];
     justification: string;
     difficulty: string;
     bnccCode?: string;
+    triParams?: {
+        difficulty: number; // -3 a +3
+        discrimination: number; // 0 a 2
+        guessing: number; // 0 a 0.25
+        bloomTaxonomy: string;
+    };
 }
 
 interface EssayGrade {
@@ -369,7 +385,7 @@ export const generateQuestionsFromText = async (
         items: {
             type: Type.OBJECT,
             properties: {
-                statement: { type: Type.STRING, description: "The question text" },
+                statement: { type: Type.STRING, description: "O enunciado completo da questão" },
                 alternatives: {
                     type: Type.ARRAY,
                     items: {
@@ -380,10 +396,20 @@ export const generateQuestionsFromText = async (
                         }
                     }
                 },
-                justification: { type: Type.STRING, description: "Why the answer is correct" },
+                justification: { type: Type.STRING, description: "Justificativa pedagógica detalhada do gabarito e distratores" },
                 difficulty: { type: Type.STRING, enum: ["FACIL", "MEDIO", "DIFICIL"] },
-                bnccCode: { type: Type.STRING, description: "The BNCC code (e.g., EF01MA01)" }
-            }
+                bnccCode: { type: Type.STRING, description: "Código BNCC (ex: EF01MA01)" },
+                triParams: {
+                    type: Type.OBJECT,
+                    properties: {
+                        difficulty: { type: Type.NUMBER },
+                        discrimination: { type: Type.NUMBER },
+                        guessing: { type: Type.NUMBER },
+                        bloomTaxonomy: { type: Type.STRING }
+                    }
+                }
+            },
+            required: ["statement", "alternatives", "justification", "difficulty"]
         }
     };
 
@@ -536,13 +562,20 @@ const mockGenerate = (qty: number, type: QuestionType, diff: DifficultyLevel): G
     return Array.from({ length: qty }).map((_, i) => ({
         statement: `(Mock AI) Questão ${i + 1} gerada localmente sobre o tema (Modo Offline). Dificuldade: ${diff}.`,
         alternatives: [
-            { text: "Alternativa Correta Exemplo", isCorrect: true },
-            { text: "Distrator 1 incorreto", isCorrect: false },
-            { text: "Distrator 2 incorreto", isCorrect: false },
-            { text: "Distrator 3 incorreto", isCorrect: false },
+            { text: "Alternativa A (Correta)", isCorrect: true },
+            { text: "Alternativa B (Distrator)", isCorrect: false },
+            { text: "Alternativa C (Distrator)", isCorrect: false },
+            { text: "Alternativa D (Distrator)", isCorrect: false },
+            { text: "Alternativa E (Distrator)", isCorrect: false },
         ],
-        justification: "Esta é a resposta correta porque o sistema está em modo de fallback.",
+        justification: "Esta é a justificativa padrão para o modo offline, detalhando por que a A está correta e por que as outras opções servem como distratores pedagógicos.",
         difficulty: diff,
-        bnccCode: "EF00MOCK"
+        bnccCode: "EF00MOCK",
+        triParams: {
+            difficulty: diff === 'DIFICIL' ? 2 : diff === 'MEDIO' ? 0 : -2,
+            discrimination: 1.5,
+            guessing: 0.2,
+            bloomTaxonomy: "Compreensão"
+        }
     }));
 };
