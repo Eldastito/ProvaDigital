@@ -120,7 +120,7 @@ export const GamifiedEventsManager = () => {
                                 <p className="text-xs text-slate-500 mb-4 flex items-center gap-1"><Calendar size={12} /> {new Date(evt.eventDate).toLocaleDateString()}</p>
 
                                 <div className="flex items-center justify-between text-sm text-slate-600 bg-slate-50 p-3 rounded-lg mb-4">
-                                    <span className="flex items-center gap-1"><Users size={16} /> {evt.participants.length} Inscritos</span>
+                                    <span className="flex items-center gap-1"><Users size={16} /> {evt.participants?.length || 0} Inscritos</span>
                                     <span className="flex items-center gap-1 font-bold text-amber-600"><Coins size={16} /> {evt.rewardCoins}</span>
                                 </div>
 
@@ -243,12 +243,12 @@ export const GamifiedEventsManager = () => {
 
                 <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
                     <div className="p-4 bg-slate-50 border-b flex justify-between items-center">
-                        <h3 className="font-bold text-slate-700 flex items-center gap-2"><Users size={18} /> Participantes ({selectedEvent.participants.length})</h3>
+                        <h3 className="font-bold text-slate-700 flex items-center gap-2"><Users size={18} /> Participantes ({selectedEvent.participants?.length || 0})</h3>
                         <div className="text-xs text-slate-500">Insira a pontuação final de cada aluno</div>
                     </div>
 
                     <div className="divide-y divide-slate-100">
-                        {selectedEvent.participants.length === 0 && <div className="p-8 text-center text-slate-400">Nenhum participante inscrito.</div>}
+                        {(selectedEvent.participants?.length || 0) === 0 && <div className="p-8 text-center text-slate-400">Nenhum participante inscrito.</div>}
 
                         {selectedEvent.participants.map(p => {
                             const student = state.students.find(s => s.id === p.studentId);
@@ -320,10 +320,10 @@ export const GamifiedEventsManager = () => {
 
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                     <div className="p-4 border-b bg-slate-50">
-                        <h3 className="font-bold text-slate-700">Inscritos ({selectedEvent.participants.length})</h3>
+                        <h3 className="font-bold text-slate-700">Inscritos ({selectedEvent.participants?.length || 0})</h3>
                     </div>
                     <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto">
-                        {selectedEvent.participants.length === 0 && <div className="p-6 text-center text-slate-400">Nenhum inscrito ainda.</div>}
+                        {(selectedEvent.participants?.length || 0) === 0 && <div className="p-6 text-center text-slate-400">Nenhum inscrito ainda.</div>}
                         {selectedEvent.participants.map(p => {
                             const student = state.students.find(s => s.id === p.studentId);
                             return (

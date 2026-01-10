@@ -54,7 +54,7 @@ export const ExamsListView = () => {
                                     <Clock size={16} className="text-slate-400" /> {exam.durationMinutes} min
                                 </div>
                                 <div className="flex items-center text-sm text-slate-600 gap-2">
-                                    <FileText size={16} className="text-slate-400" /> {exam.items.length} questões
+                                    <FileText size={16} className="text-slate-400" /> {exam.items?.length || 0} questões
                                 </div>
                                 <div className="pt-4 border-t flex justify-between items-center gap-2">
                                     <span className="text-xs text-slate-400 flex-1">Criada em {new Date(exam.createdAt).toLocaleDateString()}</span>

@@ -144,7 +144,7 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
                                     <span className="text-[10px] text-slate-400">{new Date(exam.createdAt).toLocaleDateString()}</span>
                                 </div>
                                 <h4 className="font-bold text-slate-800 text-sm mb-1 truncate">{exam.title}</h4>
-                                <p className="text-xs text-slate-500 mb-3">{exam.classIds.length} turmas alocadas</p>
+                                <p className="text-xs text-slate-500 mb-3">{exam.classIds?.length || 0} turmas alocadas</p>
                                 <div className="flex gap-2">
                                     <button onClick={() => setView('EXAMS')} className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded hover:bg-slate-200 flex-1">Gerenciar</button>
                                     {exam.status === ExamStatus.PUBLISHED && (
