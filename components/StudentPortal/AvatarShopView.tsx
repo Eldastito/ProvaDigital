@@ -26,6 +26,70 @@ export const AvatarShopView = () => {
     // REMOVED BLOCKING LOADING CHECK
     // if (!userProfile) { ... }
 
+    const [selectedCategory, setSelectedCategory] = useState<ShopItemCategory>('HAT');
+    const [previewItem, setPreviewItem] = useState<ShopItem | null>(null);
+    const [purchaseMessage, setPurchaseMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+    const shopItems = useMemo(() => GamificationService.getShopItems(), []);
+    const filteredItems = shopItems.filter(i => i.category === selectedCategory);
+
+    const categories: { id: ShopItemCategory, label: string, icon: string }[] = [
+        { id: 'BODY', label: 'Avatares', icon: '👤' },
+        { id: 'HAT', label: 'Chapéus', icon: '🎩' },
+        { id: 'OUTFIT', label: 'Roupas', icon: '👕' },
+        { id: 'ACCESSORY', label: 'Acessórios', icon: '👓' }
+    ];
+
+    const handleBuy = (item: ShopItem) => {
+        if (!userProfile) return;
+
+        const check = GamificationService.canBuyItem(userProfile, item.id);
+
+        if (!check.success) {
+            setPurchaseMessage({ type: 'error', text: check.message || 'Erro ao comprar.' });
+            setTimeout(() => setPurchaseMessage(null), 3000);
+            return;
+        }
+
+        if (confirm(`Comprar ${item.name} por ${item.price} moedas?`)) {
+            // Execute Purchase
+            const newInventory = [...(userProfile.inventory || []), item.id];
+            const newBalance = userProfile.owlCoins - item.price;
+
+            // Auto-equip if it's a Body
+            let newEquipped = { ...userProfile.equippedItems };
+            if (item.category === 'BODY') newEquipped.body = item.id;
+
+            updateUserProfile({
+                ...userProfile,
+                owlCoins: newBalance,
+                inventory: newInventory,
+                equippedItems: newEquipped
+            });
+
+            setPurchaseMessage({ type: 'success', text: 'Compra realizada com sucesso!' });
+            setTimeout(() => setPurchaseMessage(null), 3000);
+        }
+    };
+
+    const handleEquip = (item: ShopItem) => {
+        if (!userProfile) return;
+
+        const newEquipped = { ...userProfile.equippedItems };
+        if (item.category === 'BODY') newEquipped.body = item.id;
+        else if (item.category === 'HAT') newEquipped.hat = item.id;
+        else if (item.category === 'OUTFIT') newEquipped.outfit = item.id;
+        else if (item.category === 'ACCESSORY') newEquipped.accessory = item.id;
+
+        updateUserProfile({
+            ...userProfile,
+            equippedItems: newEquipped
+        });
+
+        setPurchaseMessage({ type: 'success', text: `${item.name} equipado!` });
+        setTimeout(() => setPurchaseMessage(null), 2000);
+    };
+
     const { level } = GamificationService.calculateLevel(userProfile.xp || 0);
 
     // Resolve Equipped Item Images for Preview
