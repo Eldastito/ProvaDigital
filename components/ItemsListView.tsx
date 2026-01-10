@@ -110,7 +110,7 @@ export const ItemsListView = () => {
         text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
     // FILTER LOGIC
-    const filteredItems = state.items.filter(i => {
+    const filteredItems = (state.items || []).filter(i => {
         // More lenient tenant check: allow if same tenant OR if current user is super admin
         const matchesTenant = !userTenantId || i.tenantId === userTenantId || currentUser?.role === UserRole.SUPER_ADMIN;
         if (!matchesTenant) return false;
@@ -118,7 +118,7 @@ export const ItemsListView = () => {
         const searchText = normalizeText(filterText);
         const matchesText = !filterText ||
             normalizeText(i.statement).includes(searchText) ||
-            i.tags.some(t => normalizeText(t).includes(searchText));
+            (i.tags && i.tags.some(t => normalizeText(t).includes(searchText)));
 
         const subjectQuery = normalizeText(filterSubject);
         const matchesSubject = !filterSubject || normalizeText(i.subject).includes(subjectQuery);
