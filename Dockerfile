@@ -27,10 +27,6 @@ ENV VITE_GEMINI_API_KEY=$VITE_GEMINI_API_KEY
 ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN
 ENV VITE_POSTHOG_KEY=$VITE_POSTHOG_KEY
 
-# Log variables presence (masked for safety)
-RUN echo "VITE_SUPABASE_URL is set: $([ -n "$VITE_SUPABASE_URL" ] && echo 'yes' || echo 'no')"
-RUN echo "VITE_GEMINI_API_KEY is set: $([ -n "$VITE_GEMINI_API_KEY" ] && echo 'yes' || echo 'no')"
-
 # Build the application
 RUN npm run build
 
