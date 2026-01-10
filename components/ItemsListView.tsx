@@ -132,7 +132,7 @@ export const ItemsListView = () => {
     });
 
     const getItemHistory = (itemId: string) => {
-        return state.exams.filter(e => e.items.some(examItem => examItem.itemId === itemId));
+        return state.exams.filter(e => e.items?.some(examItem => examItem.itemId === itemId));
     };
 
     const itemHistory = selectedItem ? getItemHistory(selectedItem.id) : [];

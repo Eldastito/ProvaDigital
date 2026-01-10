@@ -23,14 +23,14 @@ const DistributionChart = ({ grades }: { grades: number[] }) => {
             {buckets.map((count, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center group">
                     <div className="relative w-full flex items-end justify-center h-full">
-                        <div 
+                        <div
                             className={`w-full rounded-t-md transition-all duration-500 ${i < 2 ? 'bg-rose-400' : i === 2 ? 'bg-amber-400' : 'bg-emerald-400'} group-hover:opacity-80`}
                             style={{ height: `${(count / maxVal) * 100}%` }}
                         >
                             {count > 0 && <span className="block text-center text-[10px] font-bold text-white mt-1">{count}</span>}
                         </div>
                     </div>
-                    <span className="text-[10px] text-slate-500 mt-1 font-medium">{i*2}-{(i+1)*2}</span>
+                    <span className="text-[10px] text-slate-500 mt-1 font-medium">{i * 2}-{(i + 1) * 2}</span>
                 </div>
             ))}
         </div>
@@ -46,7 +46,7 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
     const [showIntegrityFilter, setShowIntegrityFilter] = useState(false);
 
     // Data
-    const professorClasses = isProfessor 
+    const professorClasses = isProfessor
         ? state.classes.filter(c => currentUser.classIds?.includes(c.id))
         : [];
 
@@ -56,17 +56,17 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
     }
 
     // My Exams (Active/Recent)
-    const myExams = state.exams.filter(e => e.creatorId === currentUser?.id || (e.classIds.some(c => currentUser?.classIds?.includes(c))));
+    const myExams = state.exams.filter(e => e.creatorId === currentUser?.id || (e.classIds?.some(c => currentUser?.classIds?.includes(c))));
 
     const selectedClass = state.classes.find(c => c.id === selectedClassId);
     const classStudents = state.students.filter(s => s.classId === selectedClassId);
-    
+
     // Process Stats for Class (Include Cheating Flags from Last Exam)
     const studentStats = classStudents.map(s => {
         const results = state.results
             .filter(r => r.studentId === s.id)
             .sort((a, b) => new Date(b.gradedAt).getTime() - new Date(a.gradedAt).getTime());
-            
+
         const totalViolations = results.reduce((acc, r) => acc + (r.violationCount || 0), 0);
         // Use the most recent exam for detailed flags
         const lastExamFlags = results.length > 0 ? results[0].securityFlags : [];
@@ -89,8 +89,8 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
     }).sort((a, b) => (b.stats?.idgScore || 0) - (a.stats?.idgScore || 0));
 
     // Filter Logic
-    const filteredStudents = showIntegrityFilter 
-        ? studentStats.filter(s => s.violations > 0) 
+    const filteredStudents = showIntegrityFilter
+        ? studentStats.filter(s => s.violations > 0)
         : studentStats;
 
     const classAverage = studentStats.reduce((acc, s) => acc + (s.stats?.idgScore || 0), 0) / (studentStats.length || 1);
@@ -112,7 +112,7 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
 
     return (
         <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-500">
-            
+
             {/* Top Header & Actions */}
             <div className="flex items-center justify-between">
                 <div>
@@ -133,7 +133,7 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
             {isProfessor && (
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-8">
                     <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
-                        <h3 className="font-bold text-slate-800 flex items-center gap-2"><FileText size={18} className="text-brand-secondary"/> Minhas Provas Ativas</h3>
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2"><FileText size={18} className="text-brand-secondary" /> Minhas Provas Ativas</h3>
                         <button onClick={() => setView('EXAM_NEW')} className="text-xs text-brand-primary font-bold hover:underline">+ Nova Prova</button>
                     </div>
                     <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -149,7 +149,7 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
                                     <button onClick={() => setView('EXAMS')} className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded hover:bg-slate-200 flex-1">Gerenciar</button>
                                     {exam.status === ExamStatus.PUBLISHED && (
                                         <button onClick={() => { /* Navigate to grading */ }} className="text-xs bg-brand-light text-brand-primary px-3 py-1 rounded hover:bg-brand-secondary hover:text-white transition flex items-center gap-1">
-                                            <ClipboardCheck size={12}/> Notas
+                                            <ClipboardCheck size={12} /> Notas
                                         </button>
                                     )}
                                 </div>
@@ -162,12 +162,12 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
 
             {isProfessor ? (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    
+
                     {/* Left Column: Class Selection & Overview */}
                     <div className="space-y-6">
                         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                             <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Selecione a Turma</label>
-                            <select 
+                            <select
                                 className="w-full border border-slate-300 rounded-lg p-3 font-medium text-slate-700 mb-6 focus:ring-2 focus:ring-brand-primary outline-none"
                                 value={selectedClassId}
                                 onChange={(e) => setSelectedClassId(e.target.value)}
@@ -181,7 +181,7 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
                                         <h3 className="font-bold text-slate-800">IDG Médio (Turma)</h3>
                                         <span className={`text-xl font-black ${classAverage >= 6 ? 'text-emerald-600' : 'text-amber-500'}`}>{classAverage.toFixed(1)}</span>
                                     </div>
-                                    
+
                                     <div className="mb-6">
                                         <div className="text-xs text-slate-400 mb-2 text-center">Distribuição de Notas (0-10)</div>
                                         <DistributionChart grades={gradesList} />
@@ -189,7 +189,7 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
 
                                     {/* CLUSTERIZATION PANEL */}
                                     <div className="mb-6 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                                        <div className="text-xs font-bold text-slate-500 uppercase mb-3 flex items-center gap-1"><Brain size={14}/> Clusters Comportamentais</div>
+                                        <div className="text-xs font-bold text-slate-500 uppercase mb-3 flex items-center gap-1"><Brain size={14} /> Clusters Comportamentais</div>
                                         <div className="space-y-2">
                                             <div className="flex justify-between items-center text-xs">
                                                 <span className="text-emerald-700 font-bold">Domínio (Rápido/Preciso)</span>
@@ -223,7 +223,7 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
 
                                     {/* Integrity Alert Card */}
                                     {cheatingAttempts > 0 && (
-                                        <div 
+                                        <div
                                             onClick={() => setShowIntegrityFilter(!showIntegrityFilter)}
                                             className={`mt-4 p-4 rounded-xl border cursor-pointer transition ${showIntegrityFilter ? 'bg-rose-100 border-rose-300 shadow-inner' : 'bg-rose-50 border-rose-200 hover:bg-rose-100'}`}
                                         >
@@ -250,15 +250,15 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
                         {/* AI Insight for Class */}
                         <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl p-6 text-white shadow-lg relative overflow-hidden">
                             <div className="relative z-10">
-                                <h3 className="font-bold flex items-center gap-2 mb-2"><Brain size={20} className="text-yellow-300"/> Insight da IA</h3>
+                                <h3 className="font-bold flex items-center gap-2 mb-2"><Brain size={20} className="text-yellow-300" /> Insight da IA</h3>
                                 <p className="text-sm text-indigo-100 leading-relaxed">
                                     A turma <strong>{selectedClass?.name}</strong> teve uma queda de 15% em interpretação de texto na última semana. Sugiro focar em exercícios de leitura ativa.
                                 </p>
                                 <button className="mt-4 bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-2 rounded-lg transition flex items-center gap-2">
-                                    Ver Plano de Aula Sugerido <ArrowRight size={14}/>
+                                    Ver Plano de Aula Sugerido <ArrowRight size={14} />
                                 </button>
                             </div>
-                            <Brain size={100} className="absolute -right-4 -bottom-4 opacity-10 text-white"/>
+                            <Brain size={100} className="absolute -right-4 -bottom-4 opacity-10 text-white" />
                         </div>
                     </div>
 
@@ -266,21 +266,21 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
                     <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden h-[600px]">
                         <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
                             <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                <Users size={20} className="text-brand-secondary"/> Desempenho Individual (IDG)
+                                <Users size={20} className="text-brand-secondary" /> Desempenho Individual (IDG)
                             </h3>
                             <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16}/>
-                                <input placeholder="Buscar aluno..." className="pl-9 pr-4 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-brand-primary outline-none"/>
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                <input placeholder="Buscar aluno..." className="pl-9 pr-4 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-brand-primary outline-none" />
                             </div>
                         </div>
-                        
+
                         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50">
                             {filteredStudents.length === 0 && (
                                 <div className="text-center py-12 text-slate-400">Nenhum aluno encontrado com os filtros atuais.</div>
                             )}
                             {filteredStudents.map((student, idx) => (
                                 <div key={student.id} className={`bg-white border rounded-xl overflow-hidden shadow-sm transition hover:shadow-md ${student.violations > 0 ? 'border-rose-200' : 'border-slate-200'}`}>
-                                    <div 
+                                    <div
                                         className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50"
                                         onClick={() => setExpandedStudentId(expandedStudentId === student.id ? null : student.id)}
                                     >
@@ -293,7 +293,7 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
                                                     {student.name}
                                                     {student.violations > 0 && (
                                                         <span className="bg-rose-100 text-rose-700 text-[10px] px-2 py-0.5 rounded flex items-center gap-1 border border-rose-200" title="Violações de segurança detectadas">
-                                                            <ShieldAlert size={10}/> {student.violations}
+                                                            <ShieldAlert size={10} /> {student.violations}
                                                         </span>
                                                     )}
                                                 </div>
@@ -306,7 +306,7 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
                                                 </div>
                                             </div>
                                         </div>
-                                        
+
                                         <div className="flex items-center gap-6">
                                             <div className="text-right">
                                                 <div className={`font-black text-lg ${student.stats?.idgScore && student.stats.idgScore >= 6 ? 'text-emerald-600' : 'text-rose-600'}`}>
@@ -314,18 +314,18 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
                                                 </div>
                                                 <div className="text-[10px] text-slate-400 uppercase">IDG</div>
                                             </div>
-                                            {expandedStudentId === student.id ? <ChevronUp size={20} className="text-slate-400"/> : <ChevronDown size={20} className="text-slate-400"/>}
+                                            {expandedStudentId === student.id ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
                                         </div>
                                     </div>
 
                                     {/* Expanded Detail */}
                                     {expandedStudentId === student.id && (
                                         <div className="border-t border-slate-100 bg-slate-50 p-4 animate-in slide-in-from-top-2">
-                                            
+
                                             {/* Integrity Report Panel (Only if violations exist) */}
                                             {student.violations > 0 && (
                                                 <div className="mb-4 bg-rose-50 border border-rose-100 rounded-lg p-3 flex gap-3 items-start">
-                                                    <ShieldAlert size={18} className="text-rose-600 mt-0.5 flex-shrink-0"/>
+                                                    <ShieldAlert size={18} className="text-rose-600 mt-0.5 flex-shrink-0" />
                                                     <div>
                                                         <div className="text-sm font-bold text-rose-800">Alerta de Integridade da Prova</div>
                                                         <p className="text-xs text-rose-600 mt-1">
@@ -343,15 +343,15 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
                                             {/* Telemetry Data */}
                                             <div className="grid grid-cols-3 gap-3 mb-4">
                                                 <div className="p-2 bg-white border rounded text-center">
-                                                    <div className="text-[10px] text-slate-400 uppercase flex justify-center gap-1"><Clock size={10}/> Tempo Médio</div>
+                                                    <div className="text-[10px] text-slate-400 uppercase flex justify-center gap-1"><Clock size={10} /> Tempo Médio</div>
                                                     <div className="font-bold text-slate-800">3m 12s</div>
                                                 </div>
                                                 <div className="p-2 bg-white border rounded text-center">
-                                                    <div className="text-[10px] text-slate-400 uppercase flex justify-center gap-1"><MousePointer2 size={10}/> Trocas Resp.</div>
+                                                    <div className="text-[10px] text-slate-400 uppercase flex justify-center gap-1"><MousePointer2 size={10} /> Trocas Resp.</div>
                                                     <div className="font-bold text-slate-800">2.1</div>
                                                 </div>
                                                 <div className="p-2 bg-white border rounded text-center">
-                                                    <div className="text-[10px] text-slate-400 uppercase flex justify-center gap-1"><PenTool size={10}/> Rascunho</div>
+                                                    <div className="text-[10px] text-slate-400 uppercase flex justify-center gap-1"><PenTool size={10} /> Rascunho</div>
                                                     <div className="font-bold text-emerald-600">Usado</div>
                                                 </div>
                                             </div>
@@ -360,20 +360,20 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
                                                 <div className="bg-white p-3 rounded-lg border border-slate-200">
                                                     <div className="text-xs font-bold text-slate-400 uppercase mb-1">Ponto Forte</div>
                                                     <div className="text-sm font-bold text-emerald-700 flex items-center gap-1">
-                                                        <Star size={14}/> {student.stats?.strongestSubject}
+                                                        <Star size={14} /> {student.stats?.strongestSubject}
                                                     </div>
                                                 </div>
                                                 <div className="bg-white p-3 rounded-lg border border-slate-200">
                                                     <div className="text-xs font-bold text-slate-400 uppercase mb-1">Ponto de Atenção</div>
                                                     <div className="text-sm font-bold text-rose-600 flex items-center gap-1">
-                                                        <Target size={14}/> {student.stats?.weakestSubject}
+                                                        <Target size={14} /> {student.stats?.weakestSubject}
                                                     </div>
                                                 </div>
                                             </div>
 
                                             <div className="bg-brand-light/30 border border-brand-primary/20 rounded-lg p-4">
                                                 <h4 className="text-sm font-bold text-brand-dark flex items-center gap-2 mb-2">
-                                                    <Brain size={16} className="text-brand-primary"/> Sugestão da IA para Recuperação
+                                                    <Brain size={16} className="text-brand-primary" /> Sugestão da IA para Recuperação
                                                 </h4>
                                                 <p className="text-sm text-slate-700 mb-3 leading-relaxed">
                                                     {getAiSuggestion(student.name, student.stats?.weakestSubject || 'Geral')}
@@ -396,7 +396,7 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
                 </div>
             ) : (
                 <div className="text-center py-20 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                    <Users size={48} className="mx-auto text-slate-300 mb-4"/>
+                    <Users size={48} className="mx-auto text-slate-300 mb-4" />
                     <h3 className="text-xl font-bold text-slate-500">Visão restrita a Professores</h3>
                     <p className="text-slate-400">Acesse como professor para ver os dados detalhados da turma.</p>
                 </div>

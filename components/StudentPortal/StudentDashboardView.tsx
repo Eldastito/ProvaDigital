@@ -155,11 +155,11 @@ export const StudentDashboardView = () => {
     const availableEvents = state.gamifiedEvents.filter(e =>
         e.schoolId === student.schoolId &&
         e.status === GamifiedEventStatus.OPEN &&
-        !e.participants.some(p => p.studentId === student.id)
+        !e.participants?.some(p => p.studentId === student.id)
     );
 
     const myActiveEvents = state.gamifiedEvents.filter(e =>
-        e.participants.some(p => p.studentId === student.id) &&
+        e.participants?.some(p => p.studentId === student.id) &&
         e.status !== GamifiedEventStatus.FINISHED
     );
 
@@ -239,7 +239,7 @@ export const StudentDashboardView = () => {
 
         // Add Gamified Events to Calendar
         const gameEvents = state.gamifiedEvents.filter(e =>
-            e.participants.some(p => p.studentId === student.id) &&
+            e.participants?.some(p => p.studentId === student.id) &&
             e.eventDate.startsWith(dateStr)
         );
 
