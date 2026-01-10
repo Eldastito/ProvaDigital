@@ -174,8 +174,8 @@ export const Layout = ({ children }: LayoutProps) => {
               <NavItem icon={PieChart} label="Visão Geral" active={path === '/dashboard'} onClick={() => navigate('/dashboard')} />
 
               <div className="px-4 pt-4 pb-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Acadêmico</div>
-              <NavItem icon={FileText} label="Banco de Itens" active={path.includes('/items')} onClick={() => navigate('/items')} />
-              <NavItem icon={BookOpen} label="Provas" active={path.includes('/exams')} onClick={() => navigate('/exams')} />
+              <NavItem icon={FileText} label="Banco de Itens" active={path.includes('/items') || path.includes('/teacher/itens')} onClick={() => navigate('/items')} />
+              <NavItem icon={BookOpen} label="Provas" active={path.includes('/exams') || path.includes('/teacher/provas')} onClick={() => navigate('/exams')} />
               <NavItem icon={Calendar} label="Diário de Classe" active={path === '/class-diary'} onClick={() => navigate('/class-diary')} />
               <NavItem icon={Map} label="Alocação" active={path === '/allocation'} onClick={() => navigate('/allocation')} />
               <NavItem icon={Cast} label="Eventos & Competições" active={path === '/gamified-events'} onClick={() => navigate('/gamified-events')} />

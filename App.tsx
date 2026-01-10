@@ -256,7 +256,13 @@ export default function App() {
                             <DashboardView state={store} />
                       } />
 
-                      {/* TEACHER / ACADEMIC */}
+                      {/* ITEMS & EXAMS - Generic routes for all profiles */}
+                      <Route path="items" element={<ItemsListView state={store} />} />
+                      <Route path="items/new" element={<ItemEditorView state={store} />} />
+                      <Route path="exams" element={<ExamsListView state={store} />} />
+                      <Route path="exams/new" element={<ExamBuilderView state={store} />} />
+
+                      {/* TEACHER / ACADEMIC - Legacy routes for backward compatibility */}
                       <Route path="teacher/itens" element={<ItemsListView state={store} />} />
                       <Route path="teacher/itens/novo" element={<ItemEditorView state={store} />} />
                       <Route path="teacher/provas" element={<ExamsListView state={store} />} />

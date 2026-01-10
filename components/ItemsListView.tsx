@@ -163,7 +163,7 @@ export const ItemsListView = () => {
                     >
                         <Filter size={16} /> Filtros {showFilters ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                     </button>
-                    <button onClick={() => navigate('/teacher/itens/novo')} className="btn-gradient px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                    <button onClick={() => navigate('/items/new')} className="btn-gradient px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
                         <Plus size={18} /> Nova Questão
                     </button>
                 </div>

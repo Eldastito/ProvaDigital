@@ -438,7 +438,7 @@ export const ItemEditorView = () => {
 
         addItem(newItem);
         alert("Questão salva com sucesso!");
-        navigate('/teacher/itens');
+        navigate('/items');
     };
 
     return (

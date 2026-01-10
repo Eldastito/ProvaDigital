@@ -25,7 +25,7 @@ export const ExamsListView = () => {
                     </h1>
                     <p className="text-sm text-slate-500">Visualize e reutilize provas de toda a rede de ensino.</p>
                 </div>
-                <button onClick={() => navigate('/teacher/provas/nova')} className="btn-gradient px-4 py-2 rounded-lg flex items-center gap-2 font-medium">
+                <button onClick={() => navigate('/exams/new')} className="btn-gradient px-4 py-2 rounded-lg flex items-center gap-2 font-medium">
                     <Plus size={18} /> Nova Prova
                 </button>
             </div>
