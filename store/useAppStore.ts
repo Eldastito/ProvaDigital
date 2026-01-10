@@ -89,6 +89,10 @@ interface AppActions {
     confirmMentorship: (requestId: string, pinInput: string) => boolean; // Returns true if PIN matches
     setHasConsented: (hasConsented: boolean) => void;
     setOwlTutorContext: (context: OwlTutorContext | null) => void;
+
+    // --- BULK ACTIONS ---
+    removeItems: (ids: string[]) => void;
+    bulkAddTag: (ids: string[], tag: string) => void;
 }
 
 type AppStore = AppState & AppActions;
@@ -337,6 +341,55 @@ export const useAppStore = create<AppStore>((set, get) => ({
             console.log('✅ Item saved successfully:', item.id);
         } catch (e) {
             console.error('Failed to persist item:', e);
+        }
+    },
+
+    removeItems: async (ids) => {
+        // 1. Optimistic update
+        const previousItems = get().items;
+        set((state) => ({ items: state.items.filter(i => !ids.includes(i.id)) }));
+
+        // 2. Persist to Supabase
+        try {
+            const { error } = await supabase.from('items').delete().in('id', ids);
+            if (error) {
+                console.error('❌ Error removing items from Supabase:', error);
+                set({ items: previousItems }); // Rollback
+                throw error;
+            }
+            console.log('✅ Items removed successfully:', ids.length);
+        } catch (e) {
+            console.error('Failed to remove items:', e);
+        }
+    },
+
+    bulkAddTag: async (ids, tag) => {
+        // 1. Prepare updates for local state
+        const updatedItems = get().items.map(i => ids.includes(i.id)
+            ? { ...i, tags: Array.from(new Set([...(i.tags || []), tag])) }
+            : i);
+
+        const previousItems = get().items;
+        set({ items: updatedItems });
+
+        // 2. Persist to Supabase (Individual updates due to array tag logic)
+        try {
+            const currentItems = previousItems.filter(i => ids.includes(i.id));
+            const updates = currentItems.map(item => {
+                const newTags = Array.from(new Set([...(item.tags || []), tag]));
+                return supabase.from('items').update({ tags: newTags }).eq('id', item.id);
+            });
+
+            const results = await Promise.all(updates);
+            const errors = results.filter(r => r.error);
+
+            if (errors.length > 0) {
+                console.error('❌ Errors tagging items:', errors);
+                // Partial rollback or notify user? For now, we keep optimistic if it mostly worked
+            }
+        } catch (e) {
+            console.error('Failed to bulk tag items:', e);
+            set({ items: previousItems }); // Full rollback on critical failure
         }
     },
 

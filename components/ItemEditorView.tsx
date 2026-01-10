@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { Brain, X, Trash2, Image as ImageIcon, Upload, GripVertical, BookOpen, Eye, CheckSquare, Save, Wand2, Loader2, Sparkles, Video, Music } from 'lucide-react';
+import { Brain, X, Trash2, Image as ImageIcon, Upload, GripVertical, BookOpen, Eye, CheckSquare, Save, Wand2, Loader2, Sparkles, Video, Music, Camera, Scan, Wifi, ShieldAlert, CheckCircle2, AlertCircle, BarChart3, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppState, Item, DifficultyLevel, QuestionType, ItemOrigin } from '../types';
-import { generateQuestionsFromText, improveItemStatement, generateDistractors, suggestBNCC, generateJustification } from '../services/geminiService';
+import { generateQuestionsFromText, improveItemStatement, generateDistractors, suggestBNCC, generateJustification, variateItem, adaptItemForAccessibility, extractItemFromImage, auditPedagogicalItem } from '../services/geminiService';
 import { uuidv4 } from '../utils/helpers';
 import { RichTextEditor } from './RichTextEditor';
 import { useAppStore } from '../store/useAppStore';
@@ -51,6 +51,9 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
     const [isImproving, setIsImproving] = useState(false);
     const [isGeneratingAlts, setIsGeneratingAlts] = useState(false);
     const [isBNCCLoading, setIsBNCCLoading] = useState(false);
+    const [isExtractingOCR, setIsExtractingOCR] = useState(false);
+    const [isAuditing, setIsAuditing] = useState(false);
+    const [auditReport, setAuditReport] = useState<any>(null);
 
     // Drag and Drop State
     const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
@@ -200,6 +203,22 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
         }
     };
 
+    const handleAudit = async () => {
+        if (!form.statement) return alert('É necessário um enunciado para auditar.');
+        setIsAuditing(true);
+        setAuditReport(null);
+        try {
+            const itemContext = JSON.stringify({ ...form, alternatives });
+            const result = await auditPedagogicalItem(itemContext);
+            setAuditReport(result);
+        } catch (e) {
+            console.error(e);
+            alert("Erro ao realizar auditoria.");
+        } finally {
+            setIsAuditing(false);
+        }
+    };
+
     const handleAccessibility = async (profile: 'TEA' | 'TDAH' | 'VISUAL' | 'GERAL') => {
         if (!form.statement) return alert('É necessário um enunciado para adaptar.');
         setIsAdapting(true);
@@ -304,6 +323,45 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
         }
     };
 
+    const handleOCR = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+            const base64 = reader.result as string;
+            setIsExtractingOCR(true);
+            try {
+                const result = await extractItemFromImage(base64);
+                if (result) {
+                    setForm(prev => ({
+                        ...prev,
+                        statement: result.statement,
+                        difficulty: result.difficulty as DifficultyLevel,
+                        correctAnswerJustification: result.justification,
+                        bnccCode: result.bnccCode || '',
+                        triParams: result.triParams
+                    }));
+                    if (result.alternatives) {
+                        setAlternatives(result.alternatives.map(a => ({
+                            text: a.text,
+                            isCorrect: a.isCorrect
+                        })));
+                    }
+                    alert("OCR Concluído: Dados extraídos da imagem com sucesso!");
+                } else {
+                    alert("A IA não conseguiu interpretar a questão nesta imagem. Tente uma foto mais nítida.");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Erro ao ler imagem. Tente uma foto mais clara.");
+            } finally {
+                setIsExtractingOCR(false);
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+
     const approveItem = (genItem: any) => {
         setForm(prev => ({
             ...prev,
@@ -393,21 +451,116 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
                         <Brain size={14} /> Gerar com IA
                     </button>
                     {mode === 'MANUAL' && (
-                        <button
-                            onClick={handleMagicPolish}
-                            disabled={isImproving || isGeneratingAlts || isBNCCLoading}
-                            className="pb-1 text-sm font-bold text-indigo-600 flex items-center gap-2 hover:text-indigo-800 transition border-b-2 border-transparent hover:border-indigo-400"
-                            title="Aprimora enunciado, gera alternativas e sugere BNCC de uma só vez"
-                        >
-                            {isImproving || isGeneratingAlts || isBNCCLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                            Polimento Mágico
-                        </button>
+                        <div className="flex gap-4">
+                            <button
+                                onClick={handleMagicPolish}
+                                disabled={isImproving || isGeneratingAlts || isBNCCLoading}
+                                className="pb-1 text-sm font-bold text-indigo-600 flex items-center gap-2 hover:text-indigo-800 transition border-b-2 border-transparent hover:border-indigo-400"
+                                title="Aprimora enunciado, gera alternativas e sugere BNCC de uma só vez"
+                            >
+                                {isImproving || isGeneratingAlts || isBNCCLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                                Polimento Mágico
+                            </button>
+                            <button
+                                onClick={handleAudit}
+                                disabled={isAuditing}
+                                className="pb-1 text-sm font-bold text-rose-600 flex items-center gap-2 hover:text-rose-800 transition border-b-2 border-transparent hover:border-rose-400"
+                            >
+                                {isAuditing ? <Loader2 size={14} className="animate-spin" /> : <ShieldAlert size={14} />}
+                                Auditoria Pedagógica
+                            </button>
+                            <label className="cursor-pointer group">
+                                <span className="pb-1 text-sm font-bold text-emerald-600 flex items-center gap-2 group-hover:text-emerald-800 transition border-b-2 border-transparent group-hover:border-emerald-400">
+                                    {isExtractingOCR ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
+                                    Magic Scan (OCR)
+                                </span>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={handleOCR}
+                                    disabled={isExtractingOCR}
+                                />
+                            </label>
+                        </div>
                     )}
                 </div>
                 <button onClick={() => navigate('/items')} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
+                {auditReport && (
+                    <div className="mb-8 bg-slate-900 text-white rounded-2xl overflow-hidden animate-in zoom-in duration-300 border border-slate-700 shadow-2xl">
+                        <div className="bg-slate-800 p-4 flex justify-between items-center border-b border-slate-700">
+                            <div className="flex items-center gap-2">
+                                <BarChart3 className="text-rose-400" size={20} />
+                                <h3 className="font-bold text-lg">Relatório de Auditoria Pedagógica</h3>
+                            </div>
+                            <button onClick={() => setAuditReport(null)} className="text-slate-400 hover:text-white"><X size={20} /></button>
+                        </div>
+                        <div className="p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                                <div className="text-center p-4 bg-slate-800/50 rounded-xl border border-slate-700 relative overflow-hidden group">
+                                    <div className={`text-4xl font-black mb-1 ${auditReport.score >= 80 ? 'text-emerald-400' : auditReport.score >= 60 ? 'text-amber-400' : 'text-rose-400'}`}>
+                                        {auditReport.score}%
+                                    </div>
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-2">
+                                        <Search size={10} className="text-brand-primary" /> Ineditismo & Qualidade
+                                    </div>
+                                    <div className="absolute inset-0 bg-brand-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                                </div>
+                                <div className="text-center p-4 bg-slate-800/50 rounded-xl border border-slate-700">
+                                    <div className="text-xl font-bold text-blue-400 mb-1">{auditReport.bloomLevel}</div>
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Taxonomia de Bloom</div>
+                                </div>
+                                <div className="text-center p-4 bg-slate-800/50 rounded-xl border border-slate-700">
+                                    <div className="text-sm font-bold text-purple-400 mb-1 truncate px-2">{auditReport.bnccVerdict}</div>
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Veredito BNCC</div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="space-y-4">
+                                    <h4 className="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
+                                        <CheckCircle2 size={16} /> Pontos Fortes
+                                    </h4>
+                                    <ul className="space-y-2">
+                                        {auditReport.pros.map((p: string, i: number) => (
+                                            <li key={i} className="text-sm text-slate-300 flex items-start gap-2 bg-emerald-500/10 p-2 rounded border border-emerald-500/20">
+                                                <span className="text-emerald-500 mt-1">•</span> {p}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                                <div className="space-y-4">
+                                    <h4 className="flex items-center gap-2 text-rose-400 font-bold text-xs uppercase tracking-wider">
+                                        <AlertCircle size={16} /> Sugestões de Melhoria
+                                    </h4>
+                                    <ul className="space-y-2">
+                                        {auditReport.improvements.map((p: string, i: number) => (
+                                            <li key={i} className="text-sm text-slate-300 flex items-start gap-2 bg-rose-500/10 p-2 rounded border border-rose-500/20">
+                                                <span className="text-rose-500 mt-1">•</span> {p}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div className="mt-8 pt-6 border-t border-slate-800 text-center">
+                                <button
+                                    onClick={() => {
+                                        setAuditReport(null);
+                                        handleMagicPolish();
+                                    }}
+                                    className="bg-brand-primary text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-brand-dark transition shadow-lg flex items-center gap-2 mx-auto"
+                                >
+                                    <Sparkles size={18} /> Aplicar Melhorias Automaticamente
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {mode === 'MANUAL' ? (
                     <div className="space-y-6">
                         <div className="grid grid-cols-3 gap-6">
@@ -547,24 +700,54 @@ export const ItemEditorView = ({ state }: { state: AppState }) => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Áudio/Vídeo de Apoio (URL)</label>
-                                <div className="relative">
-                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-secondary">
-                                        {(form as any).multimedia?.[0]?.type === 'VIDEO' ? <Video size={16} /> : <Music size={16} />}
+                                <div className="flex gap-2">
+                                    <div className="relative flex-1">
+                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-secondary">
+                                            {(form as any).multimedia?.[0]?.type === 'VIDEO' ? <Video size={16} /> : <Music size={16} />}
+                                        </div>
+                                        <input
+                                            className={`w-full border rounded-lg pl-9 p-2 text-sm ${(form as any).multimedia?.[0]?.url?.includes('youtube.com') || (form as any).multimedia?.[0]?.url?.includes('youtu.be') ? 'border-amber-400 bg-amber-50' : ''}`}
+                                            placeholder="Link do YouTube ou MP3/MP4"
+                                            onChange={e => {
+                                                const val = e.target.value;
+                                                const type = val.toLowerCase().includes('youtube') || val.toLowerCase().includes('vimeo') || val.toLowerCase().endsWith('.mp4') ? 'VIDEO' : 'AUDIO';
+                                                setForm(prev => ({
+                                                    ...prev,
+                                                    multimedia: val ? [{ type, url: val }] : []
+                                                }));
+                                            }}
+                                            value={(form as any).multimedia?.[0]?.url || ''}
+                                        />
+                                        {((form as any).multimedia?.[0]?.url?.includes('youtube.com') || (form as any).multimedia?.[0]?.url?.includes('youtu.be')) && (
+                                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-200 px-1.5 py-0.5 rounded animate-pulse">
+                                                <Wifi size={10} /> REQUER INTERNET
+                                            </div>
+                                        )}
                                     </div>
-                                    <input
-                                        className="w-full border rounded-lg pl-9 p-2 text-sm"
-                                        placeholder="Link do YouTube ou MP3/MP4"
-                                        onChange={e => {
-                                            const val = e.target.value;
-                                            const type = val.toLowerCase().includes('youtube') || val.toLowerCase().includes('vimeo') || val.toLowerCase().endsWith('.mp4') ? 'VIDEO' : 'AUDIO';
-                                            setForm(prev => ({
-                                                ...prev,
-                                                multimedia: val ? [{ type, url: val }] : []
-                                            }));
-                                        }}
-                                        value={(form as any).multimedia?.[0]?.url || ''}
-                                    />
+                                    <label className="flex-shrink-0 cursor-pointer flex items-center justify-center w-10 h-10 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition border border-slate-200" title="Upload de Arquivo (Para uso offline)">
+                                        <Upload size={18} />
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept="video/mp4,audio/mpeg,image/*"
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (!file) return;
+                                                // Em prod enviaria para Supabase Storage. Aqui usamos Blob URL p/ demo.
+                                                const objectUrl = URL.createObjectURL(file);
+                                                const type = file.type.startsWith('video') ? 'VIDEO' : file.type.startsWith('audio') ? 'AUDIO' : 'IMAGE';
+                                                setForm(prev => ({
+                                                    ...prev,
+                                                    multimedia: [{ type, url: objectUrl, description: `Arquivo offline: ${file.name}` }]
+                                                }));
+                                                alert("Arquivo carregado com sucesso! Este recurso estará disponível offline no tablet.");
+                                            }}
+                                        />
+                                    </label>
                                 </div>
+                                <p className="text-[10px] text-slate-500 mt-1 italic">
+                                    Use arquivos locais (MP4/MP3) para garantir que a mídia funcione sem internet. Links externos como YouTube podem falhar offline.
+                                </p>
                             </div>
                         </div>
 

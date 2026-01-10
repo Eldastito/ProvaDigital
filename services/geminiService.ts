@@ -16,12 +16,13 @@ const PROMPTS = {
         "${context.substring(0, 15000)}"
         
         DIRETRIZES TÉCNICAS (PADRÃO INEP):
-        1. ENUNCIADO: Deve ser claro, objetivo e conter todos os elementos necessários para a resolução. Use um "Texto-Base" se necessário. Evite termos negativos ("Exceto", "Não").
-        2. ALTERNATIVAS (Para MULTIPLE_CHOICE): Sempre gere exatamente 5 alternativas (A, B, C, D, E).
-        3. HOMOGENEIDADE: Todas as alternativas devem ter extensão e estrutura gramatical similares.
-        4. DISTRATORES: Não devem ser "pegadinhas". Devem representar erros de raciocínio lógico ou interpretações parciais plausíveis.
-        5. JUSTIFICATIVA: Obrigatória para cada item. Explique por que a correta é a correta e qual o erro pedagógico por trás dos distratores.
-        6. TRI (Teoria de Resposta ao Item): Estime o grau de dificuldade (Fácil, Médio, Difícil) e a complexidade cognitiva (Taxonomia de Bloom).
+        1. INEDITISMO ABSOLUTO (CRÍTICO): As questões devem ser 100% ORIGINAIS e INÉDITAS. É terminantemente proibido copiar questões de vestibulares (ENEM, FUVEST, VUNESP, etc.) ou concursos. Use o contexto apenas como base técnica para criar algo novo.
+        2. ENUNCIADO: Deve ser claro, objetivo e conter todos os elementos necessários para a resolução. Use um "Texto-Base" se necessário. Evite termos negativos ("Exceto", "Não").
+        3. ALTERNATIVAS (Para MULTIPLE_CHOICE): Sempre gere exatamente 5 alternativas (A, B, C, D, E).
+        4. HOMOGENEIDADE: Todas as alternativas devem ter extensão e estrutura gramatical similares.
+        5. DISTRATORES: Não devem ser "pegadinhas". Devem representar erros de raciocínio lógico ou interpretações parciais plausíveis.
+        6. JUSTIFICATIVA: Obrigatória para cada item. Explique por que a correta é a correta e qual o erro pedagógico por trás dos distratores.
+        7. TRI (Teoria de Resposta ao Item): Estime o grau de dificuldade (Fácil, Médio, Difícil) e a complexidade cognitiva (Taxonomia de Bloom).
         
         ESPECIFICAÇÕES:
         - Matéria: ${subject}
@@ -143,6 +144,47 @@ const PROMPTS = {
         Enunciado: "${statement}"
         Resposta Correta: "${correct}"
         Retorne apenas o texto da justificativa, sem prefixos como "Justificativa:".
+    `,
+    EXTRACT_ITEM_FROM_IMAGE: () => `
+        Você é um Assistente de Digitalização de Materiais Didáticos. sua tarefa é ler a imagem fornecida (foto de livro ou apostila) e extrair uma questão de avaliação completa.
+        
+        REQUISITOS:
+        1. ENUNCIADO: Extraia o texto completo, incluindo qualquer texto-base ou comando.
+        2. ALTERNATIVAS: Identifique as opções (A a E) e qual é a correta.
+        3. TIPO: Identifique se é MULTIPLE_CHOICE ou ESSAY.
+        4. JUSTIFICATIVA: Crie uma breve explicação pedagógica se não houver uma.
+        5. DIFICULDADE: Estime como FACIL, MEDIO ou DIFICIL.
+        
+        Retorne estritamente em JSON conforme o schema de GeneratedQuestion.
+    `,
+    AUDIT_ITEM: (itemJson: string) => `
+        Você é um Analista Pedagógico Especialista em Avaliação (INEP/BNCC). 
+        Sua tarefa é auditar a questão abaixo e fornecer um relatório técnico de qualidade.
+        
+        QUESTÃO PARA AUDITORIA:
+        ${itemJson}
+        
+        CRITÉRIOS DE ANÁLISE:
+        1. INEDITISMO: Verifique se esta questão é inédita. Se você reconhecê-la como uma questão de vestibular conhecido (ENEM, FUVEST, etc.), você DEVE penalizar o score e sugerir uma variação.
+        2. ENUNCIADO: Está claro? Contém comandos ambíguos? Segue o padrão INEP (Texto-base -> Comando)?
+        3. ALTERNATIVAS: São homogêneas? Os distratores são baseados em erros comuns ou são "absurdos"?
+        4. BNCC: O código indicado é coerente com a habilidade exigida?
+        5. BLOOM: Qual o nível na Taxonomia de Bloom (Lembrar, Entender, Aplicar, Analisar, Avaliar, Criar)?
+        
+        RETORNO:
+        - Score Geral (0 a 100).
+        - Lista de Pontos Positivos.
+        - Lista de Melhorias Sugeridas.
+        - Veredito da BNCC (Correto ou Sugestão de troca).
+        
+        Retorne estritamente em JSON: 
+        { 
+          "score": number, 
+          "pros": string[], 
+          "improvements": string[], 
+          "bnccVerdict": string,
+          "bloomLevel": string 
+        }
     `
 };
 
@@ -579,6 +621,85 @@ export const suggestBNCC = async (statement: string): Promise<{ code: string; re
         reason: "Modo offline habilitado."
     });
 };
+
+/**
+ * OCR Inteligente: Converte imagem em questão estruturada
+ */
+export async function extractItemFromImage(base64Image: string): Promise<GeneratedQuestion | null> {
+    const apiKey = getApiKey();
+    if (!apiKey) return null;
+
+    try {
+        const ai = new GoogleGenAI({ apiKey });
+        const contents = [
+            {
+                role: 'user',
+                parts: [
+                    { text: (PROMPTS as any).EXTRACT_ITEM_FROM_IMAGE() },
+                    {
+                        inlineData: {
+                            data: base64Image.split(',')[1],
+                            mimeType: "image/jpeg"
+                        }
+                    }
+                ]
+            }
+        ];
+
+        const response = await ai.models.generateContent({
+            model: "gemini-1.5-flash",
+            contents: contents,
+            config: { responseMimeType: "application/json" }
+        });
+
+        let text = "";
+        if (typeof (response as any).text === 'function') {
+            text = (response as any).text();
+        } else if (response.candidates && response.candidates[0]?.content?.parts?.[0]?.text) {
+            text = response.candidates[0].content.parts[0].text;
+        }
+
+        const cleanJson = text.replace(/```json\n?|```/g, '').trim();
+        return JSON.parse(cleanJson) as GeneratedQuestion;
+    } catch (error) {
+        console.error("AI Error (OCR extraction):", error);
+        return null;
+    }
+}
+
+/**
+ * Auditoria Pedagógica: Analisa a qualidade técnica e pedagógica do item
+ */
+export async function auditPedagogicalItem(itemJson: string): Promise<{
+    score: number;
+    pros: string[];
+    improvements: string[];
+    bnccVerdict: string;
+    bloomLevel: string;
+} | null> {
+    const prompt = (PROMPTS as any).AUDIT_ITEM(itemJson);
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            score: { type: Type.NUMBER },
+            pros: { type: Type.ARRAY, items: { type: Type.STRING } },
+            improvements: { type: Type.ARRAY, items: { type: Type.STRING } },
+            bnccVerdict: { type: Type.STRING },
+            bloomLevel: { type: Type.STRING }
+        },
+        required: ["score", "pros", "improvements", "bnccVerdict", "bloomLevel"]
+    };
+
+    const fallback = {
+        score: 70,
+        pros: ["Análise offline: Verifique conexão"],
+        improvements: ["Não foi possível realizar auditoria profunda em modo offline."],
+        bnccVerdict: "Indefinido",
+        bloomLevel: "Não definido"
+    };
+
+    return callGeminiAPI<any>(prompt, schema, fallback);
+}
 
 export const generateJustification = async (statement: string, correct: string): Promise<string> => {
     const prompt = PROMPTS.GENERATE_JUSTIFICATION(statement, correct);

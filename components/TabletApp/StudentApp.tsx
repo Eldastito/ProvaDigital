@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Lock, CheckCircle, Play, Wifi, PenTool, Eraser, ChevronRight, ChevronLeft, ShieldCheck, Cloud, Video, AlertTriangle } from 'lucide-react';
+import { Lock, CheckCircle, Play, Wifi, PenTool, Eraser, ChevronRight, ChevronLeft, ShieldCheck, Cloud, Video, AlertTriangle, Music } from 'lucide-react';
 import { AppState, QuestionType } from '../../types';
 import { supabase } from '../../services/supabaseClient'; // Import Real Client
 import { uuidv4 } from '../../utils/helpers';
@@ -315,6 +315,44 @@ export const StudentApp = ({ state, onBack }: StudentAppProps) => {
 
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-4 relative overflow-hidden">
                         <span className="absolute top-0 right-0 bg-slate-100 text-slate-500 text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider">Questão {currentQuestionIdx + 1}</span>
+
+                        {/* MULTIMEDIA RENDERER */}
+                        {(item as any).multimedia && (item as any).multimedia.length > 0 && (
+                            <div className="mb-4 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
+                                {(item as any).multimedia.map((media: any, idx: number) => {
+                                    if (media.type === 'IMAGE') return <img key={idx} src={media.url} alt={media.description} className="w-full h-auto max-h-64 object-contain" />;
+                                    if (media.type === 'VIDEO') {
+                                        const isYouTube = media.url.includes('youtube.com') || media.url.includes('youtu.be');
+                                        if (isYouTube) {
+                                            const videoId = media.url.includes('v=') ? media.url.split('v=')[1].split('&')[0] : media.url.split('/').pop();
+                                            return (
+                                                <div key={idx} className="relative aspect-video">
+                                                    <iframe
+                                                        className="w-full h-full"
+                                                        src={`https://www.youtube.com/embed/${videoId}`}
+                                                        title="YouTube video player"
+                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                        allowFullScreen
+                                                    ></iframe>
+                                                    <div className="absolute top-2 right-2 flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-200/80 px-2 py-1 rounded backdrop-blur-sm">
+                                                        <Wifi size={10} /> REQUER INTERNET
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                        return <video key={idx} src={media.url} controls className="w-full aspect-video bg-black" />;
+                                    }
+                                    if (media.type === 'AUDIO') return (
+                                        <div key={idx} className="p-4 flex items-center gap-4 bg-brand-light/20">
+                                            <Music size={24} className="text-brand-primary" />
+                                            <audio src={media.url} controls className="flex-1" />
+                                        </div>
+                                    );
+                                    return null;
+                                })}
+                            </div>
+                        )}
+
                         <h2 className="text-lg font-semibold text-slate-800 mb-6 leading-snug mt-2">{item.statement}</h2>
 
                         <div className="space-y-3">

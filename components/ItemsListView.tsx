@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Filter, Plus, Eye, X, Check, Brain, ChevronDown, ChevronUp, History, BookOpen, AlignLeft } from 'lucide-react';
+import { Search, Filter, Plus, Eye, X, Check, Brain, ChevronDown, ChevronUp, History, BookOpen, AlignLeft, Trash2, Download, Tag, Square, CheckSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppState, Item, DifficultyLevel, ItemOrigin, Exam, QuestionType, UserRole } from '../types';
 import { Badge } from './ui/Badge';
@@ -11,10 +11,12 @@ export interface ItemRowProps {
     onHistory: (i: Item) => void;
     getUsageColor: (n: number) => any;
     getItemHistory: (id: string) => any[];
+    isSelected: boolean;
+    onToggleSelect: (id: string) => void;
 }
 
 // Row Component (Standard Rendering)
-const ItemRow: React.FC<ItemRowProps> = ({ item, onSelect, onHistory, getUsageColor, getItemHistory }) => {
+const ItemRow: React.FC<ItemRowProps> = ({ item, onSelect, onHistory, getUsageColor, getItemHistory, isSelected, onToggleSelect }) => {
     const realUsageCount = getItemHistory(item.id).length;
 
     let typeLabel = 'Multipla Escolha';
@@ -23,11 +25,26 @@ const ItemRow: React.FC<ItemRowProps> = ({ item, onSelect, onHistory, getUsageCo
     if (item.type === QuestionType.REDACTION) typeLabel = 'Redação';
 
     return (
-        <div className="flex items-center border-b border-slate-100 hover:bg-slate-50 transition px-6 py-3 text-sm">
+        <div className={`flex items-center border-b border-slate-100 hover:bg-slate-50 transition px-6 py-3 text-sm ${isSelected ? 'bg-brand-light/20' : ''}`}>
+            <div className="w-10 flex-shrink-0">
+                <button
+                    onClick={() => onToggleSelect(item.id)}
+                    className={`transition-colors ${isSelected ? 'text-brand-primary' : 'text-slate-300 hover:text-slate-400'}`}
+                >
+                    {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+                </button>
+            </div>
             <div className="flex-1 pr-4 min-w-0">
                 <div className="font-medium text-slate-900 truncate cursor-pointer hover:text-brand-primary" onClick={() => onSelect(item)}>
-                    {item.statement}
+                    {item.statement.replace(/<[^>]*>/g, '')}
                 </div>
+                {item.tags && item.tags.length > 0 && (
+                    <div className="flex gap-1 mt-1">
+                        {item.tags.slice(0, 3).map((tag, idx) => (
+                            <span key={idx} className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded uppercase tracking-wider font-bold">{tag}</span>
+                        ))}
+                    </div>
+                )}
             </div>
             <div className="w-32 text-slate-600">{item.subject}</div>
             <div className="w-24">
@@ -80,6 +97,9 @@ export const ItemsListView = ({ state }: { state: AppState }) => {
     const [selectedItem, setSelectedItem] = useState<Item | null>(null);
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [selectedExamPreview, setSelectedExamPreview] = useState<Exam | null>(null);
+
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const { removeItems, bulkAddTag } = useAppStore();
 
     const [filterSubject, setFilterSubject] = useState('');
     const [filterDifficulty, setFilterDifficulty] = useState('');
@@ -148,6 +168,60 @@ export const ItemsListView = ({ state }: { state: AppState }) => {
                 </div>
             </div>
 
+            {/* BULK ACTION TOOLBAR (FLOATING) */}
+            {selectedIds.length > 0 && (
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-8 z-50 animate-in fade-in zoom-in slide-in-from-bottom-4 duration-300 border border-slate-700">
+                    <div className="flex items-center gap-3 pr-8 border-r border-slate-700">
+                        <button
+                            onClick={() => setSelectedIds([])}
+                            className="p-1 hover:bg-slate-800 rounded transition"
+                        >
+                            <X size={20} />
+                        </button>
+                        <span className="font-bold whitespace-nowrap">
+                            {selectedIds.length} selecionado{selectedIds.length > 1 ? 's' : ''}
+                        </span>
+                    </div>
+
+                    <div className="flex gap-4">
+                        <button
+                            onClick={() => {
+                                const tag = prompt('Digite a tag para adicionar aos itens:');
+                                if (tag) bulkAddTag(selectedIds, tag);
+                            }}
+                            className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-800 rounded-lg transition text-sm font-medium"
+                        >
+                            <Tag size={16} className="text-emerald-400" /> Etiquetas
+                        </button>
+                        <button
+                            onClick={() => {
+                                const data = JSON.stringify(filteredItems.filter(i => selectedIds.includes(i.id)), null, 2);
+                                const blob = new Blob([data], { type: 'application/json' });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `itens_exportados_${new Date().toISOString().split('T')[0]}.json`;
+                                a.click();
+                            }}
+                            className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-800 rounded-lg transition text-sm font-medium"
+                        >
+                            <Download size={16} className="text-blue-400" /> Exportar
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (confirm(`Deseja realmente excluir ${selectedIds.length} questões?`)) {
+                                    removeItems(selectedIds);
+                                    setSelectedIds([]);
+                                }
+                            }}
+                            className="flex items-center gap-2 px-3 py-1.5 hover:bg-rose-900/40 text-rose-200 hover:text-white rounded-lg transition text-sm font-medium"
+                        >
+                            <Trash2 size={16} className="text-rose-500" /> Excluir
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Collapsible Filter Panel */}
             {showFilters && (
                 <div className="bg-brand-dark/5 p-4 rounded-xl border border-brand-secondary/20 grid grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2 flex-shrink-0">
@@ -202,6 +276,17 @@ export const ItemsListView = ({ state }: { state: AppState }) => {
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex-1 flex flex-col overflow-hidden">
                 {/* Table Header */}
                 <div className="flex items-center bg-slate-50 text-slate-500 font-semibold border-b border-slate-200 px-6 py-4 text-sm flex-shrink-0">
+                    <div className="w-10">
+                        <button
+                            onClick={() => {
+                                if (selectedIds.length === filteredItems.length) setSelectedIds([]);
+                                else setSelectedIds(filteredItems.map(i => i.id));
+                            }}
+                            className={`transition-colors ${(selectedIds.length > 0 && selectedIds.length === filteredItems.length) ? 'text-brand-primary' : 'text-slate-300 hover:text-slate-400'}`}
+                        >
+                            {(selectedIds.length > 0 && selectedIds.length === filteredItems.length) ? <CheckSquare size={18} /> : <Square size={18} />}
+                        </button>
+                    </div>
                     <div className="flex-1 pr-4">Enunciado</div>
                     <div className="w-32">Disciplina</div>
                     <div className="w-24">Tipo</div>
@@ -224,6 +309,12 @@ export const ItemsListView = ({ state }: { state: AppState }) => {
                                     onHistory={(i) => { setSelectedItem(i); setShowHistoryModal(true); }}
                                     getUsageColor={getUsageColor}
                                     getItemHistory={getItemHistory}
+                                    isSelected={selectedIds.includes(item.id)}
+                                    onToggleSelect={(id) => {
+                                        setSelectedIds(prev =>
+                                            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+                                        );
+                                    }}
                                 />
                             ))}
                         </div>
