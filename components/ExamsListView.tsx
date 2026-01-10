@@ -14,7 +14,7 @@ export const ExamsListView = () => {
     const userSchoolId = currentUser?.schoolId;
 
     // GLOBAL ACCESS: Filter by Tenant (SaaS Level), show School Name in card
-    const filteredExams = state.exams.filter(e => e.tenantId === userTenantId);
+    const filteredExams = (state.exams || []).filter(e => e.tenantId === userTenantId);
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto">
