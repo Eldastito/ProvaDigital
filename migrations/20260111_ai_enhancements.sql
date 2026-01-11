@@ -25,11 +25,19 @@ CREATE TABLE IF NOT EXISTS public.item_generation_batches (
 -- Check if columns exist before adding
 DO $$
 BEGIN
+    -- Ensure owner_id exists (critical for RLS)
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='items' AND column_name='owner_id') THEN
+        ALTER TABLE public.items ADD COLUMN owner_id TEXT REFERENCES public.users(id);
+    END IF;
+
+    -- Add AI related columns
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='items' AND column_name='generation_batch_id') THEN
         ALTER TABLE public.items ADD COLUMN generation_batch_id UUID REFERENCES public.item_generation_batches(id);
     END IF;
+
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='items' AND column_name='lifecycle_status') THEN
-        ALTER TABLE public.items ADD COLUMN lifecycle_status item_lifecycle_status DEFAULT 'APPROVED'; -- Default approved for existing items
+        -- Add individual columns if needed
+        ALTER TABLE public.items ADD COLUMN lifecycle_status item_lifecycle_status DEFAULT 'APPROVED';
     END IF;
 END $$;
 
@@ -65,6 +73,7 @@ CREATE POLICY "Users can manage their own batches"
 
 -- 7. REFINED ITEMS RLS (Draft Protection)
 DROP POLICY IF EXISTS "Read items" ON public.items;
+DROP POLICY IF EXISTS "Read items refined" ON public.items;
 CREATE POLICY "Read items refined" ON public.items 
   FOR SELECT USING (
     auth.role() = 'authenticated' AND (
