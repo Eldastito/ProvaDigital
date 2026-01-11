@@ -176,6 +176,7 @@ export const Layout = ({ children }: LayoutProps) => {
               <div className="px-4 pt-4 pb-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Acadêmico</div>
               <NavItem icon={FileText} label="Banco de Itens" active={path.includes('/items') || path.includes('/teacher/itens')} onClick={() => navigate('/items')} />
               <NavItem icon={BookOpen} label="Provas" active={path.includes('/exams') || path.includes('/teacher/provas')} onClick={() => navigate('/exams')} />
+              <NavItem icon={GraduationCap} label="Aplicação de Prova" active={path.includes('/online-exam')} onClick={() => navigate('/online-exam')} />
               <NavItem icon={Calendar} label="Diário de Classe" active={path === '/class-diary'} onClick={() => navigate('/class-diary')} />
               <NavItem icon={Map} label="Alocação" active={path === '/allocation'} onClick={() => navigate('/allocation')} />
               <NavItem icon={Cast} label="Eventos & Competições" active={path === '/gamified-events'} onClick={() => navigate('/gamified-events')} />
@@ -207,6 +208,7 @@ export const Layout = ({ children }: LayoutProps) => {
               <NavItem icon={Calendar} label="Diário de Classe" active={path === '/class-diary'} onClick={() => navigate('/class-diary')} />
               <NavItem icon={FileText} label="Banco de Questões" active={path.includes('/teacher/itens')} onClick={() => navigate('/teacher/itens')} />
               <NavItem icon={BookOpen} label="Minhas Provas" active={path.includes('/teacher/provas')} onClick={() => navigate('/teacher/provas')} />
+              <NavItem icon={GraduationCap} label="Aplicação de Prova" active={path.includes('/online-exam')} onClick={() => navigate('/online-exam')} />
               <NavItem icon={GraduationCap} label="Planos de Ensino" active={path === '/study-plans'} onClick={() => navigate('/study-plans')} />
             </>
           )}

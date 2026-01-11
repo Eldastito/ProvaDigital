@@ -61,6 +61,35 @@ export const OnlineExamRunner = ({ examId, studentId, onExit, onComplete }: Onli
     const currentItem = examItems[currentQuestionIndex];
     const isLastQuestion = currentQuestionIndex === examItems.length - 1;
 
+    // --- LOADING / EMPTY STATE GUARDS ---
+    if (state.items.length === 0) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-slate-50">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mb-4" />
+                <h3 className="text-xl font-bold text-slate-800">Carregando itens...</h3>
+                <p className="text-slate-500">Sincronizando banco de dados seguro.</p>
+            </div>
+        );
+    }
+
+    if (examItems.length === 0) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-slate-50">
+                <h3 className="text-xl font-bold text-slate-800">Erro: Esta prova não possui questões cadastradas ou os itens não foram encontrados.</h3>
+                <button onClick={onExit} className="mt-4 px-6 py-2 bg-brand-primary text-white rounded-lg">Voltar</button>
+            </div>
+        );
+    }
+
+    if (!currentItem) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-slate-50">
+                <h3 className="text-xl font-bold text-slate-800">Erro ao carregar questão {currentQuestionIndex + 1}.</h3>
+                <button onClick={onExit} className="mt-4 px-6 py-2 bg-brand-primary text-white rounded-lg">Voltar</button>
+            </div>
+        );
+    }
+
     return (
         <div className={`min-h-screen transition-colors duration-300 ${getThemeClasses()} flex flex-col`} style={containerStyle}>
 

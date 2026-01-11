@@ -6,6 +6,7 @@ import { UserRole } from './types';
 import { useAppStore } from './store/useAppStore';
 import { checkConnection, supabase } from './services/supabaseClient';
 import { LoginPage } from './components/Auth/LoginPage';
+import { uuidv4 } from './utils/helpers';
 
 // Infrastructure
 import { Layout } from './components/Layout';
@@ -90,7 +91,25 @@ export default function App() {
     });
   }, []);
 
-  // --- 2. AUTH LISTENER ---
+  // --- 2. GUEST BYPASS FOR MOBILE DEMO ---
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const isMobileMode = params.get('mode') === 'mobile';
+
+    if (isMobileMode && !store.currentUser) {
+      console.log("Entering Mobile Demo Mode as Guest...");
+      store.setCurrentUser({
+        id: 'guest-' + uuidv4().slice(0, 8),
+        name: 'Visitante (Demo)',
+        email: 'guest@examepad.com',
+        role: UserRole.ALUNO,
+        tenantId: 't1',
+        schoolId: 's1'
+      });
+    }
+  }, [location.search, store.currentUser, isInitialized]);
+
+  // --- 3. AUTH LISTENER ---
   useEffect(() => {
     if (!isInitialized) return;
 

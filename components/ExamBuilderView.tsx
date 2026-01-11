@@ -88,6 +88,10 @@ export const ExamBuilderView = () => {
     };
 
     const handleSmartGenerate = () => {
+        if (!state.items || state.items.length === 0) {
+            return alert("O banco de questões está vazio ou ainda carregando. Por favor, aguarde a sincronização.");
+        }
+
         const result = smartSelectItems({
             ...smartCriteria,
             subject: config.subject || smartCriteria.subject
@@ -501,7 +505,7 @@ export const ExamBuilderView = () => {
                                                 {currentPreviewItem && (
                                                     <div className="animate-in slide-in-from-right-4 duration-300">
                                                         <div className="text-sm text-slate-800 font-medium leading-relaxed mb-4">
-                                                            {currentPreviewItem.statement}
+                                                            {currentPreviewItem?.statement}
                                                         </div>
 
                                                         {currentPreviewItem.imageUrl && (

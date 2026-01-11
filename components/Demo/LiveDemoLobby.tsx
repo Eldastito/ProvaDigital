@@ -55,9 +55,9 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
     const [resultView, setResultView] = useState<'OVERVIEW' | string>('OVERVIEW'); // 'OVERVIEW' or 'q1', 'q2'...
 
     // URLs
-    const baseUrl = window.location.href.split('?')[0];
-    const professorUrl = activeClassId ? `${baseUrl}?mode=mobile&role=PROFESSOR&classId=${activeClassId}&examId=${activeExamId}&action=CONTROL` : '';
-    const studentUrl = activeClassId ? `${baseUrl}?mode=mobile&role=STUDENT&classId=${activeClassId}&examId=${activeExamId}` : '';
+    const baseUrl = window.location.origin;
+    const professorUrl = activeClassId ? `${baseUrl}/apps/demo?mode=mobile&role=PROFESSOR&classId=${activeClassId}&examId=${activeExamId}&action=CONTROL` : '';
+    const studentUrl = activeClassId ? `${baseUrl}/apps/demo?mode=mobile&role=STUDENT&classId=${activeClassId}&examId=${activeExamId}` : '';
 
     // --- 1. SETUP: CRIAR A SALA NO BANCO ---
     const handleCreateSession = async () => {

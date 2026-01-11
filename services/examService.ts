@@ -23,10 +23,13 @@ export interface SelectionResult {
  * Algoritmo de Seleção Inteligente de Itens
  */
 export const smartSelectItems = (criteria: ExamCriteria, pool: Item[]): SelectionResult => {
-    // 1. Filtrar por disciplina
-    let filteredPool = pool.filter(item =>
-        item.subject.toLowerCase() === criteria.subject.toLowerCase()
-    );
+    // 1. Filtrar por disciplina (Opcional se vazio)
+    let filteredPool = pool;
+    if (criteria.subject && criteria.subject.trim() !== "") {
+        filteredPool = pool.filter(item =>
+            item.subject.toLowerCase().trim() === criteria.subject.toLowerCase().trim()
+        );
+    }
 
     // 2. Se houver filtros de tipo preferido
     if (criteria.preferredTypes && criteria.preferredTypes.length > 0) {
