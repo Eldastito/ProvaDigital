@@ -3,16 +3,19 @@ import { Check, X, Edit3, Trash2, ArrowRight, CheckCircle2, AlertCircle, Sparkle
 import { Item, ItemLifecycleStatus } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
 import { Badge } from '../ui/Badge';
+import { ItemEditModal } from './ItemEditModal';
 
 interface BatchReviewPanelProps {
     batchId: string;
     items: Item[];
     onFinish: () => void;
+    finishLabel?: string;
 }
 
-export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, items: initialItems, onFinish }) => {
-    const { updateItemStatus, removeItems } = useAppStore();
+export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, items: initialItems, onFinish, finishLabel = "Concluir" }) => {
+    const { updateItemStatus, removeItems, updateItem } = useAppStore();
     const [localItems, setLocalItems] = useState<Item[]>(initialItems);
+    const [editingItem, setEditingItem] = useState<Item | null>(null);
 
     const approveItem = async (id: string) => {
         await updateItemStatus(id, ItemLifecycleStatus.APPROVED);
@@ -29,9 +32,18 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
             .filter(i => i.lifecycleStatus === ItemLifecycleStatus.DRAFT)
             .map(i => i.id);
 
-        for (const id of pendingIds) {
-            await approveItem(id);
+        if (pendingIds.length > 0) {
+            await useAppStore.getState().bulkUpdateItemStatus(pendingIds, ItemLifecycleStatus.APPROVED);
+            setLocalItems(prev => prev.map(i => pendingIds.includes(i.id) ? { ...i, lifecycleStatus: ItemLifecycleStatus.APPROVED } : i));
         }
+    };
+
+    const handleSaveEdit = async (updated: Item) => {
+        if (updateItem) {
+            await updateItem(updated);
+            setLocalItems(prev => prev.map(i => i.id === updated.id ? updated : i));
+        }
+        setEditingItem(null);
     };
 
     const pendingCount = localItems.filter(i => i.lifecycleStatus === ItemLifecycleStatus.DRAFT).length;
@@ -71,7 +83,7 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
                         onClick={onFinish}
                         className="bg-brand-primary text-white px-6 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-brand-dark transition"
                     >
-                        Concluir <ArrowRight size={18} />
+                        {finishLabel} <ArrowRight size={18} />
                     </button>
                 </div>
             </div>
@@ -82,15 +94,15 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
                     <div className="flex flex-col items-center justify-center p-12 text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-200">
                         <CheckCircle2 size={48} className="mb-4 text-emerald-500 opacity-20" />
                         <p className="font-medium text-slate-600">Lote sem questões pendentes.</p>
-                        <button onClick={onFinish} className="text-brand-primary text-sm font-bold mt-2">Voltar para a prova</button>
+                        <button onClick={onFinish} className="text-brand-primary text-sm font-bold mt-2">Continuar</button>
                     </div>
                 ) : (
                     localItems.map((item) => (
                         <div
                             key={item.id}
                             className={`p-6 rounded-2xl border-2 transition-all bg-white relative group overflow-hidden ${item.lifecycleStatus === ItemLifecycleStatus.APPROVED
-                                    ? 'border-emerald-500/30'
-                                    : 'border-slate-200 hover:border-brand-primary/30'
+                                ? 'border-emerald-500/30'
+                                : 'border-slate-200 hover:border-brand-primary/30'
                                 }`}
                         >
                             {/* Status Ribbon */}
@@ -103,16 +115,20 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex gap-2">
                                     <Badge color="indigo">IA</Badge>
-                                    <Badge color={item.difficulty === 'FACIL' ? 'green' : item.difficulty === 'MEDIO' ? 'yellow' : 'rose'}>
+                                    <Badge color={item.difficulty === 'FACIL' ? 'green' : item.difficulty === 'MEDIO' ? 'yellow' : 'red'}>
                                         {item.difficulty}
                                     </Badge>
-                                    <Badge color="slate">{item.subject}</Badge>
+                                    <Badge color="gray">{item.subject}</Badge>
                                     {item.bnccCode && <Badge color="blue">{item.bnccCode}</Badge>}
                                 </div>
 
                                 {item.lifecycleStatus === ItemLifecycleStatus.DRAFT && (
                                     <div className="flex gap-2">
-                                        <button className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg hover:text-slate-600 transition" title="Editar">
+                                        <button
+                                            onClick={() => setEditingItem(item)}
+                                            className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg hover:text-slate-600 transition"
+                                            title="Editar"
+                                        >
                                             <Edit3 size={18} />
                                         </button>
                                         <button
@@ -159,6 +175,14 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
                     ))
                 )}
             </div>
+
+            {editingItem && (
+                <ItemEditModal
+                    item={editingItem}
+                    onSave={handleSaveEdit}
+                    onClose={() => setEditingItem(null)}
+                />
+            )}
         </div>
     );
 };

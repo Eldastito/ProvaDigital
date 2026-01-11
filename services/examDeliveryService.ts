@@ -32,9 +32,13 @@ export const resolveExamVariant = (
             v.conditionCode === conditionCode
         );
 
-        if (variant) return { variant, version: latestVersion };
+        if (variant) {
+            console.log(`[DELIVERY] Serving VARIANT for student ${studentId} (Condition: ${conditionCode})`);
+            return { variant, version: latestVersion };
+        }
     }
 
     // 4. Fallback para a versão padrão (Standard)
+    console.log(`[DELIVERY] Serving STANDARD version for student ${studentId}`);
     return { variant: null, version: latestVersion };
 };

@@ -64,6 +64,7 @@ interface AppActions {
     loadRemoteData: () => Promise<void>; // NOVA AÇÃO DE CARGA
     addItem: (item: Item) => void;
     addItems: (items: Item[]) => Promise<void>;
+    updateItem: (item: Item) => Promise<void>;
     addExam: (exam: Exam) => void;
     addSchool: (school: any) => void;
     addClass: (cls: any) => void;
@@ -100,8 +101,10 @@ interface AppActions {
     // --- AI ACTIONS ---
     addGenerationBatch: (batch: ItemGenerationBatch) => Promise<void>;
     updateItemStatus: (itemId: string, status: ItemLifecycleStatus) => Promise<void>;
+    bulkUpdateItemStatus: (itemIds: string[], status: ItemLifecycleStatus) => Promise<void>;
     addExamVersion: (version: ExamVersion) => Promise<void>;
     addExamVariant: (variant: ExamVariant) => Promise<void>;
+    loadGenerationBatches: () => Promise<void>;
 
     // --- BULK ACTIONS ---
     removeItems: (ids: string[]) => void;
@@ -393,11 +396,37 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 alert("Erro ao salvar novos itens no banco de dados.");
                 throw error;
             }
-            console.log('✅ Items saved successfully:', items.map(i => i.id));
+            console.log('✅ Items added successfully:', items.length);
         } catch (e) {
             console.error('Failed to persist items:', e);
         }
     },
+
+    updateItem: async (item) => {
+        set((state) => ({
+            items: state.items.map(i => i.id === item.id ? item : i)
+        }));
+        try {
+            const { error } = await supabase.from('items').update({
+                subject: item.subject,
+                statement: item.statement,
+                type: item.type,
+                difficulty: item.difficulty,
+                alternatives: item.alternatives,
+                correct_justification: item.correctAnswerJustification,
+                bncc_code: item.bnccCode,
+                tri_params: item.triParams,
+                tags: item.tags,
+                is_accessible: item.isAccessible,
+                accessibility_instructions: item.accessibilityInstructions
+            }).eq('id', item.id);
+            if (error) throw error;
+        } catch (e) {
+            console.error('Error updating item:', e);
+            alert("Erro ao atualizar o item no banco de dados.");
+        }
+    },
+
 
     removeItems: async (ids) => {
         // 1. Optimistic update
@@ -831,6 +860,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
         } catch (e) { console.error("Error updating status:", e); }
     },
 
+    bulkUpdateItemStatus: async (itemIds, status) => {
+        set((state) => ({
+            items: state.items.map(i => itemIds.includes(i.id) ? { ...i, lifecycleStatus: status } : i)
+        }));
+        try {
+            await supabase.from('items').update({ lifecycle_status: status }).in('id', itemIds);
+        } catch (e) { console.error("Error updating status:", e); }
+    },
+
     addExamVersion: async (version) => {
         set((state) => ({ examVersions: [version, ...state.examVersions] }));
         try {
@@ -855,6 +893,25 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 delivery_logic_log: variant.deliveryLogicLog
             });
         } catch (e) { console.error("Error saving variant:", e); }
+    },
+
+    loadGenerationBatches: async () => {
+        const { data, error } = await supabase
+            .from('item_generation_batches')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (data) {
+            set({
+                itemGenerationBatches: data.map(b => ({
+                    id: b.id,
+                    creatorId: b.creator_id,
+                    tenantId: b.tenant_id,
+                    promptContext: b.prompt_context,
+                    totalRequested: b.total_requested,
+                    createdAt: b.created_at
+                }))
+            });
+        }
     },
 
     // --- MENTORSHIP IMPL ---

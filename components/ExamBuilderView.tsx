@@ -49,10 +49,11 @@ export const ExamBuilderView = () => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [isFillingGaps, setIsFillingGaps] = useState(false);
     const [selectionDiagnosis, setSelectionDiagnosis] = useState<any>(null);
-    const [isReviewingBatch, setIsReviewingBatch] = useState(false);
     const [currentBatchId, setCurrentBatchId] = useState<string | null>(null);
     const [currentBatchItems, setCurrentBatchItems] = useState<Item[]>([]);
+    const [isReviewingBatch, setIsReviewingBatch] = useState(false);
     const [isReviewingExam, setIsReviewingExam] = useState(false);
+    const [showBatchHistory, setShowBatchHistory] = useState(false);
 
     // Preview State for "Tablet Simulator"
     const [previewIndex, setPreviewIndex] = useState(0);
@@ -360,43 +361,72 @@ export const ExamBuilderView = () => {
                         items={selectedItems}
                         onCancel={() => setIsReviewingExam(false)}
                         onComplete={async (polished, summary) => {
-                            // Atualiza os itens com a versão polida se necessário
                             setSelectedItems(polished);
                             setIsReviewingExam(false);
 
-                            // Cria uma nova versão da prova (snapshot)
-                            if (state.addExamVersion && summary) {
+                            const versionId = uuidv4();
+                            // snapshot/version logic
+                            if (state.addExamVersion) {
                                 await state.addExamVersion({
-                                    id: uuidv4(),
-                                    examId: '', // Será preenchido ao salvar o exame final
-                                    versionNumber: 1,
+                                    id: versionId,
+                                    examId: '', // To be updated on final save
+                                    versionNumber: Date.now(),
                                     itemsSnapshot: polished,
                                     reviewSummary: summary,
                                     createdAt: new Date().toISOString()
                                 });
                             }
 
-                            alert("Revisão concluída com sucesso! Sua prova foi otimizada pela IA.");
-                        }}
-                    />
-                ) : isReviewingBatch && currentBatchId ? (
-                    <BatchReviewPanel
-                        batchId={currentBatchId}
-                        items={currentBatchItems}
-                        onFinish={() => {
-                            setIsReviewingBatch(false);
-                            // Sincroniza os itens aprovados para a seleção da prova
-                            const approved = state.items.filter(i =>
-                                i.generationBatchId === currentBatchId &&
-                                i.lifecycleStatus === ItemLifecycleStatus.APPROVED
-                            );
-                            if (approved.length > 0) {
-                                setSelectedItems(prev => [...prev, ...approved]);
-                                // Atualiza o diagnóstico
-                                setSelectionDiagnosis({ ...selectionDiagnosis, missingCount: 0 });
+                            // Save variants if suggested
+                            if (summary.variantsSuggested && state.addExamVariant) {
+                                for (const v of summary.variantsSuggested) {
+                                    await state.addExamVariant({
+                                        id: uuidv4(),
+                                        examVersionId: versionId,
+                                        conditionCode: v.conditionCode,
+                                        adaptedItems: v.adaptedItems,
+                                        deliveryLogicLog: `IA Sugestion for ${v.conditionCode}`,
+                                        createdAt: new Date().toISOString()
+                                    });
+                                }
                             }
+
+                            alert("Revisão concluída com sucesso! Versões e variantes para acessibilidade foram criadas.");
                         }}
                     />
+                ) : showBatchHistory ? (
+                    <div className="flex flex-col bg-white rounded-2xl p-6 h-full overflow-hidden">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold flex items-center gap-2">
+                                <Sparkles className="text-brand-secondary" /> Histórico de Lotes Gerados
+                            </h3>
+                            <button onClick={() => setShowBatchHistory(false)} className="text-sm font-bold text-slate-500">Voltar</button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto space-y-3">
+                            {state.itemGenerationBatches.length > 0 ? (
+                                state.itemGenerationBatches.map(b => (
+                                    <button
+                                        key={b.id}
+                                        onClick={() => {
+                                            const batchItems = state.items.filter(i => i.generationBatchId === b.id);
+                                            setCurrentBatchId(b.id);
+                                            setCurrentBatchItems(batchItems);
+                                            setIsReviewingBatch(true);
+                                            setShowBatchHistory(false);
+                                        }}
+                                        className="w-full text-left p-4 rounded-xl border-2 border-slate-100 hover:border-brand-primary transition group"
+                                    >
+                                        <div className="font-bold text-slate-900 group-hover:text-brand-primary transition">{b.promptContext}</div>
+                                        <div className="text-xs text-slate-400 mt-1 uppercase font-bold tracking-widest">
+                                            {new Date(b.createdAt).toLocaleDateString()} • {b.totalRequested} Questões
+                                        </div>
+                                    </button>
+                                ))
+                            ) : (
+                                <div className="text-center py-20 text-slate-400 italic">Nenhum lote de geração por IA encontrado.</div>
+                            )}
+                        </div>
+                    </div>
                 ) : (
                     <div className="flex h-full gap-8 overflow-hidden">
                         {/* Left: Available Items (List) OR Selection Diagnosis */}
@@ -412,14 +442,25 @@ export const ExamBuilderView = () => {
                                             <p className="text-xs text-rose-700">Faltam {selectionDiagnosis.missingCount} questões para atingir a meta selecionada.</p>
                                         </div>
                                     </div>
-                                    <button
-                                        onClick={handleGapGeneration}
-                                        disabled={isFillingGaps}
-                                        className="bg-rose-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-rose-700 transition flex items-center gap-2 shadow-sm"
-                                    >
-                                        {isFillingGaps ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                                        Gerar Questões Inéditas via IA
-                                    </button>
+                                    <div className="flex gap-4">
+                                        <button
+                                            onClick={() => {
+                                                state.loadGenerationBatches();
+                                                setShowBatchHistory(true);
+                                            }}
+                                            className="text-white/80 hover:text-white px-3 py-2 rounded-lg text-xs font-bold border border-white/20 hover:bg-white/10 transition"
+                                        >
+                                            Recuperar Lotes IA
+                                        </button>
+                                        <button
+                                            onClick={handleGapGeneration}
+                                            disabled={isFillingGaps}
+                                            className="bg-rose-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-rose-700 transition flex items-center gap-2 shadow-sm"
+                                        >
+                                            {isFillingGaps ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                                            Gerar Questões Inéditas via IA
+                                        </button>
+                                    </div>
                                 </div>
                             )}
 

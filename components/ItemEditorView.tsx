@@ -1,11 +1,13 @@
 import React, { useState, useRef } from 'react';
-import { Brain, X, Trash2, Image as ImageIcon, Upload, GripVertical, BookOpen, Eye, CheckSquare, Save, Wand2, Loader2, Sparkles, Video, Music, Camera, Scan, Wifi, ShieldAlert, CheckCircle2, AlertCircle, BarChart3, Search } from 'lucide-react';
+import { Brain, X, Trash2, Image as ImageIcon, Upload, GripVertical, BookOpen, Eye, CheckSquare, Save, Wand2, Loader2, Sparkles, Video, Music, Camera, Scan, Wifi, ShieldAlert, CheckCircle2, AlertCircle, BarChart3, Search, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { AppState, Item, DifficultyLevel, QuestionType, ItemOrigin } from '../types';
+import { AppState, Item, DifficultyLevel, QuestionType, ItemOrigin, ItemLifecycleStatus, ItemGenerationBatch } from '../types';
 import { generateQuestionsFromText, improveItemStatement, generateDistractors, suggestBNCC, generateJustification, variateItem, adaptItemForAccessibility, extractItemFromImage, auditPedagogicalItem } from '../services/geminiService';
 import { uuidv4 } from '../utils/helpers';
 import { RichTextEditor } from './RichTextEditor';
 import { useAppStore } from '../store/useAppStore';
+import { Badge } from './ui/Badge';
+import { BatchReviewPanel } from './OnlineExam/BatchReviewPanel';
 
 // Bibliotecas para leitura de documentos
 import * as pdfjsLib from 'pdfjs-dist';
@@ -46,7 +48,9 @@ export const ItemEditorView = () => {
     const [aiContext, setAiContext] = useState('');
     const [aiQuantity, setAiQuantity] = useState(3);
     const [aiLoading, setAiLoading] = useState(false);
-    const [generatedItems, setGeneratedItems] = useState<any[]>([]);
+    const [generatedItems, setGeneratedItems] = useState<any[]>([]); // Items being generated
+    const [currentBatchId, setCurrentBatchId] = useState<string | null>(null);
+    const [showBatchHistory, setShowBatchHistory] = useState(false);
 
     // Novas flags de carregamento para otimização
     const [isImproving, setIsImproving] = useState(false);
@@ -266,10 +270,54 @@ export const ItemEditorView = () => {
         if (!aiContext) return alert('Insira um texto de contexto.');
         setAiLoading(true);
         try {
+            const batchId = uuidv4();
             const questions = await generateQuestionsFromText(
                 aiContext, aiQuantity, QuestionType.MULTIPLE_CHOICE, form.difficulty, form.subject || 'Geral'
             );
-            setGeneratedItems(questions);
+
+            if (questions) {
+                const newItems: Item[] = questions.map(g => ({
+                    id: uuidv4(),
+                    tenantId: state.currentUser?.tenantId || 't1',
+                    ownerId: state.currentUser?.id || 'sys',
+                    knowledgeArea: 'Geral',
+                    subject: form.subject || 'Geral',
+                    type: QuestionType.MULTIPLE_CHOICE,
+                    statement: g.statement,
+                    alternatives: g.alternatives.map(a => ({ id: uuidv4(), ...a })),
+                    correctAnswerJustification: g.justification,
+                    difficulty: g.difficulty as DifficultyLevel,
+                    score: 1.0,
+                    origin: ItemOrigin.IA,
+                    tags: ['IA', 'Banco de Itens'],
+                    bnccCode: g.bnccCode,
+                    usageCount: 0,
+                    generationBatchId: batchId,
+                    lifecycleStatus: ItemLifecycleStatus.DRAFT,
+                    createdAt: new Date().toISOString()
+                }));
+
+                // 1. Save Batch Record
+                if (state.addGenerationBatch) {
+                    await state.addGenerationBatch({
+                        id: batchId,
+                        creatorId: state.currentUser?.id || '',
+                        tenantId: state.currentUser?.tenantId || 't1',
+                        promptContext: aiContext,
+                        totalRequested: aiQuantity,
+                        createdAt: new Date().toISOString()
+                    });
+                }
+
+                // 2. Add Items to Store/DB as DRAFT
+                if (state.addItems) {
+                    await state.addItems(newItems);
+                }
+
+                setCurrentBatchId(batchId);
+                setGeneratedItems(newItems);
+                alert(`${newItems.length} questões geradas e salvas como rascunho para revisão.`);
+            }
         } catch (e) {
             console.error(e);
             alert("Erro ao gerar questões. Verifique sua conexão e tente novamente.");
@@ -363,27 +411,6 @@ export const ItemEditorView = () => {
         reader.readAsDataURL(file);
     };
 
-    const approveItem = (genItem: any) => {
-        setForm(prev => ({
-            ...prev,
-            statement: genItem.statement,
-            difficulty: genItem.difficulty as DifficultyLevel,
-            correctAnswerJustification: genItem.justification,
-            bnccCode: genItem.bnccCode || '',
-            triParams: genItem.triParams
-        }));
-
-        // Mapear alternativas da IA para o formato do formulário
-        if (genItem.alternatives) {
-            setAlternatives(genItem.alternatives.map((a: any) => ({
-                text: a.text,
-                isCorrect: a.isCorrect
-            })));
-        }
-
-        setGeneratedItems([]);
-        setMode('MANUAL');
-    };
 
     const saveManual = () => {
         // 1. Validação Básica (Campos Comuns)
@@ -863,72 +890,117 @@ export const ItemEditorView = () => {
                 ) : (
                     // AI Mode (Existing)
                     <div className="space-y-6">
-                        <div className="bg-sky-50 p-4 rounded-lg border border-sky-100 text-sm text-sky-900 mb-4">
-                            <p className="font-semibold flex items-center gap-2"><Brain size={16} /> IA SAEB/INEP + BNCC + TRI</p>
-                            Faça upload de materiais em <b>PDF, Word (DOCX), Excel ou TXT</b>. A IA seguirá os padrões do INEP/BNCC e estimará parâmetros TRI automaticamente.
-                        </div>
-                        <div className="grid grid-cols-3 gap-6">
-                            <div className="col-span-1">
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Disciplina Alvo</label>
-                                <input className="w-full border rounded-lg p-2 text-sm" value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} placeholder="Ex: Geografia" />
+                        {currentBatchId ? (
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-xl font-bold flex items-center gap-2 text-slate-800">
+                                        <Sparkles className="text-brand-secondary" /> Revisão de Lote
+                                    </h3>
+                                    <button
+                                        onClick={() => setCurrentBatchId(null)}
+                                        className="text-sm font-bold text-brand-primary hover:underline"
+                                    >
+                                        Nova Geração
+                                    </button>
+                                </div>
+                                <BatchReviewPanel
+                                    batchId={currentBatchId}
+                                    items={state.items.filter(i => i.generationBatchId === currentBatchId)}
+                                    onFinish={() => {
+                                        setCurrentBatchId(null);
+                                        navigate('/items');
+                                    }}
+                                />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Nível Desejado</label>
-                                <select className="w-full border rounded-lg p-2 text-sm" value={form.difficulty} onChange={e => setForm({ ...form, difficulty: e.target.value as DifficultyLevel })}>
-                                    <option value="FACIL">Fácil</option>
-                                    <option value="MEDIO">Médio</option>
-                                    <option value="DIFICIL">Difícil</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Qtd. Questões</label>
-                                <input type="number" min="1" max="50" className="w-full border rounded-lg p-2 text-sm" value={aiQuantity} onChange={e => setAiQuantity(parseInt(e.target.value) || 1)} />
-                            </div>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Texto de Contexto ou Arquivo</label>
-                            <textarea className="w-full border rounded-lg p-3 text-sm h-40 font-mono mb-2" value={aiContext} onChange={e => setAiContext(e.target.value)} placeholder="Cole aqui o texto ou faça upload de um arquivo para análise..." />
-                            <input type="file" accept=".txt,.csv,.md,.pdf,.docx,.xlsx" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
-                            <button onClick={() => fileInputRef.current?.click()} className="text-sm text-white bg-brand-primary hover:bg-sky-700 px-4 py-2 rounded-lg flex items-center gap-2 w-fit transition shadow-sm font-bold"><Upload size={16} /> Carregar PDF, Word ou Excel</button>
-                        </div>
-                        <button onClick={handleGenerate} disabled={aiLoading} className="w-full py-3 btn-gradient rounded-lg font-bold disabled:opacity-50 flex items-center justify-center gap-2 shadow-md transition-all hover:scale-[1.01]">
-                            {aiLoading ? <><Loader2 size={20} className="animate-spin" /> Processando Documento...</> : <><Brain size={20} /> Gerar Itens Padrão INEP</>}
-                        </button>
-                        {generatedItems.length > 0 && (
-                            <div className="mt-8 border-t pt-6">
-                                <h3 className="text-lg font-bold text-slate-800 mb-4">Propostas da IA</h3>
-                                <div className="space-y-4">
-                                    {generatedItems.map((item, idx) => (
-                                        <div key={idx} className="border rounded-xl p-4 bg-slate-50 hover:border-brand-secondary transition">
-                                            <div className="flex justify-between gap-4 mb-2">
-                                                <div className="font-medium text-slate-900">{item.statement}</div>
-                                                <button onClick={() => approveItem(item)} className="bg-emerald-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-emerald-700 h-8 whitespace-nowrap">Aprovar</button>
-                                            </div>
-                                            {item.bnccCode && <div className="text-xs font-bold text-indigo-600 mb-2 bg-indigo-50 inline-block px-2 rounded border border-indigo-100 mr-2">{item.bnccCode}</div>}
-                                            {item.triParams && (
-                                                <div className="text-[10px] font-bold text-amber-600 mb-2 bg-amber-50 inline-block px-2 rounded border border-amber-100">
-                                                    TRI: {item.triParams.difficulty.toFixed(1)} | {item.triParams.bloomTaxonomy}
+                        ) : showBatchHistory ? (
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center bg-slate-100 p-4 rounded-xl">
+                                    <h3 className="font-bold">Histórico de Lotes</h3>
+                                    <button onClick={() => setShowBatchHistory(false)} className="text-sm font-bold text-slate-500">Voltar</button>
+                                </div>
+                                <div className="grid grid-cols-1 gap-3">
+                                    {state.itemGenerationBatches.length > 0 ? (
+                                        state.itemGenerationBatches.map(b => (
+                                            <button
+                                                key={b.id}
+                                                onClick={() => {
+                                                    setCurrentBatchId(b.id);
+                                                    setShowBatchHistory(false);
+                                                }}
+                                                className="p-4 bg-white border rounded-xl hover:border-brand-primary transition text-left flex justify-between items-center group"
+                                            >
+                                                <div>
+                                                    <div className="font-bold text-slate-900 line-clamp-1">{b.promptContext}</div>
+                                                    <div className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mt-1">
+                                                        {new Date(b.createdAt).toLocaleDateString()} • {b.totalRequested} Itens
+                                                    </div>
                                                 </div>
-                                            )}
-                                            <ul className="pl-4 list-disc text-sm text-slate-600 space-y-1 mb-2">
-                                                {item.alternatives.map((alt: any, i: number) => (
-                                                    <li key={i} className={alt.isCorrect ? "text-emerald-700 font-medium" : ""}>{alt.text}</li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    ))}
+                                                <ArrowRight size={20} className="text-slate-300 group-hover:text-brand-primary group-hover:translate-x-1 transition" />
+                                            </button>
+                                        ))
+                                    ) : (
+                                        <div className="text-center py-12 text-slate-400 italic">Nenhum lote anterior encontrado.</div>
+                                    )}
                                 </div>
                             </div>
+                        ) : (
+                            <>
+                                <div className="bg-sky-50 p-4 rounded-lg border border-sky-100 text-sm text-sky-900 mb-4">
+                                    <p className="font-semibold flex items-center gap-2"><Brain size={16} /> IA SAEB/INEP + BNCC + TRI</p>
+                                    Faça upload de materiais em <b>PDF, Word (DOCX), Excel ou TXT</b>. A IA seguirá os padrões do INEP/BNCC e estimará parâmetros TRI automaticamente.
+                                </div>
+                                <div className="grid grid-cols-3 gap-6">
+                                    <div className="col-span-1">
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Disciplina Alvo</label>
+                                        <input className="w-full border rounded-lg p-2 text-sm" value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} placeholder="Ex: Geografia" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Nível Desejado</label>
+                                        <select className="w-full border rounded-lg p-2 text-sm" value={form.difficulty} onChange={e => setForm({ ...form, difficulty: e.target.value as DifficultyLevel })}>
+                                            <option value="FACIL">Fácil</option>
+                                            <option value="MEDIO">Médio</option>
+                                            <option value="DIFICIL">Difícil</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Qtd. Questões</label>
+                                        <input type="number" min="1" max="50" className="w-full border rounded-lg p-2 text-sm" value={aiQuantity} onChange={e => setAiQuantity(parseInt(e.target.value) || 1)} />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Texto de Contexto ou Arquivo</label>
+                                    <textarea className="w-full border rounded-lg p-3 text-sm h-40 font-mono mb-2" value={aiContext} onChange={e => setAiContext(e.target.value)} placeholder="Cole aqui o texto ou faça upload de um arquivo para análise..." />
+                                    <input type="file" accept=".txt,.csv,.md,.pdf,.docx,.xlsx" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+                                    <button onClick={() => fileInputRef.current?.click()} className="text-sm text-white bg-brand-primary hover:bg-sky-700 px-4 py-2 rounded-lg flex items-center gap-2 w-fit transition shadow-sm font-bold"><Upload size={16} /> Carregar PDF, Word ou Excel</button>
+                                </div>
+                                <button onClick={handleGenerate} disabled={aiLoading} className="w-full py-3 btn-gradient rounded-lg font-bold disabled:opacity-50 flex items-center justify-center gap-2 shadow-md transition-all hover:scale-[1.01]">
+                                    {aiLoading ? <><Loader2 size={20} className="animate-spin" /> Processando Documento...</> : <><Brain size={20} /> Gerar Itens Padrão INEP</>}
+                                </button>
+                            </>
                         )}
                     </div>
                 )}
             </div>
 
             <div className="p-4 border-t border-slate-100 bg-white flex justify-end flex-shrink-0">
-                <button onClick={saveManual} className="btn-gradient px-8 py-3 rounded-lg font-bold shadow-lg flex items-center gap-2">
-                    <Save size={18} /> Salvar Item
-                </button>
+                {mode === 'MANUAL' ? (
+                    <button onClick={saveManual} className="btn-gradient px-8 py-3 rounded-lg font-bold shadow-lg flex items-center gap-2">
+                        <Save size={18} /> Salvar Item
+                    </button>
+                ) : (
+                    <div className="flex gap-4">
+                        <button
+                            onClick={() => {
+                                state.loadGenerationBatches();
+                                setShowBatchHistory(true);
+                            }}
+                            className="bg-slate-100 text-slate-700 px-6 py-3 rounded-lg font-bold hover:bg-slate-200 transition"
+                        >
+                            Ver Lotes Anteriores
+                        </button>
+                    </div>
+                )}
             </div>
-        </div >
+        </div>
     );
 };
