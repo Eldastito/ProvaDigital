@@ -394,6 +394,17 @@ export const ExamBuilderView = () => {
                             alert("Revisão concluída com sucesso! Versões e variantes para acessibilidade foram criadas.");
                         }}
                     />
+                ) : isReviewingBatch ? (
+                    <BatchReviewPanel
+                        batchId={currentBatchId || ''}
+                        items={currentBatchItems}
+                        onFinish={() => {
+                            setIsReviewingBatch(false);
+                            if (builderMode === 'SMART') {
+                                handleSmartGenerate();
+                            }
+                        }}
+                    />
                 ) : showBatchHistory ? (
                     <div className="flex flex-col bg-white rounded-2xl p-6 h-full overflow-hidden">
                         <div className="flex justify-between items-center mb-6">

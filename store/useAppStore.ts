@@ -102,13 +102,14 @@ interface AppActions {
     addGenerationBatch: (batch: ItemGenerationBatch) => Promise<void>;
     updateItemStatus: (itemId: string, status: ItemLifecycleStatus) => Promise<void>;
     bulkUpdateItemStatus: (itemIds: string[], status: ItemLifecycleStatus) => Promise<void>;
+    approveAllItemsInBatch: (batchId: string) => Promise<number>;
     addExamVersion: (version: ExamVersion) => Promise<void>;
     addExamVariant: (variant: ExamVariant) => Promise<void>;
     loadGenerationBatches: () => Promise<void>;
 
     // --- BULK ACTIONS ---
-    removeItems: (ids: string[]) => void;
-    bulkAddTag: (ids: string[], tag: string) => void;
+    removeItems: (ids: string[]) => Promise<void>;
+    bulkAddTag: (ids: string[], tag: string) => Promise<void>;
 }
 
 type AppStore = AppState & AppActions;
@@ -347,6 +348,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 tags: item.tags,
                 tri_params: item.triParams,
                 generation_batch_id: item.generationBatchId,
+                knowledge_area: item.knowledgeArea,
                 lifecycle_status: item.lifecycleStatus || 'APPROVED',
                 created_at: item.createdAt
             });
@@ -385,6 +387,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 tags: item.tags,
                 tri_params: item.triParams,
                 generation_batch_id: item.generationBatchId,
+                knowledge_area: item.knowledgeArea,
                 lifecycle_status: item.lifecycleStatus || 'APPROVED',
                 created_at: item.createdAt
             }));
@@ -416,6 +419,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 correct_justification: item.correctAnswerJustification,
                 bncc_code: item.bnccCode,
                 tri_params: item.triParams,
+                knowledge_area: item.knowledgeArea,
                 tags: item.tags,
                 is_accessible: item.isAccessible,
                 accessibility_instructions: item.accessibilityInstructions
@@ -867,6 +871,17 @@ export const useAppStore = create<AppStore>((set, get) => ({
         try {
             await supabase.from('items').update({ lifecycle_status: status }).in('id', itemIds);
         } catch (e) { console.error("Error updating status:", e); }
+    },
+
+    approveAllItemsInBatch: async (batchId) => {
+        try {
+            const { data, error } = await supabase.rpc('approve_all_items_in_batch', { p_batch_id: batchId });
+            if (error) throw error;
+            set((state) => ({
+                items: state.items.map(i => i.generationBatchId === batchId && i.ownerId === state.currentUser?.id ? { ...i, lifecycleStatus: ItemLifecycleStatus.APPROVED } : i)
+            }));
+            return data;
+        } catch (e) { console.error("RPC Error:", e); throw e; }
     },
 
     addExamVersion: async (version) => {
