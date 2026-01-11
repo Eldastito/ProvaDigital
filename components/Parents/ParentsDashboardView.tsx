@@ -82,173 +82,164 @@ export const ParentsDashboardView = () => {
                 </div>
             </div>
 
-            {myChildren.length > 0 ? (
-                <>
-                    {/* Child Selector */}
-                    <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200">
-                        <label className="block text-sm font-bold text-slate-700 mb-3">Selecione o filho(a):</label>
-                        <div className="relative">
-                            <select
-                                value={selectedChild?.id || ''}
-                                onChange={(e) => setSelectedChildId(e.target.value)}
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-lg font-medium text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-primary cursor-pointer"
-                            >
-                                {myChildren.map(child => (
-                                    <option key={child.id} value={child.id}>{child.name} - {child.registrationNumber}</option>
-                                ))}
-                            </select>
-                            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={20} />
+            {/* Child Selector & Alerts */}
+            <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200">
+                <label className="block text-sm font-bold text-slate-700 mb-3">Selecione o filho(a):</label>
+                <div className="relative">
+                    <select
+                        value={selectedChild?.id || ''}
+                        onChange={(e) => setSelectedChildId(e.target.value)}
+                        disabled={myChildren.length === 0}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-lg font-medium text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-primary cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {myChildren.length > 0 ? (
+                            myChildren.map(child => (
+                                <option key={child.id} value={child.id}>{child.name} - {child.registrationNumber}</option>
+                            ))
+                        ) : (
+                            <option>Nenhum aluno vinculado</option>
+                        )}
+                    </select>
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={20} />
+                </div>
+
+                {myChildren.length === 0 && (
+                    <div className="mt-4 p-4 bg-blue-50 text-blue-800 rounded-lg border border-blue-200 flex items-start gap-3">
+                        <div className="p-1 bg-blue-100 rounded-full flex-shrink-0">
+                            <User size={16} />
+                        </div>
+                        <div>
+                            <p className="font-bold text-sm">Nenhum filho vinculado</p>
+                            <p className="text-xs mt-1 text-blue-700">
+                                Entre em contato com a secretaria da escola para vincular os dados do aluno ao seu perfil.
+                                Enquanto isso, você está visualizando o painel de demonstração vazio.
+                            </p>
                         </div>
                     </div>
+                )}
+            </div>
 
-                    {selectedChild && riskAssessment && (
-                        <>
-                            {/* --- RISK ALERT SECTION (NEW) --- */}
-                            {(riskAssessment.riskLevel === RiskLevel.HIGH || riskAssessment.riskLevel === RiskLevel.MEDIUM) && (
-                                <div className={`rounded-xl p-6 shadow-lg border ${riskAssessment.riskLevel === RiskLevel.HIGH
-                                    ? 'bg-red-50 border-red-200'
-                                    : 'bg-yellow-50 border-yellow-200'
-                                    }`}>
-                                    <div className="flex items-start gap-4">
-                                        <div className={`p-3 rounded-full ${riskAssessment.riskLevel === RiskLevel.HIGH ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'
-                                            }`}>
-                                            <TrendingUp size={32} />
-                                        </div>
-                                        <div className="flex-1">
-                                            <h2 className={`text-xl font-bold mb-1 ${riskAssessment.riskLevel === RiskLevel.HIGH ? 'text-red-800' : 'text-yellow-800'
-                                                }`}>
-                                                {riskAssessment.riskLevel === RiskLevel.HIGH ? '⚠️ Alerta de Risco Acadêmico' : '⚠️ Atenção Necessária'}
-                                            </h2>
-                                            <p className="text-slate-700 mb-4">
-                                                Detectamos padrões que indicam risco de evasão ou queda de desempenho.
-                                            </p>
+            {/* --- RISK ALERT SECTION --- */}
+            {selectedChild && riskAssessment && (riskAssessment.riskLevel === RiskLevel.HIGH || riskAssessment.riskLevel === RiskLevel.MEDIUM) && (
+                <div className={`rounded-xl p-6 shadow-lg border ${riskAssessment.riskLevel === RiskLevel.HIGH
+                    ? 'bg-red-50 border-red-200'
+                    : 'bg-yellow-50 border-yellow-200'
+                    }`}>
+                    <div className="flex items-start gap-4">
+                        <div className={`p-3 rounded-full ${riskAssessment.riskLevel === RiskLevel.HIGH ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'
+                            }`}>
+                            <TrendingUp size={32} />
+                        </div>
+                        <div className="flex-1">
+                            <h2 className={`text-xl font-bold mb-1 ${riskAssessment.riskLevel === RiskLevel.HIGH ? 'text-red-800' : 'text-yellow-800'
+                                }`}>
+                                {riskAssessment.riskLevel === RiskLevel.HIGH ? '⚠️ Alerta de Risco Acadêmico' : '⚠️ Atenção Necessária'}
+                            </h2>
+                            <p className="text-slate-700 mb-4">
+                                Detectamos padrões que indicam risco de evasão ou queda de desempenho.
+                            </p>
 
-                                            <div className="space-y-2 mb-4">
-                                                {riskAssessment.factors.map((factor, idx) => (
-                                                    <div key={idx} className="flex items-center gap-2 text-sm font-medium text-slate-800 bg-white/50 p-2 rounded">
-                                                        <span>🚨</span>
-                                                        <span>{factor.name}: <strong>{factor.value}</strong></span>
-                                                        <span className="text-slate-500">- {factor.message}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-
-                                            {riskAssessment.riskLevel === RiskLevel.HIGH && (
-                                                <button
-                                                    onClick={() => alert("Solicitação enviada para a coordenação! Entraremos em contato em breve.")}
-                                                    className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700 transition shadow-md"
-                                                >
-                                                    📞 Solicitar Reunião com Coordenação
-                                                </button>
-                                            )}
-                                        </div>
+                            <div className="space-y-2 mb-4">
+                                {riskAssessment.factors.map((factor, idx) => (
+                                    <div key={idx} className="flex items-center gap-2 text-sm font-medium text-slate-800 bg-white/50 p-2 rounded">
+                                        <span>🚨</span>
+                                        <span>{factor.name}: <strong>{factor.value}</strong></span>
+                                        <span className="text-slate-500">- {factor.message}</span>
                                     </div>
-                                </div>
+                                ))}
+                            </div>
+
+                            {riskAssessment.riskLevel === RiskLevel.HIGH && (
+                                <button
+                                    onClick={() => alert("Solicitação enviada para a coordenação! Entraremos em contato em breve.")}
+                                    className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700 transition shadow-md"
+                                >
+                                    📞 Solicitar Reunião com Coordenação
+                                </button>
                             )}
-
-                            {/* Quick Stats */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <MetricCard
-                                    icon={<TrendingUp size={24} />}
-                                    color="emerald"
-                                    value={averageScore}
-                                    label="Média Geral"
-                                />
-                                <MetricCard
-                                    icon={<BookOpen size={24} />}
-                                    color="blue"
-                                    value={childResults.length.toString()}
-                                    label="Provas Realizadas"
-                                />
-                                <MetricCard
-                                    icon={<Award size={24} />}
-                                    color={attendancePercentage < 75 ? 'red' : 'purple'}
-                                    value={`${attendancePercentage}%`}
-                                    label="Frequência Escolar"
-                                />
-                                <MetricCard
-                                    icon={<Calendar size={24} />}
-                                    color="orange"
-                                    value={childExams.length.toString()}
-                                    label="Próximas Provas"
-                                />
-                            </div>
-
-                            {/* ... (Rest of existing UI: Results & Exams) ... */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Desempenho Recente */}
-                                <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200">
-                                    <h2 className="text-xl font-black text-brand-dark flex items-center gap-2 mb-4">
-                                        <TrendingUp size={24} className="text-emerald-500" />
-                                        Histórico de Notas
-                                    </h2>
-                                    <div className="space-y-3">
-                                        {childResults.length > 0 ? (
-                                            childResults.slice(0, 5).map(result => {
-                                                const exam = exams.find(e => e.id === result.examId);
-                                                const score = result.totalScore || 0;
-                                                return (
-                                                    <div key={result.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200 flex justify-between items-center">
-                                                        <div>
-                                                            <p className="font-bold text-brand-dark">{exam?.title}</p>
-                                                            <p className="text-sm text-slate-600">{exam?.subject}</p>
-                                                        </div>
-                                                        <span className={`text-xl font-black ${score < 5 ? 'text-red-500' : 'text-emerald-600'}`}>
-                                                            {score.toFixed(1)}
-                                                        </span>
-                                                    </div>
-                                                );
-                                            })
-                                        ) : <p className="text-slate-500 text-center py-4">Sem notas lançadas.</p>}
-                                    </div>
-                                </div>
-
-                                {/* Próximas Provas */}
-                                <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200">
-                                    <h2 className="text-xl font-black text-brand-dark flex items-center gap-2 mb-4">
-                                        <Calendar size={24} className="text-orange-500" />
-                                        Agenda de Provas
-                                    </h2>
-                                    <div className="space-y-3">
-                                        {childExams.length > 0 ? (
-                                            childExams.slice(0, 5).map(exam => (
-                                                <div key={exam.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200 flex justify-between">
-                                                    <div>
-                                                        <p className="font-bold text-brand-dark">{exam.title}</p>
-                                                        <p className="text-sm text-slate-600">{exam.subject}</p>
-                                                    </div>
-                                                    <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full h-fit">Agendada</span>
-                                                </div>
-                                            ))
-                                        ) : <p className="text-slate-500 text-center py-4">Nenhuma prova agendada.</p>}
-                                    </div>
-                                </div>
-                            </div>
-
-                        </>
-                    )}
-                </>
-            ) : (
-                <div className="bg-white rounded-xl p-12 text-center">
-                    <User size={64} className="mx-auto text-slate-300 mb-4" />
-                    <h2 className="text-2xl font-black text-brand-dark">Nenhum filho vinculado</h2>
-                    <p className="text-slate-600">Entre em contato com a secretaria.</p>
-
-                    {/* Debug Info for Admin/Dev troubleshooting */}
-                    <div className="mt-8 p-4 bg-slate-50 rounded-lg text-left border border-slate-200">
-                        <p className="text-xs font-bold text-slate-400 uppercase mb-2">Debug Context:</p>
-                        <pre className="text-[10px] text-slate-500 overflow-auto max-h-40">
-                            {JSON.stringify({
-                                userEmail: currentUser?.email,
-                                userRole: currentUser?.role,
-                                userChildrenIds: currentUser?.childrenIds,
-                                totalStudentsLoaded: students.length,
-                                studentsSample: students.slice(0, 3).map(s => ({ id: s.id, name: s.name }))
-                            }, null, 2)}
-                        </pre>
+                        </div>
                     </div>
                 </div>
             )}
+
+            {/* Quick Stats (Always Visible) */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <MetricCard
+                    icon={<TrendingUp size={24} />}
+                    color="emerald"
+                    value={averageScore}
+                    label="Média Geral"
+                />
+                <MetricCard
+                    icon={<BookOpen size={24} />}
+                    color="blue"
+                    value={childResults.length.toString()}
+                    label="Provas Realizadas"
+                />
+                <MetricCard
+                    icon={<Award size={24} />}
+                    color={attendancePercentage < 75 ? 'red' : 'purple'}
+                    value={`${attendancePercentage}%`}
+                    label="Frequência Escolar"
+                />
+                <MetricCard
+                    icon={<Calendar size={24} />}
+                    color="orange"
+                    value={childExams.length.toString()}
+                    label="Próximas Provas"
+                />
+            </div>
+
+            {/* Content Body */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Desempenho Recente */}
+                <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200">
+                    <h2 className="text-xl font-black text-brand-dark flex items-center gap-2 mb-4">
+                        <TrendingUp size={24} className="text-emerald-500" />
+                        Histórico de Notas
+                    </h2>
+                    <div className="space-y-3">
+                        {childResults.length > 0 ? (
+                            childResults.slice(0, 5).map(result => {
+                                const exam = exams.find(e => e.id === result.examId);
+                                const score = result.totalScore || 0;
+                                return (
+                                    <div key={result.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200 flex justify-between items-center">
+                                        <div>
+                                            <p className="font-bold text-brand-dark">{exam?.title}</p>
+                                            <p className="text-sm text-slate-600">{exam?.subject}</p>
+                                        </div>
+                                        <span className={`text-xl font-black ${score < 5 ? 'text-red-500' : 'text-emerald-600'}`}>
+                                            {score.toFixed(1)}
+                                        </span>
+                                    </div>
+                                );
+                            })
+                        ) : <p className="text-slate-500 text-center py-4">Sem notas lançadas.</p>}
+                    </div>
+                </div>
+
+                {/* Próximas Provas */}
+                <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200">
+                    <h2 className="text-xl font-black text-brand-dark flex items-center gap-2 mb-4">
+                        <Calendar size={24} className="text-orange-500" />
+                        Agenda de Provas
+                    </h2>
+                    <div className="space-y-3">
+                        {childExams.length > 0 ? (
+                            childExams.slice(0, 5).map(exam => (
+                                <div key={exam.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200 flex justify-between">
+                                    <div>
+                                        <p className="font-bold text-brand-dark">{exam.title}</p>
+                                        <p className="text-sm text-slate-600">{exam.subject}</p>
+                                    </div>
+                                    <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full h-fit">Agendada</span>
+                                </div>
+                            ))
+                        ) : <p className="text-slate-500 text-center py-4">Nenhuma prova agendada.</p>}
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

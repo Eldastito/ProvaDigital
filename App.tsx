@@ -44,6 +44,35 @@ import { AuditLogView } from './components/Admin/AuditLogView';
 import { TabletLauncher } from './components/TabletApp/TabletLauncher';
 import { LiveDemoLobby } from './components/Demo/LiveDemoLobby';
 import { AIDiagnosticView } from './components/Diagnostics/AIDiagnosticView';
+import { ExamLauncher } from './components/OnlineExam/ExamLauncher';
+import { OnlineExamRunner } from './components/OnlineExam/OnlineExamRunner';
+
+const LiveDemoAction = () => {
+  const [isOpen, setIsOpen] = useState(true);
+  if (!isOpen) return <div className="p-8"><button onClick={() => setIsOpen(true)} className="btn-primary">Reabrir Demo</button></div>;
+  return <LiveDemoLobby onClose={() => setIsOpen(false)} />;
+};
+
+const OnlineExamRunnerWrapper = () => {
+  const { examId } = useParams();
+  const navigate = useNavigate();
+  const { currentUser } = useAppStore();
+
+  if (!currentUser || !examId) return <div>Erro: Dados inválidos</div>;
+
+  return (
+    <OnlineExamRunner
+      examId={examId}
+      studentId={currentUser.id}
+      onExit={() => navigate('/apps/demo')}
+      onComplete={(answers) => {
+        console.log("Answers:", answers);
+        alert("Prova finalizada! (Respostas no console)");
+        navigate('/apps/demo');
+      }}
+    />
+  );
+};
 
 export default function App() {
   const store = useAppStore();
@@ -262,11 +291,17 @@ export default function App() {
                       <Route path="exams" element={<ExamsListView state={store} />} />
                       <Route path="exams/new" element={<ExamBuilderView state={store} />} />
 
-                      {/* TEACHER / ACADEMIC - Legacy routes for backward compatibility */}
-                      <Route path="teacher/itens" element={<ItemsListView state={store} />} />
-                      <Route path="teacher/itens/novo" element={<ItemEditorView state={store} />} />
-                      <Route path="teacher/provas" element={<ExamsListView state={store} />} />
-                      <Route path="teacher/provas/nova" element={<ExamBuilderView state={store} />} />
+                      {/* Apps & Demos */}
+                      <Route path="/apps/tablet" element={<TabletLauncher onSelectApp={() => { }} onBack={() => navigate('/dashboard')} />} />
+                      <Route path="/apps/demo" element={<LiveDemoLobby onClose={() => navigate('/dashboard')} />} />
+                      <Route path="/online-exam" element={<ExamLauncher />} />
+                      <Route path="/online-exam/:examId" element={<OnlineExamRunnerWrapper />} />
+
+                      {/* Legacy cleanup / Redirections */}
+                      <Route path="/teacher/itens" element={<Navigate to="/items" replace />} />
+                      <Route path="/teacher/itens/novo" element={<Navigate to="/items/new" replace />} />
+                      <Route path="/teacher/provas" element={<Navigate to="/exams" replace />} />
+                      <Route path="/teacher/provas/nova" element={<Navigate to="/exams/new" replace />} />
 
                       {/* ADMIN */}
                       <Route path="admin/gestao" element={<ManagementView state={store} onAddSchool={store.addSchool} onAddClass={store.addClass} onAddStudent={store.addStudent} onAddUser={store.addUser} onUpdateUser={store.updateUser} onResetPassword={store.resetUserPassword} onUpdateSettings={store.updateSettings} />} />

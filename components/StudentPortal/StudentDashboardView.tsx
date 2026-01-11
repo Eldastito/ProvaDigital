@@ -79,14 +79,45 @@ export const StudentDashboardView = () => {
         }
     }
 
-    const student = state.students.find(s => s.id === studentIdToView);
+    const foundStudent = state.students.find(s => s.id === studentIdToView);
+
+    // --- GRACEFUL DEGRADATION: Use found student or create a dummy safe object ---
+    const student = foundStudent || {
+        id: 'guest-' + user.id,
+        name: user.name || 'Estudante',
+        email: user.email,
+        role: UserRole.ALUNO,
+        tenantId: user.tenantId || 't1',
+        schoolId: '',
+        classId: '',
+        status: 'ACTIVE',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+    } as any;
 
     const analytics = new AnalyticsService(state);
-    const stats = student ? analytics.getStudentStats(student.id) : null;
-    const profile = student ? state.studentProfiles?.find(p => p.studentId === student.id) : null;
 
-    // Buscar perfil estendido (para moedas e badges)
-    const extendedProfile = student ? state.userProfiles?.find(p => p.userId === student.id) : null;
+    // Only fetch stats if we have a real student, otherwise return default empty stats
+    const realStats = foundStudent ? analytics.getStudentStats(foundStudent.id) : null;
+
+    const stats = realStats || {
+        studentId: student.id,
+        examsTaken: 0,
+        averageScore: 0,
+        idgScore: 0,
+        attendanceRate: 0,
+        completionRate: 0,
+        riskLevel: RiskLevel.LOW,
+        missingPointsForApproval: 10,
+        strengthSubjects: [],
+        weaknessSubjects: [],
+        examAverage: 0,
+        projectAverage: 0,
+        bonusPoints: 0
+    };
+
+    const profile = foundStudent ? state.studentProfiles?.find(p => p.studentId === foundStudent.id) : null;
+    const extendedProfile = foundStudent ? state.userProfiles?.find(p => p.userId === foundStudent.id) : null;
 
     // Calendar State
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -102,42 +133,10 @@ export const StudentDashboardView = () => {
     // Event Modal
     const [showEventRules, setShowEventRules] = useState<string | null>(null);
 
-    if (!student || !stats) {
-        if (state.isInitialized && !student) {
-            return (
-                <div className="flex h-[80vh] w-full items-center justify-center flex-col gap-6 bg-slate-50/50 rounded-2xl border-2 border-dashed border-red-200">
-                    <AlertTriangle size={48} className="text-red-400" />
-                    <div className="text-center">
-                        <p className="text-slate-600 font-bold text-lg">Estudante não encontrado</p>
-                        <p className="text-slate-400 text-sm max-w-xs mx-auto mt-2">
-                            Não foi possível localizar os dados do aluno. Verifique se o cadastro está completo.
-                        </p>
-                    </div>
-                </div>
-            );
-        }
+    // --- REMOVED BLOCKING ERROR STATE ---
+    // Instead of blocking, we simply render the dashboard with the "safe" objects (0 values)
+    // We can show a non-intrusive alert if needed
 
-        return (
-            <div className="flex h-[80vh] w-full items-center justify-center flex-col gap-6 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200">
-                <div className="relative">
-                    <div className="w-16 h-16 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
-                    <UserIcon size={24} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-brand-primary/50" />
-                </div>
-                <div className="text-center">
-                    <p className="text-slate-600 font-bold text-lg">Preparando painel do aluno...</p>
-                    <p className="text-slate-400 text-sm max-w-xs mx-auto mt-2">Isso pode levar alguns segundos enquanto sincronizamos os dados mais recentes.</p>
-                </div>
-                {isParent && (
-                    <button
-                        onClick={() => navigate('/dashboard')}
-                        className="bg-brand-primary text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center gap-2"
-                    >
-                        <ChevronLeft size={20} /> Ir para Portal dos Pais
-                    </button>
-                )}
-            </div>
-        );
-    }
 
     const getRiskColor = (level: RiskLevel) => {
         if (level === RiskLevel.HIGH) return 'bg-rose-100 text-rose-700 border-rose-200';
