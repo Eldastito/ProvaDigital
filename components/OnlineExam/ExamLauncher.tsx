@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { useNavigate } from 'react-router-dom';
 import { Play, FileText, Clock, AlertTriangle, Accessibility } from 'lucide-react';
+import { ExamStatus } from '../../types';
 
 export const ExamLauncher = () => {
     const { exams, currentUser } = useAppStore();
@@ -9,7 +10,7 @@ export const ExamLauncher = () => {
     const [searchTerm, setSearchTerm] = useState('');
 
     const availableExams = exams.filter(e =>
-        e.status === 'ACTIVE' || e.status === 'PUBLICADA' || e.status === 'DRAFT'
+        e.status === ExamStatus.ACTIVE || e.status === ExamStatus.DRAFT
     ).filter(e =>
         e.title.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -49,7 +50,7 @@ export const ExamLauncher = () => {
                             <div className="p-3 bg-blue-50 text-brand-primary rounded-lg">
                                 <FileText size={24} />
                             </div>
-                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${exam.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${exam.status === ExamStatus.ACTIVE ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
                                 {exam.status}
                             </span>
                         </div>

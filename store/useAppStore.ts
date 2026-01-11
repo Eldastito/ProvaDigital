@@ -919,7 +919,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         });
         return success;
     }
-})),
+}));
 
 // Wrapper para garantir que arrays nunca sejam null/undefined
 export const useSafeAppStore = () => {

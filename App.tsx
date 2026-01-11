@@ -348,7 +348,7 @@ export default function App() {
                       <Route path="gamified-events" element={<GamifiedEventsManager state={store} user={currentUser} />} />
 
                       {/* APPS & DEMO (Full Screen Modes) */}
-                      <Route path="apps/tablet" element={<div className="fixed inset-0 z-50 bg-slate-900"><TabletLauncher state={store} onSelectApp={() => { }} onBack={() => navigate('/dashboard')} /></div>} />
+                      <Route path="apps/tablet" element={<div className="fixed inset-0 z-50 bg-slate-900"><TabletLauncher onSelectApp={() => { }} onBack={() => navigate('/dashboard')} /></div>} />
                       <Route path="apps/demo" element={<LiveDemoLobby onClose={() => navigate('/dashboard')} />} />
 
                       {/* UTILS */}
