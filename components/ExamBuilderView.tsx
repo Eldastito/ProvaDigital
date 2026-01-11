@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
-import { X, ChevronRight, Search, Plus, Tablet, ChevronLeft, ArrowRight, Brain, Sparkles, Settings2, BarChart, Loader2 } from 'lucide-react';
+import {
+    Plus, Search, Brain, Sparkles, AlertCircle, Trash2, Edit3, Check, X,
+    ChevronLeft, ArrowRight, Tablet, Loader2, Save, History, ShieldCheck,
+    Settings2, BarChart, ChevronRight
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppState, Exam, Item, ExamModel, ExamStatus, QuestionType, DifficultyLevel, ItemOrigin } from '../types';
 import { Badge } from './ui/Badge';
@@ -11,7 +15,10 @@ import { smartSelectItems, ExamCriteria } from '../services/examService';
 // - [x] Implementar painel de critérios (Dificuldade, BNCC, Qtd)
 // - [x] Integrar geração via IA para "Gaps" no banco de itens
 // - [ ] Validar equilíbrio pedagógico e exportação PDF
-import { generateQuestionsFromText } from '../services/geminiService';
+import { generateQuestionsFromText, reviewExamAdvanced } from '../services/geminiService';
+import { BatchReviewPanel } from './OnlineExam/BatchReviewPanel';
+import { AdvancedReviewPipeline } from './OnlineExam/AdvancedReviewPipeline';
+import { ItemLifecycleStatus } from '../types';
 
 export const ExamBuilderView = () => {
     const navigate = useNavigate();
@@ -42,6 +49,10 @@ export const ExamBuilderView = () => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [isFillingGaps, setIsFillingGaps] = useState(false);
     const [selectionDiagnosis, setSelectionDiagnosis] = useState<any>(null);
+    const [isReviewingBatch, setIsReviewingBatch] = useState(false);
+    const [currentBatchId, setCurrentBatchId] = useState<string | null>(null);
+    const [currentBatchItems, setCurrentBatchItems] = useState<Item[]>([]);
+    const [isReviewingExam, setIsReviewingExam] = useState(false);
 
     // Preview State for "Tablet Simulator"
     const [previewIndex, setPreviewIndex] = useState(0);
@@ -111,6 +122,7 @@ export const ExamBuilderView = () => {
 
         setIsFillingGaps(true);
         try {
+            const batchId = uuidv4();
             const promptContext = `Crie questões sobre ${config.subject || smartCriteria.subject}. 
             Habilidades desejadas: ${smartCriteria.bnccCodes?.join(', ') || 'Geral'}. 
             Foco em preencher as seguintes lacunas: ${JSON.stringify(selectionDiagnosis.unmetBnccCodes)}`;
@@ -119,7 +131,7 @@ export const ExamBuilderView = () => {
                 promptContext,
                 selectionDiagnosis.missingCount,
                 QuestionType.MULTIPLE_CHOICE,
-                DifficultyLevel.MEDIUM, // Fallback, could be smarter
+                DifficultyLevel.MEDIUM,
                 config.subject || smartCriteria.subject
             );
 
@@ -140,14 +152,31 @@ export const ExamBuilderView = () => {
                     tags: ['IA', 'Gerador de Provas'],
                     bnccCode: g.bnccCode,
                     usageCount: 0,
+                    generationBatchId: batchId,
+                    lifecycleStatus: ItemLifecycleStatus.DRAFT,
                     createdAt: new Date().toISOString()
                 }));
 
-                // Persiste globalmente no banco via Supabase
+                // Registra o lote no store/db
+                if (state.addGenerationBatch) {
+                    await state.addGenerationBatch({
+                        id: batchId,
+                        creatorId: state.currentUser?.id || '',
+                        tenantId: state.currentUser?.tenantId || 't1',
+                        promptContext,
+                        totalRequested: selectionDiagnosis.missingCount,
+                        createdAt: new Date().toISOString()
+                    });
+                }
+
+                // Adiciona itens ao banco (como DRAFT)
                 await addItems(newItems);
 
-                alert(`${newItems.length} questões inéditas geradas e adicionadas à prova para completar a meta!`);
-                setSelectionDiagnosis({ ...selectionDiagnosis, missingCount: 0 });
+                setCurrentBatchId(batchId);
+                setCurrentBatchItems(newItems);
+                setIsReviewingBatch(true);
+
+                // Note: O diagnóstico não zera aqui, zera só quando o usuário aprovar e os itens entrarem na prova
             }
         } catch (e) {
             console.error(e);
@@ -326,8 +355,50 @@ export const ExamBuilderView = () => {
                             )}
                         </div>
                     </div>
+                ) : isReviewingExam ? (
+                    <AdvancedReviewPipeline
+                        items={selectedItems}
+                        onCancel={() => setIsReviewingExam(false)}
+                        onComplete={async (polished, summary) => {
+                            // Atualiza os itens com a versão polida se necessário
+                            setSelectedItems(polished);
+                            setIsReviewingExam(false);
+
+                            // Cria uma nova versão da prova (snapshot)
+                            if (state.addExamVersion && summary) {
+                                await state.addExamVersion({
+                                    id: uuidv4(),
+                                    examId: '', // Será preenchido ao salvar o exame final
+                                    versionNumber: 1,
+                                    itemsSnapshot: polished,
+                                    reviewSummary: summary,
+                                    createdAt: new Date().toISOString()
+                                });
+                            }
+
+                            alert("Revisão concluída com sucesso! Sua prova foi otimizada pela IA.");
+                        }}
+                    />
+                ) : isReviewingBatch && currentBatchId ? (
+                    <BatchReviewPanel
+                        batchId={currentBatchId}
+                        items={currentBatchItems}
+                        onFinish={() => {
+                            setIsReviewingBatch(false);
+                            // Sincroniza os itens aprovados para a seleção da prova
+                            const approved = state.items.filter(i =>
+                                i.generationBatchId === currentBatchId &&
+                                i.lifecycleStatus === ItemLifecycleStatus.APPROVED
+                            );
+                            if (approved.length > 0) {
+                                setSelectedItems(prev => [...prev, ...approved]);
+                                // Atualiza o diagnóstico
+                                setSelectionDiagnosis({ ...selectionDiagnosis, missingCount: 0 });
+                            }
+                        }}
+                    />
                 ) : (
-                    <div className="flex h-full gap-8">
+                    <div className="flex h-full gap-8 overflow-hidden">
                         {/* Left: Available Items (List) OR Selection Diagnosis */}
                         <div className="flex-1 flex flex-col bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden relative">
                             {builderMode === 'SMART' && selectionDiagnosis && selectionDiagnosis.missingCount > 0 && (
@@ -379,7 +450,7 @@ export const ExamBuilderView = () => {
                                 </h3>
                                 <div className="flex gap-2">
                                     <div className="relative flex-1">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-secondary" size={16} />
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                                         <input
                                             className="w-full border rounded-lg pl-9 p-2 text-sm shadow-sm"
                                             placeholder="Filtrar questões..."
@@ -397,56 +468,10 @@ export const ExamBuilderView = () => {
                                 </div>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto p-2 space-y-2 relative">
-                                {/* AI Recommendations Overlay/Panel */}
-                                {showRecommendations && (
-                                    <div className="mb-4 bg-purple-50 border border-purple-100 rounded-xl p-4 animate-in slide-in-from-top-4">
-                                        <div className="flex justify-between items-center mb-3">
-                                            <h4 className="font-bold text-purple-800 flex items-center gap-2">
-                                                <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
-                                                Sugestões Inteligentes (BNCC)
-                                            </h4>
-                                            {recommendedItems.length === 0 && !loadingRecs && (
-                                                <button onClick={handleGetRecommendations} className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 transition">
-                                                    Gerar Questões Baseadas em Gaps
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        {loadingRecs ? (
-                                            <div className="text-center py-8 text-purple-400">
-                                                <div className="animate-spin w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full mx-auto mb-2"></div>
-                                                Analisando desempenho da turma...
-                                            </div>
-                                        ) : recommendedItems.length > 0 ? (
-                                            <div className="grid gap-3">
-                                                {recommendedItems.map(rec => (
-                                                    <div key={rec.id} className="bg-white p-3 rounded-lg border border-purple-200 shadow-sm hover:shadow-md transition cursor-pointer group" onClick={() => addRecommendedItem(rec)}>
-                                                        <div className="flex justify-between items-start mb-2">
-                                                            <Badge color="indigo">{rec.bncc}</Badge>
-                                                            <span className="text-[10px] uppercase font-bold text-slate-400">Match: {rec.matchScore}%</span>
-                                                        </div>
-                                                        <p className="text-sm text-slate-700 mb-2 line-clamp-2">{rec.statement}</p>
-                                                        <div className="flex justify-between items-center">
-                                                            <span className="text-xs text-purple-600 font-medium italic">Motivo: {rec.reason}</span>
-                                                            <button className="text-purple-600 text-xs font-bold flex items-center gap-1 bg-purple-50 px-2 py-1 rounded group-hover:bg-purple-100">
-                                                                Aceitar <Plus size={12} />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="text-center py-4 text-slate-500 text-xs italic">
-                                                Clique em "Gerar" para a IA identificar gaps de aprendizado nesta turma.
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
+                            <div className="flex-1 overflow-y-auto p-2 space-y-2">
                                 {/* Standard List */}
-                                {(builderMode === 'SMART' ? selectedItems : filteredAvailableItems).map(item => (
-                                    <div key={item.id} className="p-3 border border-slate-200 rounded-lg hover:border-brand-secondary bg-white cursor-pointer group transition-all hover:shadow-sm" onClick={() => toggleItem(item)}>
+                                {(builderMode === 'SMART' ? (state.items.filter(i => selectedItems.find(s => s.id === i.id) || (i.generationBatchId === currentBatchId && i.lifecycleStatus === ItemLifecycleStatus.APPROVED))) : filteredAvailableItems).map(item => (
+                                    <div key={item.id} className="p-3 border border-slate-200 rounded-lg hover:border-brand-primary bg-white cursor-pointer group transition-all hover:shadow-sm" onClick={() => toggleItem(item)}>
                                         <div className="flex justify-between items-start mb-1">
                                             <span className="text-xs font-bold text-slate-500 uppercase">{item.subject}</span>
                                             <div className="flex gap-2">
@@ -467,150 +492,59 @@ export const ExamBuilderView = () => {
                             </div>
                         </div>
 
-                        {/* Right: Tablet Simulator (Preview) - Unchanged */}
+                        {/* Right: Tablet Simulator (Preview) */}
                         <div className="w-[500px] flex flex-col">
-                            {/* ... (Existing Simulator Code) ... */}
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="font-bold text-slate-800 flex items-center gap-2"><Tablet size={20} /> Simulação do Aluno</h3>
                                 <span className="text-xs font-bold bg-brand-primary text-white px-3 py-1 rounded-full">{selectedItems.length} questões selecionadas</span>
                             </div>
 
-                            {/* Tablet Device Frame */}
-                            <div className="flex-1 bg-slate-900 rounded-[2rem] p-3 shadow-2xl relative border-4 border-slate-800 flex flex-col min-h-[600px]">
-                                {/* Camera Dot */}
+                            <div className="flex-1 bg-slate-900 rounded-[2rem] p-3 shadow-2xl relative border-4 border-slate-800 flex flex-col min-h-[500px]">
                                 <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 rounded-full"></div>
-
-                                {/* Screen Content */}
                                 <div className="flex-1 bg-slate-100 rounded-[1.5rem] overflow-hidden flex flex-col relative">
                                     {selectedItems.length === 0 ? (
                                         <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center">
                                             <Plus size={48} className="mb-4 opacity-50" />
-                                            <p>Adicione questões do banco ao lado para visualizar como elas aparecerão na prova.</p>
+                                            <p>Adicione questões ao lado.</p>
                                         </div>
                                     ) : (
                                         <>
-                                            {/* Header Inside Tablet */}
                                             <div className="bg-white p-4 border-b border-slate-200 flex justify-between items-center shadow-sm z-10">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="w-8 h-8 rounded-full bg-brand-light text-brand-primary flex items-center justify-center font-bold text-xs">
-                                                        {previewIndex + 1}
-                                                    </div>
+                                                    <div className="w-8 h-8 rounded-full bg-brand-light text-brand-primary flex items-center justify-center font-bold text-xs">{previewIndex + 1}</div>
                                                     <span className="text-xs font-bold text-slate-500 uppercase">Questão {previewIndex + 1} de {selectedItems.length}</span>
                                                 </div>
-                                                <span className="text-[10px] font-mono bg-slate-100 px-2 py-1 rounded text-slate-600">00:45:00</span>
                                             </div>
-
-                                            {/* Scrollable Question Content */}
                                             <div className="flex-1 overflow-y-auto p-5 bg-[#f8fafc]">
                                                 {currentPreviewItem && (
                                                     <div className="animate-in slide-in-from-right-4 duration-300">
-                                                        <div className="text-sm text-slate-800 font-medium leading-relaxed mb-4">
-                                                            {currentPreviewItem?.statement}
-                                                        </div>
-
-                                                        {currentPreviewItem.imageUrl && (
-                                                            <div className="mb-4 rounded-lg overflow-hidden border border-slate-200">
-                                                                <img src={currentPreviewItem.imageUrl} alt="Questão" className="w-full object-cover" />
-                                                            </div>
-                                                        )}
-
+                                                        <div className="text-sm text-slate-800 font-medium leading-relaxed mb-4">{currentPreviewItem.statement}</div>
                                                         <div className="space-y-3">
-                                                            {(currentPreviewItem.type === QuestionType.MULTIPLE_CHOICE || currentPreviewItem.type === QuestionType.TRUE_FALSE) && (
-                                                                currentPreviewItem.alternatives.map((alt, idx) => (
-                                                                    <button key={idx} className="w-full text-left p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-brand-primary hover:bg-sky-50 transition flex items-start gap-3 group">
-                                                                        <div className="w-6 h-6 rounded-full border border-slate-300 text-slate-500 text-xs flex items-center justify-center group-hover:border-brand-primary group-hover:text-brand-primary font-bold">
-                                                                            {String.fromCharCode(65 + idx)}
-                                                                        </div>
-                                                                        <span className="text-sm text-slate-600 group-hover:text-slate-900 pt-0.5">{alt.text}</span>
-                                                                    </button>
-                                                                ))
-                                                            )}
-
-                                                            {/* VISUAL DE CADERNO / REDAÇÃO */}
-                                                            {(currentPreviewItem.type === QuestionType.ESSAY || currentPreviewItem.type === QuestionType.REDACTION) && (
-                                                                <div className="mt-4">
-                                                                    <div className="text-xs font-bold text-slate-500 mb-1 uppercase flex justify-between">
-                                                                        <span>Folha de Resposta Oficial</span>
-                                                                        <span>Max: {currentPreviewItem.maxLines || 30} linhas</span>
-                                                                    </div>
-
-                                                                    {/* NOTEBOOK MASK */}
-                                                                    <div className="w-full bg-white border border-slate-300 shadow-sm flex relative overflow-hidden rounded-md" style={{ height: '400px' }}>
-                                                                        {/* Numbered Column + Red Margin */}
-                                                                        <div className="w-8 bg-slate-100 flex-shrink-0 flex flex-col items-center pt-1 border-r-2 border-red-400/50 text-slate-400 font-mono text-xs select-none leading-[32px]">
-                                                                            {Array.from({ length: currentPreviewItem.maxLines || 30 }).map((_, i) => (
-                                                                                <div key={i} style={{ height: '32px' }}>{i + 1}</div>
-                                                                            ))}
-                                                                        </div>
-
-                                                                        {/* Lined Paper Background + Transparent Input */}
-                                                                        <div className="flex-1 relative overflow-y-auto custom-scrollbar">
-                                                                            <div
-                                                                                className="absolute inset-0 pointer-events-none"
-                                                                                style={{
-                                                                                    backgroundImage: 'linear-gradient(transparent 31px, #cbd5e1 32px)',
-                                                                                    backgroundSize: '100% 32px',
-                                                                                    marginTop: '0px'
-                                                                                }}
-                                                                            ></div>
-                                                                            <textarea
-                                                                                className="w-full h-full bg-transparent outline-none resize-none p-0 pl-2 text-slate-800 text-base leading-[32px] font-sans relative z-10"
-                                                                                placeholder="Escreva sua redação aqui..."
-                                                                                spellCheck={false}
-                                                                                style={{ lineHeight: '32px' }}
-                                                                                disabled
-                                                                            />
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            )}
+                                                            {currentPreviewItem.alternatives.map((alt, idx) => (
+                                                                <button key={idx} className="w-full text-left p-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-brand-primary hover:bg-sky-50 transition flex items-start gap-3 group">
+                                                                    <div className="w-6 h-6 rounded-full border border-slate-300 text-slate-500 text-xs flex items-center justify-center">{String.fromCharCode(65 + idx)}</div>
+                                                                    <span className="text-sm text-slate-600 pt-0.5">{alt.text}</span>
+                                                                </button>
+                                                            ))}
                                                         </div>
                                                     </div>
                                                 )}
                                             </div>
-
-                                            {/* Tablet Footer Navigation */}
                                             <div className="p-4 bg-white border-t border-slate-200 flex justify-between items-center z-10">
-                                                <button
-                                                    onClick={() => setPreviewIndex(Math.max(0, previewIndex - 1))}
-                                                    disabled={previewIndex === 0}
-                                                    className="p-2 rounded-full hover:bg-slate-100 disabled:opacity-30 text-slate-600 transition"
-                                                >
-                                                    <ChevronLeft size={24} />
-                                                </button>
-
-                                                {/* Question Dots */}
-                                                <div className="flex gap-1 overflow-hidden max-w-[200px] justify-center px-2">
-                                                    {selectedItems.map((_, i) => (
-                                                        <div
-                                                            key={i}
-                                                            onClick={() => setPreviewIndex(i)}
-                                                            className={`w-2 h-2 rounded-full cursor-pointer transition-all ${i === previewIndex ? 'bg-brand-primary w-4' : 'bg-slate-300 hover:bg-slate-400'}`}
-                                                        />
-                                                    ))}
-                                                </div>
-
-                                                <button
-                                                    onClick={() => setPreviewIndex(Math.min(selectedItems.length - 1, previewIndex + 1))}
-                                                    disabled={previewIndex === selectedItems.length - 1}
-                                                    className="p-2 rounded-full hover:bg-slate-100 disabled:opacity-30 text-slate-600 transition"
-                                                >
-                                                    <ArrowRight size={24} />
-                                                </button>
+                                                <button onClick={() => setPreviewIndex(Math.max(0, previewIndex - 1))} className="p-2 rounded-full hover:bg-slate-100 text-slate-600 transition"><ChevronLeft size={24} /></button>
+                                                <button onClick={() => setPreviewIndex(Math.min(selectedItems.length - 1, previewIndex + 1))} className="p-2 rounded-full hover:bg-slate-100 text-slate-600 transition"><ArrowRight size={24} /></button>
                                             </div>
                                         </>
                                     )}
                                 </div>
                             </div>
 
-                            {/* Action Buttons below Simulator */}
-                            <div className="mt-6 grid grid-cols-2 gap-4">
-                                <button onClick={() => handleSave(false)} className="py-3 bg-white border border-slate-300 text-slate-700 rounded-lg font-bold text-sm hover:bg-slate-50 transition shadow-sm">
-                                    Salvar Rascunho
+                            <div className="mt-6 grid grid-cols-3 gap-3">
+                                <button onClick={() => handleSave(false)} className="py-3 bg-white border border-slate-300 text-slate-700 rounded-lg font-bold text-sm hover:bg-slate-50 transition shadow-sm">Rascunho</button>
+                                <button onClick={() => setIsReviewingExam(true)} className="py-3 bg-purple-50 border border-purple-200 text-purple-700 rounded-lg font-bold text-sm hover:bg-purple-100 transition shadow-sm flex items-center justify-center gap-2">
+                                    <ShieldCheck size={18} /> Revisar IA
                                 </button>
-                                <button onClick={() => handleSave(true)} className="btn-gradient py-3 rounded-lg font-bold text-sm transition shadow-md">
-                                    Publicar Prova
-                                </button>
+                                <button onClick={() => handleSave(true)} className="btn-gradient py-3 rounded-lg font-bold text-sm transition shadow-md">Publicar</button>
                             </div>
                         </div>
                     </div>

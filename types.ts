@@ -37,6 +37,13 @@ export enum ItemOrigin {
   IA = 'IA'
 }
 
+export enum ItemLifecycleStatus {
+  DRAFT = 'DRAFT',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+  ARCHIVED = 'ARCHIVED'
+}
+
 // --- PERMISSIONS & CAPABILITIES ---
 
 export type Resource =
@@ -229,6 +236,8 @@ export interface Item {
     url: string;
     description?: string; // Alt text p/ acessibilidade
   }[];
+  generationBatchId?: string;
+  lifecycleStatus?: ItemLifecycleStatus;
   createdAt: string;
 }
 
@@ -301,6 +310,33 @@ export interface ExamResult {
   gradedAt: string;
   violationCount?: number;
   securityFlags?: string[];
+}
+
+export interface ItemGenerationBatch {
+  id: string;
+  creatorId: string;
+  tenantId: string;
+  promptContext?: string;
+  totalRequested: number;
+  createdAt: string;
+}
+
+export interface ExamVersion {
+  id: string;
+  examId: string;
+  versionNumber: number;
+  itemsSnapshot: any;
+  reviewSummary?: any;
+  createdAt: string;
+}
+
+export interface ExamVariant {
+  id: string;
+  examVersionId: string;
+  conditionCode: string;
+  adaptedItems: any;
+  deliveryLogicLog?: string;
+  createdAt: string;
 }
 
 
@@ -590,6 +626,9 @@ export interface AppState {
   studyPlans: StudyPlan[];
   studentProfiles: StudentProfile[];
   userProfiles: UserProfileExtended[];
+  itemGenerationBatches: ItemGenerationBatch[];
+  examVersions: ExamVersion[];
+  examVariants: ExamVariant[];
   settings: AppSettings;
   globalPermissions: PermissionMatrix;
   hasConsented: boolean; // LGPD Consent Status

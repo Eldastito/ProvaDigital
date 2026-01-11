@@ -1,6 +1,12 @@
-
 import { create } from 'zustand';
-import { AppState, User, Item, Exam, ExamResult, ChatMessage, ChatGroup, Announcement, LessonPlan, StudyPlan, UserProfileExtended, AppSettings, PermissionMatrix, UserRole, GamifiedEvent, OwlTutorContext, MentorshipRequest, MentorshipStatus, ExamRegistration, RegistrationStatus, ItemOrigin } from '../types';
+import {
+    AppState, Exam, Item, ExamModel, ExamStatus, QuestionType, DifficultyLevel,
+    ItemOrigin, UserRole, User, AppSettings, PermissionMatrix, ChatMessage,
+    ChatGroup, Announcement, LessonPlan, StudyPlan, GamifiedEvent, ExamResult,
+    MentorshipRequest, MentorshipStatus, OwlTutorContext, ItemGenerationBatch,
+    ItemLifecycleStatus, ExamVersion, ExamVariant, Tenant, School, SchoolClass,
+    UserProfileExtended, ExamRegistration, RegistrationStatus
+} from '../types';
 import { INITIAL_TENANTS, INITIAL_SCHOOLS, INITIAL_CLASSES, INITIAL_USERS, INITIAL_ITEMS, INITIAL_STUDENTS, INITIAL_RESULTS, INITIAL_EXAMS, INITIAL_REGISTRATIONS, INITIAL_ANNOUNCEMENTS, INITIAL_MESSAGES, INITIAL_LESSON_PLANS, INITIAL_STUDY_PLANS, INITIAL_STUDENT_PROFILES, INITIAL_USER_PROFILES, INITIAL_SETTINGS, INITIAL_GAMIFIED_EVENTS } from '../utils/mockData';
 import { supabase } from '../services/supabaseClient';
 
@@ -91,6 +97,12 @@ interface AppActions {
     setHasConsented: (hasConsented: boolean) => void;
     setOwlTutorContext: (context: OwlTutorContext | null) => void;
 
+    // --- AI ACTIONS ---
+    addGenerationBatch: (batch: ItemGenerationBatch) => Promise<void>;
+    updateItemStatus: (itemId: string, status: ItemLifecycleStatus) => Promise<void>;
+    addExamVersion: (version: ExamVersion) => Promise<void>;
+    addExamVariant: (variant: ExamVariant) => Promise<void>;
+
     // --- BULK ACTIONS ---
     removeItems: (ids: string[]) => void;
     bulkAddTag: (ids: string[], tag: string) => void;
@@ -126,6 +138,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
     studyPlans: USE_MOCK_DATA ? INITIAL_STUDY_PLANS : [],
     studentProfiles: USE_MOCK_DATA ? INITIAL_STUDENT_PROFILES : [],
     userProfiles: USE_MOCK_DATA ? INITIAL_USER_PROFILES : [],
+    itemGenerationBatches: [],
+    examVersions: [],
+    examVariants: [],
     settings: USE_MOCK_DATA ? INITIAL_SETTINGS : INITIAL_SETTINGS, // Always use settings
     globalPermissions: DEFAULT_PERMISSIONS,
     isInitialized: false,
@@ -328,6 +343,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 score: item.score,
                 tags: item.tags,
                 tri_params: item.triParams,
+                generation_batch_id: item.generationBatchId,
+                lifecycle_status: item.lifecycleStatus || 'APPROVED',
                 created_at: item.createdAt
             });
 
@@ -364,6 +381,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 score: item.score,
                 tags: item.tags,
                 tri_params: item.triParams,
+                generation_batch_id: item.generationBatchId,
+                lifecycle_status: item.lifecycleStatus || 'APPROVED',
                 created_at: item.createdAt
             }));
             const { error } = await supabase.from('items').insert(dbPayload);
@@ -784,12 +803,62 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 set({ gamifiedEvents: stateBackup });
                 throw error;
             }
-            console.log('✅ Student registered to event:', eventId, studentId);
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+        }
+    },
+
+    // --- AI BATCH & VERSION ACTIONS ---
+    addGenerationBatch: async (batch) => {
+        set((state) => ({ itemGenerationBatches: [batch, ...state.itemGenerationBatches] }));
+        try {
+            await supabase.from('item_generation_batches').insert({
+                id: batch.id,
+                creator_id: batch.creatorId,
+                tenant_id: batch.tenantId,
+                prompt_context: batch.promptContext,
+                total_requested: batch.totalRequested
+            });
+        } catch (e) { console.error("Error saving batch:", e); }
+    },
+
+    updateItemStatus: async (itemId, status) => {
+        set((state) => ({
+            items: state.items.map(i => i.id === itemId ? { ...i, lifecycleStatus: status } : i)
+        }));
+        try {
+            await supabase.from('items').update({ lifecycle_status: status }).eq('id', itemId);
+        } catch (e) { console.error("Error updating status:", e); }
+    },
+
+    addExamVersion: async (version) => {
+        set((state) => ({ examVersions: [version, ...state.examVersions] }));
+        try {
+            await supabase.from('exam_versions').insert({
+                id: version.id,
+                exam_id: version.examId,
+                version_number: version.versionNumber,
+                items_snapshot: version.itemsSnapshot,
+                review_summary: version.reviewSummary
+            });
+        } catch (e) { console.error("Error saving exam version:", e); }
+    },
+
+    addExamVariant: async (variant) => {
+        set((state) => ({ examVariants: [variant, ...state.examVariants] }));
+        try {
+            await supabase.from('exam_variants').insert({
+                id: variant.id,
+                exam_version_id: variant.examVersionId,
+                condition_code: variant.conditionCode,
+                adapted_items: variant.adaptedItems,
+                delivery_logic_log: variant.deliveryLogicLog
+            });
+        } catch (e) { console.error("Error saving variant:", e); }
     },
 
     // --- MENTORSHIP IMPL ---
-    mentorships: [], // Init empty
+    mentorships: [],
     addMentorshipRequest: async (req) => {
         set(state => ({ mentorships: [req, ...state.mentorships] }));
         try {
@@ -807,7 +876,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 set(state => ({ mentorships: state.mentorships.filter(m => m.id !== req.id) }));
                 throw error;
             }
-            console.log('✅ Mentorship request saved:', req.id);
         } catch (e) { console.error(e); }
     },
     acceptMentorshipRequest: async (reqId, mentorId, mentorName) => {
@@ -835,7 +903,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 set({ mentorships: stateBackup });
                 throw error;
             }
-            console.log('✅ Mentorship accepted:', reqId);
         } catch (e) { console.error(e); }
     },
     confirmMentorship: (reqId, pinInput) => {
@@ -844,7 +911,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
             const mentorship = state.mentorships.find(m => m.id === reqId);
             if (mentorship && mentorship.verificationPin === pinInput) {
                 success = true;
-                // Award XP logic would go here (updateUserProfile)
                 return {
                     mentorships: state.mentorships.map(m => m.id === reqId ? { ...m, status: MentorshipStatus.COMPLETED } : m)
                 };
@@ -853,7 +919,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         });
         return success;
     }
-}));
+})),
 
 // Wrapper para garantir que arrays nunca sejam null/undefined
 export const useSafeAppStore = () => {

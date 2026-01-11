@@ -185,6 +185,39 @@ const PROMPTS = {
           "bnccVerdict": string,
           "bloomLevel": string 
         }
+    `,
+    REVIEW_EXAM: (itemsJson: string) => `
+        Você é um Auditor Sênior de Avaliações Educacionais em Larga Escala. 
+        Sua tarefa é realizar uma REVISÃO GERAL (8 Estágios) em uma prova completa.
+        
+        ITENS DA PROVA (JSON):
+        ${itemsJson}
+        
+        ESTÁGIOS DE AUDITORIA:
+        1. ESTRUTURAL: Verifique duplicação de temas, contradições entre questões e clareza técnica.
+        2. BNCC/SAEB: Valide se a distribuição de habilidades está equilibrada.
+        3. ACESSIBILIDADE: Identifique barreiras para PCD/Neurodivergentes (TEA/TDAH/VISUAL).
+        4. TEXTUAIS: Melhore a fluidez, gramática e elimine ambiguidades (Polimento).
+        5. ANTI-COLA: Sugira variações para itens críticos.
+        6. TRI: Reequilibre os parâmetros de dificuldade (b), discriminação (a) e acerto casual (c).
+        
+        RETORNO:
+        - Relatório de cada estágio.
+        - Versão "Polida" dos itens (se houver melhoria textual).
+        - Sugestões de variantes.
+        
+        Retorne em JSON:
+        {
+          "stages": {
+            "structural": { "status": "OK" | "WARN", "feedback": "..." },
+            "pedagogical": { "status": "OK" | "WARN", "feedback": "..." },
+            "accessibility": { "status": "OK" | "WARN", "feedback": "..." },
+            "antiCheat": { "status": "OK" | "WARN", "feedback": "..." }
+          },
+          "overallScore": number,
+          "polishedItems": any[],
+          "variantsSuggested": any[]
+        }
     `
 };
 
@@ -788,4 +821,38 @@ const mockGenerate = (qty: number, type: QuestionType, diff: DifficultyLevel): G
             bloomTaxonomy: "Compreensão"
         }
     }));
+};
+export const reviewExamAdvanced = async (items: any[]): Promise<any> => {
+    const prompt = PROMPTS.REVIEW_EXAM(JSON.stringify(items));
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            stages: {
+                type: Type.OBJECT,
+                properties: {
+                    structural: { type: Type.OBJECT, properties: { status: { type: Type.STRING }, feedback: { type: Type.STRING } } },
+                    pedagogical: { type: Type.OBJECT, properties: { status: { type: Type.STRING }, feedback: { type: Type.STRING } } },
+                    accessibility: { type: Type.OBJECT, properties: { status: { type: Type.STRING }, feedback: { type: Type.STRING } } },
+                    antiCheat: { type: Type.OBJECT, properties: { status: { type: Type.STRING }, feedback: { type: Type.STRING } } }
+                }
+            },
+            overallScore: { type: Type.NUMBER },
+            polishedItems: { type: Type.ARRAY, items: { type: Type.OBJECT } },
+            variantsSuggested: { type: Type.ARRAY, items: { type: Type.OBJECT } }
+        }
+    };
+
+    const fallback = {
+        stages: {
+            structural: { status: "OK", feedback: "Simulação offline: Estrutura parece consistente." },
+            pedagogical: { status: "OK", feedback: "Simulação offline: Alinhamento BNCC ok." },
+            accessibility: { status: "OK", feedback: "Simulação offline: Sem barreiras detectadas." },
+            antiCheat: { status: "OK", feedback: "Simulação offline: Baixo risco de cola." }
+        },
+        overallScore: 90,
+        polishedItems: items,
+        variantsSuggested: []
+    };
+
+    return callGeminiAPI<any>(prompt, schema, fallback);
 };
