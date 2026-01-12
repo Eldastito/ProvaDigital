@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, X, Edit3, Trash2, ArrowRight, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
+import { Check, X, Edit3, Trash2, ArrowRight, CheckCircle2, AlertCircle, Sparkles, RefreshCw, Loader2 } from 'lucide-react';
 import { Item, ItemLifecycleStatus } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
 import { Badge } from '../ui/Badge';
@@ -13,9 +13,15 @@ interface BatchReviewPanelProps {
 }
 
 export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, items: initialItems, onFinish, finishLabel = "Concluir" }) => {
-    const { updateItemStatus, removeItems, updateItem } = useAppStore();
+    const { updateItemStatus, removeItems, updateItem, forceFetchBatchItems } = useAppStore();
     const [localItems, setLocalItems] = useState<Item[]>(initialItems);
     const [editingItem, setEditingItem] = useState<Item | null>(null);
+    const [rescuing, setRescuing] = useState(false);
+
+    // Sincroniza estado local quando as questões são carregadas/atualizadas na store
+    React.useEffect(() => {
+        setLocalItems(initialItems);
+    }, [initialItems]);
 
     const approveItem = async (id: string) => {
         try {
@@ -65,6 +71,19 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
         setEditingItem(null);
     };
 
+    const handleRescue = async () => {
+        if (!batchId || !forceFetchBatchItems) return;
+        setRescuing(true);
+        try {
+            await forceFetchBatchItems(batchId);
+            // O useEffect que sincroniza initialItems cuidará do resto
+        } catch (e) {
+            alert("Erro ao tentar resgatar itens do banco.");
+        } finally {
+            setRescuing(false);
+        }
+    };
+
     const pendingCount = localItems.filter(i => i.lifecycleStatus === ItemLifecycleStatus.DRAFT).length;
     const approvedCount = localItems.filter(i => i.lifecycleStatus === ItemLifecycleStatus.APPROVED).length;
 
@@ -105,7 +124,19 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
                     <div className="flex flex-col items-center justify-center p-12 text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-200">
                         <CheckCircle2 size={48} className="mb-4 text-emerald-500 opacity-20" />
                         <p className="font-medium text-slate-600">Lote sem questões pendentes.</p>
-                        <button onClick={onFinish} className="text-brand-primary text-sm font-bold mt-2">Continuar</button>
+                        <div className="flex flex-col items-center gap-2 mt-4">
+                            <button onClick={onFinish} className="text-brand-primary text-sm font-bold bg-brand-light px-6 py-2 rounded-xl hover:bg-brand-primary hover:text-white transition">
+                                Continuar
+                            </button>
+                            <button
+                                onClick={handleRescue}
+                                disabled={rescuing}
+                                className="text-amber-600 text-[10px] font-bold mt-2 flex items-center gap-2 hover:bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 transition disabled:opacity-50"
+                            >
+                                {rescuing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                                TENTAR RESGATAR ITENS DESTE LOTE (MODO DE SEGURANÇA)
+                            </button>
+                        </div>
                     </div>
                 ) : (
                     <>

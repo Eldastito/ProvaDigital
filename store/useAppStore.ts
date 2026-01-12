@@ -110,6 +110,7 @@ interface AppActions {
     // --- BULK ACTIONS ---
     removeItems: (ids: string[]) => Promise<void>;
     bulkAddTag: (ids: string[], tag: string) => Promise<void>;
+    forceFetchBatchItems: (batchId: string) => Promise<void>;
 }
 
 type AppStore = AppState & AppActions;
@@ -1026,6 +1027,54 @@ export const useAppStore = create<AppStore>((set, get) => ({
             return state;
         });
         return success;
+    },
+    forceFetchBatchItems: async (batchId) => {
+        console.log(`🔍 Forçando busca de itens do lote: ${batchId}`);
+        const { data: dbItems, error } = await supabase
+            .from('items')
+            .select('*')
+            .eq('generation_batch_id', batchId);
+
+        if (error) {
+            console.error('❌ Erro ao buscar itens do lote:', error);
+            throw error;
+        }
+
+        if (dbItems && dbItems.length > 0) {
+            const formattedItems: Item[] = dbItems.map((i: any) => ({
+                id: i.id,
+                tenantId: i.tenant_id,
+                ownerId: i.owner_id || '',
+                subject: i.subject,
+                knowledgeArea: i.knowledge_area || i.subject,
+                statement: i.statement,
+                type: i.type,
+                difficulty: i.difficulty,
+                alternatives: i.alternatives,
+                correctAnswerJustification: i.correct_justification,
+                bnccCode: i.bncc_code || '',
+                origin: i.origin || ItemOrigin.MANUAL,
+                score: i.score || 1.0,
+                tags: i.tags || [],
+                triParams: i.tri_params,
+                generationBatchId: i.generation_batch_id,
+                lifecycleStatus: i.lifecycle_status,
+                isAccessible: i.is_accessible,
+                accessibilityInstructions: i.accessibility_instructions,
+                multimedia: i.multimedia || [],
+                usageCount: 0,
+                createdAt: i.created_at
+            }));
+
+            set(state => {
+                const itemMap = new Map(state.items.map(i => [i.id, i]));
+                formattedItems.forEach(item => {
+                    itemMap.set(item.id, item);
+                });
+                return { items: Array.from(itemMap.values()) };
+            });
+            console.log(`✅ ${formattedItems.length} itens resgatados do lote.`);
+        }
     }
 }));
 
