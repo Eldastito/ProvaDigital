@@ -317,7 +317,10 @@ export interface ItemGenerationBatch {
   creatorId: string;
   tenantId: string;
   promptContext?: string;
+  promptHash?: string;
   totalRequested: number;
+  status?: 'open' | 'finalized' | 'archived';
+  source?: string;
   createdAt: string;
 }
 
@@ -627,6 +630,7 @@ export interface AppState {
   studentProfiles: StudentProfile[];
   userProfiles: UserProfileExtended[];
   itemGenerationBatches: ItemGenerationBatch[];
+  activeBatchId: string | null;
   examVersions: ExamVersion[];
   examVariants: ExamVariant[];
   settings: AppSettings;

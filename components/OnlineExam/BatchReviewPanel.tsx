@@ -13,7 +13,7 @@ interface BatchReviewPanelProps {
 }
 
 export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, items: initialItems, onFinish, finishLabel = "Concluir" }) => {
-    const { updateItemStatus, removeItems, updateItem, forceFetchBatchItems } = useAppStore();
+    const { approveOneItem, discardOneItem, removeItems, updateItem, forceFetchBatchItems } = useAppStore();
     const [localItems, setLocalItems] = useState<Item[]>(initialItems);
     const [editingItem, setEditingItem] = useState<Item | null>(null);
     const [rescuing, setRescuing] = useState(false);
@@ -25,7 +25,7 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
 
     const approveItem = async (id: string) => {
         try {
-            await updateItemStatus(id, ItemLifecycleStatus.APPROVED);
+            if (approveOneItem) await approveOneItem(id);
             setLocalItems(prev => prev.map(i => i.id === id ? { ...i, lifecycleStatus: ItemLifecycleStatus.APPROVED } : i));
         } catch (e) {
             alert("Erro ao aprovar item.");
@@ -34,8 +34,8 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
 
     const discardItem = async (id: string) => {
         try {
-            await removeItems([id]);
-            setLocalItems(prev => prev.filter(i => i.id !== id));
+            if (discardOneItem) await discardOneItem(id);
+            setLocalItems(prev => prev.map(i => i.id === id ? { ...i, lifecycleStatus: ItemLifecycleStatus.REJECTED } : i));
         } catch (e) {
             alert("Erro ao descartar item.");
         }

@@ -97,12 +97,12 @@ interface AppActions {
     confirmMentorship: (requestId: string, pinInput: string) => boolean; // Returns true if PIN matches
     setHasConsented: (hasConsented: boolean) => void;
     setOwlTutorContext: (context: OwlTutorContext | null) => void;
-
     // --- AI ACTIONS ---
     addGenerationBatch: (batch: ItemGenerationBatch) => Promise<void>;
-    updateItemStatus: (itemId: string, status: ItemLifecycleStatus) => Promise<void>;
-    bulkUpdateItemStatus: (itemIds: string[], status: ItemLifecycleStatus) => Promise<void>;
     approveAllItemsInBatch: (batchId: string) => Promise<number>;
+    approveOneItem: (itemId: string) => Promise<void>;
+    discardOneItem: (itemId: string) => Promise<void>;
+    setActiveBatchId: (id: string | null) => void;
     addExamVersion: (version: ExamVersion) => Promise<void>;
     addExamVariant: (variant: ExamVariant) => Promise<void>;
     loadGenerationBatches: () => Promise<void>;
@@ -144,6 +144,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     studentProfiles: USE_MOCK_DATA ? INITIAL_STUDENT_PROFILES : [],
     userProfiles: USE_MOCK_DATA ? INITIAL_USER_PROFILES : [],
     itemGenerationBatches: [],
+    activeBatchId: null,
     examVersions: [],
     examVariants: [],
     settings: USE_MOCK_DATA ? INITIAL_SETTINGS : INITIAL_SETTINGS, // Always use settings
@@ -881,9 +882,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
             console.log('📤 Saving batch to Supabase:', batch);
             const { error } = await supabase.from('item_generation_batches').insert({
                 id: batch.id,
-                creator_id: batch.creatorId || null,
+                creator_id: batch.creatorId,
+                created_by: batch.creatorId,
                 tenant_id: batch.tenantId,
+                status: batch.status || 'open',
+                source: batch.source || 'IA',
                 prompt_context: batch.promptContext,
+                prompt_hash: batch.promptHash,
                 total_requested: batch.totalRequested
             });
             if (error) {
@@ -932,6 +937,26 @@ export const useAppStore = create<AppStore>((set, get) => ({
             return data;
         } catch (e) { console.error("RPC Error:", e); throw e; }
     },
+
+    approveOneItem: async (itemId) => {
+        set((state) => ({
+            items: state.items.map(i => i.id === itemId ? { ...i, lifecycleStatus: ItemLifecycleStatus.APPROVED } : i)
+        }));
+        try {
+            await supabase.from('items').update({ lifecycle_status: 'APPROVED' }).eq('id', itemId);
+        } catch (e) { console.error("Error approving item:", e); }
+    },
+
+    discardOneItem: async (itemId) => {
+        set((state) => ({
+            items: state.items.map(i => i.id === itemId ? { ...i, lifecycleStatus: ItemLifecycleStatus.REJECTED } : i)
+        }));
+        try {
+            await supabase.from('items').update({ lifecycle_status: 'REJECTED' }).eq('id', itemId);
+        } catch (e) { console.error("Error discarding item:", e); }
+    },
+
+    setActiveBatchId: (id) => set({ activeBatchId: id }),
 
     addExamVersion: async (version) => {
         set((state) => ({ examVersions: [version, ...state.examVersions] }));

@@ -48,8 +48,7 @@ export const ItemEditorView = () => {
     const [aiContext, setAiContext] = useState('');
     const [aiQuantity, setAiQuantity] = useState(3);
     const [aiLoading, setAiLoading] = useState(false);
-    const [generatedItems, setGeneratedItems] = useState<any[]>([]); // Items being generated
-    const [currentBatchId, setCurrentBatchId] = useState<string | null>(null);
+    const { activeBatchId, setActiveBatchId } = state;
     const [showBatchHistory, setShowBatchHistory] = useState(false);
 
     // Novas flags de carregamento para otimização
@@ -320,8 +319,7 @@ export const ItemEditorView = () => {
                     await state.addItems(newItems);
                 }
 
-                setCurrentBatchId(batchId);
-                setGeneratedItems(newItems);
+                setActiveBatchId(batchId);
                 alert(`${newItems.length} questões geradas e salvas com sucesso.`);
             }
         } catch (e: any) {
@@ -898,25 +896,24 @@ export const ItemEditorView = () => {
                 ) : (
                     // AI Mode (Existing)
                     <div className="space-y-6">
-                        {currentBatchId ? (
+                        {activeBatchId ? (
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="text-xl font-bold flex items-center gap-2 text-slate-800">
                                         <Sparkles className="text-brand-secondary" /> Revisão de Lote
                                     </h3>
                                     <button
-                                        onClick={() => setCurrentBatchId(null)}
+                                        onClick={() => setActiveBatchId(null)}
                                         className="text-sm font-bold text-brand-primary hover:underline"
                                     >
                                         Nova Geração
                                     </button>
                                 </div>
                                 <BatchReviewPanel
-                                    batchId={currentBatchId}
-                                    items={state.items.filter(i => i.generationBatchId === currentBatchId)}
+                                    batchId={activeBatchId}
+                                    items={state.items.filter(i => i.generationBatchId === activeBatchId)}
                                     onFinish={() => {
-                                        setCurrentBatchId(null);
-                                        setGeneratedItems([]);
+                                        setActiveBatchId(null);
                                     }}
                                 />
                             </div>
@@ -932,7 +929,7 @@ export const ItemEditorView = () => {
                                             <button
                                                 key={b.id}
                                                 onClick={() => {
-                                                    setCurrentBatchId(b.id);
+                                                    setActiveBatchId(b.id);
                                                     setShowBatchHistory(false);
                                                 }}
                                                 className="p-4 bg-white border rounded-xl hover:border-brand-primary transition text-left flex justify-between items-center group"
