@@ -227,7 +227,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
                     tenantId: i.tenant_id,
                     ownerId: i.owner_id || '',
                     subject: i.subject,
-                    knowledgeArea: i.subject, // Map to subject as fallback
+                    knowledgeArea: i.knowledge_area || i.subject,
                     statement: i.statement,
                     type: i.type,
                     difficulty: i.difficulty,
@@ -238,6 +238,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
                     score: i.score || 1.0,
                     tags: i.tags || [],
                     triParams: i.tri_params,
+                    generationBatchId: i.generation_batch_id,
+                    lifecycleStatus: i.lifecycle_status,
+                    isAccessible: i.is_accessible,
+                    accessibilityInstructions: i.accessibility_instructions,
+                    multimedia: i.multimedia || [],
                     usageCount: 0,
                     createdAt: i.created_at
                 }));
