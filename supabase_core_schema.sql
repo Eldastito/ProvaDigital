@@ -76,14 +76,19 @@ CREATE TABLE IF NOT EXISTS public.students (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- ENUMS
+CREATE TYPE public.item_lifecycle_status AS ENUM ('DRAFT', 'APPROVED', 'REJECTED', 'ARCHIVED');
+
 -- 6. ITEMS (Banco de Questões)
 CREATE TABLE IF NOT EXISTS public.items (
   id TEXT PRIMARY KEY,
   tenant_id TEXT NOT NULL,
   school_id TEXT,
   owner_id TEXT REFERENCES public.users(id), -- Quem criou
+  generation_batch_id UUID, -- Referência ao lote de geração (opcional)
   statement TEXT NOT NULL,
   subject TEXT NOT NULL,
+  knowledge_area TEXT, -- Ex: Linguagens, Matemáticas
   type TEXT NOT NULL,
   difficulty TEXT,
   alternatives JSONB DEFAULT '[]'::jsonb,
@@ -93,6 +98,10 @@ CREATE TABLE IF NOT EXISTS public.items (
   score NUMERIC DEFAULT 1.0,
   tags TEXT[] DEFAULT '{}',
   tri_params JSONB,
+  lifecycle_status public.item_lifecycle_status DEFAULT 'APPROVED',
+  is_accessible BOOLEAN DEFAULT FALSE,
+  accessibility_instructions TEXT,
+  multimedia JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
