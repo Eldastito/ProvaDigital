@@ -408,9 +408,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 multimedia: item.multimedia || [],
                 created_at: item.createdAt
             }));
+            console.log('📤 Sending items to Supabase:', dbPayload);
             const { error } = await supabase.from('items').insert(dbPayload);
             if (error) {
-                console.error('❌ Error saving items to Supabase:', error);
+                console.error('❌ Supabase Error Detail (items):', {
+                    message: error.message,
+                    details: error.details,
+                    hint: error.hint,
+                    code: error.code
+                });
                 // Rollback local state
                 set((state) => ({
                     items: state.items.filter(i => !items.some(ni => ni.id === i.id))
@@ -872,15 +878,21 @@ export const useAppStore = create<AppStore>((set, get) => ({
     addGenerationBatch: async (batch) => {
         set((state) => ({ itemGenerationBatches: [batch, ...state.itemGenerationBatches] }));
         try {
+            console.log('📤 Saving batch to Supabase:', batch);
             const { error } = await supabase.from('item_generation_batches').insert({
                 id: batch.id,
-                creator_id: batch.creatorId,
+                creator_id: batch.creatorId || null,
                 tenant_id: batch.tenantId,
                 prompt_context: batch.promptContext,
                 total_requested: batch.totalRequested
             });
             if (error) {
-                console.error('❌ Error saving batch to Supabase:', error);
+                console.error('❌ Supabase Error Detail (batch):', {
+                    message: error.message,
+                    details: error.details,
+                    hint: error.hint,
+                    code: error.code
+                });
                 set((state) => ({
                     itemGenerationBatches: state.itemGenerationBatches.filter(b => b.id !== batch.id)
                 }));

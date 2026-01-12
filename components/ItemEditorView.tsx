@@ -268,6 +268,12 @@ export const ItemEditorView = () => {
 
     const handleGenerate = async () => {
         if (!aiContext) return alert('Insira um texto de contexto.');
+
+        // Validação de Sessão
+        if (!state.currentUser?.id || !state.currentUser?.tenantId) {
+            return alert('Sua sessão parece inválida ou expirou. Por favor, faça login novamente para gerar questões.');
+        }
+
         setAiLoading(true);
         try {
             const batchId = uuidv4();
@@ -278,8 +284,8 @@ export const ItemEditorView = () => {
             if (questions) {
                 const newItems: Item[] = questions.map(g => ({
                     id: uuidv4(),
-                    tenantId: state.currentUser?.tenantId || 't1',
-                    ownerId: state.currentUser?.id || 'sys',
+                    tenantId: state.currentUser!.tenantId,
+                    ownerId: state.currentUser!.id,
                     knowledgeArea: 'Geral',
                     subject: form.subject || 'Geral',
                     type: QuestionType.MULTIPLE_CHOICE,
@@ -301,8 +307,8 @@ export const ItemEditorView = () => {
                 if (state.addGenerationBatch) {
                     await state.addGenerationBatch({
                         id: batchId,
-                        creatorId: state.currentUser?.id || '',
-                        tenantId: state.currentUser?.tenantId || 't1',
+                        creatorId: state.currentUser!.id,
+                        tenantId: state.currentUser!.tenantId,
                         promptContext: aiContext,
                         totalRequested: aiQuantity,
                         createdAt: new Date().toISOString()
@@ -316,12 +322,12 @@ export const ItemEditorView = () => {
 
                 setCurrentBatchId(batchId);
                 setGeneratedItems(newItems);
-                alert(`${newItems.length} questões geradas e salvas como rascunho para revisão.`);
+                alert(`${newItems.length} questões geradas e salvas com sucesso.`);
             }
-        } catch (e) {
-            console.error(e);
-            // No alert here because store already alerts or we handle it
-            alert("Não foi possível salvar as questões no banco. Tente novamente.");
+        } catch (e: any) {
+            console.error('AI Generation Error:', e);
+            const errorMsg = e.message || "Erro desconhecido";
+            alert(`Não foi possível salvar as questões no banco.\n\nDetalhe técnico: ${errorMsg}\n\nVerifique se você tem permissão de administrador ou se o banco de dados está acessível.`);
         } finally {
             setAiLoading(false);
         }
