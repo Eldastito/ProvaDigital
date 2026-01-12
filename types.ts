@@ -279,6 +279,18 @@ export enum ExamStatus {
   PUBLISHED = 'PUBLISHED'
 }
 
+// Phase 10: Print Configuration
+export interface PrintConfig {
+  includeCover: boolean;
+  includeAnswerSheet: boolean;
+  includeInstructions: boolean;
+  logoUrl?: string;
+  coverTemplate: 'formal' | 'modern' | 'minimalist';
+  showPointValues: boolean;
+  showBNCC: boolean;
+  headerText?: string;
+  footerText?: string;
+}
 
 export interface ExamItemConfig {
   itemId: string;
@@ -301,6 +313,7 @@ export interface Exam {
   items: ExamItemConfig[];
   classIds: string[];
   shuffleItems?: boolean; // Embaralhamento randômico anti-cola
+  printConfig?: PrintConfig; // Phase 10: Print settings
   createdAt: string;
   scheduledDate?: string;
 }

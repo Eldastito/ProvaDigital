@@ -1,16 +1,11 @@
-
 import React, { useEffect } from 'react';
 import { ArrowLeft, Printer } from 'lucide-react';
-import { AppState, Exam, QuestionType } from '../types';
-
-interface PrintableExamViewProps {
-  state: AppState;
-  examId: string;
-  onBack: () => void;
-}
-
+import { AppState, Exam, QuestionType, PrintConfig } from '../types';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
+import { ExamCoverGenerator } from './Print/ExamCoverGenerator';
+import { AnswerSheetGenerator } from './Print/AnswerSheetGenerator';
+import '../styles/print.css';
 
 export const PrintableExamView = () => {
   const { id: examId } = useParams<{ id: string }>();
@@ -35,6 +30,16 @@ export const PrintableExamView = () => {
   // Sort by order
   examItems.sort((a, b) => a.order - b.order);
 
+  // Default print config if not set
+  const printConfig: PrintConfig = exam.printConfig || {
+    includeCover: true,
+    includeAnswerSheet: true,
+    includeInstructions: true,
+    coverTemplate: 'formal',
+    showPointValues: true,
+    showBNCC: false
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -57,42 +62,54 @@ export const PrintableExamView = () => {
       {/* A4 Page Container */}
       <div className="max-w-[210mm] mx-auto bg-white shadow-xl print:shadow-none min-h-[297mm] p-[20mm] print:p-0">
 
-        {/* Exam Header */}
-        <header className="border-b-2 border-black pb-6 mb-8 text-center">
-          <div className="uppercase font-bold text-xl mb-1">{tenant?.name || 'Rede de Ensino'}</div>
-          <div className="font-bold text-lg mb-4">{school?.name || 'Escola não identificada'}</div>
+        {/* Cover Page (Phase 10) */}
+        {printConfig.includeCover && (
+          <ExamCoverGenerator
+            exam={exam}
+            schoolName={school?.name || 'Escola não identificada'}
+            tenantName={tenant?.name || 'Rede de Ensino'}
+            printConfig={printConfig}
+          />
+        )}
 
-          <div className="flex justify-between text-sm text-left border-t border-black pt-4 mt-2">
-            <div className="w-2/3 space-y-2">
-              <div className="flex">
-                <span className="font-bold w-20">Aluno(a):</span>
-                <div className="flex-1 border-b border-black border-dotted"></div>
+        {/* Exam Header (if no cover) */}
+        {!printConfig.includeCover && (
+          <header className="exam-header border-b-2 border-black pb-6 mb-8 text-center">
+            <div className="uppercase font-bold text-xl mb-1">{tenant?.name || 'Rede de Ensino'}</div>
+            <div className="font-bold text-lg mb-4">{school?.name || 'Escola não identificada'}</div>
+
+            <div className="flex justify-between text-sm text-left border-t border-black pt-4 mt-2">
+              <div className="w-2/3 space-y-2">
+                <div className="flex">
+                  <span className="font-bold w-20">Aluno(a):</span>
+                  <div className="flex-1 border-b border-black border-dotted"></div>
+                </div>
+                <div className="flex">
+                  <span className="font-bold w-20">Professor:</span>
+                  <span className="flex-1">{creator?.name || '_______________________'}</span>
+                </div>
               </div>
-              <div className="flex">
-                <span className="font-bold w-20">Professor:</span>
-                <span className="flex-1">{creator?.name || '_______________________'}</span>
+              <div className="w-1/3 pl-8 space-y-2">
+                <div className="flex">
+                  <span className="font-bold w-16">Turma:</span>
+                  <span className="flex-1 border-b border-black border-dotted"></span>
+                </div>
+                <div className="flex">
+                  <span className="font-bold w-16">Data:</span>
+                  <span className="flex-1 border-b border-black border-dotted">___/___/____</span>
+                </div>
+                <div className="flex">
+                  <span className="font-bold w-16">Nota:</span>
+                  <span className="flex-1 border-b border-black border-dotted"></span>
+                </div>
               </div>
             </div>
-            <div className="w-1/3 pl-8 space-y-2">
-              <div className="flex">
-                <span className="font-bold w-16">Turma:</span>
-                <span className="flex-1 border-b border-black border-dotted"></span>
-              </div>
-              <div className="flex">
-                <span className="font-bold w-16">Data:</span>
-                <span className="flex-1 border-b border-black border-dotted">___/___/____</span>
-              </div>
-              <div className="flex">
-                <span className="font-bold w-16">Nota:</span>
-                <span className="flex-1 border-b border-black border-dotted"></span>
-              </div>
-            </div>
-          </div>
 
-          <div className="mt-6 text-xl font-bold uppercase tracking-wider bg-slate-100 print:bg-transparent py-2 border border-black rounded-sm">
-            {exam.title}
-          </div>
-        </header>
+            <div className="mt-6 text-xl font-bold uppercase tracking-wider bg-slate-100 print:bg-transparent py-2 border border-black rounded-sm">
+              {exam.title}
+            </div>
+          </header>
+        )}
 
         {/* Instructions */}
         {exam.description && (
@@ -104,29 +121,34 @@ export const PrintableExamView = () => {
         {/* Questions */}
         <div className="space-y-8">
           {examItems.map((item, index) => (
-            <div key={item.id} className="break-inside-avoid">
+            <div key={item.id} className="question-block page-break-inside-avoid">
               <div className="flex gap-2 mb-2">
-                <span className="font-bold text-lg">{index + 1}.</span>
+                <span className="question-number font-bold text-lg">{index + 1}.</span>
                 <div className="flex-1">
-                  <p className="text-base leading-relaxed whitespace-pre-wrap">{item.statement}</p>
+                  <p className="question-statement text-base leading-relaxed whitespace-pre-wrap">{item.statement}</p>
                   {item.imageUrl && (
                     <div className="my-3 flex justify-center">
                       <img src={item.imageUrl} alt={`Questão ${index + 1}`} className="max-h-64 border border-slate-200" />
                     </div>
                   )}
+                  {printConfig.showBNCC && item.bnccCode && (
+                    <div className="text-xs text-slate-500 italic mt-1">BNCC: {item.bnccCode}</div>
+                  )}
                 </div>
-                <div className="text-xs font-bold pt-1">({item.customScore || item.score} pts)</div>
+                {printConfig.showPointValues && (
+                  <div className="question-points text-xs font-bold pt-1">({item.customScore || item.score} pts)</div>
+                )}
               </div>
 
               {/* Multiple Choice or True/False */}
               {(item.type === QuestionType.MULTIPLE_CHOICE || item.type === QuestionType.TRUE_FALSE) && (
-                <div className="pl-8 space-y-1 mt-3">
+                <div className="alternatives-list pl-8 space-y-1 mt-3">
                   {item.alternatives.map((alt: any, altIdx: number) => (
-                    <div key={alt.id} className="flex items-start gap-3">
-                      <div className="font-bold min-w-[20px] text-sm pt-0.5">
+                    <div key={alt.id} className="alternative-item flex items-start gap-3">
+                      <div className="alternative-letter font-bold min-w-[20px] text-sm pt-0.5">
                         {item.type === QuestionType.TRUE_FALSE ? '▢' : String.fromCharCode(97 + altIdx) + ')'}
                       </div>
-                      <div className="text-sm pt-0.5">{alt.text}</div>
+                      <div className="alternative-text text-sm pt-0.5">{alt.text}</div>
                     </div>
                   ))}
                 </div>
@@ -134,11 +156,10 @@ export const PrintableExamView = () => {
 
               {/* Essay */}
               {(item.type === QuestionType.ESSAY) && (
-                <div className="mt-4 space-y-4 pl-8">
-                  <div className="border-b border-slate-300 w-full h-6"></div>
-                  <div className="border-b border-slate-300 w-full h-6"></div>
-                  <div className="border-b border-slate-300 w-full h-6"></div>
-                  <div className="border-b border-slate-300 w-full h-6"></div>
+                <div className="essay-lines mt-4 space-y-4 pl-8">
+                  {Array.from({ length: item.minLines || 5 }).map((_, i) => (
+                    <div key={i} className="essay-line border-b border-slate-300 w-full h-6"></div>
+                  ))}
                 </div>
               )}
             </div>
@@ -205,6 +226,14 @@ export const PrintableExamView = () => {
             </div>
           </div>
         </div>
+
+        {/* Answer Sheet (Phase 10) */}
+        {printConfig.includeAnswerSheet && (
+          <AnswerSheetGenerator
+            exam={exam}
+            items={examItems}
+          />
+        )}
 
       </div>
     </div>

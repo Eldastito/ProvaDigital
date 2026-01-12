@@ -1,0 +1,341 @@
+/* ===================================
+   ExamePad - Professional Print Stylesheet
+   Phase 10: Exam Printing & Covers
+   =================================== */
+
+/* A4 Page Setup */
+@page {
+    size: A4 portrait;
+    margin: 20mm 15mm;
+}
+
+@media print {
+
+    /* Reset and Base Styles */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Times New Roman', serif;
+        font-size: 12pt;
+        line-height: 1.5;
+        color: #000;
+        background: white;
+    }
+
+    /* Hide Non-Printable Elements */
+    .print\\:hidden,
+    button:not(.print\\:block),
+    nav,
+    .sidebar,
+    .toolbar,
+    .no-print {
+        display: none !important;
+    }
+
+    /* Page Breaks */
+    .page-break-before {
+        page-break-before: always;
+    }
+
+    .page-break-after {
+        page-break-after: always;
+    }
+
+    .page-break-inside-avoid {
+        page-break-inside: avoid;
+    }
+
+    /* Avoid breaking inside these elements */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    .question-block,
+    .answer-option,
+    .exam-header {
+        page-break-inside: avoid;
+        page-break-after: avoid;
+    }
+
+    /* Keep question with at least 2 alternatives */
+    .question-block {
+        orphans: 3;
+        widows: 3;
+    }
+
+    /* Cover Page Styles */
+    .exam-cover {
+        page-break-after: always;
+        text-align: center;
+        padding: 40mm 20mm;
+    }
+
+    .exam-cover .logo {
+        max-width: 80mm;
+        max-height: 40mm;
+        margin-bottom: 20mm;
+    }
+
+    .exam-cover .institution-name {
+        font-size: 18pt;
+        font-weight: bold;
+        text-transform: uppercase;
+        margin-bottom: 5mm;
+    }
+
+    .exam-cover .school-name {
+        font-size: 16pt;
+        font-weight: bold;
+        margin-bottom: 15mm;
+    }
+
+    .exam-cover .exam-title {
+        font-size: 20pt;
+        font-weight: bold;
+        text-transform: uppercase;
+        border: 2pt solid #000;
+        padding: 10mm;
+        margin: 20mm 0;
+    }
+
+    .exam-cover .metadata-grid {
+        text-align: left;
+        margin-top: 20mm;
+        font-size: 11pt;
+    }
+
+    .exam-cover .instructions-box {
+        border: 1pt solid #000;
+        padding: 5mm;
+        margin-top: 10mm;
+        text-align: left;
+        font-size: 10pt;
+    }
+
+    /* Header Styles */
+    .exam-header {
+        border-bottom: 2pt solid #000;
+        padding-bottom: 5mm;
+        margin-bottom: 8mm;
+    }
+
+    .exam-header .title {
+        font-size: 14pt;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 3mm;
+    }
+
+    .exam-header .student-info {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10pt;
+        border-top: 1pt solid #000;
+        padding-top: 3mm;
+    }
+
+    .exam-header .dotted-line {
+        border-bottom: 1pt dotted #000;
+        flex: 1;
+        margin: 0 2mm;
+    }
+
+    /* Question Styles */
+    .question-block {
+        margin-bottom: 6mm;
+        padding: 3mm 0;
+    }
+
+    .question-number {
+        font-weight: bold;
+        font-size: 11pt;
+        margin-right: 2mm;
+    }
+
+    .question-statement {
+        font-size: 11pt;
+        margin-bottom: 3mm;
+        text-align: justify;
+    }
+
+    .question-points {
+        font-size: 9pt;
+        font-style: italic;
+        color: #333;
+    }
+
+    /* Alternative Styles */
+    .alternatives-list {
+        margin-left: 8mm;
+        margin-top: 2mm;
+    }
+
+    .alternative-item {
+        margin-bottom: 2mm;
+        display: flex;
+        align-items: flex-start;
+    }
+
+    .alternative-letter {
+        font-weight: bold;
+        margin-right: 2mm;
+        min-width: 5mm;
+    }
+
+    .alternative-text {
+        flex: 1;
+        text-align: justify;
+    }
+
+    /* Answer Sheet Styles */
+    .answer-sheet {
+        page-break-before: always;
+    }
+
+    .answer-sheet-title {
+        font-size: 14pt;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 8mm;
+        border-bottom: 2pt solid #000;
+        padding-bottom: 3mm;
+    }
+
+    .answer-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 3mm;
+        margin-top: 5mm;
+    }
+
+    .answer-row {
+        display: flex;
+        align-items: center;
+        border: 1pt solid #000;
+        padding: 2mm;
+    }
+
+    .answer-row .question-num {
+        font-weight: bold;
+        margin-right: 3mm;
+        min-width: 8mm;
+    }
+
+    .answer-bubbles {
+        display: flex;
+        gap: 3mm;
+    }
+
+    .bubble {
+        width: 6mm;
+        height: 6mm;
+        border: 1.5pt solid #000;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9pt;
+        font-weight: bold;
+    }
+
+    /* Footer Styles */
+    .exam-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 9pt;
+        color: #666;
+        border-top: 1pt solid #ccc;
+        padding-top: 2mm;
+    }
+
+    /* Essay Answer Space */
+    .essay-lines {
+        margin-top: 5mm;
+    }
+
+    .essay-line {
+        border-bottom: 1pt solid #000;
+        height: 8mm;
+        margin-bottom: 1mm;
+    }
+
+    /* Security Watermark */
+    .security-notice {
+        font-size: 8pt;
+        text-align: center;
+        color: #999;
+        margin-top: 5mm;
+        font-style: italic;
+    }
+
+    /* Remove shadows and backgrounds */
+    .shadow,
+    .shadow-sm,
+    .shadow-md,
+    .shadow-lg,
+    .shadow-xl {
+        box-shadow: none !important;
+    }
+
+    .bg-gradient-to-r,
+    .bg-gradient-to-br,
+    [class*="bg-"] {
+        background: transparent !important;
+    }
+
+    /* Ensure borders print */
+    .border,
+    [class*="border-"] {
+        border-color: #000 !important;
+    }
+
+    /* Typography adjustments */
+    h1 {
+        font-size: 18pt;
+    }
+
+    h2 {
+        font-size: 16pt;
+    }
+
+    h3 {
+        font-size: 14pt;
+    }
+
+    h4 {
+        font-size: 12pt;
+    }
+
+    /* Links */
+    a {
+        color: #000;
+        text-decoration: none;
+    }
+
+    a[href]:after {
+        content: none !important;
+    }
+}
+
+/* Print Preview Mode (for screen) */
+@media screen {
+    .print-preview {
+        max-width: 210mm;
+        min-height: 297mm;
+        margin: 20px auto;
+        padding: 20mm 15mm;
+        background: white;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+}
