@@ -4,7 +4,8 @@ import { AppState, UserRole } from '../types';
 import { NetworkDashboardView } from './Analytics/NetworkDashboardView';
 import { SchoolPrincipalDashboard } from './Analytics/SchoolPrincipalDashboard';
 import { PedagogicalDashboard } from './Analytics/PedagogicalDashboard';
-import { ProfessorDashboardView } from './Professor/ProfessorDashboardView';
+import { ParentsDashboardView } from './Parents/ParentsDashboardView';
+import { ProfessorDashboardView } from './Analytics/ProfessorDashboardView';
 import { StudentDashboardView } from './StudentPortal/StudentDashboardView';
 
 import { useAppStore } from '../store/useAppStore';
@@ -18,11 +19,9 @@ export const DashboardView = () => {
         return <NetworkDashboardView />;
     }
 
-    // --- 2. DASHBOARD DE PAIS (Reusa StudentView focado no filho) ---
+    // --- 2. DASHBOARD DE PAIS ---
     if (currentUser?.role === UserRole.PAIS) {
-        // Em um app real, o pai selecionaria qual filho visualizar.
-        // Para este MVP, assumimos o vinculo com o primeiro estudante do mock ou passamos o user do pai e o componente resolve.
-        return <StudentDashboardView />;
+        return <ParentsDashboardView />;
     }
 
     // --- 3. DASHBOARD DE GESTÃO (DIRETOR) ---
