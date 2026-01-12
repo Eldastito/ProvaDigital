@@ -4,6 +4,7 @@ import { Item, ItemLifecycleStatus } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
 import { Badge } from '../ui/Badge';
 import { ItemEditModal } from './ItemEditModal';
+import { translateDifficultyLevel } from '../../utils/translations';
 
 interface BatchReviewPanelProps {
     batchId: string;
@@ -159,7 +160,7 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
                                     <div className="flex gap-2 text-[10px]">
                                         <Badge color="indigo">IA</Badge>
                                         <Badge color={item.difficulty === 'FACIL' ? 'green' : item.difficulty === 'MEDIO' ? 'yellow' : 'red'}>
-                                            {item.difficulty}
+                                            {translateDifficultyLevel(item.difficulty)}
                                         </Badge>
                                         <Badge color="gray">{item.subject}</Badge>
                                         {item.bnccCode && <Badge color="blue">{item.bnccCode}</Badge>}

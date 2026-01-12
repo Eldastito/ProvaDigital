@@ -9,6 +9,7 @@ import { ManagementForms } from './Management/ManagementForms';
 type ManagementTab = 'SCHOOLS' | 'CLASSES' | 'STUDENTS' | 'USERS' | 'COMMAND_CENTER' | 'SETTINGS' | 'BATCH_IMPORT' | 'HIERARCHY' | 'TENANT_SETTINGS';
 
 import { useAppStore } from '../store/useAppStore';
+import { translateUserRole } from '../utils/translations';
 
 export const ManagementView = () => {
     const state = useAppStore();
@@ -547,7 +548,7 @@ export const ManagementView = () => {
                                     </div>
                                 </div>
                                 <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-2">
-                                    <span className="text-[9px] md:text-xs font-bold bg-brand-light text-brand-primary px-2 py-1 rounded uppercase mr-0 sm:mr-4">{u.role}</span>
+                                    <span className="text-[9px] md:text-xs font-bold bg-brand-light text-brand-primary px-2 py-1 rounded uppercase mr-0 sm:mr-4">{translateUserRole(u.role)}</span>
 
                                     <div className="flex items-center gap-1 md:gap-2">
                                         {/* Action Buttons */}

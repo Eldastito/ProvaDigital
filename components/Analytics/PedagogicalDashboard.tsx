@@ -4,6 +4,7 @@ import { BookOpen, Target, Brain, FileText, AlertCircle, Printer, Layers, CheckC
 import { AppState, RiskLevel, ExamStatus } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
 import { AnalyticsService } from '../../services/analyticsService';
+import { translateRiskLevel } from '../../utils/translations';
 
 export const PedagogicalDashboard = () => {
     const state = useAppStore();
@@ -198,8 +199,8 @@ export const PedagogicalDashboard = () => {
                                         <div className="w-full bg-slate-100 rounded-t-lg relative overflow-hidden flex items-end justify-center">
                                             <div
                                                 className={`w-full transition-all duration-1000 ease-out rounded-t-lg relative group-hover:brightness-110 ${data.average >= 7 ? 'bg-emerald-500' :
-                                                        data.average >= 5 ? 'bg-amber-400' :
-                                                            'bg-rose-500'
+                                                    data.average >= 5 ? 'bg-amber-400' :
+                                                        'bg-rose-500'
                                                     }`}
                                                 style={{ height: `${data.average * 10}%` }} // Altura baseada na nota (0-10)
                                             >
@@ -281,7 +282,7 @@ export const PedagogicalDashboard = () => {
                                             <div>
                                                 <div className="font-bold text-slate-800">{s.name}</div>
                                                 <div className="text-xs text-slate-500">
-                                                    Risco: <span className="font-bold text-rose-600">{s.stats?.riskLevel}</span> • Média: {s.stats?.idgScore.toFixed(1)}
+                                                    Risco: <span className="font-bold text-rose-600">{translateRiskLevel(s.stats?.riskLevel || RiskLevel.LOW)}</span> • Média: {s.stats?.idgScore.toFixed(1)}
                                                 </div>
                                             </div>
                                             {hasPlan ? (

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Shield, Clock, Search, AlertTriangle, FileText, Download } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { ReportExportService } from '../../services/ReportExportService';
+import { translateActionType, translateResource } from '../../utils/translations';
 
 export const AuditLogView = () => {
     const { currentUser, auditLogs, fetchAuditLogs } = useAppStore();
@@ -91,11 +92,11 @@ export const AuditLogView = () => {
                                     </td>
                                     <td className="p-4">
                                         <span className={`px-2 py-1 rounded text-xs font-bold ${getActionColor(log.actionType)}`}>
-                                            {log.actionType}
+                                            {translateActionType(log.actionType)}
                                         </span>
                                     </td>
                                     <td className="p-4 text-slate-600">
-                                        {log.targetResource}
+                                        {translateResource(log.targetResource || '')}
                                     </td>
                                     <td className="p-4">
                                         <pre className="text-xs bg-slate-900 text-slate-300 p-2 rounded max-w-xs overflow-x-auto scrollbar-thin">

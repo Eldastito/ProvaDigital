@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import {
     CheckCircle2, XCircle, Brain, Target, ArrowLeft,
-    Award, BookOpen, AlertCircle, RefreshCw, BarChart
+    Award, BookOpen, AlertCircle, RefreshCw, BarChart, Loader2
 } from 'lucide-react';
+import { generatePedagogicalReport } from '../../services/geminiService';
 
 export const ResultFeedbackView = () => {
     const { examId } = useParams();
@@ -30,6 +31,56 @@ export const ResultFeedbackView = () => {
     const correctCount = result.answers.filter(a => a.scoreObtained > 0).length;
     const totalCount = result.answers.length;
     const percent = Math.round((correctCount / totalCount) * 100);
+
+    // Phase 9: AI Pedagogical Feedback Generation
+    const [aiFeedback, setAiFeedback] = useState<string>(result.pedagogicalFeedback || '');
+    const [isGeneratingFeedback, setIsGeneratingFeedback] = useState(false);
+
+    useEffect(() => {
+        // Auto-generate feedback if not already present
+        if (!result.pedagogicalFeedback && currentUser) {
+            generateFeedback();
+        }
+    }, []);
+
+    const generateFeedback = async () => {
+        setIsGeneratingFeedback(true);
+        try {
+            // Calculate subject breakdown
+            const subjectBreakdown = Array.from(new Set(exam.items.map(config => {
+                const item = items.find(i => i.id === config.itemId);
+                return item?.subject;
+            }).filter(Boolean))).map(subject => {
+                const subjectAnswers = result.answers.filter(a => {
+                    const item = items.find(i => i.id === a.itemId);
+                    return item?.subject === subject;
+                });
+                const subjCorrect = subjectAnswers.filter(a => a.scoreObtained > 0).length;
+                return { subject: subject as string, correct: subjCorrect, total: subjectAnswers.length };
+            });
+
+            const maxScore = exam.items.reduce((acc, conf) => {
+                const item = items.find(i => i.id === conf.itemId);
+                return acc + (conf.customScore || item?.score || 0);
+            }, 0);
+
+            const feedback = await generatePedagogicalReport(
+                currentUser.name,
+                exam.title,
+                result.totalScore,
+                maxScore,
+                correctCount,
+                totalCount,
+                subjectBreakdown
+            );
+            setAiFeedback(feedback);
+        } catch (error) {
+            console.error('Error generating feedback:', error);
+            setAiFeedback('Análise em processamento... Em alguns instantes seu tutor IA terminará o relatório detalhado.');
+        } finally {
+            setIsGeneratingFeedback(false);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-slate-50 pb-12 animate-in fade-in">
@@ -106,7 +157,14 @@ export const ResultFeedbackView = () => {
                         </div>
                         <h2 className="text-xl font-bold mb-4">Análise de Carga Cognitiva e Gap de Aprendizagem</h2>
                         <div className="text-indigo-50 leading-relaxed bg-white/10 p-4 rounded-xl backdrop-blur-sm border border-white/10">
-                            {result.pedagogicalFeedback || "Análise em processamento... Em alguns instantes seu tutor IA terminará o relatório detalhado."}
+                            {isGeneratingFeedback ? (
+                                <div className="flex items-center gap-2">
+                                    <Loader2 size={16} className="animate-spin" />
+                                    <span>Gerando análise personalizada...</span>
+                                </div>
+                            ) : (
+                                aiFeedback || "Análise em processamento... Em alguns instantes seu tutor IA terminará o relatório detalhado."
+                            )}
                         </div>
                     </div>
                 </div>

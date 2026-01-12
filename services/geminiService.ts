@@ -856,3 +856,70 @@ export const reviewExamAdvanced = async (items: any[]): Promise<any> => {
 
     return callGeminiAPI<any>(prompt, schema, fallback);
 };
+
+// --- Phase 9: Pedagogical Report Generation ---
+export const generatePedagogicalReport = async (
+    studentName: string,
+    examTitle: string,
+    totalScore: number,
+    maxScore: number,
+    correctCount: number,
+    totalCount: number,
+    subjectBreakdown: { subject: string; correct: number; total: number }[]
+): Promise<string> => {
+    const percentage = Math.round((totalScore / maxScore) * 100);
+    const subjectSummary = subjectBreakdown
+        .map(s => `${s.subject}: ${s.correct}/${s.total} acertos`)
+        .join(', ');
+
+    const prompt = `
+        Você é um Tutor Pedagógico IA especializado em feedback construtivo e motivacional.
+        
+        CONTEXTO:
+        - Aluno: ${studentName}
+        - Prova: ${examTitle}
+        - Nota Final: ${totalScore.toFixed(1)}/${maxScore} (${percentage}%)
+        - Acertos: ${correctCount}/${totalCount} questões
+        - Desempenho por Matéria: ${subjectSummary}
+        
+        TAREFA:
+        Gere um feedback pedagógico personalizado, motivador e construtivo para o aluno. O feedback deve:
+        1. Reconhecer os pontos fortes (matérias com bom desempenho)
+        2. Identificar áreas de melhoria (matérias com desempenho abaixo de 60%)
+        3. Sugerir estratégias de estudo específicas
+        4. Manter um tom encorajador e positivo
+        5. Ser conciso (máximo 3-4 frases)
+        
+        Retorne APENAS o texto do feedback, sem prefixos ou formatação especial.
+    `;
+
+    const fallback = `Parabéns, ${studentName}! Você obteve ${percentage}% de aproveitamento. ${percentage >= 70
+        ? 'Continue assim! Seu desempenho está excelente.'
+        : 'Identifique os tópicos que você errou e revise-os com atenção. O Corujão está aqui para ajudar!'
+        }`;
+
+    try {
+        const apiKey = getApiKey();
+        if (!apiKey) return fallback;
+
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.generateContent({
+            model: DEFAULT_MODEL,
+            contents: [{ role: 'user', parts: [{ text: prompt }] }]
+        });
+
+        let text = "";
+        if (typeof response.text === 'string') {
+            text = response.text;
+        } else if (typeof (response as any).text === 'function') {
+            text = (response as any).text();
+        } else if (response.candidates && response.candidates[0]?.content?.parts?.[0]?.text) {
+            text = response.candidates[0].content.parts[0].text;
+        }
+
+        return text.trim() || fallback;
+    } catch (error) {
+        console.error('[GeminiService] Error generating pedagogical report:', error);
+        return fallback;
+    }
+};

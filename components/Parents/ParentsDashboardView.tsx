@@ -4,6 +4,7 @@ import { ChevronDown, TrendingUp, BookOpen, Award, Calendar, User, FileText, Bar
 import { calculateRiskScore } from '../../services/riskDetectionEngine';
 import { RiskLevel } from '../../types';
 import { NotificationBell } from '../Notifications/NotificationBell';
+import { translateRiskLevel } from '../../utils/translations';
 
 export const ParentsDashboardView = () => {
     const { currentUser, students, results, exams, selectedChildId, setSelectedChildId } = useAppStore();
@@ -133,7 +134,7 @@ export const ParentsDashboardView = () => {
                         <div className="flex-1">
                             <h2 className={`text-xl font-bold mb-1 ${riskAssessment.riskLevel === RiskLevel.HIGH ? 'text-red-800' : 'text-yellow-800'
                                 }`}>
-                                {riskAssessment.riskLevel === RiskLevel.HIGH ? '⚠️ Alerta de Risco Acadêmico' : '⚠️ Atenção Necessária'}
+                                {riskAssessment.riskLevel === RiskLevel.HIGH ? `⚠️ Alerta de Risco ${translateRiskLevel(RiskLevel.HIGH)}` : `⚠️ Atenção Necessária (${translateRiskLevel(RiskLevel.MEDIUM)})`}
                             </h2>
                             <p className="text-slate-700 mb-4">
                                 Detectamos padrões que indicam risco de evasão ou queda de desempenho.

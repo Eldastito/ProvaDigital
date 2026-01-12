@@ -147,7 +147,7 @@ export const DashboardLayout = () => {
 
                     {isParent && (
                         <>
-                            <NavItem icon={LayoutDashboard} label="Desempenho" active={path === '/dashboard' || path === '/'} onClick={() => navigate('/dashboard')} />
+                            <NavItem icon={LayoutDashboard} label="Meu Desempenho" active={path === '/dashboard' || path === '/'} onClick={() => navigate('/dashboard')} />
                             <NavItem icon={MessageCircle} label="Comunicação" active={path === '/communication'} onClick={() => navigate('/communication')} />
                         </>
                     )}

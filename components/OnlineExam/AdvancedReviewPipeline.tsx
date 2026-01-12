@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Brain, Accessibility, Type, GitMerge, BarChart3, Save, CheckCircle2, Loader2, AlertTriangle, ChevronRight, FileText } from 'lucide-react';
+import { ShieldCheck, Brain, Accessibility, Type, GitMerge, BarChart3, Save, CheckCircle2, Loader2, AlertTriangle, ChevronRight, FileText, Sparkles } from 'lucide-react';
 import { Item, Exam } from '../../types';
 import { reviewExamAdvanced } from '../../services/geminiService';
 import { useAppStore } from '../../store/useAppStore';
@@ -74,7 +74,10 @@ export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ 
                             <ShieldCheck size={32} />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-bold">Pipeline de Revisão Avançada (IA)</h2>
+                            <h2 className="text-2xl font-bold flex items-center gap-2">
+                                <Sparkles className="text-brand-primary" size={24} />
+                                Pipeline de Revisão Avançada (IA)
+                            </h2>
                             <p className="text-slate-400 text-sm">Garantindo a qualidade pedagógica e técnica da sua avaliação.</p>
                         </div>
                     </div>
@@ -86,14 +89,14 @@ export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ 
                         <div
                             key={stage.id}
                             className={`p-6 rounded-2xl border-2 transition-all flex items-center justify-between ${stage.status === 'RUNNING' ? 'border-brand-primary bg-brand-primary/5 shadow-lg shadow-brand-primary/10' :
-                                    stage.status === 'COMPLETED' ? 'border-emerald-500/30 bg-emerald-500/5' :
-                                        'border-slate-800 bg-slate-800/50 opacity-60'
+                                stage.status === 'COMPLETED' ? 'border-emerald-500/30 bg-emerald-500/5' :
+                                    'border-slate-800 bg-slate-800/50 opacity-60'
                                 }`}
                         >
                             <div className="flex items-center gap-4">
                                 <div className={`p-2 rounded-lg ${stage.status === 'RUNNING' ? 'bg-brand-primary text-white animate-pulse' :
-                                        stage.status === 'COMPLETED' ? 'bg-emerald-500 text-white' :
-                                            'bg-slate-700 text-slate-400'
+                                    stage.status === 'COMPLETED' ? 'bg-emerald-500 text-white' :
+                                        'bg-slate-700 text-slate-400'
                                     }`}>
                                     {stage.icon}
                                 </div>

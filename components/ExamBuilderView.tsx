@@ -9,6 +9,7 @@ import { AppState, Exam, Item, ExamModel, ExamStatus, QuestionType, DifficultyLe
 import { Badge } from './ui/Badge';
 import { uuidv4 } from '../utils/helpers';
 import { useAppStore } from '../store/useAppStore';
+import { translateDifficultyLevel } from '../utils/translations';
 import { smartSelectItems, ExamCriteria } from '../services/examService';
 // - [x] Criar `services/examService.ts` com algoritmos de seleção
 // - [x] Adicionar modo "Montagem Inteligente" no `ExamBuilderView.tsx`
@@ -574,7 +575,7 @@ export const ExamBuilderView = () => {
                                             key={d}
                                             onClick={() => setDifficultyFilter(d)}
                                             className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${difficultyFilter === d ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white text-slate-500 border-slate-200'}`}
-                                        >{d}</button>
+                                        >{translateDifficultyLevel(d)}</button>
                                     ))}
                                     <div className="w-px h-4 bg-slate-200 mx-1 self-center" />
                                     <button
@@ -617,7 +618,7 @@ export const ExamBuilderView = () => {
                                             <span className="text-xs font-bold uppercase">{item.subject}</span>
                                             <div className="flex gap-2">
                                                 {item.origin === ItemOrigin.IA && <Badge color="indigo">IA</Badge>}
-                                                <Badge color={item.difficulty === 'FACIL' ? 'green' : (item.difficulty === 'DIFICIL' ? 'red' : 'yellow')}>{item.difficulty}</Badge>
+                                                <Badge color={item.difficulty === DifficultyLevel.EASY ? 'green' : (item.difficulty === DifficultyLevel.HARD ? 'red' : 'yellow')}>{translateDifficultyLevel(item.difficulty)}</Badge>
                                             </div>
                                         </div>
                                         <p className={`text-sm line-clamp-2 mb-2 ${selectedItems.find(s => s.id === item.id) ? 'text-slate-800' : 'text-slate-400'}`}>{item.statement}</p>

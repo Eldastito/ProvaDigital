@@ -234,7 +234,7 @@ export const NetworkDashboardView = () => {
                             {dashboardLevel === 'FEDERAL' ? 'Ministério da Educação' : dashboardLevel === 'STATE' ? 'Secretaria Estadual' : 'Secretaria Municipal'}
                         </h1>
                         <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase tracking-wider mt-1">
-                            Command Center • {selectedRegion ? `Filtrado: ${selectedRegion}` : 'Visão Geral'}
+                            Centro de Comando • {selectedRegion ? `Filtrado: ${selectedRegion}` : 'Visão Geral'}
                         </p>
                     </div>
                 </div>

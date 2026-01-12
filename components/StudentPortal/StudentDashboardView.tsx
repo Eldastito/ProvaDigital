@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { TrendingUp, AlertTriangle, BookOpen, CheckCircle, Calendar, Clock, Brain, Award, ChevronLeft, ChevronRight, Trophy, X, FileText, Check, Eye, User as UserIcon, List, ArrowUp, ArrowDown, Coins, Star, Activity, Zap, Medal, Sparkles, Target, Users, BookHeart, Play, ArrowRight, Gamepad2, ShoppingBag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { AppState, RiskLevel, User, Exam, ExamResult, QuestionType, UserRole, GamifiedEventStatus, ExamStatus } from '../../types';
+import { AppState, RiskLevel, User, Exam, ExamResult, QuestionType, UserRole, GamifiedEventStatus, ExamStatus, MentorshipStatus } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
 import { useAppStore } from '../../store/useAppStore';
 import { useFeatureFlag } from '../../context/FeatureFlagContext'; // [NEW]
+import { translateRiskLevel, translateExamStatus, translateGamifiedEventStatus } from '../../utils/translations';
 
 
 
@@ -423,6 +424,19 @@ export const StudentDashboardView = () => {
                                                 </div>
                                             )}
 
+                                            {/* AI JUSTIFICATION (Phase 9) */}
+                                            {item.correctAnswerJustification && (
+                                                <div className="mt-3 pl-7 bg-blue-50 border-l-4 border-blue-400 p-3 rounded-r-lg">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <Brain size={14} className="text-blue-600" />
+                                                        <span className="text-xs font-bold text-blue-800 uppercase">Por que esta é a resposta correta?</span>
+                                                    </div>
+                                                    <p className="text-sm text-blue-900 leading-relaxed">
+                                                        {item.correctAnswerJustification}
+                                                    </p>
+                                                </div>
+                                            )}
+
                                             {/* --- EXPLAIN ERROR BUTTON (NEW) --- */}
                                             {!answer?.isCorrect && isEnabled('AI_TUTOR') && (
                                                 <div className="mt-3 pl-7">
@@ -607,9 +621,9 @@ export const StudentDashboardView = () => {
                         </div>
                     ))}
 
-                    {(state.mentorships || []).filter(m => m.status === 'EM_ANDAMENTO' && (m.studentId === student.id || m.mentorId === student.id)).map(m => (
+                    {(state.mentorships || []).filter(m => m.status === MentorshipStatus.IN_PROGRESS && (m.studentId === student.id || m.mentorId === student.id)).map(m => (
                         <div key={m.id} className="bg-white p-4 rounded-xl shadow-md border-l-4 border-emerald-500">
-                            <div className="text-[10px] font-bold text-emerald-600 uppercase mb-1">Em Andamento</div>
+                            <div className="text-[10px] font-bold text-emerald-600 uppercase mb-1">{translateGamifiedEventStatus(GamifiedEventStatus.LIVE)}</div>
                             <h4 className="font-bold text-slate-800 leading-tight mb-2">{m.description}</h4>
 
                             {m.studentId === student.id ? (
@@ -684,10 +698,10 @@ export const StudentDashboardView = () => {
                         <AlertTriangle size={20} />
                     </div>
                     <div className="text-xl font-black">
-                        {(stats.riskLevel === RiskLevel.LOW || !stats.riskLevel) ? 'Zona Segura' : stats.riskLevel === RiskLevel.MEDIUM ? 'Atenção' : 'Crítico'}
+                        {translateRiskLevel(stats.riskLevel || RiskLevel.LOW)}
                     </div>
                     <div className="text-xs mt-1 opacity-80">
-                        {(stats.riskLevel === RiskLevel.LOW || !stats.riskLevel) ? 'Continue assim!' : 'Procure o Corujão.'}
+                        {stats.riskLevel === RiskLevel.LOW ? 'Continue assim!' : 'Procure o Corujão.'}
                     </div>
                 </div>
 

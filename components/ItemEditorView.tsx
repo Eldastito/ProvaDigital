@@ -8,6 +8,7 @@ import { RichTextEditor } from './RichTextEditor';
 import { useAppStore } from '../store/useAppStore';
 import { Badge } from './ui/Badge';
 import { BatchReviewPanel } from './OnlineExam/BatchReviewPanel';
+import { translateQuestionType, translateDifficultyLevel } from '../utils/translations';
 
 // Bibliotecas para leitura de documentos
 import * as pdfjsLib from 'pdfjs-dist';
@@ -489,7 +490,7 @@ export const ItemEditorView = () => {
                             <button
                                 onClick={handleMagicPolish}
                                 disabled={isImproving || isGeneratingAlts || isBNCCLoading}
-                                className="pb-1 text-sm font-bold text-indigo-600 flex items-center gap-2 hover:text-indigo-800 transition border-b-2 border-transparent hover:border-indigo-400"
+                                className="px-4 py-1.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs font-bold flex items-center gap-2 hover:shadow-lg hover:scale-105 transition shadow-sm disabled:opacity-50"
                                 title="Aprimora enunciado, gera alternativas e sugere BNCC de uma só vez"
                             >
                                 {isImproving || isGeneratingAlts || isBNCCLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
@@ -614,18 +615,18 @@ export const ItemEditorView = () => {
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Tipo</label>
                                 <select className="w-full border rounded-lg p-2 text-sm" value={form.type} onChange={e => handleTypeChange(e.target.value as QuestionType)}>
-                                    <option value={QuestionType.MULTIPLE_CHOICE}>Múltipla Escolha</option>
-                                    <option value={QuestionType.TRUE_FALSE}>Verdadeiro / Falso</option>
-                                    <option value={QuestionType.ESSAY}>Discursiva (Curta)</option>
-                                    <option value={QuestionType.REDACTION}>Tema de Redação</option>
+                                    <option value={QuestionType.MULTIPLE_CHOICE}>{translateQuestionType(QuestionType.MULTIPLE_CHOICE)}</option>
+                                    <option value={QuestionType.TRUE_FALSE}>{translateQuestionType(QuestionType.TRUE_FALSE)}</option>
+                                    <option value={QuestionType.ESSAY}>{translateQuestionType(QuestionType.ESSAY)}</option>
+                                    <option value={QuestionType.REDACTION}>{translateQuestionType(QuestionType.REDACTION)}</option>
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Dificuldade</label>
                                 <select className="w-full border rounded-lg p-2 text-sm" value={form.difficulty} onChange={e => setForm({ ...form, difficulty: e.target.value as DifficultyLevel })}>
-                                    <option value="FACIL">Fácil</option>
-                                    <option value="MEDIO">Médio</option>
-                                    <option value="DIFICIL">Difícil</option>
+                                    <option value={DifficultyLevel.EASY}>{translateDifficultyLevel(DifficultyLevel.EASY)}</option>
+                                    <option value={DifficultyLevel.MEDIUM}>{translateDifficultyLevel(DifficultyLevel.MEDIUM)}</option>
+                                    <option value={DifficultyLevel.HARD}>{translateDifficultyLevel(DifficultyLevel.HARD)}</option>
                                 </select>
                             </div>
                         </div>
@@ -858,9 +859,19 @@ export const ItemEditorView = () => {
                         )}
 
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">
-                                {form.type === QuestionType.ESSAY || form.type === QuestionType.REDACTION ? 'Critérios de Correção / Gabarito Esperado' : 'Justificativa da Resposta Correta'}
-                            </label>
+                            <div className="flex justify-between items-center mb-1">
+                                <label className="block text-sm font-medium text-slate-700">
+                                    {form.type === QuestionType.ESSAY || form.type === QuestionType.REDACTION ? 'Critérios de Correção / Gabarito Esperado' : 'Justificativa da Resposta Correta'}
+                                </label>
+                                <button
+                                    onClick={handleGenerateJustification}
+                                    disabled={isImproving}
+                                    className="text-[10px] flex items-center gap-1 px-1.5 py-0.5 bg-indigo-50 text-indigo-700 rounded border border-indigo-100 hover:bg-indigo-100 transition font-bold uppercase"
+                                >
+                                    {isImproving ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                                    Gerar Justificativa
+                                </button>
+                            </div>
                             <RichTextEditor
                                 value={form.correctAnswerJustification}
                                 onChange={(val) => setForm({ ...form, correctAnswerJustification: val })}
@@ -1006,6 +1017,6 @@ export const ItemEditorView = () => {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };

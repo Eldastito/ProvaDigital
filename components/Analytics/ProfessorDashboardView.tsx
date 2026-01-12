@@ -6,6 +6,7 @@ import { AnalyticsService } from '../../services/analyticsService';
 
 import { useAppStore } from '../../store/useAppStore';
 import { useNavigate } from 'react-router-dom';
+import { translateExamStatus, translateBehaviorCluster, translateSecurityFlag } from '../../utils/translations';
 
 const DistributionChart = ({ grades }: { grades: number[] }) => {
     const buckets = [0, 0, 0, 0, 0]; // 0-2, 2-4, 4-6, 6-8, 8-10
@@ -139,7 +140,7 @@ export const ProfessorDashboardView = () => {
                         {myExams.slice(0, 3).map(exam => (
                             <div key={exam.id} className="p-4 border rounded-lg hover:border-brand-primary transition group bg-white shadow-sm">
                                 <div className="flex justify-between mb-2">
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${exam.status === ExamStatus.PUBLISHED ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{exam.status}</span>
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${exam.status === ExamStatus.PUBLISHED ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{translateExamStatus(exam.status)}</span>
                                     <span className="text-[10px] text-slate-400">{new Date(exam.createdAt).toLocaleDateString()}</span>
                                 </div>
                                 <h4 className="font-bold text-slate-800 text-sm mb-1 truncate">{exam.title}</h4>
@@ -191,19 +192,19 @@ export const ProfessorDashboardView = () => {
                                         <div className="text-xs font-bold text-slate-500 uppercase mb-3 flex items-center gap-1"><Brain size={14} /> Clusters Comportamentais</div>
                                         <div className="space-y-2">
                                             <div className="flex justify-between items-center text-xs">
-                                                <span className="text-emerald-700 font-bold">Domínio (Rápido/Preciso)</span>
+                                                <span className="text-emerald-700 font-bold">{translateBehaviorCluster('RAPID_PREC')}</span>
                                                 <span className="bg-emerald-100 px-2 py-0.5 rounded">{clusterCounts.RAPID_PREC}</span>
                                             </div>
                                             <div className="flex justify-between items-center text-xs">
-                                                <span className="text-blue-700 font-bold">Esforçado (Lento/Preciso)</span>
+                                                <span className="text-blue-700 font-bold">{translateBehaviorCluster('SLOW_PREC')}</span>
                                                 <span className="bg-blue-100 px-2 py-0.5 rounded">{clusterCounts.SLOW_PREC}</span>
                                             </div>
                                             <div className="flex justify-between items-center text-xs">
-                                                <span className="text-amber-700 font-bold">Dificuldade (Lento/Errado)</span>
+                                                <span className="text-amber-700 font-bold">{translateBehaviorCluster('SLOW_ERR')}</span>
                                                 <span className="bg-amber-100 px-2 py-0.5 rounded">{clusterCounts.SLOW_ERR}</span>
                                             </div>
                                             <div className="flex justify-between items-center text-xs">
-                                                <span className="text-rose-700 font-bold">Chute/Desengajado</span>
+                                                <span className="text-rose-700 font-bold">{translateBehaviorCluster('RAPID_ERR')}</span>
                                                 <span className="bg-rose-100 px-2 py-0.5 rounded">{clusterCounts.RAPID_ERR}</span>
                                             </div>
                                         </div>
@@ -300,7 +301,7 @@ export const ProfessorDashboardView = () => {
                                                     <span>Mat: {student.registrationNumber}</span>
                                                     <span className="text-slate-300">|</span>
                                                     <span className={`font-bold ${student.behaviorCluster.includes('ERR') ? 'text-amber-600' : 'text-emerald-600'}`}>
-                                                        Cluster: {student.behaviorCluster}
+                                                        Cluster: {translateBehaviorCluster(student.behaviorCluster)}
                                                     </span>
                                                 </div>
                                             </div>
@@ -331,9 +332,9 @@ export const ProfessorDashboardView = () => {
                                                             O sistema detectou {student.violations} eventos suspeitos durante a última avaliação.
                                                         </p>
                                                         <div className="flex gap-2 mt-2">
-                                                            {student.lastFlags?.includes('FOCUS_LOST') && <span className="text-[10px] bg-white border border-rose-200 px-2 py-1 rounded text-rose-600 font-bold">Fuga de Tela</span>}
-                                                            {student.lastFlags?.includes('ALT_TAB') && <span className="text-[10px] bg-white border border-rose-200 px-2 py-1 rounded text-rose-600 font-bold">Alt+Tab</span>}
-                                                            {student.lastFlags?.includes('FULLSCREEN_EXIT') && <span className="text-[10px] bg-white border border-rose-200 px-2 py-1 rounded text-rose-600 font-bold">Minimizar</span>}
+                                                            {student.lastFlags?.includes('FOCUS_LOST') && <span className="text-[10px] bg-white border border-rose-200 px-2 py-1 rounded text-rose-600 font-bold">{translateSecurityFlag('FOCUS_LOST')}</span>}
+                                                            {student.lastFlags?.includes('ALT_TAB') && <span className="text-[10px] bg-white border border-rose-200 px-2 py-1 rounded text-rose-600 font-bold">{translateSecurityFlag('ALT_TAB')}</span>}
+                                                            {student.lastFlags?.includes('FULLSCREEN_EXIT') && <span className="text-[10px] bg-white border border-rose-200 px-2 py-1 rounded text-rose-600 font-bold">{translateSecurityFlag('FULLSCREEN_EXIT')}</span>}
                                                         </div>
                                                     </div>
                                                 </div>
