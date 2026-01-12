@@ -246,11 +246,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
                     usageCount: 0,
                     createdAt: i.created_at
                 }));
-                // Mescla com mocks, evitando duplicatas por ID
+                // Mescla com mocks, usando Map para garantir que DB sobrescreva estado local/parcial
                 set(state => {
-                    const existingIds = new Set(state.items.map(x => x.id));
-                    const newItems = formattedItems.filter((x: any) => !existingIds.has(x.id));
-                    return { items: [...state.items, ...newItems] };
+                    const itemMap = new Map(state.items.map(i => [i.id, i]));
+                    formattedItems.forEach(item => {
+                        itemMap.set(item.id, item);
+                    });
+                    return { items: Array.from(itemMap.values()) };
                 });
             }
 

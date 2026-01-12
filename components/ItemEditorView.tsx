@@ -297,7 +297,7 @@ export const ItemEditorView = () => {
                     createdAt: new Date().toISOString()
                 }));
 
-                // 1. Save Batch Record
+                // 1. Create Batch Metadata
                 if (state.addGenerationBatch) {
                     await state.addGenerationBatch({
                         id: batchId,
