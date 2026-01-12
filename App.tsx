@@ -163,7 +163,7 @@ export default function App() {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [isInitialized]); // FIX: Add isInitialized dependency
 
   const element = useRoutes(appRoutes);
 
