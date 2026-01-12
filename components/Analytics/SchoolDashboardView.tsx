@@ -1,16 +1,22 @@
-
-import React from 'react';
-import { BarChart, Users, AlertTriangle, Award, Brain, Lock } from 'lucide-react';
-import { AppState, RiskLevel } from '../../types';
+import { BarChart, Users, AlertTriangle, Award, Brain, Lock, ArrowUpRight, TrendingUp, Globe } from 'lucide-react';
+import { AppState, RiskLevel, UserRole } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
 
-export const SchoolDashboardView = ({ state }: { state: AppState }) => {
+import { useAppStore } from '../../store/useAppStore';
+
+export const SchoolDashboardView = () => {
+    const state = useAppStore();
     const analytics = new AnalyticsService(state);
+    const isTenantAdmin = state.currentUser?.role === UserRole.TENANT_ADMIN || state.currentUser?.role === UserRole.SUPER_ADMIN;
 
     // Calculate overall stats
     const allStats = state.students.map(s => analytics.getStudentStats(s.id)).filter(Boolean) as any[];
     const atRiskCount = allStats.filter(s => s.riskLevel !== RiskLevel.LOW).length;
     const totalAvg = allStats.reduce((acc, curr) => acc + curr.idgScore, 0) / (allStats.length || 1);
+
+    // BI Network Comparison (Social Proof/Metrics)
+    const networkAvg = 7.2; // This would come from aggregation_stats table in Phase 5
+    const diffToNetwork = totalAvg - networkAvg;
 
     // Ranking Logic
     const topStudents = [...allStats].sort((a, b) => b.idgScore - a.idgScore).slice(0, 5);
@@ -25,56 +31,79 @@ export const SchoolDashboardView = ({ state }: { state: AppState }) => {
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto">
-             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-brand-dark">Analytics da Escola</h1>
+            <div className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-2xl font-bold text-brand-dark">Analytics da Unidade</h1>
+                    <p className="text-slate-500 text-sm">Visão consolidada de desempenho e risco.</p>
+                </div>
+                {isTenantAdmin && (
+                    <button className="btn-gradient px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold shadow-sm">
+                        <Globe size={18} /> Ver Visão da Rede
+                    </button>
+                )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-brand-light rounded-lg text-brand-primary"><BarChart size={20}/></div>
+                        <div className="p-2 bg-brand-light rounded-lg text-brand-primary"><BarChart size={20} /></div>
                         <span className="text-sm font-bold text-slate-500 uppercase">Média IDG</span>
                     </div>
-                    <div className="text-3xl font-black text-slate-800">{totalAvg.toFixed(1)}</div>
-                 </div>
+                    <div className="flex items-end gap-2">
+                        <div className="text-3xl font-black text-slate-800">{totalAvg.toFixed(1)}</div>
+                        <div className={`text-xs font-bold mb-1 flex items-center ${diffToNetwork >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                            {diffToNetwork >= 0 ? <ArrowUpRight size={12} /> : <TrendingUp size={12} className="rotate-180" />}
+                            {Math.abs(diffToNetwork).toFixed(1)} vs Rede
+                        </div>
+                    </div>
+                </div>
 
-                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-rose-50 rounded-lg text-rose-600"><AlertTriangle size={20}/></div>
+                        <div className="p-2 bg-rose-50 rounded-lg text-rose-600"><AlertTriangle size={20} /></div>
                         <span className="text-sm font-bold text-slate-500 uppercase">Alunos em Risco</span>
                     </div>
                     <div className="text-3xl font-black text-slate-800">{atRiskCount}</div>
-                    <div className="text-xs text-rose-600 mt-1 font-bold">{((atRiskCount / (allStats.length || 1))*100).toFixed(0)}% da escola</div>
-                 </div>
+                    <div className="text-xs text-rose-600 mt-1 font-bold">{((atRiskCount / (allStats.length || 1)) * 100).toFixed(0)}% da escola</div>
+                </div>
 
-                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-purple-50 rounded-lg text-purple-600"><Brain size={20}/></div>
+                        <div className="p-2 bg-purple-50 rounded-lg text-purple-600"><Brain size={20} /></div>
                         <span className="text-sm font-bold text-slate-500 uppercase">Perfil Dominante</span>
                     </div>
                     <div className="text-3xl font-black text-slate-800">Visual</div>
                     <div className="text-xs text-purple-600 mt-1 font-bold">45% dos alunos</div>
-                 </div>
+                </div>
+
+                <div className="bg-indigo-600 p-6 rounded-xl border border-indigo-700 shadow-lg text-white">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-indigo-500/50 rounded-lg text-white"><TrendingUp size={20} /></div>
+                        <span className="text-sm font-bold opacity-80 uppercase">Tendência Mensal</span>
+                    </div>
+                    <div className="text-3xl font-black">+4.2%</div>
+                    <div className="text-xs opacity-80 mt-1 font-bold">Crescimento constante</div>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Ranking */}
                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative">
                     <div className="flex justify-between items-start mb-6">
-                        <h3 className="font-bold text-slate-800 flex items-center gap-2"><Award size={20} className="text-yellow-500"/> Top 5 Alunos (Ranking)</h3>
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2"><Award size={20} className="text-yellow-500" /> Top 5 Alunos (Ranking)</h3>
                         {rankingEnabled && rankingAnonymity === 'ANONIMO' && (
                             <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded flex items-center gap-1">
-                                <Lock size={10}/> Modo Anônimo
+                                <Lock size={10} /> Modo Anônimo
                             </span>
                         )}
                     </div>
-                    
+
                     {rankingEnabled ? (
                         <div className="space-y-4">
                             {topStudents.map((stat, idx) => {
                                 const student = state.students.find(s => s.id === stat.studentId);
-                                const displayName = rankingAnonymity === 'NOMINAL' 
-                                    ? student?.name 
+                                const displayName = rankingAnonymity === 'NOMINAL'
+                                    ? student?.name
                                     : `Aluno ${student?.registrationNumber?.slice(-4) || '****'}`;
 
                                 return (
@@ -95,7 +124,7 @@ export const SchoolDashboardView = ({ state }: { state: AppState }) => {
                         </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center h-40 text-slate-400 text-center opacity-50">
-                            <Award size={32} className="mb-2"/>
+                            <Award size={32} className="mb-2" />
                             <p>Ranking desativado nas configurações da escola.</p>
                         </div>
                     )}
@@ -103,7 +132,7 @@ export const SchoolDashboardView = ({ state }: { state: AppState }) => {
 
                 {/* Learning Profiles Chart */}
                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                    <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2"><Brain size={20} className="text-purple-500"/> Canais de Aprendizagem (Psicopedagogia)</h3>
+                    <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2"><Brain size={20} className="text-purple-500" /> Canais de Aprendizagem (Psicopedagogia)</h3>
                     <div className="space-y-4">
                         {Object.entries(channelCounts).map(([channel, count]) => {
                             const percentage = (count / (state.studentProfiles?.length || 1)) * 100;
@@ -114,8 +143,8 @@ export const SchoolDashboardView = ({ state }: { state: AppState }) => {
                                         <span>{count} alunos ({percentage.toFixed(0)}%)</span>
                                     </div>
                                     <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                                        <div 
-                                            className={`h-full rounded-full ${channel === 'VISUAL' ? 'bg-purple-500' : channel === 'AUDITIVO' ? 'bg-blue-500' : channel === 'CINESTESICO' ? 'bg-amber-500' : 'bg-emerald-500'}`} 
+                                        <div
+                                            className={`h-full rounded-full ${channel === 'VISUAL' ? 'bg-purple-500' : channel === 'AUDITIVO' ? 'bg-blue-500' : channel === 'CINESTESICO' ? 'bg-amber-500' : 'bg-emerald-500'}`}
                                             style={{ width: `${percentage}%` }}
                                         ></div>
                                     </div>
@@ -128,7 +157,7 @@ export const SchoolDashboardView = ({ state }: { state: AppState }) => {
 
                 {/* Risk List */}
                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm lg:col-span-2">
-                    <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2"><AlertTriangle size={20} className="text-rose-500"/> Atenção Necessária</h3>
+                    <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2"><AlertTriangle size={20} className="text-rose-500" /> Atenção Necessária</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-80 overflow-y-auto">
                         {allStats.filter(s => s.riskLevel !== RiskLevel.LOW).map(stat => {
                             const student = state.students.find(s => s.id === stat.studentId);
@@ -145,7 +174,7 @@ export const SchoolDashboardView = ({ state }: { state: AppState }) => {
                                 </div>
                             );
                         })}
-                         {atRiskCount === 0 && <p className="text-slate-400 text-sm">Nenhum aluno em risco.</p>}
+                        {atRiskCount === 0 && <p className="text-slate-400 text-sm">Nenhum aluno em risco.</p>}
                     </div>
                 </div>
             </div>

@@ -6,10 +6,8 @@ import { AnalyticsService } from '../../services/analyticsService';
 import { useAppStore } from '../../store/useAppStore';
 import { useFeatureFlag } from '../../context/FeatureFlagContext'; // [NEW]
 
-interface StudentDashboardViewProps {
-    state: AppState;
-    user: User;
-}
+
+
 
 // Simple SVG Line Chart Component
 const EvolutionChart = ({ data }: { data: { label: string, value: number }[] }) => {
@@ -463,6 +461,7 @@ export const StudentDashboardView = () => {
                                                             // I MUST update ViewRouter to pass setView to StudentDashboardView.
 
                                                             console.log("Navigating to Tutor...");
+                                                            navigate('/aluno/tutor');
                                                         }}
                                                         className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition flex items-center gap-2"
                                                     >

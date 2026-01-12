@@ -1,12 +1,12 @@
 
 import React, { useState, useRef } from 'react';
-import { GraduationCap, Briefcase, Users, Settings, Plus, X, School as SchoolIcon, Upload, Radio, FileText, Download, Network, GitMerge, ArrowRight, ShieldCheck, Link, Database } from 'lucide-react';
+import { GraduationCap, Briefcase, Users, Settings, Plus, X, School as SchoolIcon, Upload, Radio, FileText, Download, Network, GitMerge, ArrowRight, ShieldCheck, Link, Database, AlertTriangle } from 'lucide-react';
 import { AppState, School, SchoolClass, Student, User, UserRole, AppSettings, SchoolResources } from '../types';
 import { uuidv4 } from '../utils/helpers';
 import { CommandCenter } from './Management/CommandCenter';
 import { ManagementForms } from './Management/ManagementForms';
 
-type ManagementTab = 'SCHOOLS' | 'CLASSES' | 'STUDENTS' | 'USERS' | 'COMMAND_CENTER' | 'SETTINGS' | 'BATCH_IMPORT' | 'HIERARCHY';
+type ManagementTab = 'SCHOOLS' | 'CLASSES' | 'STUDENTS' | 'USERS' | 'COMMAND_CENTER' | 'SETTINGS' | 'BATCH_IMPORT' | 'HIERARCHY' | 'TENANT_SETTINGS';
 
 import { useAppStore } from '../store/useAppStore';
 
@@ -315,6 +315,11 @@ export const ManagementView = () => {
                 <button onClick={() => setActiveTab('SETTINGS')} className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'SETTINGS' ? 'border-brand-dark text-brand-dark' : 'border-transparent text-slate-500'}`}>
                     <ShieldCheck size={18} /> Governança & LGPD
                 </button>
+                {isTenantAdmin && (
+                    <button onClick={() => setActiveTab('TENANT_SETTINGS')} className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'TENANT_SETTINGS' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500'}`}>
+                        <Settings size={18} /> Configuração do Tenant
+                    </button>
+                )}
             </div>
 
             {/* Content */}
@@ -559,6 +564,90 @@ export const ManagementView = () => {
                                 </div>
                             </div>
                         ))}
+                    </div>
+                )}
+
+                {activeTab === 'TENANT_SETTINGS' && isTenantAdmin && (
+                    <div className="p-8 max-w-4xl mx-auto space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {/* Features Toggling */}
+                            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                                <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                                    <ShieldCheck className="text-indigo-600" size={20} /> Funcionalidades Ativas
+                                </h3>
+
+                                {(() => {
+                                    const tenant = state.tenants.find(t => t.id === currentTenantId);
+                                    const features = tenant?.features || {
+                                        ai_audit: true,
+                                        neuro_screening: true,
+                                        tablet_mode: true,
+                                        offline_sync: false,
+                                        bi_advanced: true
+                                    };
+
+                                    const toggleFeature = (key: string) => {
+                                        const newFeatures = { ...features, [key]: !(features as any)[key] };
+                                        state.updateTenantFeatures(currentTenantId, newFeatures);
+                                    };
+
+                                    return (
+                                        <div className="space-y-4">
+                                            {[
+                                                { id: 'ai_audit', label: 'Auditoria com IA', desc: 'Habilita auditoria pedagógica automatizada em provas.' },
+                                                { id: 'neuro_screening', label: 'NeuroScreening', desc: 'Habilita triagem cognitiva e comportamental.' },
+                                                { id: 'tablet_mode', label: 'Modo Tablet', desc: 'Interface otimizada para dispositivos móveis.' },
+                                                { id: 'offline_sync', label: 'Sincronização Offline', desc: 'Permite aplicação de provas sem internet.' },
+                                                { id: 'bi_advanced', label: 'Analytics Avançado (BI)', desc: 'Dashboards dinâmicos e exportação de dados.' }
+                                            ].map(feat => (
+                                                <div key={feat.id} className="flex items-center justify-between p-3 bg-white border rounded-lg">
+                                                    <div>
+                                                        <div className="font-bold text-sm text-slate-800">{feat.label}</div>
+                                                        <div className="text-[10px] text-slate-500">{feat.desc}</div>
+                                                    </div>
+                                                    <div className="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
+                                                        <input
+                                                            type="checkbox"
+                                                            id={`toggle-${feat.id}`}
+                                                            checked={(features as any)[feat.id]}
+                                                            onChange={() => toggleFeature(feat.id)}
+                                                            className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                                                        />
+                                                        <label htmlFor={`toggle-${feat.id}`} className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${(features as any)[feat.id] ? 'bg-indigo-600' : 'bg-slate-300'}`}></label>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+
+                            {/* Tenant Details */}
+                            <div className="space-y-6">
+                                <div className="bg-white p-6 rounded-xl border border-slate-200">
+                                    <h3 className="font-bold text-slate-800 mb-4">Metadados do Município</h3>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-500">Tenant ID:</span>
+                                            <span className="font-mono text-slate-800 font-bold">{currentTenantId}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-500">Tipo de Rede:</span>
+                                            <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-xs font-bold uppercase">Public Municipal</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="p-6 bg-amber-50 border border-amber-200 rounded-xl">
+                                    <h4 className="font-bold text-amber-800 text-sm mb-2 flex items-center gap-2">
+                                        <AlertTriangle size={16} /> Zona de Impacto
+                                    </h4>
+                                    <p className="text-xs text-amber-700 leading-relaxed">
+                                        Alterar funcionalidades globais impacta imediatamente todos os usuários deste Tenant.
+                                        Mudanças são registradas logs de auditoria imutáveis.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>

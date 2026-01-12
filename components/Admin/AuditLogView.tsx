@@ -1,44 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Clock, Search, AlertTriangle, FileText, Download } from 'lucide-react';
-import { auditService } from '../../services/auditService';
 import { useAppStore } from '../../store/useAppStore';
-
-// Mock data for display when DB is empty
-const MOCK_LOGS = [
-    { id: '1', action_type: 'UPDATE_GRADE', actor_email: 'prof.xavier@escola.com', target_resource: 'exam_result', details: { old: 4.5, new: 8.0, reason: 'Revisão acatada' }, created_at: new Date().toISOString() },
-    { id: '2', action_type: 'LOGIN', actor_email: 'diretor.skinner@escola.com', target_resource: 'auth', details: { method: 'email' }, created_at: new Date(Date.now() - 3600000).toISOString() },
-    { id: '3', action_type: 'EXPORT_DATA', actor_email: 'admin@seduc.sp.gov.br', target_resource: 'student_list', details: { filter: 'school_id=123' }, created_at: new Date(Date.now() - 7200000).toISOString() },
-    { id: '4', action_type: 'DELETE_USER', actor_email: 'super.admin@examepad.com', target_resource: 'user', details: { deleted_user: 'fake_account' }, created_at: new Date(Date.now() - 86400000).toISOString() },
-];
+import { ReportExportService } from '../../services/ReportExportService';
 
 export const AuditLogView = () => {
-    const { currentUser } = useAppStore();
-    const [logs, setLogs] = useState<any[]>(MOCK_LOGS);
+    const { currentUser, auditLogs, fetchAuditLogs } = useAppStore();
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
-        loadLogs();
-    }, []);
-
-    const loadLogs = async () => {
-        if (!currentUser?.tenantId) return;
-        setLoading(true);
-        try {
-            const data = await auditService.fetchLogs(currentUser.tenantId);
-            if (data && data.length > 0) {
-                setLogs(data);
-            }
-        } catch (e) {
-            console.error("Failed to load logs, using mock", e);
-        } finally {
-            setLoading(false);
+        if (currentUser?.tenantId) {
+            setLoading(true);
+            fetchAuditLogs(currentUser.tenantId).finally(() => setLoading(false));
         }
+    }, [currentUser?.tenantId]);
+
+    const logs = auditLogs;
+
+    const handleExport = () => {
+        ReportExportService.exportToCSV('audit_logs', filteredLogs);
     };
 
     const filteredLogs = logs.filter(log =>
-        log.actor_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.action_type?.toLowerCase().includes(searchTerm.toLowerCase())
+        log.actorEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.actionType?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const getActionColor = (type: string) => {
@@ -60,7 +45,10 @@ export const AuditLogView = () => {
                     <p className="text-slate-500">Rastreabilidade completa de ações na plataforma.</p>
                 </div>
                 <div className="flex gap-2">
-                    <button className="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 flex items-center gap-2">
+                    <button
+                        onClick={handleExport}
+                        className="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 flex items-center gap-2"
+                    >
                         <Download size={16} /> Exportar CSV
                     </button>
                 </div>
@@ -96,18 +84,18 @@ export const AuditLogView = () => {
                                 <tr key={log.id} className="hover:bg-slate-50 transition">
                                     <td className="p-4 text-slate-500 whitespace-nowrap flex items-center gap-2">
                                         <Clock size={14} />
-                                        {new Date(log.created_at).toLocaleString()}
+                                        {new Date(log.createdAt).toLocaleString()}
                                     </td>
                                     <td className="p-4 font-medium text-slate-800">
-                                        {log.actor_email || 'Sistema'}
+                                        {log.actorEmail || 'Sistema'}
                                     </td>
                                     <td className="p-4">
-                                        <span className={`px-2 py-1 rounded text-xs font-bold ${getActionColor(log.action_type)}`}>
-                                            {log.action_type}
+                                        <span className={`px-2 py-1 rounded text-xs font-bold ${getActionColor(log.actionType)}`}>
+                                            {log.actionType}
                                         </span>
                                     </td>
                                     <td className="p-4 text-slate-600">
-                                        {log.target_resource}
+                                        {log.targetResource}
                                     </td>
                                     <td className="p-4">
                                         <pre className="text-xs bg-slate-900 text-slate-300 p-2 rounded max-w-xs overflow-x-auto scrollbar-thin">

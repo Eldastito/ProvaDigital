@@ -24,7 +24,7 @@ export const ExamBuilderView = () => {
     const navigate = useNavigate();
     const state = useAppStore();
     const { addExam, addItem, addItems } = state;
-    const [step, setStep] = useState(1);
+    const [step, setStep] = useState(1); // 1: Config, 2: Selection, 3: Grading & Cover
     const [builderMode, setBuilderMode] = useState<'MANUAL' | 'SMART'>('MANUAL');
     const [config, setConfig] = useState({
         title: '',
@@ -34,6 +34,26 @@ export const ExamBuilderView = () => {
         shuffleItems: true,
         description: ''
     });
+
+    const [gradingConfig, setGradingConfig] = useState({
+        totalsByDiscipline: {} as Record<string, number>,
+        totalScore: 0
+    });
+
+    const [coverConfig, setCoverConfig] = useState({
+        title: '',
+        instructions: [
+            'Como navegar entre questões',
+            'Como marcar respostas e revisar antes de enviar',
+            'Aviso de que envio é definitivo (confirmação)'
+        ],
+        securityNotices: [
+            'O sistema registra ocorrências (perda de foco, alt-tab)',
+            'Regras de conduta: silêncio, atenção total',
+            'Finalização automática ao atingir o tempo limite'
+        ]
+    });
+
     const [smartCriteria, setSmartCriteria] = useState<ExamCriteria>({
         subject: '',
         targetCount: 10,
@@ -58,12 +78,28 @@ export const ExamBuilderView = () => {
     // Preview State for "Tablet Simulator"
     const [previewIndex, setPreviewIndex] = useState(0);
 
-    const handleSave = (publish = false) => {
+    const handleSave = async (publish = false) => {
         if (!config.title) return alert('Título obrigatório');
         if (selectedItems.length === 0) return alert('Selecione ao menos 1 questão');
 
+        const examId = uuidv4();
+        const versionId = uuidv4();
+
+        // Calculate individual item weights
+        const itemsWithWeights = selectedItems.map((item, idx) => {
+            const subjectItems = selectedItems.filter(i => i.subject === item.subject);
+            const totalPointsForSubject = gradingConfig.totalsByDiscipline[item.subject] || 10.0;
+            const itemWeight = totalPointsForSubject / subjectItems.length;
+
+            return {
+                itemId: item.id,
+                weight: itemWeight,
+                position: idx + 1
+            };
+        });
+
         const newExam: Exam = {
-            id: uuidv4(),
+            id: examId,
             tenantId: state.currentUser?.tenantId || 't1',
             schoolId: state.currentUser?.schoolId || 's1',
             creatorId: state.currentUser?.id || '',
@@ -74,16 +110,33 @@ export const ExamBuilderView = () => {
             durationMinutes: config.duration,
             targetQuestionCount: selectedItems.length,
             status: publish ? ExamStatus.ACTIVE : ExamStatus.DRAFT,
-            items: selectedItems.map((item, idx) => ({
-                itemId: item.id,
-                order: idx + 1,
-                customScore: item.score
+            items: itemsWithWeights.map(i => ({
+                itemId: i.itemId,
+                order: i.position,
+                customScore: i.weight
             })),
             classIds: [],
             shuffleItems: config.shuffleItems,
             createdAt: new Date().toISOString()
         };
+
+        // 1. Save standard Exam (Legacy compat)
         addExam(newExam);
+
+        // 2. Save Phase 2 Version
+        if (state.addExamVersion) {
+            await state.addExamVersion({
+                id: versionId,
+                examId: examId,
+                versionNumber: 1,
+                itemsSnapshot: itemsWithWeights,
+                gradingConfig: gradingConfig,
+                coverConfig: coverConfig,
+                status: publish ? 'published' : 'draft',
+                createdAt: new Date().toISOString()
+            });
+        }
+
         navigate('/exams');
     };
 
@@ -187,10 +240,19 @@ export const ExamBuilderView = () => {
         }
     };
 
-    const filteredAvailableItems = state.items.filter(i =>
-        !selectedItems.find(s => s.id === i.id) &&
-        (i.statement.toLowerCase().includes(filter.toLowerCase()) || i.subject.toLowerCase().includes(filter.toLowerCase()))
-    );
+    const [difficultyFilter, setDifficultyFilter] = useState<DifficultyLevel | 'ALL'>('ALL');
+    const [statusFilter, setStatusFilter] = useState<'APPROVED' | 'DRAFT' | 'ALL'>('ALL');
+
+    const filteredAvailableItems = state.items.filter(i => {
+        const matchesSearch = i.statement.toLowerCase().includes(filter.toLowerCase()) ||
+            i.subject.toLowerCase().includes(filter.toLowerCase());
+        const matchesDiff = difficultyFilter === 'ALL' || i.difficulty === difficultyFilter;
+        const matchesStatus = statusFilter === 'ALL' ||
+            (statusFilter === 'APPROVED' ? i.lifecycleStatus === ItemLifecycleStatus.APPROVED : i.lifecycleStatus === ItemLifecycleStatus.DRAFT);
+        const notSelected = !selectedItems.find(s => s.id === i.id);
+
+        return matchesSearch && matchesDiff && matchesStatus && notSelected;
+    });
 
     const currentPreviewItem = selectedItems[previewIndex];
 
@@ -365,32 +427,35 @@ export const ExamBuilderView = () => {
                             setIsReviewingExam(false);
 
                             const versionId = uuidv4();
-                            // snapshot/version logic
                             if (state.addExamVersion) {
                                 await state.addExamVersion({
                                     id: versionId,
-                                    examId: '', // To be updated on final save
+                                    examId: '', // To be updated on final save if legacy, or just kept for variant tracking
                                     versionNumber: Date.now(),
-                                    itemsSnapshot: polished,
-                                    reviewSummary: summary,
+                                    itemsSnapshot: polished.map((item, idx) => ({
+                                        itemId: item.id,
+                                        weight: 1.0, // Default, updated on Step 3
+                                        position: idx + 1
+                                    })),
+                                    gradingConfig: gradingConfig,
+                                    coverConfig: coverConfig,
+                                    status: 'draft',
                                     createdAt: new Date().toISOString()
                                 });
                             }
 
-                            // Save variants if suggested
                             if (summary.variantsSuggested && state.addExamVariant) {
                                 for (const v of summary.variantsSuggested) {
                                     await state.addExamVariant({
                                         id: uuidv4(),
                                         examVersionId: versionId,
                                         conditionCode: v.conditionCode,
-                                        adaptedItems: v.adaptedItems,
-                                        deliveryLogicLog: `IA Sugestion for ${v.conditionCode}`,
+                                        variantRules: v.adaptedItems,
+                                        status: 'active',
                                         createdAt: new Date().toISOString()
                                     });
                                 }
                             }
-
                             alert("Revisão concluída com sucesso! Versões e variantes para acessibilidade foram criadas.");
                         }}
                     />
@@ -438,10 +503,11 @@ export const ExamBuilderView = () => {
                             )}
                         </div>
                     </div>
-                ) : (
-                    <div className="flex h-full gap-8 overflow-hidden">
-                        {/* Left: Available Items (List) OR Selection Diagnosis */}
-                        <div className="flex-1 flex flex-col bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden relative">
+                ) : step === 2 ? (
+                    /* STEP 2: Selection & Preview */
+                    <div className="flex gap-8 h-[75vh]">
+                        {/* Left: Item Bank */}
+                        <div className="flex-1 flex flex-col min-w-0 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                             {builderMode === 'SMART' && selectionDiagnosis && selectionDiagnosis.missingCount > 0 && (
                                 <div className="p-6 bg-rose-50 border-b border-rose-100 flex items-center justify-between">
                                     <div className="flex items-center gap-3">
@@ -460,9 +526,7 @@ export const ExamBuilderView = () => {
                                                 setShowBatchHistory(true);
                                             }}
                                             className="text-white/80 hover:text-white px-3 py-2 rounded-lg text-xs font-bold border border-white/20 hover:bg-white/10 transition"
-                                        >
-                                            Recuperar Lotes IA
-                                        </button>
+                                        >Recuperar Lotes IA</button>
                                         <button
                                             onClick={handleGapGeneration}
                                             disabled={isFillingGaps}
@@ -500,18 +564,44 @@ export const ExamBuilderView = () => {
                                 <h3 className="font-bold text-slate-800">
                                     {builderMode === 'SMART' ? 'Questões Selecionadas Automaticamente' : 'Banco de Itens Disponível'}
                                 </h3>
+                                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                                    <button
+                                        onClick={() => setDifficultyFilter('ALL')}
+                                        className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${difficultyFilter === 'ALL' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200'}`}
+                                    >TODOS</button>
+                                    {Object.values(DifficultyLevel).map(d => (
+                                        <button
+                                            key={d}
+                                            onClick={() => setDifficultyFilter(d)}
+                                            className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${difficultyFilter === d ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white text-slate-500 border-slate-200'}`}
+                                        >{d}</button>
+                                    ))}
+                                    <div className="w-px h-4 bg-slate-200 mx-1 self-center" />
+                                    <button
+                                        onClick={() => setStatusFilter('ALL')}
+                                        className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${statusFilter === 'ALL' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200'}`}
+                                    >STATUS: TODOS</button>
+                                    <button
+                                        onClick={() => setStatusFilter('APPROVED')}
+                                        className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${statusFilter === 'APPROVED' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-500 border-slate-200'}`}
+                                    >APROVADOS</button>
+                                    <button
+                                        onClick={() => setStatusFilter('DRAFT')}
+                                        className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${statusFilter === 'DRAFT' ? 'bg-amber-600 text-white border-amber-600' : 'bg-white text-slate-500 border-slate-200'}`}
+                                    >DRAFTS IA</button>
+                                </div>
                                 <div className="flex gap-2">
                                     <div className="relative flex-1">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                                         <input
                                             className="w-full border rounded-lg pl-9 p-2 text-sm shadow-sm"
-                                            placeholder="Filtrar questões..."
+                                            placeholder="Filtrar por enunciado ou disciplina..."
                                             value={filter}
                                             onChange={e => setFilter(e.target.value)}
                                         />
                                     </div>
                                     <button
-                                        onClick={() => setShowRecommendations(!showRecommendations)}
+                                        onClick={handleGetRecommendations}
                                         className={`px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition border ${showRecommendations ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-purple-50 hover:text-purple-600'}`}
                                     >
                                         <Plus size={16} className={showRecommendations ? 'rotate-45 transition' : ''} />
@@ -521,34 +611,30 @@ export const ExamBuilderView = () => {
                             </div>
 
                             <div className="flex-1 overflow-y-auto p-2 space-y-2">
-                                {/* Standard List */}
                                 {(builderMode === 'SMART' ? (state.items.filter(i => selectedItems.find(s => s.id === i.id) || (i.generationBatchId === currentBatchId && i.lifecycleStatus === ItemLifecycleStatus.APPROVED))) : filteredAvailableItems).map(item => (
-                                    <div key={item.id} className="p-3 border border-slate-200 rounded-lg hover:border-brand-primary bg-white cursor-pointer group transition-all hover:shadow-sm" onClick={() => toggleItem(item)}>
+                                    <div key={item.id} className={`p-3 border rounded-lg cursor-pointer group transition-all hover:shadow-sm ${selectedItems.find(s => s.id === item.id) ? 'border-brand-primary bg-brand-light/20' : 'border-slate-200 bg-white hover:border-brand-primary text-slate-400'}`} onClick={() => toggleItem(item)}>
                                         <div className="flex justify-between items-start mb-1">
-                                            <span className="text-xs font-bold text-slate-500 uppercase">{item.subject}</span>
+                                            <span className="text-xs font-bold uppercase">{item.subject}</span>
                                             <div className="flex gap-2">
                                                 {item.origin === ItemOrigin.IA && <Badge color="indigo">IA</Badge>}
-                                                <Badge color={item.difficulty === 'FACIL' ? 'green' : 'yellow'}>{item.difficulty}</Badge>
+                                                <Badge color={item.difficulty === 'FACIL' ? 'green' : (item.difficulty === 'DIFICIL' ? 'red' : 'yellow')}>{item.difficulty}</Badge>
                                             </div>
                                         </div>
-                                        <p className="text-sm text-slate-800 line-clamp-2 mb-2">{item.statement}</p>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-xs text-slate-400">ID: {item.id.slice(0, 6)}</span>
-                                            <button className={`text-brand-primary text-xs font-bold opacity-0 group-hover:opacity-100 flex items-center gap-1 bg-brand-light px-2 py-1 rounded ${builderMode === 'SMART' ? 'text-rose-600 bg-rose-50' : ''}`}>
-                                                {builderMode === 'SMART' ? 'Remover' : 'Adicionar'}
-                                                {builderMode === 'SMART' ? <X size={12} /> : <Plus size={12} />}
-                                            </button>
+                                        <p className={`text-sm line-clamp-2 mb-2 ${selectedItems.find(s => s.id === item.id) ? 'text-slate-800' : 'text-slate-400'}`}>{item.statement}</p>
+                                        <div className="flex justify-between items-center text-[10px]">
+                                            <span>BNCC: {item.bnccCode || 'N/A'}</span>
+                                            <span className="font-bold">{item.lifecycleStatus === ItemLifecycleStatus.DRAFT ? 'AGUARDANDO REVISÃO' : 'DISPONÍVEL'}</span>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Right: Tablet Simulator (Preview) */}
+                        {/* Right: Tablet Simulator */}
                         <div className="w-[500px] flex flex-col">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="font-bold text-slate-800 flex items-center gap-2"><Tablet size={20} /> Simulação do Aluno</h3>
-                                <span className="text-xs font-bold bg-brand-primary text-white px-3 py-1 rounded-full">{selectedItems.length} questões selecionadas</span>
+                                <span className="text-xs font-bold bg-brand-primary text-white px-3 py-1 rounded-full">{selectedItems.length} questões</span>
                             </div>
 
                             <div className="flex-1 bg-slate-900 rounded-[2rem] p-3 shadow-2xl relative border-4 border-slate-800 flex flex-col min-h-[500px]">
@@ -596,7 +682,118 @@ export const ExamBuilderView = () => {
                                 <button onClick={() => setIsReviewingExam(true)} className="py-3 bg-purple-50 border border-purple-200 text-purple-700 rounded-lg font-bold text-sm hover:bg-purple-100 transition shadow-sm flex items-center justify-center gap-2">
                                     <ShieldCheck size={18} /> Revisar IA
                                 </button>
-                                <button onClick={() => handleSave(true)} className="btn-gradient py-3 rounded-lg font-bold text-sm transition shadow-md">Publicar</button>
+                                <button
+                                    onClick={() => setStep(3)}
+                                    disabled={selectedItems.length === 0}
+                                    className="btn-gradient py-3 rounded-lg font-bold text-sm transition shadow-md flex items-center justify-center gap-2"
+                                >
+                                    Configurar Capa <ChevronRight size={18} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    /* STEP 3: Grading and Cover */
+                    <div className="max-w-4xl mx-auto space-y-8 pb-12">
+                        <div className="grid grid-cols-5 gap-8">
+                            <div className="col-span-3 space-y-6">
+                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                        <ShieldCheck className="text-brand-primary" /> Capa e Instruções
+                                    </h3>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Título Customizado da Capa</label>
+                                        <input
+                                            className="w-full border rounded-lg p-3 text-lg font-bold"
+                                            value={coverConfig.title || config.title}
+                                            onChange={e => setCoverConfig({ ...coverConfig, title: e.target.value })}
+                                            placeholder="Ex: AVALIAÇÃO TRIMESTRAL - UNIDADE I"
+                                        />
+                                    </div>
+                                    <div className="space-y-3">
+                                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Instruções de Navegação</label>
+                                        {coverConfig.instructions.map((ins, idx) => (
+                                            <div key={idx} className="flex gap-2">
+                                                <input className="flex-1 border rounded-lg p-2 text-sm" value={ins} onChange={e => {
+                                                    const newIns = [...coverConfig.instructions];
+                                                    newIns[idx] = e.target.value;
+                                                    setCoverConfig({ ...coverConfig, instructions: newIns });
+                                                }} />
+                                                <button onClick={() => setCoverConfig({ ...coverConfig, instructions: coverConfig.instructions.filter((_, i) => i !== idx) })} className="text-rose-500 p-2"><X size={16} /></button>
+                                            </div>
+                                        ))}
+                                        <button onClick={() => setCoverConfig({ ...coverConfig, instructions: [...coverConfig.instructions, ''] })} className="text-xs font-bold text-brand-primary flex items-center gap-1"><Plus size={14} /> Adicionar Instrução</button>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Avisos de Segurança</label>
+                                        {coverConfig.securityNotices.map((not, idx) => (
+                                            <div key={idx} className="flex gap-2">
+                                                <input
+                                                    className="flex-1 border rounded-lg p-2 text-sm"
+                                                    value={not}
+                                                    onChange={e => {
+                                                        const newNot = [...coverConfig.securityNotices];
+                                                        newNot[idx] = e.target.value;
+                                                        setCoverConfig({ ...coverConfig, securityNotices: newNot });
+                                                    }}
+                                                />
+                                                <button onClick={() => setCoverConfig({ ...coverConfig, securityNotices: coverConfig.securityNotices.filter((_, i) => i !== idx) })} className="text-rose-500 p-2"><X size={16} /></button>
+                                            </div>
+                                        ))}
+                                        <button onClick={() => setCoverConfig({ ...coverConfig, securityNotices: [...coverConfig.securityNotices, ''] })} className="text-xs font-bold text-brand-primary flex items-center gap-1"><Plus size={14} /> Adicionar Aviso</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="col-span-2 space-y-6">
+                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-4">
+                                        <BarChart className="text-brand-secondary" /> Pesos e Pontuação
+                                    </h3>
+                                    <div className="space-y-4">
+                                        {Array.from(new Set(selectedItems.map(i => i.subject))).map(subj => (
+                                            <div key={subj} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-bold text-slate-700">{subj}</span>
+                                                    <span className="text-[10px] text-slate-400 font-bold uppercase">{selectedItems.filter(i => i.subject === subj).length} Questões</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="number"
+                                                        step="0.1"
+                                                        className="w-16 border rounded-lg p-2 text-center font-bold text-brand-primary"
+                                                        value={gradingConfig.totalsByDiscipline[subj] || 10.0}
+                                                        onChange={e => {
+                                                            const val = parseFloat(e.target.value) || 0;
+                                                            const newTotals = { ...gradingConfig.totalsByDiscipline, [subj as string]: val };
+                                                            setGradingConfig({
+                                                                ...gradingConfig,
+                                                                totalsByDiscipline: newTotals,
+                                                                totalScore: (Object.values(newTotals) as number[]).reduce((a, b) => a + b, 0)
+                                                            });
+                                                        }}
+                                                    />
+                                                    <span className="text-[10px] font-bold text-slate-400">PTS</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="mt-8 pt-6 border-t border-slate-100 flex justify-between items-center">
+                                        <div className="text-slate-500 font-bold text-sm uppercase tracking-widest">Total da Prova</div>
+                                        <div className="text-3xl font-black text-brand-primary">
+                                            {(Object.values(gradingConfig.totalsByDiscipline).length > 0
+                                                ? (Object.values(gradingConfig.totalsByDiscipline) as number[]).reduce((a, b) => a + b, 0)
+                                                : selectedItems.length * 1.0).toFixed(1)}
+                                        </div>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => handleSave(true)}
+                                    className="w-full btn-gradient py-4 rounded-xl font-bold text-lg shadow-xl hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
+                                >
+                                    <Save size={20} /> Finalizar e Publicar Prova
+                                </button>
+                                <button onClick={() => setStep(2)} className="w-full text-slate-400 font-bold text-sm hover:text-slate-600 transition">Voltar para Seleção</button>
                             </div>
                         </div>
                     </div>

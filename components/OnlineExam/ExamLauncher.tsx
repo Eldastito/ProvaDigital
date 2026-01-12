@@ -5,7 +5,7 @@ import { Play, FileText, Clock, AlertTriangle, Accessibility } from 'lucide-reac
 import { ExamStatus } from '../../types';
 
 export const ExamLauncher = () => {
-    const { exams, currentUser } = useAppStore();
+    const { exams, currentUser, getRecommendedVariant } = useAppStore();
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -15,10 +15,32 @@ export const ExamLauncher = () => {
         e.title.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const handleLaunch = (examId: string) => {
-        // In a real scenario, we might check for 'registrations' first.
-        // For testing/demo, we launch directly for the current user.
-        navigate(`/online-exam/${examId}`);
+    const isJoinable = (exam: any) => {
+        if (!exam.scheduledDate) return true;
+        const start = new Date(exam.scheduledDate).getTime();
+        const now = Date.now();
+        const end = start + (exam.durationMinutes * 60 * 1000);
+        return now >= start && now <= end;
+    };
+
+    const handleLaunch = async (exam: any) => {
+        if (!isJoinable(exam)) {
+            alert("Esta prova não está disponível no momento. Verifique o horário agendado.");
+            return;
+        }
+
+        if (!currentUser) return;
+
+        try {
+            const variantId = await getRecommendedVariant(currentUser.id, exam.id);
+            const url = variantId
+                ? `/online-exam/${exam.id}?variantId=${variantId}`
+                : `/online-exam/${exam.id}`;
+            navigate(url);
+        } catch (e) {
+            console.error("Error finding recommended variant:", e);
+            navigate(`/online-exam/${exam.id}`);
+        }
     };
 
     return (
@@ -59,14 +81,25 @@ export const ExamLauncher = () => {
                         <p className="text-sm text-slate-500 mb-4">{exam.subject}</p>
 
                         <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-xs text-slate-400 font-mono">
-                                <Clock size={14} /> {exam.durationMinutes} min
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2 text-xs text-slate-400 font-mono">
+                                    <Clock size={14} /> {exam.durationMinutes} min
+                                </div>
+                                {exam.scheduledDate && (
+                                    <div className="text-[10px] text-brand-primary font-bold">
+                                        {new Date(exam.scheduledDate).toLocaleString('pt-BR')}
+                                    </div>
+                                )}
                             </div>
                             <button
-                                onClick={() => handleLaunch(exam.id)}
-                                className="px-4 py-2 bg-brand-primary text-white text-sm font-bold rounded-lg hover:bg-brand-dark transition flex items-center gap-2"
+                                onClick={() => handleLaunch(exam)}
+                                disabled={!isJoinable(exam)}
+                                className={`px-4 py-2 text-sm font-bold rounded-lg transition flex items-center gap-2 ${isJoinable(exam)
+                                    ? 'bg-brand-primary text-white hover:bg-brand-dark'
+                                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                    }`}
                             >
-                                <Play size={16} /> Iniciar
+                                <Play size={16} /> {isJoinable(exam) ? 'Iniciar' : 'Aguarde'}
                             </button>
                         </div>
                     </div>

@@ -8,11 +8,12 @@ import { Exam, Item, StudentAnswer } from '../../types';
 interface OnlineExamRunnerProps {
     examId: string;
     studentId: string;
+    variantId?: string;
     onExit: () => void;
     onComplete: (answers: StudentAnswer[]) => void;
 }
 
-export const OnlineExamRunner = ({ examId, studentId, onExit, onComplete }: OnlineExamRunnerProps) => {
+export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onComplete }: OnlineExamRunnerProps) => {
     const state = useAppStore();
 
     // --- ACCESSIBILITY STATE ---
@@ -30,9 +31,47 @@ export const OnlineExamRunner = ({ examId, studentId, onExit, onComplete }: Onli
     }, [exam, state.items]);
 
     // --- SESSION STATE ---
+    const { startExamAttempt, logSecurityEvent, submitExamAttempt } = state;
+    const [attemptId, setAttemptId] = useState<string | null>(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<string, string>>({}); // itemId -> selectedAlternativeId
-    const [timeLeft, setTimeLeft] = useState(exam ? exam.durationMinutes * 60 : 0);
+
+    // --- ACCESSIBILITY VARIANT LOGIC ---
+    const variant = state.examVariants.find(v => v.id === variantId);
+
+    // Applying extra time if variant rules specify it (e.g., TDAH +25%)
+    const extraTimeMinutes = useMemo(() => {
+        if (!variant || !variant.variantRules) return 0;
+        return variant.variantRules.extraTimePercent
+            ? Math.floor((exam?.durationMinutes || 0) * (variant.variantRules.extraTimePercent / 100))
+            : 0;
+    }, [variant, exam]);
+
+    const totalDuration = (exam?.durationMinutes || 0) + extraTimeMinutes;
+    const [timeLeft, setTimeLeft] = useState(totalDuration * 60);
+
+    // Initial attempt start
+    useEffect(() => {
+        if (exam && !attemptId && studentId) {
+            startExamAttempt({
+                examVersionId: exam.id,
+                studentId: studentId
+            }).then(id => {
+                setAttemptId(id);
+                localStorage.setItem(`exam_attempt_${exam.id}_${studentId}`, id);
+            });
+        }
+    }, [exam, studentId]);
+
+    // Apply variant UI settings if any
+    useEffect(() => {
+        if (variant && variant.accessibilityRules) {
+            setA11y(prev => ({
+                ...prev,
+                ...variant.accessibilityRules
+            }));
+        }
+    }, [variant]);
 
     // --- ACCESSIBILITY STYLES COMPUTED ---
     const containerStyle = {
@@ -70,13 +109,61 @@ export const OnlineExamRunner = ({ examId, studentId, onExit, onComplete }: Onli
 
     // SECURITY LISTENERS
     useEffect(() => {
+        if (!attemptId) return;
+
         const handleBlur = () => {
-            console.warn("User left the exam tab!");
-            // Here we could add a "Strike" or log to Supabase
+            logSecurityEvent({
+                attemptId,
+                eventType: 'focus_lost',
+                severity: 'warning',
+                eventData: { action: 'blur' }
+            });
+            alert("Atenção: Você saiu da aba da prova. Este evento foi registrado pela coordenação.");
         };
+
+        const handleFocus = () => {
+            logSecurityEvent({
+                attemptId,
+                eventType: 'focus_gained',
+                severity: 'info'
+            });
+        };
+
+        const preventRightClick = (e: MouseEvent) => {
+            e.preventDefault();
+            logSecurityEvent({
+                attemptId,
+                eventType: 'mouse_violation',
+                severity: 'info',
+                eventData: { action: 'context_menu' }
+            });
+        };
+
+        const preventShortcuts = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'v' || e.key === 'x')) {
+                e.preventDefault();
+                logSecurityEvent({
+                    attemptId,
+                    eventType: 'keyboard_violation',
+                    severity: 'critical',
+                    eventData: { key: e.key }
+                });
+                alert("Atalhos de copiar/colar estão desativados.");
+            }
+        };
+
         window.addEventListener('blur', handleBlur);
-        return () => window.removeEventListener('blur', handleBlur);
-    }, []);
+        window.addEventListener('focus', handleFocus);
+        window.addEventListener('contextmenu', preventRightClick);
+        window.addEventListener('keydown', preventShortcuts);
+
+        return () => {
+            window.removeEventListener('blur', handleBlur);
+            window.removeEventListener('focus', handleFocus);
+            window.removeEventListener('contextmenu', preventRightClick);
+            window.removeEventListener('keydown', preventShortcuts);
+        };
+    }, [attemptId]);
 
     const handleFinalize = () => {
         // Map Local Answers to StudentAnswer format
@@ -92,6 +179,10 @@ export const OnlineExamRunner = ({ examId, studentId, onExit, onComplete }: Onli
                 scoreObtained: isCorrect ? (item as any).score || 1 : 0
             };
         });
+
+        if (attemptId) {
+            submitExamAttempt(attemptId, timeLeft <= 0 ? 'timed_out' : 'submitted');
+        }
 
         onComplete(finalAnswers);
     };

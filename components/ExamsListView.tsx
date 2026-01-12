@@ -1,15 +1,18 @@
 import React from 'react';
-import { Plus, MoreHorizontal, Clock, FileText, Printer, ClipboardCheck, Globe, School, Activity } from 'lucide-react';
+import { Plus, MoreHorizontal, Clock, FileText, Printer, ClipboardCheck, Globe, School, Activity, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppState, ExamStatus } from '../types';
 import { Badge } from './ui/Badge';
 
 import { useAppStore } from '../store/useAppStore';
+import { AdvancedReviewPipeline } from './AdvancedReviewPipeline';
 
 export const ExamsListView = () => {
     const state = useAppStore();
     const { currentUser } = state;
     const navigate = useNavigate();
+    const [auditExamId, setAuditExamId] = React.useState<string | null>(null);
+
     const userTenantId = currentUser?.tenantId;
     const userSchoolId = currentUser?.schoolId;
 
@@ -18,6 +21,7 @@ export const ExamsListView = () => {
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto">
+            {/* ... header unchanged ... */}
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-bold text-brand-dark flex items-center gap-2">
@@ -29,6 +33,18 @@ export const ExamsListView = () => {
                     <Plus size={18} /> Nova Prova
                 </button>
             </div>
+
+            {auditExamId && (
+                <div className="mb-6 relative">
+                    <button
+                        onClick={() => setAuditExamId(null)}
+                        className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 z-10"
+                    >
+                        Fechar
+                    </button>
+                    <AdvancedReviewPipeline versionId={auditExamId} />
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredExams.map(exam => {
@@ -60,6 +76,19 @@ export const ExamsListView = () => {
                                     <span className="text-xs text-slate-400 flex-1">Criada em {new Date(exam.createdAt).toLocaleDateString()}</span>
 
                                     <div className="flex gap-3">
+                                        {(() => {
+                                            const tenant = state.tenants.find(t => t.id === userTenantId);
+                                            const canAudit = tenant?.features?.ai_audit !== false;
+                                            return canAudit && (
+                                                <button
+                                                    onClick={() => setAuditExamId(exam.id)}
+                                                    className="text-indigo-500 font-medium text-sm hover:text-indigo-700 flex items-center gap-1 transition"
+                                                    title="Auditoria IA (Fase 3)"
+                                                >
+                                                    <ShieldCheck size={18} />
+                                                </button>
+                                            );
+                                        })()}
                                         <button
                                             onClick={() => navigate(`/print-exam/${exam.id}`)}
                                             className="text-slate-500 font-medium text-sm hover:text-brand-primary flex items-center gap-1 transition"

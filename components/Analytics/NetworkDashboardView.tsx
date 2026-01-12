@@ -2,13 +2,17 @@
 import React, { useRef, useState, useMemo } from 'react';
 import { TrendingUp, Users, ShieldAlert, Zap, School, MapPin, Globe, Cloud, FileText, RefreshCw, BarChart2, BookOpen, AlertCircle, ArrowUpRight, Search, Filter } from 'lucide-react';
 import { AppState, TenantType, UserRole } from '../../types';
+import { useAppStore } from '../../store/useAppStore';
 import { AnalyticsService } from '../../services/analyticsService';
+
 import { GlobalRankingView } from './GlobalRankingView';
 import { GeoMap } from './GeoMap';
 import { AuditLogView } from '../Admin/AuditLogView';
 
-export const NetworkDashboardView = ({ state }: { state: AppState }) => {
+export const NetworkDashboardView = () => {
+    const state = useAppStore();
     const analytics = new AnalyticsService(state);
+
     const { currentUser, tenants } = state;
 
     // Identificar Nível Hierárquico (FORÇADO FEDERAL PARA CALIBRAÇÃO)

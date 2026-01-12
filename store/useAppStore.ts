@@ -5,8 +5,10 @@ import {
     ChatGroup, Announcement, LessonPlan, StudyPlan, GamifiedEvent, ExamResult,
     MentorshipRequest, MentorshipStatus, OwlTutorContext, ItemGenerationBatch,
     ItemLifecycleStatus, ExamVersion, ExamVariant, Tenant, School, SchoolClass,
-    UserProfileExtended, ExamRegistration, RegistrationStatus
+    UserProfileExtended, ExamRegistration, RegistrationStatus,
+    ExamAttempt, ExamAttemptEvent, AuditLog
 } from '../types';
+import { uuidv4 } from '../utils/helpers';
 import { INITIAL_TENANTS, INITIAL_SCHOOLS, INITIAL_CLASSES, INITIAL_USERS, INITIAL_ITEMS, INITIAL_STUDENTS, INITIAL_RESULTS, INITIAL_EXAMS, INITIAL_REGISTRATIONS, INITIAL_ANNOUNCEMENTS, INITIAL_MESSAGES, INITIAL_LESSON_PLANS, INITIAL_STUDY_PLANS, INITIAL_STUDENT_PROFILES, INITIAL_USER_PROFILES, INITIAL_SETTINGS, INITIAL_GAMIFIED_EVENTS } from '../utils/mockData';
 import { supabase } from '../services/supabaseClient';
 
@@ -72,7 +74,6 @@ interface AppActions {
     addUser: (user: User) => void;
     updateSettings: (settings: AppSettings) => void;
     updatePermissions: (matrix: PermissionMatrix) => void;
-    updateTenantFeatures: (tenantId: string, disabled: any[]) => void;
     updateMessages: (messages: ChatMessage[]) => void;
     updateChatGroups: (groups: ChatGroup[]) => void;
     updateCurrentUser: (user: User) => void;
@@ -111,9 +112,24 @@ interface AppActions {
     removeItems: (ids: string[]) => Promise<void>;
     bulkAddTag: (ids: string[], tag: string) => Promise<void>;
     forceFetchBatchItems: (batchId: string) => Promise<void>;
+
+    // --- PHASE 3 ACTIONS ---
+    startExamAttempt: (attempt: { examVersionId: string; studentId: string }) => Promise<string>;
+    logSecurityEvent: (event: { attemptId: string; eventType: string; severity: string; eventData?: any }) => Promise<void>;
+    submitExamAttempt: (attemptId: string, status: 'submitted' | 'timed_out') => Promise<void>;
+    reopenExamAttempt: (attemptId: string) => Promise<void>;
+
+    // --- PHASE 4 ACTIONS ---
+    calculateAndSaveResult: (attemptId: string, answers: any[]) => Promise<void>;
+    getRecommendedVariant: (studentId: string, versionId: string) => Promise<string | null>;
+
+    // --- PHASE 5: ADMIN & BI ---
+    updateTenantFeatures: (tenantId: string, features: any) => Promise<void>;
+    fetchAuditLogs: (tenantId: string) => Promise<AuditLog[]>;
+    loadTenants: () => Promise<void>;
 }
 
-type AppStore = AppState & AppActions;
+export type AppStore = AppState & AppActions;
 
 // Check if mock data should be used
 const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true';
@@ -147,10 +163,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
     activeBatchId: null,
     examVersions: [],
     examVariants: [],
+    examAttempts: [],
+    examAttemptEvents: [],
     settings: USE_MOCK_DATA ? INITIAL_SETTINGS : INITIAL_SETTINGS, // Always use settings
     globalPermissions: DEFAULT_PERMISSIONS,
-    isInitialized: false,
     hasConsented: false,
+    isInitialized: false,
+    auditLogs: [],
 
     setHasConsented: (val) => set({ hasConsented: val }),
     setOwlTutorContext: (ctx) => set({ owlTutorContext: ctx }),
@@ -695,9 +714,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
     },
     updateSettings: (settings) => set({ settings }),
     updatePermissions: (matrix) => set({ globalPermissions: matrix }),
-    updateTenantFeatures: (tenantId, disabled) => set((state) => ({
-        tenants: state.tenants.map(t => t.id === tenantId ? { ...t, disabledResources: disabled } : t)
-    })),
+    updateTenantFeatures: async (tenantId, features) => {
+        set((state) => ({
+            tenants: state.tenants.map(t => t.id === tenantId ? { ...t, features } : t)
+        }));
+        try {
+            await supabase.from('tenants').update({ features }).eq('id', tenantId);
+        } catch (e) { console.error(e); }
+    },
     updateMessages: (messages) => set({ messages }),
     updateChatGroups: (groups) => set({ chatGroups: groups }),
     updateCurrentUser: (user) => set((state) => ({
@@ -961,27 +985,37 @@ export const useAppStore = create<AppStore>((set, get) => ({
     addExamVersion: async (version) => {
         set((state) => ({ examVersions: [version, ...state.examVersions] }));
         try {
-            await supabase.from('exam_versions').insert({
+            const { error } = await supabase.from('exam_versions').insert({
                 id: version.id,
                 exam_id: version.examId,
                 version_number: version.versionNumber,
                 items_snapshot: version.itemsSnapshot,
-                review_summary: version.reviewSummary
+                grading_config: version.gradingConfig,
+                cover_config: version.coverConfig,
+                status: version.status
             });
-        } catch (e) { console.error("Error saving exam version:", e); }
+            if (error) throw error;
+        } catch (e) {
+            console.error("Error saving exam version:", e);
+            throw e;
+        }
     },
 
     addExamVariant: async (variant) => {
         set((state) => ({ examVariants: [variant, ...state.examVariants] }));
         try {
-            await supabase.from('exam_variants').insert({
+            const { error } = await supabase.from('exam_variants').insert({
                 id: variant.id,
                 exam_version_id: variant.examVersionId,
                 condition_code: variant.conditionCode,
-                adapted_items: variant.adaptedItems,
-                delivery_logic_log: variant.deliveryLogicLog
+                variant_rules_jsonb: variant.variantRules,
+                status: variant.status
             });
-        } catch (e) { console.error("Error saving variant:", e); }
+            if (error) throw error;
+        } catch (e) {
+            console.error("Error saving variant:", e);
+            throw e;
+        }
     },
 
     loadGenerationBatches: async () => {
@@ -1001,6 +1035,225 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 }))
             });
         }
+    },
+
+    startExamAttempt: async (dto) => {
+        const id = uuidv4();
+        const newAttempt: ExamAttempt = {
+            id,
+            examVersionId: dto.examVersionId,
+            studentId: dto.studentId,
+            status: 'started',
+            startedAt: new Date().toISOString(),
+            lastPingAt: new Date().toISOString(),
+            violationCount: 0,
+            metadata: {}
+        };
+
+        set((state) => ({ examAttempts: [newAttempt, ...state.examAttempts] }));
+
+        try {
+            const { error } = await supabase.from('exam_attempts').insert({
+                id: newAttempt.id,
+                exam_version_id: newAttempt.examVersionId,
+                student_id: newAttempt.studentId,
+                status: newAttempt.status,
+                started_at: newAttempt.startedAt,
+                metadata: newAttempt.metadata
+            });
+            if (error) throw error;
+        } catch (e) {
+            console.error("Error starting attempt:", e);
+        }
+        return id;
+    },
+
+    logSecurityEvent: async (dto) => {
+        const id = uuidv4();
+        const newEvent: ExamAttemptEvent = {
+            id,
+            attemptId: dto.attemptId,
+            eventType: dto.eventType as any,
+            severity: dto.severity as any,
+            eventData: dto.eventData || {},
+            createdAt: new Date().toISOString()
+        };
+
+        set((state) => ({
+            examAttemptEvents: [newEvent, ...state.examAttemptEvents],
+            examAttempts: state.examAttempts.map(a => a.id === dto.attemptId ? { ...a, violationCount: a.violationCount + 1 } : a)
+        }));
+
+        try {
+            const { error } = await supabase.from('exam_attempt_events').insert({
+                id: newEvent.id,
+                attempt_id: newEvent.attemptId,
+                event_type: newEvent.eventType,
+                severity: newEvent.severity,
+                event_data: newEvent.eventData
+            });
+            if (error) throw error;
+
+            await supabase.rpc('increment_violation_count', { attempt_id_input: dto.attemptId });
+        } catch (e) {
+            console.error("Error logging security event:", e);
+        }
+    },
+
+    submitExamAttempt: async (attemptId, status) => {
+        set((state) => ({
+            examAttempts: state.examAttempts.map(a => a.id === attemptId ? { ...a, status: status as any, submittedAt: new Date().toISOString() } : a)
+        }));
+
+        try {
+            const { error } = await supabase.from('exam_attempts').update({
+                status: status,
+                submitted_at: new Date().toISOString()
+            }).eq('id', attemptId);
+            if (error) throw error;
+        } catch (e) {
+            console.error("Error submitting attempt:", e);
+        }
+    },
+
+    reopenExamAttempt: async (attemptId) => {
+        set((state) => ({
+            examAttempts: state.examAttempts.map(a =>
+                a.id === attemptId ? { ...a, status: 'started' } : a
+            )
+        }));
+
+        try {
+            await supabase
+                .from('exam_attempts')
+                .update({ status: 'started' })
+                .eq('id', attemptId);
+
+            await get().logSecurityEvent({
+                attemptId,
+                eventType: 'focus_gained', // Reuse event for focus return
+                severity: 'info',
+                eventData: { reason: 'SUPERVISOR_REOPEN' }
+            });
+        } catch (e) {
+            console.error("Error reopening attempt:", e);
+        }
+    },
+
+    // --- PHASE 4 IMPLEMENTATION ---
+    calculateAndSaveResult: async (attemptId, answers) => {
+        const state = get();
+        const attempt = state.examAttempts.find(a => a.id === attemptId);
+        if (!attempt) return;
+
+        const version = state.examVersions.find(v => v.id === attempt.examVersionId);
+        if (!version) return;
+
+        let totalScore = 0;
+        const autoGradeLog: any[] = [];
+        const incorrectItems: any[] = [];
+
+        // 1. Core Grading Logic
+        (version.itemsSnapshot || []).forEach((snap: any) => {
+            const studentAns = answers.find(a => a.itemId === (snap.id || snap.itemId));
+            const item = state.items.find(i => i.id === (snap.id || snap.itemId));
+
+            if (item && studentAns) {
+                const correctAlt = item.alternatives.find(alt => alt.isCorrect);
+                const isCorrect = studentAns.selectedAlternativeId === correctAlt?.id;
+
+                const weight = version.gradingConfig?.totalsByDiscipline?.[item.subject] || 1;
+                const score = isCorrect ? weight : 0;
+
+                totalScore += score;
+                autoGradeLog.push({
+                    itemId: item.id,
+                    isCorrect,
+                    score,
+                    studentAnswerId: studentAns.selectedAlternativeId,
+                    correctAnswerId: correctAlt?.id
+                });
+
+                if (!isCorrect) {
+                    incorrectItems.push({
+                        subject: item.subject,
+                        statement: item.statement,
+                        studentAnswer: item.alternatives.find(a => a.id === studentAns.selectedAlternativeId)?.text || 'Nenhuma',
+                        correctAnswer: correctAlt?.text
+                    });
+                }
+            }
+        });
+
+        // 2. AI Pedagogical Feedback
+        let pedagogicalFeedback = "Bom desempenho! Continue praticando os tópicos abordados.";
+        if (incorrectItems.length > 0) {
+            try {
+                const { generateStudyPlanSuggestions } = await import('../services/geminiService');
+                const feedback = await generateStudyPlanSuggestions(
+                    state.currentUser?.name || 'Aluno',
+                    incorrectItems[0].subject,
+                    totalScore
+                );
+                pedagogicalFeedback = `${feedback.title}: ${feedback.tasks.join(', ')}`;
+            } catch (e) {
+                console.error("Error generating AI feedback:", e);
+            }
+        }
+
+        // 3. Save Result
+        const resultId = uuidv4();
+        const newResult: any = {
+            id: resultId,
+            examId: version.examId,
+            studentId: attempt.studentId,
+            answers: answers.map(a => ({
+                itemId: a.itemId,
+                selectedAlternativeText: a.selectedAlternativeText,
+                scoreObtained: autoGradeLog.find(log => log.itemId === a.itemId)?.score || 0
+            })),
+            totalScore,
+            gradedAt: new Date().toISOString(),
+            violationCount: attempt.violationCount,
+            pedagogicalFeedback,
+            autoGradeLog
+        };
+
+        set(state => ({
+            results: [...state.results, newResult],
+            examAttempts: state.examAttempts.map(a => a.id === attemptId ? { ...a, status: 'submitted' as const, submittedAt: new Date().toISOString() } : a)
+        }));
+
+        try {
+            await supabase.from('exam_results').insert({
+                id: newResult.id,
+                exam_id: newResult.examId,
+                student_id: newResult.studentId,
+                answers: newResult.answers,
+                total_score: newResult.totalScore,
+                graded_at: newResult.gradedAt,
+                pedagogical_feedback: newResult.pedagogicalFeedback,
+                auto_grade_log: newResult.autoGradeLog
+            });
+
+            await supabase.from('exam_attempts').update({
+                status: 'submitted',
+                submitted_at: newResult.gradedAt
+            }).eq('id', attemptId);
+        } catch (e) {
+            console.error("Error persisting result:", e);
+        }
+    },
+
+    getRecommendedVariant: async (studentId, versionId) => {
+        const state = get();
+        const user = state.users.find(u => u.id === studentId);
+        if (!user || !user.specialNeeds || user.specialNeeds.length === 0) return null;
+
+        const variants = state.examVariants.filter(v => v.examVersionId === versionId && v.status === 'active');
+
+        const match = variants.find(v => user.specialNeeds?.includes(v.conditionCode));
+        return match ? match.id : null;
     },
 
     // --- MENTORSHIP IMPL ---
@@ -1050,6 +1303,28 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 throw error;
             }
         } catch (e) { console.error(e); }
+    },
+
+    // --- PHASE 5 IMPL ---
+    loadTenants: async () => {
+        try {
+            const { data } = await supabase.from('tenants').select('*');
+            if (data) set({ tenants: data as Tenant[] });
+        } catch (e) { console.error(e); }
+    },
+    fetchAuditLogs: async (tenantId) => {
+        try {
+            const { data } = await supabase.from('audit_logs')
+                .select('*')
+                .eq('tenant_id', tenantId)
+                .order('created_at', { ascending: false });
+            if (data) {
+                const logs = data as AuditLog[];
+                set({ auditLogs: logs });
+                return logs;
+            }
+        } catch (e) { console.error(e); }
+        return [];
     },
     confirmMentorship: (reqId, pinInput) => {
         let success = false;

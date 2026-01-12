@@ -4,64 +4,38 @@ import {
     ChevronLeft, Users, Activity, ShieldAlert, Wifi, Battery,
     MessageCircle, AlertCircle, CheckCircle2, Clock, Smartphone
 } from 'lucide-react';
-import { useAppStore } from '../store/useAppStore';
-import { AppState, ExamStatus, RegistrationStatus } from '../types';
+import { useAppStore, AppStore } from '../store/useAppStore';
+import { ExamStatus, RegistrationStatus } from '../types';
 import { Badge } from './ui/Badge';
 
-export const LiveExamMonitorView = ({ state }: { state: AppState }) => {
+export const LiveExamMonitorView = () => {
+    const state = useAppStore();
     const { examId } = useParams();
     const navigate = useNavigate();
     const exam = state.exams.find(e => e.id === examId);
 
-    // Simulação de telemetria em tempo real
-    const [studentsData, setStudentsData] = useState<any[]>([]);
+    const { examAttempts, examAttemptEvents, students, registrations, reopenExamAttempt } = state;
 
-    useEffect(() => {
-        if (!exam) return;
+    // Process live data
+    const studentsData = registrations
+        .filter(r => r.examId === examId)
+        .map(r => {
+            const student = students.find(s => s.id === r.studentId);
+            const attempt = examAttempts.find(a => a.studentId === r.studentId && a.examVersionId === examId);
+            const alerts = attempt ? examAttemptEvents.filter(e => e.attemptId === attempt.id) : [];
 
-        // Mocking real-time updates for demonstration
-        const registrations = state.registrations.filter(r => r.examId === examId);
-        const initialData = registrations.map(r => {
-            const student = state.students.find(s => s.id === r.studentId);
             return {
                 id: r.studentId,
+                attemptId: attempt?.id,
                 name: student?.name || 'Aluno',
-                status: r.status,
-                progress: r.status === RegistrationStatus.FINALIZADO ? 100 : Math.floor(Math.random() * 40),
-                battery: 60 + Math.floor(Math.random() * 40),
+                status: attempt?.status || r.status,
+                progress: (attempt?.status === 'submitted' || r.status === RegistrationStatus.FINALIZADO) ? 100 : (attempt ? 40 : 0),
+                battery: 95,
                 connection: 'EXCELLENT',
-                securityAlerts: [],
-                lastUpdate: new Date().toISOString()
+                securityAlerts: alerts.map(a => ({ type: a.eventType, time: new Date(a.createdAt).toLocaleTimeString() })),
+                violationCount: attempt?.violationCount || 0
             };
         });
-        setStudentsData(initialData);
-
-        const interval = setInterval(() => {
-            setStudentsData(prev => prev.map(s => {
-                if (s.status === RegistrationStatus.FINALIZADO) return s;
-
-                const newProgress = Math.min(100, s.progress + Math.floor(Math.random() * 5));
-                const newStatus = newProgress === 100 ? RegistrationStatus.FINALIZADO : RegistrationStatus.PRESENTE;
-
-                // Simulação aleatória de Alerta de Segurança
-                const isViolation = Math.random() > 0.98;
-                const newAlerts = isViolation
-                    ? [...s.securityAlerts, { type: 'FOCUS_LOST', time: new Date().toLocaleTimeString() }]
-                    : s.securityAlerts;
-
-                return {
-                    ...s,
-                    progress: newProgress,
-                    status: newStatus,
-                    securityAlerts: newAlerts,
-                    battery: Math.max(0, s.battery - 0.1),
-                    lastUpdate: new Date().toISOString()
-                };
-            }));
-        }, 3000);
-
-        return () => clearInterval(interval);
-    }, [examId, exam, state.registrations, state.students]);
 
     if (!exam) return <div>Prova não encontrada.</div>;
 
@@ -172,6 +146,14 @@ export const LiveExamMonitorView = ({ state }: { state: AppState }) => {
                             )}
 
                             <div className="flex gap-2">
+                                {student.violationCount > 3 && (
+                                    <button
+                                        onClick={() => student.attemptId && reopenExamAttempt(student.attemptId)}
+                                        className="flex-1 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 transition flex items-center justify-center gap-1"
+                                    >
+                                        <CheckCircle2 size={12} /> Reabrir
+                                    </button>
+                                )}
                                 <button className="flex-1 py-1.5 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-50 transition flex items-center justify-center gap-1">
                                     <MessageCircle size={12} /> Chat
                                 </button>

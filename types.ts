@@ -11,12 +11,37 @@ export enum UserRole {
   PAIS = 'PAIS' // Pais/Responsáveis
 }
 
-// NOVO: Classificação da Rede de Ensino
 export enum TenantType {
   PUBLIC_MUNICIPAL = 'PUBLIC_MUNICIPAL',
   PUBLIC_STATE = 'PUBLIC_STATE',
   PUBLIC_FEDERAL = 'PUBLIC_FEDERAL',
   PRIVATE = 'PRIVATE'
+}
+
+export interface Tenant {
+  id: string;
+  name: string;
+  type: TenantType;
+  features: {
+    ai_audit?: boolean;
+    neuro_screening?: boolean;
+    tablet_mode?: boolean;
+    offline_sync?: boolean;
+    bi_advanced?: boolean;
+  };
+  createdAt: string;
+}
+
+export interface AuditLog {
+  id: string;
+  tenantId: string;
+  actorId?: string;
+  actorEmail?: string;
+  actionType: string;
+  targetResource?: string;
+  targetId?: string;
+  details: any;
+  createdAt: string;
 }
 
 export enum QuestionType {
@@ -183,8 +208,9 @@ export interface User {
   tenantId: string;
   schoolId?: string;
   classIds?: string[];
+  status?: string;
   childrenIds?: string[]; // Array de IDs dos filhos
-  status?: 'ACTIVE' | 'BLOCKED';
+  specialNeeds?: string[]; // Condition codes like TEA, TDAH, DISLEXIA
 }
 
 export interface Student {
@@ -249,8 +275,10 @@ export enum ExamModel {
 export enum ExamStatus {
   DRAFT = 'DRAFT',
   ACTIVE = 'ACTIVE',
-  COMPLETED = 'COMPLETED'
+  COMPLETED = 'COMPLETED',
+  PUBLISHED = 'PUBLISHED'
 }
+
 
 export interface ExamItemConfig {
   itemId: string;
@@ -310,6 +338,8 @@ export interface ExamResult {
   gradedAt: string;
   violationCount?: number;
   securityFlags?: string[];
+  pedagogicalFeedback?: string; // AI-generated tips
+  autoGradeLog?: any; // Details of the grading process
 }
 
 export interface ItemGenerationBatch {
@@ -328,17 +358,52 @@ export interface ExamVersion {
   id: string;
   examId: string;
   versionNumber: number;
-  itemsSnapshot: any;
-  reviewSummary?: any;
+  itemsSnapshot: any[];
+  gradingConfig: {
+    totalsByDiscipline: Record<string, number>;
+    totalScore: number;
+  };
+  coverConfig: {
+    title: string;
+    instructions: string[];
+    securityNotices: string[];
+  };
+  status: 'draft' | 'published' | 'archived';
+  scheduledStart?: string;
+  scheduledEnd?: string;
+  createdAt: string;
+}
+
+export interface ExamAttempt {
+  id: string;
+  examVersionId: string;
+  studentId: string;
+  status: 'started' | 'submitted' | 'flagged' | 'timed_out';
+  startedAt: string;
+  submittedAt?: string;
+  lastPingAt: string;
+  violationCount: number;
+  ipAddress?: string;
+  deviceInfo?: any;
+  metadata?: any;
+}
+
+export interface ExamAttemptEvent {
+  id: string;
+  attemptId: string;
+  eventType: 'focus_lost' | 'focus_gained' | 'screenshot' | 'devtools_open' | 'copy_paste';
+  severity: 'info' | 'warning' | 'critical';
+  eventData?: any;
   createdAt: string;
 }
 
 export interface ExamVariant {
   id: string;
   examVersionId: string;
-  conditionCode: string;
-  adaptedItems: any;
-  deliveryLogicLog?: string;
+  conditionCode: string; // TEA | TDAH | DIFIC_APRENDIZAGEM
+  variantRules: any;
+  status: 'active' | 'archived';
+  accessibilityRules?: any; // UI/Process overrides
   createdAt: string;
 }
 
@@ -633,8 +698,11 @@ export interface AppState {
   activeBatchId: string | null;
   examVersions: ExamVersion[];
   examVariants: ExamVariant[];
+  examAttempts: ExamAttempt[];
+  examAttemptEvents: ExamAttemptEvent[];
   settings: AppSettings;
   globalPermissions: PermissionMatrix;
   hasConsented: boolean; // LGPD Consent Status
   isInitialized: boolean;
+  auditLogs: AuditLog[];
 }

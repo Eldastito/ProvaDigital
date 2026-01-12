@@ -4,12 +4,9 @@ import { BookOpen, FileText, GraduationCap, Users, Plus, Tablet, BarChart, Chevr
 import { AppState, UserRole, ExamStatus } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
 
-interface ProfessorDashboardViewProps {
-    state: AppState;
-    setView: (view: string) => void;
-}
+import { useAppStore } from '../../store/useAppStore';
+import { useNavigate } from 'react-router-dom';
 
-// Componente de Gráfico de Distribuição Simples (SVG)
 const DistributionChart = ({ grades }: { grades: number[] }) => {
     const buckets = [0, 0, 0, 0, 0]; // 0-2, 2-4, 4-6, 6-8, 8-10
     grades.forEach(g => {
@@ -37,7 +34,9 @@ const DistributionChart = ({ grades }: { grades: number[] }) => {
     );
 };
 
-export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardViewProps) => {
+export const ProfessorDashboardView = () => {
+    const state = useAppStore();
+    const navigate = useNavigate();
     const { currentUser } = state;
     const analytics = new AnalyticsService(state);
     const isProfessor = currentUser?.role === UserRole.PROFESSOR;
@@ -120,10 +119,10 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
                     <p className="text-slate-500 mt-1">Gestão de turmas, provas e acompanhamento individualizado.</p>
                 </div>
                 <div className="flex gap-3">
-                    <button onClick={() => setView('TABLET_LAUNCHER')} className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium text-sm transition shadow-md">
+                    <button onClick={() => navigate('/apps/tablet')} className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium text-sm transition shadow-md">
                         <Tablet size={18} /> Aplicar Prova (Offline)
                     </button>
-                    <button onClick={() => setView('ITEM_NEW')} className="btn-gradient px-4 py-2 rounded-lg flex items-center gap-2 font-medium text-sm">
+                    <button onClick={() => navigate('/items/new')} className="btn-gradient px-4 py-2 rounded-lg flex items-center gap-2 font-medium text-sm">
                         <Plus size={18} /> Criar Questão
                     </button>
                 </div>
@@ -134,7 +133,7 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-8">
                     <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
                         <h3 className="font-bold text-slate-800 flex items-center gap-2"><FileText size={18} className="text-brand-secondary" /> Minhas Provas Ativas</h3>
-                        <button onClick={() => setView('EXAM_NEW')} className="text-xs text-brand-primary font-bold hover:underline">+ Nova Prova</button>
+                        <button onClick={() => navigate('/exams/new')} className="text-xs text-brand-primary font-bold hover:underline">+ Nova Prova</button>
                     </div>
                     <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                         {myExams.slice(0, 3).map(exam => (
@@ -146,7 +145,7 @@ export const ProfessorDashboardView = ({ state, setView }: ProfessorDashboardVie
                                 <h4 className="font-bold text-slate-800 text-sm mb-1 truncate">{exam.title}</h4>
                                 <p className="text-xs text-slate-500 mb-3">{exam.classIds?.length || 0} turmas alocadas</p>
                                 <div className="flex gap-2">
-                                    <button onClick={() => setView('EXAMS')} className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded hover:bg-slate-200 flex-1">Gerenciar</button>
+                                    <button onClick={() => navigate('/exams')} className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded hover:bg-slate-200 flex-1">Gerenciar</button>
                                     {exam.status === ExamStatus.PUBLISHED && (
                                         <button onClick={() => { /* Navigate to grading */ }} className="text-xs bg-brand-light text-brand-primary px-3 py-1 rounded hover:bg-brand-secondary hover:text-white transition flex items-center gap-1">
                                             <ClipboardCheck size={12} /> Notas
