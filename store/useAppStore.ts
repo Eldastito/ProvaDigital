@@ -367,12 +367,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
             console.log('✅ Item saved successfully:', item.id);
         } catch (e) {
             console.error('Failed to persist item:', e);
+            throw e;
         }
     },
 
     addItems: async (items) => {
+        // 1. Optimistic update
         set((state) => ({ items: [...items, ...state.items] }));
         if (USE_MOCK_DATA) return;
+        // 2. Persist to Supabase
         try {
             const dbPayload = items.map(item => ({
                 id: item.id,
@@ -399,22 +402,27 @@ export const useAppStore = create<AppStore>((set, get) => ({
             }));
             const { error } = await supabase.from('items').insert(dbPayload);
             if (error) {
-                console.error('Error adding items:', error);
-                const ids = items.map(i => i.id);
-                set((state) => ({ items: state.items.filter(i => !ids.includes(i.id)) }));
-                alert("Erro ao salvar novos itens no banco de dados.");
+                console.error('❌ Error saving items to Supabase:', error);
+                // Rollback local state
+                set((state) => ({
+                    items: state.items.filter(i => !items.some(ni => ni.id === i.id))
+                }));
                 throw error;
             }
-            console.log('✅ Items added successfully:', items.length);
+            console.log('✅ Items saved successfully:', items.map(i => i.id));
         } catch (e) {
             console.error('Failed to persist items:', e);
+            throw e;
         }
     },
 
     updateItem: async (item) => {
+        // 1. Optimistic update
+        const previousItems = get().items;
         set((state) => ({
             items: state.items.map(i => i.id === item.id ? item : i)
         }));
+        // 2. Persist to Supabase
         try {
             const { error } = await supabase.from('items').update({
                 subject: item.subject,
@@ -430,10 +438,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 is_accessible: item.isAccessible,
                 accessibility_instructions: item.accessibilityInstructions
             }).eq('id', item.id);
-            if (error) throw error;
+            if (error) {
+                console.error('❌ Error updating item in Supabase:', error);
+                set({ items: previousItems }); // Rollback
+                throw error;
+            }
+            console.log('✅ Item updated successfully:', item.id);
         } catch (e) {
-            console.error('Error updating item:', e);
-            alert("Erro ao atualizar o item no banco de dados.");
+            console.error('Failed to update item:', e);
+            throw e;
         }
     },
 
@@ -851,14 +864,24 @@ export const useAppStore = create<AppStore>((set, get) => ({
     addGenerationBatch: async (batch) => {
         set((state) => ({ itemGenerationBatches: [batch, ...state.itemGenerationBatches] }));
         try {
-            await supabase.from('item_generation_batches').insert({
+            const { error } = await supabase.from('item_generation_batches').insert({
                 id: batch.id,
                 creator_id: batch.creatorId,
                 tenant_id: batch.tenantId,
                 prompt_context: batch.promptContext,
                 total_requested: batch.totalRequested
             });
-        } catch (e) { console.error("Error saving batch:", e); }
+            if (error) {
+                console.error('❌ Error saving batch to Supabase:', error);
+                set((state) => ({
+                    itemGenerationBatches: state.itemGenerationBatches.filter(b => b.id !== batch.id)
+                }));
+                throw error;
+            }
+        } catch (e) {
+            console.error("Error saving batch:", e);
+            throw e;
+        }
     },
 
     updateItemStatus: async (itemId, status) => {

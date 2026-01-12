@@ -320,7 +320,8 @@ export const ItemEditorView = () => {
             }
         } catch (e) {
             console.error(e);
-            alert("Erro ao gerar questões. Verifique sua conexão e tente novamente.");
+            // No alert here because store already alerts or we handle it
+            alert("Não foi possível salvar as questões no banco. Tente novamente.");
         } finally {
             setAiLoading(false);
         }
@@ -909,7 +910,7 @@ export const ItemEditorView = () => {
                                     items={state.items.filter(i => i.generationBatchId === currentBatchId)}
                                     onFinish={() => {
                                         setCurrentBatchId(null);
-                                        navigate('/items');
+                                        setGeneratedItems([]);
                                     }}
                                 />
                             </div>

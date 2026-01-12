@@ -18,13 +18,21 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
     const [editingItem, setEditingItem] = useState<Item | null>(null);
 
     const approveItem = async (id: string) => {
-        await updateItemStatus(id, ItemLifecycleStatus.APPROVED);
-        setLocalItems(prev => prev.map(i => i.id === id ? { ...i, lifecycleStatus: ItemLifecycleStatus.APPROVED } : i));
+        try {
+            await updateItemStatus(id, ItemLifecycleStatus.APPROVED);
+            setLocalItems(prev => prev.map(i => i.id === id ? { ...i, lifecycleStatus: ItemLifecycleStatus.APPROVED } : i));
+        } catch (e) {
+            alert("Erro ao aprovar item.");
+        }
     };
 
     const discardItem = async (id: string) => {
-        await removeItems([id]);
-        setLocalItems(prev => prev.filter(i => i.id !== id));
+        try {
+            await removeItems([id]);
+            setLocalItems(prev => prev.filter(i => i.id !== id));
+        } catch (e) {
+            alert("Erro ao descartar item.");
+        }
     };
 
     const approveAll = async () => {
@@ -40,8 +48,12 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
     const discardAll = async () => {
         const ids = localItems.map(i => i.id);
         if (confirm(`Deseja descartar todas as ${ids.length} questões deste lote?`)) {
-            await removeItems(ids);
-            setLocalItems([]);
+            try {
+                await removeItems(ids);
+                setLocalItems([]);
+            } catch (e) {
+                alert("Erro ao descartar lote.");
+            }
         }
     };
 
