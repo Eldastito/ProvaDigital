@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
-import { UserRole } from './types';
+import { UserRole, ExamResult } from './types';
 import { useAppStore } from './store/useAppStore';
 import { checkConnection, supabase } from './services/supabaseClient';
 import { LoginPage } from './components/Auth/LoginPage';
@@ -57,7 +57,7 @@ const LiveDemoAction = () => {
 const OnlineExamRunnerWrapper = () => {
   const { examId } = useParams();
   const navigate = useNavigate();
-  const { currentUser } = useAppStore();
+  const { currentUser, updateResults } = useAppStore();
 
   if (!currentUser || !examId) return <div>Erro: Dados inválidos</div>;
 
@@ -65,11 +65,28 @@ const OnlineExamRunnerWrapper = () => {
     <OnlineExamRunner
       examId={examId}
       studentId={currentUser.id}
-      onExit={() => navigate('/apps/demo')}
-      onComplete={(answers) => {
-        console.log("Answers:", answers);
-        alert("Prova finalizada! (Respostas no console)");
-        navigate('/apps/demo');
+      onExit={() => navigate('/online-exam')}
+      onComplete={async (answers) => {
+        const totalScore = answers.reduce((sum, a) => sum + a.scoreObtained, 0);
+
+        const newResult: ExamResult = {
+          id: uuidv4(),
+          examId: examId,
+          studentId: currentUser.id,
+          answers,
+          totalScore,
+          gradedAt: new Date().toISOString(),
+          securityFlags: []
+        };
+
+        try {
+          await updateResults([newResult]);
+          alert(`Prova finalizada com sucesso! Sua nota: ${totalScore}`);
+          navigate('/online-exam');
+        } catch (e) {
+          console.error("Erro ao salvar resultado:", e);
+          alert("Erro técnico ao salvar sua prova. Por favor, avise o professor.");
+        }
       }}
     />
   );

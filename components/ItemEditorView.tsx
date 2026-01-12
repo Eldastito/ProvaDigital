@@ -460,6 +460,7 @@ export const ItemEditorView = () => {
             accessibilityInstructions: (form as any).accessibilityInstructions || '',
             multimedia: (form as any).multimedia || [],
             usageCount: 0,
+            lifecycleStatus: ItemLifecycleStatus.APPROVED,
             createdAt: new Date().toISOString()
         };
 

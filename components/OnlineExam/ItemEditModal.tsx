@@ -101,6 +101,46 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({ item, onSave, onCl
                             height="h-24"
                         />
                     </div>
+
+                    <div className="pt-4 border-t border-slate-100 flex flex-col gap-6">
+                        {/* ACCESSIBILITY */}
+                        <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                            <div className="flex items-center gap-2 mb-3">
+                                <input
+                                    type="checkbox"
+                                    id="isAccessible"
+                                    checked={form.isAccessible}
+                                    onChange={(e) => setForm({ ...form, isAccessible: e.target.checked })}
+                                    className="w-4 h-4 text-emerald-600 rounded"
+                                />
+                                <label htmlFor="isAccessible" className="text-sm font-bold text-emerald-800 uppercase">Item Acessível (PCD)</label>
+                            </div>
+                            {form.isAccessible && (
+                                <textarea
+                                    className="w-full border rounded-lg p-3 text-sm h-24 bg-white"
+                                    placeholder="Descreva aqui as instruções especiais para alunos TEA, TDAH ou Baixa Visão..."
+                                    value={form.accessibilityInstructions}
+                                    onChange={(e) => setForm({ ...form, accessibilityInstructions: e.target.value })}
+                                />
+                            )}
+                        </div>
+
+                        {/* MULTIMEDIA */}
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Mídia de Apoio (Imagem/Vídeo/Áudio)</label>
+                            <input
+                                className="w-full border rounded-lg p-2 text-sm bg-white"
+                                placeholder="Link da imagem, YouTube ou arquivo de áudio..."
+                                value={form.multimedia?.[0]?.url || ''}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    const type = val.toLowerCase().includes('youtube') || val.toLowerCase().endsWith('.mp4') ? 'VIDEO' : 'IMAGE';
+                                    setForm({ ...form, multimedia: val ? [{ type, url: val }] : [] });
+                                }}
+                            />
+                            <p className="text-[10px] text-slate-400 mt-1 italic">Este link será usado para renderizar mídias durante a prova.</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="p-4 bg-slate-50 border-t flex justify-end gap-3">

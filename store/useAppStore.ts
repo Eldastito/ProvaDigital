@@ -350,6 +350,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 generation_batch_id: item.generationBatchId,
                 knowledge_area: item.knowledgeArea,
                 lifecycle_status: item.lifecycleStatus || 'APPROVED',
+                is_accessible: item.isAccessible || false,
+                accessibility_instructions: item.accessibilityInstructions || '',
+                multimedia: item.multimedia || [],
                 created_at: item.createdAt
             });
 
@@ -389,6 +392,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 generation_batch_id: item.generationBatchId,
                 knowledge_area: item.knowledgeArea,
                 lifecycle_status: item.lifecycleStatus || 'APPROVED',
+                is_accessible: item.isAccessible || false,
+                accessibility_instructions: item.accessibilityInstructions || '',
+                multimedia: item.multimedia || [],
                 created_at: item.createdAt
             }));
             const { error } = await supabase.from('items').insert(dbPayload);

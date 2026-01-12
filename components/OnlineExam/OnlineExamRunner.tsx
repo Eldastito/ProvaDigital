@@ -56,6 +56,46 @@ export const OnlineExamRunner = ({ examId, studentId, onExit, onComplete }: Onli
         setAnswers(prev => ({ ...prev, [itemId]: alternativeId }));
     };
 
+    // TIMER EFFECT
+    useEffect(() => {
+        if (timeLeft <= 0) {
+            handleFinalize();
+            return;
+        }
+        const timer = setInterval(() => {
+            setTimeLeft(prev => prev - 1);
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [timeLeft]);
+
+    // SECURITY LISTENERS
+    useEffect(() => {
+        const handleBlur = () => {
+            console.warn("User left the exam tab!");
+            // Here we could add a "Strike" or log to Supabase
+        };
+        window.addEventListener('blur', handleBlur);
+        return () => window.removeEventListener('blur', handleBlur);
+    }, []);
+
+    const handleFinalize = () => {
+        // Map Local Answers to StudentAnswer format
+        const finalAnswers: StudentAnswer[] = examItems.map(item => {
+            const selectedAltId = answers[item.id];
+            const selectedAlt = item.alternatives.find(a => a.id === selectedAltId);
+            const isCorrect = selectedAlt?.isCorrect || false;
+
+            return {
+                itemId: item.id,
+                selectedAlternativeId: selectedAltId || null,
+                isCorrect,
+                scoreObtained: isCorrect ? (item as any).score || 1 : 0
+            };
+        });
+
+        onComplete(finalAnswers);
+    };
+
     if (!exam) return <div className="p-8 text-center">Prova não encontrada.</div>;
 
     const currentItem = examItems[currentQuestionIndex];
@@ -175,7 +215,7 @@ export const OnlineExamRunner = ({ examId, studentId, onExit, onComplete }: Onli
 
                 {isLastQuestion ? (
                     <button
-                        onClick={() => onComplete([])} // TODO: Map answers
+                        onClick={handleFinalize}
                         className={`px-12 py-4 rounded-xl font-bold flex items-center gap-2 shadow-xl ${a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black hover:bg-white' : 'bg-emerald-600 text-white hover:bg-emerald-500'}`}
                     >
                         <CheckCircle /> Finalizar Prova

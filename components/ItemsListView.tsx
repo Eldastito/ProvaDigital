@@ -63,6 +63,11 @@ const ItemRow: React.FC<ItemRowProps> = ({ item, onSelect, onHistory, getUsageCo
             <div className="w-24 text-slate-500 text-xs uppercase font-semibold">
                 {item.origin === ItemOrigin.IA ? <span className="text-purple-600 flex items-center gap-1"><Brain size={12} /> IA</span> : 'Manual'}
             </div>
+            <div className="w-24">
+                <Badge color={item.lifecycleStatus === 'DRAFT' ? 'yellow' : 'blue'}>
+                    {item.lifecycleStatus || 'APPROVED'}
+                </Badge>
+            </div>
             <div className="w-24 text-center">
                 <Badge color={getUsageColor(realUsageCount)}>{realUsageCount}x</Badge>
             </div>
@@ -294,6 +299,7 @@ export const ItemsListView = () => {
                     <div className="w-24">BNCC</div>
                     <div className="w-24">Dificuldade</div>
                     <div className="w-24">Origem</div>
+                    <div className="w-24">Status</div>
                     <div className="w-24 text-center">Uso</div>
                     <div className="w-24 text-right">Ações</div>
                 </div>
