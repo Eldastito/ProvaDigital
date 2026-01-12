@@ -77,7 +77,12 @@ CREATE TABLE IF NOT EXISTS public.students (
 );
 
 -- ENUMS
-CREATE TYPE public.item_lifecycle_status AS ENUM ('DRAFT', 'APPROVED', 'REJECTED', 'ARCHIVED');
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'item_lifecycle_status') THEN
+        CREATE TYPE public.item_lifecycle_status AS ENUM ('DRAFT', 'APPROVED', 'REJECTED', 'ARCHIVED');
+    END IF;
+END $$;
 
 -- 6. ITEMS (Banco de Questões)
 CREATE TABLE IF NOT EXISTS public.items (
