@@ -112,6 +112,7 @@ interface AppActions {
     removeItems: (ids: string[]) => Promise<void>;
     bulkAddTag: (ids: string[], tag: string) => Promise<void>;
     forceFetchBatchItems: (batchId: string) => Promise<void>;
+    deleteGenerationBatch: (batchId: string) => Promise<void>;
 
     // --- PHASE 3 ACTIONS ---
     startExamAttempt: (attempt: { examVersionId: string; studentId: string }) => Promise<string>;
@@ -931,6 +932,24 @@ export const useAppStore = create<AppStore>((set, get) => ({
         } catch (e) {
             console.error("Error saving batch:", e);
             throw e;
+        }
+    },
+
+    deleteGenerationBatch: async (batchId) => {
+        set((state) => ({
+            itemGenerationBatches: state.itemGenerationBatches.filter(b => b.id !== batchId),
+            items: state.items.filter(i => i.generationBatchId !== batchId)
+        }));
+        try {
+            // Delete items first (manual cascade if foreign key doesn't handle)
+            const { error: itemsError } = await supabase.from('items').delete().eq('generation_batch_id', batchId);
+            if (itemsError) throw itemsError;
+
+            const { error: batchError } = await supabase.from('item_generation_batches').delete().eq('id', batchId);
+            if (batchError) throw batchError;
+        } catch (e) {
+            console.error("Error deleting batch:", e);
+            // Optionally reload to restore state on error, but optimistic update is usually preferred
         }
     },
 

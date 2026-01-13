@@ -17,10 +17,13 @@ ALTER TABLE public.item_generation_batches
 
 -- Rename creator_id to created_by if needed (keeping both for compatibility during transition if necessary, but strictly creator_id is used currently)
 -- Following user spec: created_by uuid (using TEXT for current project ID compatibility)
-IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='item_generation_batches' AND column_name='created_by') THEN
-    ALTER TABLE public.item_generation_batches ADD COLUMN created_by TEXT;
-    UPDATE public.item_generation_batches SET created_by = creator_id;
-END IF;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='item_generation_batches' AND column_name='created_by') THEN
+        ALTER TABLE public.item_generation_batches ADD COLUMN created_by TEXT;
+        UPDATE public.item_generation_batches SET created_by = creator_id;
+    END IF;
+END $$;
 
 -- 3. Update public.items lifecycle_status enum if needed
 -- The existing enum is 'DRAFT', 'APPROVED', 'REJECTED', 'ARCHIVED'

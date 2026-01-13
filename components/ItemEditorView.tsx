@@ -937,22 +937,60 @@ export const ItemEditorView = () => {
                                 <div className="grid grid-cols-1 gap-3">
                                     {state.itemGenerationBatches.length > 0 ? (
                                         state.itemGenerationBatches.map(b => (
-                                            <button
+                                            <div
                                                 key={b.id}
-                                                onClick={() => {
-                                                    setActiveBatchId(b.id);
-                                                    setShowBatchHistory(false);
-                                                }}
-                                                className="p-4 bg-white border rounded-xl hover:border-brand-primary transition text-left flex justify-between items-center group"
+                                                className="p-4 bg-white border rounded-xl hover:border-brand-primary transition flex justify-between items-center group gap-4"
                                             >
-                                                <div>
+                                                <div
+                                                    onClick={() => {
+                                                        setActiveBatchId(b.id);
+                                                        setShowBatchHistory(false);
+                                                    }}
+                                                    className="flex-1 cursor-pointer"
+                                                >
                                                     <div className="font-bold text-slate-900 line-clamp-1">{b.promptContext}</div>
                                                     <div className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mt-1">
                                                         {new Date(b.createdAt).toLocaleDateString()} • {b.totalRequested} Itens
                                                     </div>
                                                 </div>
-                                                <ArrowRight size={20} className="text-slate-300 group-hover:text-brand-primary group-hover:translate-x-1 transition" />
-                                            </button>
+
+                                                <div className="flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                                    <button
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            if (confirm('Tem certeza que deseja excluir este lote e todas as suas questões?')) {
+                                                                await state.deleteGenerationBatch(b.id);
+                                                            }
+                                                        }}
+                                                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                                                        title="Excluir Lote"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            if (confirm('Mover todas as questões deste lote para o Banco de Itens (Aprovar)?')) {
+                                                                await state.approveAllItemsInBatch(b.id);
+                                                                alert('Questões movidas para o Banco com sucesso!');
+                                                            }
+                                                        }}
+                                                        className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition"
+                                                        title="Mover para Banco de Itens"
+                                                    >
+                                                        <CheckSquare size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setActiveBatchId(b.id);
+                                                            setShowBatchHistory(false);
+                                                        }}
+                                                        className="p-2 text-slate-300 hover:text-brand-primary transition"
+                                                    >
+                                                        <ArrowRight size={20} />
+                                                    </button>
+                                                </div>
+                                            </div>
                                         ))
                                     ) : (
                                         <div className="text-center py-12 text-slate-400 italic">Nenhum lote anterior encontrado.</div>
