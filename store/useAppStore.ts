@@ -294,6 +294,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
                     durationMinutes: e.duration_minutes || 60,
                     targetQuestionCount: e.target_question_count || 10,
                     scheduledDate: e.scheduled_date,
+                    maxScore: e.max_score || 100, // Default to 100
                     createdAt: e.created_at
                 }));
                 set(state => {

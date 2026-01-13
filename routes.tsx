@@ -39,6 +39,7 @@ import { LiveExamMonitorView } from './components/LiveExamMonitorView';
 import { OnlineExamRunner } from './components/OnlineExam/OnlineExamRunner';
 import { useAppStore } from './store/useAppStore';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { PerformanceAnalyticsDashboard } from './components/Analytics/PerformanceAnalyticsDashboard';
 
 // Helper for Role-based Dashboard
 const ConditionalDashboard = () => {
@@ -106,8 +107,18 @@ export const appRoutes: RouteObject[] = [
             { path: 'admin/import', element: <BulkImportView /> },
             { path: 'risk-dashboard', element: <RiskDashboard /> },
             { path: 'analytics', element: <SchoolDashboardView /> },
-            { path: 'communication', element: <CommunicationView /> },
-            { path: 'study-plans', element: <StudyPlansView /> },
+            {
+                path: 'comunicacao',
+                element: <CommunicationView />
+            },
+            {
+                path: 'analytics',
+                element: <PerformanceAnalyticsDashboard />
+            },
+            {
+                path: 'estudos',
+                element: <StudyPlansView />
+            },
             { path: 'class-diary', element: <ClassDiaryView /> },
             { path: 'my-profile', element: <UserProfileView /> },
             { path: 'neuro-screening', element: <NeuroScreeningView /> },

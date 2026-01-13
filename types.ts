@@ -314,6 +314,7 @@ export interface Exam {
   classIds: string[];
   shuffleItems?: boolean; // Embaralhamento randômico anti-cola
   printConfig?: PrintConfig; // Phase 10: Print settings
+  maxScore: number; // Max possible score
   createdAt: string;
   scheduledDate?: string;
 }
@@ -346,9 +347,11 @@ export interface ExamResult {
   id: string;
   examId: string;
   studentId: string;
+  classId?: string; // Optional for filtering compatibility
   answers: StudentAnswer[];
   totalScore: number;
   gradedAt: string;
+  submittedAt?: string; // When the exam was submitted
   violationCount?: number;
   securityFlags?: string[];
   pedagogicalFeedback?: string; // AI-generated tips
@@ -718,4 +721,107 @@ export interface AppState {
   hasConsented: boolean; // LGPD Consent Status
   isInitialized: boolean;
   auditLogs: AuditLog[];
+}
+
+// ============================================
+// Phase 11: Advanced Analytics & Reports Types
+// ============================================
+
+export interface PerformanceMetrics {
+  averageScore: number;
+  medianScore: number;
+  standardDeviation: number;
+  completionRate: number;
+  improvementRate: number;
+  totalStudents: number;
+  passRate: number; // Percentage of students above passing threshold
+}
+
+export interface BNCCCompetency {
+  code: string;
+  description: string;
+  averageScore: number;
+  questionsCount: number;
+  masteryLevel: 'low' | 'medium' | 'high';
+  studentsAboveAverage: number;
+  studentsBelowAverage: number;
+}
+
+export type ReportType = 'student' | 'class' | 'subject' | 'bncc' | 'risk';
+export type ReportFormat = 'pdf' | 'excel' | 'csv';
+
+export interface ReportConfig {
+  type: ReportType;
+  format: ReportFormat;
+  dateRange: { start: string; end: string };
+  includeCharts: boolean;
+  includeRecommendations: boolean;
+  targetIds: string[]; // Student IDs, Class IDs, etc.
+  customTitle?: string;
+}
+
+export interface AnalyticsFilter {
+  dateRange?: { start: string; end: string };
+  classIds?: string[];
+  subjects?: string[];
+  difficultyLevels?: DifficultyLevel[];
+  bnccCodes?: string[];
+  examIds?: string[];
+}
+
+export interface PerformanceDataPoint {
+  date: string;
+  score: number;
+  examTitle: string;
+  subject: string;
+}
+
+export interface SubjectPerformance {
+  subject: string;
+  averageScore: number;
+  questionsCount: number;
+  examsCount: number;
+  trend: 'improving' | 'stable' | 'declining';
+}
+
+export interface CompetencyRadarData {
+  competency: string;
+  studentScore: number;
+  classAverage: number;
+  maxScore: number;
+}
+
+export interface ComparativeMetrics {
+  entityId: string;
+  entityName: string;
+  metrics: PerformanceMetrics;
+  rank?: number;
+}
+
+export interface TrendAnalysis {
+  period: 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+  dataPoints: PerformanceDataPoint[];
+  trendLine: number[]; // Linear regression values
+  growthRate: number; // Percentage
+  prediction?: number; // Next period prediction
+}
+
+export interface StudentReportData {
+  student: User;
+  overallMetrics: PerformanceMetrics;
+  subjectPerformance: SubjectPerformance[];
+  bnccCompetencies: BNCCCompetency[];
+  performanceEvolution: PerformanceDataPoint[];
+  strengths: string[];
+  weaknesses: string[];
+  recommendations: string[];
+}
+
+export interface ClassReportData {
+  class: SchoolClass;
+  overallMetrics: PerformanceMetrics;
+  topPerformers: { studentId: string; name: string; score: number }[];
+  atRiskStudents: { studentId: string; name: string; riskLevel: RiskLevel }[];
+  subjectBreakdown: SubjectPerformance[];
+  bnccHeatmap: BNCCCompetency[];
 }

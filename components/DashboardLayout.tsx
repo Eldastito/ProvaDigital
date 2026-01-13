@@ -203,6 +203,7 @@ export const DashboardLayout = () => {
                             <NavItem icon={FileText} label="Banco de Questões" active={path.includes('/items')} onClick={() => navigate('/items')} />
                             <NavItem icon={BookOpen} label="Minhas Provas" active={path.includes('/exams')} onClick={() => navigate('/exams')} />
                             <NavItem icon={GraduationCap} label="Aplicação de Prova" active={path.includes('/online-exam')} onClick={() => navigate('/online-exam')} />
+                            <NavItem icon={BarChart} label="Analytics" active={path === '/analytics'} onClick={() => navigate('/analytics')} />
                             <NavItem icon={GraduationCap} label="Planos de Ensino" active={path === '/study-plans'} onClick={() => navigate('/study-plans')} />
                         </>
                     )}
