@@ -106,9 +106,10 @@ export const appRoutes: RouteObject[] = [
             { path: 'admin/audit', element: <AuditLogView /> },
             { path: 'admin/import', element: <BulkImportView /> },
             { path: 'risk-dashboard', element: <RiskDashboard /> },
-            { path: 'analytics', element: <SchoolDashboardView /> },
+            // Removed legacy analytics/SchoolDashboardView in favor of PerformanceAnalyticsDashboard below
+
             {
-                path: 'comunicacao',
+                path: 'communication',
                 element: <CommunicationView />
             },
             {
@@ -116,7 +117,7 @@ export const appRoutes: RouteObject[] = [
                 element: <PerformanceAnalyticsDashboard />
             },
             {
-                path: 'estudos',
+                path: 'study-plans',
                 element: <StudyPlansView />
             },
             { path: 'class-diary', element: <ClassDiaryView /> },
