@@ -27,7 +27,7 @@ CREATE POLICY "Manage arcade games" ON public.arcade_games
     USING (
         EXISTS (
             SELECT 1 FROM public.users
-            WHERE users.id = auth.uid()
+            WHERE users.id = auth.uid()::text
             AND users.role IN ('SUPER_ADMIN', 'STATE_ADMIN', 'TENANT_ADMIN', 'SCHOOL_ADMIN', 'DIRECTOR')
         )
     );
