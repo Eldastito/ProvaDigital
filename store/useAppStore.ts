@@ -6,7 +6,7 @@ import {
     MentorshipRequest, MentorshipStatus, OwlTutorContext, ItemGenerationBatch,
     ItemLifecycleStatus, ExamVersion, ExamVariant, Tenant, School, SchoolClass,
     UserProfileExtended, ExamRegistration, RegistrationStatus,
-    ExamAttempt, ExamAttemptEvent, AuditLog
+    ExamAttempt, ExamAttemptEvent, AuditLog, ArcadeGame
 } from '../types';
 import { uuidv4 } from '../utils/helpers';
 import { INITIAL_TENANTS, INITIAL_SCHOOLS, INITIAL_CLASSES, INITIAL_USERS, INITIAL_ITEMS, INITIAL_STUDENTS, INITIAL_RESULTS, INITIAL_EXAMS, INITIAL_REGISTRATIONS, INITIAL_ANNOUNCEMENTS, INITIAL_MESSAGES, INITIAL_LESSON_PLANS, INITIAL_STUDY_PLANS, INITIAL_STUDENT_PROFILES, INITIAL_USER_PROFILES, INITIAL_SETTINGS, INITIAL_GAMIFIED_EVENTS } from '../utils/mockData';
@@ -128,6 +128,12 @@ interface AppActions {
     updateTenantFeatures: (tenantId: string, features: any) => Promise<void>;
     fetchAuditLogs: (tenantId: string) => Promise<AuditLog[]>;
     loadTenants: () => Promise<void>;
+
+    // --- PHASE 6: ARCADE GAMES ---
+    loadArcadeGames: () => Promise<void>;
+    addArcadeGame: (game: ArcadeGame) => Promise<void>;
+    updateArcadeGame: (game: ArcadeGame) => Promise<void>;
+    deleteArcadeGame: (id: string) => Promise<void>;
 }
 
 export type AppStore = AppState & AppActions;
@@ -151,6 +157,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     results: USE_MOCK_DATA ? INITIAL_RESULTS : [],
     events: [],
     gamifiedEvents: USE_MOCK_DATA ? INITIAL_GAMIFIED_EVENTS : [],
+    arcadeGames: [],
     announcements: USE_MOCK_DATA ? INITIAL_ANNOUNCEMENTS : [],
     messages: USE_MOCK_DATA ? INITIAL_MESSAGES : [],
     chatGroups: [],
@@ -346,7 +353,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 set({ userProfiles: [] });
             }
 
-            console.log("✅ Dados da nuvem sincronizados (users, items, exams, results, profiles).");
+            // 5. Carregar Arcade Games
+            await get().loadArcadeGames();
+
+            console.log("✅ Dados da nuvem sincronizados (users, items, exams, results, profiles, arcade).");
             set({ isInitialized: true });
         } catch (error) {
             console.error("❌ Erro ao sincronizar dados:", error);
@@ -950,6 +960,87 @@ export const useAppStore = create<AppStore>((set, get) => ({
         } catch (e) {
             console.error("Error deleting batch:", e);
             // Optionally reload to restore state on error, but optimistic update is usually preferred
+        }
+    },
+
+    // --- ARCADE GAMES IMPLEMENTATION ---
+    loadArcadeGames: async () => {
+        try {
+            const { data, error } = await supabase.from('arcade_games').select('*');
+            if (error) throw error;
+            if (data) {
+                const games: ArcadeGame[] = data.map((d: any) => ({
+                    id: d.id,
+                    title: d.title,
+                    description: d.description,
+                    url: d.url,
+                    category: d.category,
+                    thumbnailUrl: d.thumbnail_url,
+                    isActive: d.is_active,
+                    playCount: d.play_count,
+                    tenantId: d.tenant_id,
+                    createdAt: d.created_at
+                }));
+                // Merge with mocks if needed, or just set
+                set({ arcadeGames: games });
+            }
+        } catch (e) {
+            console.error("Error loading arcade games:", e);
+        }
+    },
+
+    addArcadeGame: async (game) => {
+        // Optimistic
+        set(state => ({ arcadeGames: [...state.arcadeGames, game] }));
+        try {
+            const { error } = await supabase.from('arcade_games').insert({
+                id: game.id,
+                title: game.title,
+                description: game.description,
+                url: game.url,
+                category: game.category,
+                thumbnail_url: game.thumbnailUrl,
+                is_active: game.isActive,
+                play_count: game.playCount,
+                tenant_id: game.tenantId || get().currentUser?.tenantId,
+                created_at: game.createdAt
+            });
+            if (error) throw error;
+        } catch (e) {
+            console.error("Error saving arcade game:", e);
+            // Rollback
+            set(state => ({ arcadeGames: state.arcadeGames.filter(g => g.id !== game.id) }));
+            alert("Erro ao salvar jogo. Verifique o console.");
+        }
+    },
+
+    updateArcadeGame: async (game) => {
+        // Optimistic
+        set(state => ({ arcadeGames: state.arcadeGames.map(g => g.id === game.id ? game : g) }));
+        try {
+            const { error } = await supabase.from('arcade_games').update({
+                title: game.title,
+                description: game.description,
+                url: game.url,
+                category: game.category,
+                thumbnail_url: game.thumbnailUrl,
+                is_active: game.isActive,
+                play_count: game.playCount
+            }).eq('id', game.id);
+            if (error) throw error;
+        } catch (e) {
+            console.error("Error updating arcade game:", e);
+        }
+    },
+
+    deleteArcadeGame: async (id) => {
+        // Optimistic
+        set(state => ({ arcadeGames: state.arcadeGames.filter(g => g.id !== id) }));
+        try {
+            const { error } = await supabase.from('arcade_games').delete().eq('id', id);
+            if (error) throw error;
+        } catch (e) {
+            console.error("Error deleting arcade game:", e);
         }
     },
 

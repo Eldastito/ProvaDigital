@@ -1,20 +1,11 @@
 import React, { useState } from 'react';
-import { AppState } from '../../types';
+import { AppState, ArcadeGame } from '../../types';
 import { Gamepad2, Plus, Edit2, Trash2, Eye, EyeOff, BarChart3, Save, X } from 'lucide-react';
+import { useAppStore } from '../../store/useAppStore';
+import { uuidv4 } from '../../utils/helpers';
 
 interface GovernanceViewProps {
     state: AppState;
-}
-
-interface ArcadeGame {
-    id: string;
-    titulo: string;
-    descricao: string;
-    url: string;
-    categoria: string;
-    thumbnailUrl?: string;
-    ativo: boolean;
-    totalJogadas: number;
 }
 
 const FormJogo = ({ jogo, onSalvar, onCancelar, categorias }: {
@@ -37,8 +28,8 @@ const FormJogo = ({ jogo, onSalvar, onCancelar, categorias }: {
                     <label className="block text-sm font-bold text-slate-700 mb-1">Título</label>
                     <input
                         type="text"
-                        value={form.titulo || ''}
-                        onChange={(e) => setForm({ ...form, titulo: e.target.value })}
+                        value={form.title || ''}
+                        onChange={(e) => setForm({ ...form, title: e.target.value })}
                         className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-brand-primary outline-none"
                         placeholder="Ex: Math Quest"
                     />
@@ -58,8 +49,8 @@ const FormJogo = ({ jogo, onSalvar, onCancelar, categorias }: {
                 <div>
                     <label className="block text-sm font-bold text-slate-700 mb-1">Categoria</label>
                     <select
-                        value={form.categoria || 'Matemática'}
-                        onChange={(e) => setForm({ ...form, categoria: e.target.value })}
+                        value={form.category || 'Geral'}
+                        onChange={(e) => setForm({ ...form, category: e.target.value })}
                         className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-brand-primary outline-none"
                     >
                         {categorias.map(cat => (
@@ -71,8 +62,8 @@ const FormJogo = ({ jogo, onSalvar, onCancelar, categorias }: {
                 <div>
                     <label className="block text-sm font-bold text-slate-700 mb-1">Descrição</label>
                     <textarea
-                        value={form.descricao || ''}
-                        onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                        value={form.description || ''}
+                        onChange={(e) => setForm({ ...form, description: e.target.value })}
                         className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-brand-primary outline-none"
                         rows={3}
                         placeholder="Breve descrição do jogo..."
@@ -98,65 +89,53 @@ const FormJogo = ({ jogo, onSalvar, onCancelar, categorias }: {
     );
 };
 
-import { useAppStore } from '../../store/useAppStore';
-
 export const GovernanceView = () => {
     const state = useAppStore();
-    const [jogos, setJogos] = useState<ArcadeGame[]>([
-        {
-            id: '1',
-            titulo: 'Math Quest',
-            descricao: 'Aventura matemática educativa',
-            url: 'https://example.com/math-quest',
-            categoria: 'Matemática',
-            ativo: true,
-            totalJogadas: 847
-        },
-        {
-            id: '2',
-            titulo: 'Word Wizard',
-            descricao: 'Jogo de vocabulário e ortografia',
-            url: 'https://example.com/word-wizard',
-            categoria: 'Português',
-            ativo: true,
-            totalJogadas: 623
-        }
-    ]);
+    const { arcadeGames, addArcadeGame, updateArcadeGame, deleteArcadeGame } = state;
+
+    // Safety check, ensure array exists
+    const jogos = arcadeGames || [];
 
     const [editando, setEditando] = useState<string | null>(null);
     const [novoJogo, setNovoJogo] = useState<Partial<ArcadeGame> | null>(null);
 
-    const categorias = ['Matemática', 'Português', 'Ciências', 'História', 'Geografia', 'Inglês', 'Lógica'];
+    const categorias = ['Matemática', 'Português', 'Ciências', 'História', 'Geografia', 'Inglês', 'Lógica', 'Geral'];
 
-    const handleSalvar = (jogo: Partial<ArcadeGame>) => {
+    const handleSalvar = async (jogo: Partial<ArcadeGame>) => {
         if (jogo.id) {
             // Editar existente
-            setJogos(jogos.map(j => j.id === jogo.id ? { ...j, ...jogo } as ArcadeGame : j));
+            await updateArcadeGame(jogo as ArcadeGame);
             setEditando(null);
         } else {
             // Adicionar novo
             const novo: ArcadeGame = {
-                id: Date.now().toString(),
-                titulo: jogo.titulo || '',
-                descricao: jogo.descricao || '',
+                id: uuidv4(),
+                title: jogo.title || '',
+                description: jogo.description || '',
                 url: jogo.url || '',
-                categoria: jogo.categoria || 'Matemática',
-                ativo: true,
-                totalJogadas: 0
+                category: jogo.category || 'Geral',
+                thumbnailUrl: jogo.thumbnailUrl,
+                isActive: true, // Default active
+                playCount: 0,
+                tenantId: state.currentUser?.tenantId,
+                createdAt: new Date().toISOString()
             };
-            setJogos([...jogos, novo]);
+            await addArcadeGame(novo);
             setNovoJogo(null);
         }
     };
 
-    const handleDeletar = (id: string) => {
+    const handleDeletar = async (id: string) => {
         if (confirm('Tem certeza que deseja remover este jogo?')) {
-            setJogos(jogos.filter(j => j.id !== id));
+            await deleteArcadeGame(id);
         }
     };
 
-    const toggleAtivo = (id: string) => {
-        setJogos(jogos.map(j => j.id === id ? { ...j, ativo: !j.ativo } : j));
+    const toggleAtivo = async (id: string) => {
+        const jogo = jogos.find(j => j.id === id);
+        if (jogo) {
+            await updateArcadeGame({ ...jogo, isActive: !jogo.isActive });
+        }
     };
 
     return (
@@ -212,15 +191,15 @@ export const GovernanceView = () => {
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-2">
-                                            <h3 className="font-bold text-lg text-slate-800">{jogo.titulo}</h3>
-                                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${jogo.ativo ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                                                {jogo.ativo ? '✓ Ativo' : '✗ Inativo'}
+                                            <h3 className="font-bold text-lg text-slate-800">{jogo.title}</h3>
+                                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${jogo.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                                                {jogo.isActive ? '✓ Ativo' : '✗ Inativo'}
                                             </span>
                                         </div>
-                                        <p className="text-sm text-slate-600 mb-2">{jogo.descricao}</p>
+                                        <p className="text-sm text-slate-600 mb-2">{jogo.description}</p>
                                         <div className="flex items-center gap-4 text-xs text-slate-500">
-                                            <span className="font-bold">📚 {jogo.categoria}</span>
-                                            <span>🎮 {jogo.totalJogadas} jogadas</span>
+                                            <span className="font-bold">📚 {jogo.category}</span>
+                                            <span>🎮 {jogo.playCount} jogadas</span>
                                             <a href={jogo.url} target="_blank" rel="noopener noreferrer" className="text-brand-primary hover:underline">
                                                 🔗 Ver jogo
                                             </a>
@@ -230,10 +209,10 @@ export const GovernanceView = () => {
                                     <div className="flex items-center gap-2 ml-4">
                                         <button
                                             onClick={() => toggleAtivo(jogo.id)}
-                                            className={`p-2 rounded-lg transition ${jogo.ativo ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
-                                            title={jogo.ativo ? 'Desativar' : 'Ativar'}
+                                            className={`p-2 rounded-lg transition ${jogo.isActive ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                                            title={jogo.isActive ? 'Desativar' : 'Ativar'}
                                         >
-                                            {jogo.ativo ? <Eye size={18} /> : <EyeOff size={18} />}
+                                            {jogo.isActive ? <Eye size={18} /> : <EyeOff size={18} />}
                                         </button>
                                         <button
                                             onClick={() => setEditando(jogo.id)}

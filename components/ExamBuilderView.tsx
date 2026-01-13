@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Plus, Search, Brain, Sparkles, AlertCircle, Trash2, Edit3, Check, X,
     ChevronLeft, ArrowRight, Tablet, Loader2, Save, History, ShieldCheck,
@@ -81,6 +81,55 @@ export const ExamBuilderView = () => {
 
     const [isSaving, setIsSaving] = useState(false);
 
+    // --- PERSISTENCE & AUTO-SAVE ---
+    useEffect(() => {
+        const key = `exam_builder_draft_${state.currentUser?.id}`;
+        const draft = localStorage.getItem(key);
+        if (draft) {
+            try {
+                const parsed = JSON.parse(draft);
+                // Only ask if meaningful data exists
+                if (parsed.config?.title || parsed.selectedItems?.length > 0) {
+                    if (confirm('⚠️ Encontramos um rascunho de prova não salvo. Deseja restaurar onde parou?')) {
+                        setConfig(parsed.config);
+                        setSelectedItems(parsed.selectedItems || []);
+                        setStep(parsed.step || 1);
+                        if (parsed.gradingConfig) setGradingConfig(parsed.gradingConfig);
+                        if (parsed.coverConfig) setCoverConfig(parsed.coverConfig);
+                    } else {
+                        localStorage.removeItem(key);
+                    }
+                }
+            } catch (e) { console.error("Error restoring draft:", e); }
+        }
+    }, [state.currentUser?.id]);
+
+    useEffect(() => {
+        if (!config.title && selectedItems.length === 0) return;
+
+        const key = `exam_builder_draft_${state.currentUser?.id}`;
+        const draft = {
+            config,
+            selectedItems,
+            step,
+            gradingConfig,
+            coverConfig,
+            updatedAt: Date.now()
+        };
+        localStorage.setItem(key, JSON.stringify(draft));
+    }, [config, selectedItems, step, gradingConfig, coverConfig, state.currentUser?.id]);
+
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if ((config.title || selectedItems.length > 0) && !isSaving) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [config.title, selectedItems.length, isSaving]);
+
     const handleSave = async (publish = false) => {
         if (!config.title) return alert('Título obrigatório');
         if (selectedItems.length === 0) return alert('Selecione ao menos 1 questão');
@@ -146,6 +195,7 @@ export const ExamBuilderView = () => {
             }
 
             alert(publish ? 'Prova publicada com sucesso!' : 'Prova salva como rascunho!');
+            localStorage.removeItem(`exam_builder_draft_${state.currentUser?.id}`);
             navigate('/exams');
         } catch (error: any) {
             console.error(error);

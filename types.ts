@@ -686,6 +686,23 @@ export interface StoredSession {
   synced: boolean;
 }
 
+// ============================================
+// Phase 12: Arcade Mode
+// ============================================
+
+export interface ArcadeGame {
+  id: string;
+  title: string;
+  description: string;
+  url: string;
+  category: string;
+  thumbnailUrl?: string;
+  isActive: boolean;
+  playCount: number;
+  tenantId?: string;
+  createdAt?: string;
+}
+
 export interface AppState {
   currentUser: User | null;
   selectedChildId: string | null;
@@ -701,6 +718,7 @@ export interface AppState {
   mentorships: MentorshipRequest[]; // NOVO
   events: ExamEvent[];
   gamifiedEvents: GamifiedEvent[]; // NOVO
+  arcadeGames: ArcadeGame[];
   announcements: Announcement[];
   messages: ChatMessage[];
   chatGroups: ChatGroup[];
