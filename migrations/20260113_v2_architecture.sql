@@ -125,7 +125,7 @@ CREATE POLICY "Manage text_assets" ON public.text_assets
 
 
 -- 5. CONTENT BLUEPRINTS (For Syllabus Extraction)
-CREATE TABLE public.content_blueprints (
+CREATE TABLE IF NOT EXISTS public.content_blueprints (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     source_content TEXT, 
     extracted_topics JSONB,
