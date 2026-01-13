@@ -79,66 +79,80 @@ export const ExamBuilderView = () => {
     // Preview State for "Tablet Simulator"
     const [previewIndex, setPreviewIndex] = useState(0);
 
+    const [isSaving, setIsSaving] = useState(false);
+
     const handleSave = async (publish = false) => {
         if (!config.title) return alert('Título obrigatório');
         if (selectedItems.length === 0) return alert('Selecione ao menos 1 questão');
 
-        const examId = uuidv4();
-        const versionId = uuidv4();
+        setIsSaving(true);
+        try {
+            const examId = uuidv4();
+            const versionId = uuidv4();
 
-        // Calculate individual item weights
-        const itemsWithWeights = selectedItems.map((item, idx) => {
-            const subjectItems = selectedItems.filter(i => i.subject === item.subject);
-            const totalPointsForSubject = gradingConfig.totalsByDiscipline[item.subject] || 10.0;
-            const itemWeight = totalPointsForSubject / subjectItems.length;
+            // Calculate individual item weights
+            const itemsWithWeights = selectedItems.map((item, idx) => {
+                const subjectItems = selectedItems.filter(i => i.subject === item.subject);
+                const totalPointsForSubject = gradingConfig.totalsByDiscipline[item.subject] || 10.0;
+                const itemWeight = totalPointsForSubject / subjectItems.length;
 
-            return {
-                itemId: item.id,
-                weight: itemWeight,
-                position: idx + 1
-            };
-        });
-
-        const newExam: Exam = {
-            id: examId,
-            tenantId: state.currentUser?.tenantId || 't1',
-            schoolId: state.currentUser?.schoolId || 's1',
-            creatorId: state.currentUser?.id || '',
-            title: config.title,
-            description: config.description,
-            subject: config.subject,
-            model: config.model,
-            durationMinutes: config.duration,
-            targetQuestionCount: selectedItems.length,
-            status: publish ? ExamStatus.ACTIVE : ExamStatus.DRAFT,
-            items: itemsWithWeights.map(i => ({
-                itemId: i.itemId,
-                order: i.position,
-                customScore: i.weight
-            })),
-            classIds: [],
-            shuffleItems: config.shuffleItems,
-            createdAt: new Date().toISOString()
-        };
-
-        // 1. Save standard Exam (Legacy compat)
-        addExam(newExam);
-
-        // 2. Save Phase 2 Version
-        if (state.addExamVersion) {
-            await state.addExamVersion({
-                id: versionId,
-                examId: examId,
-                versionNumber: 1,
-                itemsSnapshot: itemsWithWeights,
-                gradingConfig: gradingConfig,
-                coverConfig: coverConfig,
-                status: publish ? 'published' : 'draft',
-                createdAt: new Date().toISOString()
+                return {
+                    itemId: item.id,
+                    weight: itemWeight,
+                    position: idx + 1
+                };
             });
-        }
 
-        navigate('/exams');
+            const newExam: Exam = {
+                id: examId,
+                tenantId: state.currentUser?.tenantId || 't1',
+                schoolId: state.currentUser?.schoolId || 's1',
+                creatorId: state.currentUser?.id || '',
+                title: config.title,
+                description: config.description,
+                subject: config.subject,
+                model: config.model,
+                durationMinutes: config.duration,
+                targetQuestionCount: selectedItems.length,
+                status: publish ? ExamStatus.ACTIVE : ExamStatus.DRAFT,
+                items: itemsWithWeights.map(i => ({
+                    itemId: i.itemId,
+                    order: i.position,
+                    customScore: i.weight
+                })),
+                classIds: [],
+                shuffleItems: config.shuffleItems,
+                createdAt: new Date().toISOString(),
+                maxScore: Object.values(gradingConfig.totalsByDiscipline).length > 0
+                    ? (Object.values(gradingConfig.totalsByDiscipline) as number[]).reduce((a, b) => a + b, 0)
+                    : selectedItems.length * 1.0
+            };
+
+            // 1. Save standard Exam (Legacy compat)
+            await addExam(newExam);
+
+            // 2. Save Phase 2 Version
+            if (state.addExamVersion) {
+                await state.addExamVersion({
+                    id: versionId,
+                    examId: examId,
+                    versionNumber: 1,
+                    itemsSnapshot: itemsWithWeights,
+                    gradingConfig: gradingConfig,
+                    coverConfig: coverConfig,
+                    status: publish ? 'published' : 'draft',
+                    createdAt: new Date().toISOString()
+                });
+            }
+
+            alert(publish ? 'Prova publicada com sucesso!' : 'Prova salva como rascunho!');
+            navigate('/exams');
+        } catch (error: any) {
+            console.error(error);
+            alert('Erro ao salvar prova: ' + (error.message || 'Erro desconhecido. Verifique o console.'));
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const toggleItem = (item: Item) => {
@@ -790,9 +804,14 @@ export const ExamBuilderView = () => {
                                 </div>
                                 <button
                                     onClick={() => handleSave(true)}
-                                    className="w-full btn-gradient py-4 rounded-xl font-bold text-lg shadow-xl hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
+                                    disabled={isSaving}
+                                    className={`w-full py-4 rounded-xl font-bold text-lg shadow-xl transition-transform flex items-center justify-center gap-2 ${isSaving ? 'bg-slate-300 cursor-not-allowed text-slate-500' : 'btn-gradient hover:scale-[1.02]'}`}
                                 >
-                                    <Save size={20} /> Finalizar e Publicar Prova
+                                    {isSaving ? (
+                                        <>Updating...</>
+                                    ) : (
+                                        <><Save size={20} /> Finalizar e Publicar Prova</>
+                                    )}
                                 </button>
                                 <button onClick={() => setStep(2)} className="w-full text-slate-400 font-bold text-sm hover:text-slate-600 transition">Voltar para Seleção</button>
                             </div>
