@@ -1,5 +1,5 @@
 -- ==============================================================================
--- MIGRATION: V2 SYSTEM EVOLUTION
+-- MIGRATION: V2 SYSTEM EVOLUTION (IDEMPOTENT FIX)
 -- Features: Item Versioning, Exam Variants/Overrides, Text Assets, Blueprints
 -- Date: 2026-01-13
 -- ==============================================================================
@@ -26,9 +26,11 @@ CREATE TABLE IF NOT EXISTS public.item_versions (
 -- RLS for item_versions
 ALTER TABLE public.item_versions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Read item_versions" ON public.item_versions;
 CREATE POLICY "Read item_versions" ON public.item_versions
     FOR SELECT USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Create item_versions" ON public.item_versions;
 CREATE POLICY "Create item_versions" ON public.item_versions
     FOR INSERT WITH CHECK (
         public.get_current_user_role() IN ('PROFESSOR', 'SUPERVISOR', 'DIRETOR', 'TENANT_ADMIN', 'STATE_ADMIN', 'SUPER_ADMIN')
@@ -52,9 +54,11 @@ CREATE TABLE IF NOT EXISTS public.exam_variants (
 -- RLS for exam_variants
 ALTER TABLE public.exam_variants ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Read exam_variants" ON public.exam_variants;
 CREATE POLICY "Read exam_variants" ON public.exam_variants
     FOR SELECT USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Manage exam_variants" ON public.exam_variants;
 CREATE POLICY "Manage exam_variants" ON public.exam_variants
     FOR ALL USING (
         public.get_current_user_role() IN ('PROFESSOR', 'SUPERVISOR', 'DIRETOR', 'TENANT_ADMIN', 'STATE_ADMIN', 'SUPER_ADMIN')
@@ -79,9 +83,11 @@ CREATE TABLE IF NOT EXISTS public.exam_variant_overrides (
 -- RLS for exam_variant_overrides
 ALTER TABLE public.exam_variant_overrides ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Read overrides" ON public.exam_variant_overrides;
 CREATE POLICY "Read overrides" ON public.exam_variant_overrides
     FOR SELECT USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Manage overrides" ON public.exam_variant_overrides;
 CREATE POLICY "Manage overrides" ON public.exam_variant_overrides
     FOR ALL USING (
         public.get_current_user_role() IN ('PROFESSOR', 'SUPERVISOR', 'DIRETOR', 'TENANT_ADMIN', 'STATE_ADMIN', 'SUPER_ADMIN')
@@ -106,9 +112,11 @@ CREATE TABLE IF NOT EXISTS public.text_assets (
 -- RLS for text_assets
 ALTER TABLE public.text_assets ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Read text_assets" ON public.text_assets;
 CREATE POLICY "Read text_assets" ON public.text_assets
     FOR SELECT USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Manage text_assets" ON public.text_assets;
 CREATE POLICY "Manage text_assets" ON public.text_assets
     FOR ALL USING (
         auth.uid()::text = owner_id OR
@@ -129,8 +137,10 @@ CREATE TABLE public.content_blueprints (
 -- RLS for content_blueprints
 ALTER TABLE public.content_blueprints ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Read own blueprints" ON public.content_blueprints;
 CREATE POLICY "Read own blueprints" ON public.content_blueprints
     FOR SELECT USING (auth.uid()::text = created_by);
 
+DROP POLICY IF EXISTS "Create blueprints" ON public.content_blueprints;
 CREATE POLICY "Create blueprints" ON public.content_blueprints
     FOR INSERT WITH CHECK (auth.role() = 'authenticated');
