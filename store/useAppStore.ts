@@ -975,11 +975,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
         try {
             const { data, error } = await supabase.rpc('approve_all_items_in_batch', { p_batch_id: batchId });
             if (error) throw error;
-            set((state) => ({
-                items: state.items.map(i => i.generationBatchId === batchId && i.ownerId === state.currentUser?.id ? { ...i, lifecycleStatus: ItemLifecycleStatus.APPROVED } : i)
-            }));
+
+            // Reload from server to ensure we get the updated status and any RLS changes take effect
+            await get().loadRemoteData();
+
             return data;
-        } catch (e) { console.error("RPC Error:", e); throw e; }
+        } catch (e) {
+            console.error("RPC Error:", e);
+            throw e;
+        }
     },
 
     approveOneItem: async (itemId) => {
