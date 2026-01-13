@@ -67,6 +67,7 @@ interface AppActions {
     addItem: (item: Item) => void;
     addItems: (items: Item[]) => Promise<void>;
     updateItem: (item: Item) => Promise<void>;
+    updateItemWithVersion: (itemId: string, updates: Partial<Item>, changeReason: string) => Promise<void>;
     addExam: (exam: Exam) => void;
     addSchool: (school: any) => void;
     addClass: (cls: any) => void;
@@ -493,6 +494,49 @@ export const useAppStore = create<AppStore>((set, get) => ({
         } catch (e) {
             console.error('Failed to update item:', e);
             throw e;
+        }
+    },
+
+    updateItemWithVersion: async (itemId, updates, changeReason) => {
+        try {
+            const currentItem = get().items.find(i => i.id === itemId);
+            if (!currentItem) throw new Error("Item not found locally");
+
+            // 1. Snapshot Current State
+            const { data: versionData, error: vError } = await supabase.from('item_versions').insert({
+                item_id: itemId,
+                version_number: Math.floor(Date.now() / 1000), // Unix timestamp as naive version
+                statement: currentItem.statement,
+                alternatives: currentItem.alternatives,
+                correct_justification: currentItem.correctAnswerJustification,
+                metadata: {
+                    difficulty: currentItem.difficulty,
+                    tags: currentItem.tags,
+                    bncc: currentItem.bnccCode
+                },
+                change_reason: changeReason,
+                changed_by: get().currentUser?.id
+            }).select().single();
+
+            if (vError) throw vError;
+
+            // 2. Update Head
+            const { error: uError } = await supabase.from('items').update({
+                ...updates,
+                current_version_id: versionData.id
+            }).eq('id', itemId);
+
+            if (uError) throw uError;
+
+            // 3. Update Local
+            set(state => ({
+                items: state.items.map(i => i.id === itemId ? { ...i, ...updates, currentVersionId: versionData.id } : i)
+            }));
+
+            console.log(`✅ Item ${itemId} updated with version ${versionData.id}`);
+        } catch (e) {
+            console.error("Error versioning item:", e);
+            alert("Erro ao salvar versão. Veja o console.");
         }
     },
 

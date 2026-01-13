@@ -264,6 +264,20 @@ export interface Item {
   }[];
   generationBatchId?: string;
   lifecycleStatus?: ItemLifecycleStatus;
+  currentVersionId?: string; // Phase V2: Link to official version head
+  createdAt: string;
+}
+
+export interface ItemVersion {
+  id: string;
+  itemId: string;
+  versionNumber: number;
+  statement: string;
+  alternatives: ItemAlternative[];
+  correctAnswerJustification: string;
+  metadata: any;
+  changeReason: string;
+  changedBy: string;
   createdAt: string;
 }
 
@@ -294,6 +308,7 @@ export interface PrintConfig {
 
 export interface ExamItemConfig {
   itemId: string;
+  itemVersionId?: string; // Phase V2: Link to immutable version
   order: number;
   customScore?: number;
 }
@@ -317,6 +332,26 @@ export interface Exam {
   maxScore: number; // Max possible score
   createdAt: string;
   scheduledDate?: string;
+}
+
+export interface ExamVariant {
+  id: string;
+  examId: string;
+  name: string;
+  slug: string;
+  description: string;
+  accessibilityConfig: any;
+  createdAt: string;
+}
+
+export interface ExamVariantOverride {
+  id: string;
+  variantId: string;
+  itemVersionId: string;
+  overridePayload: any;
+  rationale: string;
+  status: string;
+  createdAt: string;
 }
 
 export enum RegistrationStatus {
