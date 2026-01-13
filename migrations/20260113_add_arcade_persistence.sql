@@ -9,8 +9,8 @@ CREATE TABLE IF NOT EXISTS public.arcade_games (
     is_active BOOLEAN DEFAULT true,
     play_count INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    tenant_id UUID REFERENCES public.tenants(id),
-    school_id UUID REFERENCES public.schools(id) -- Optional: specific to a school?
+    tenant_id TEXT REFERENCES public.tenants(id),
+    school_id TEXT REFERENCES public.schools(id) -- Optional: specific to a school?
 );
 
 -- RLS
