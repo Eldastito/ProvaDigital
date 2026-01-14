@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { generateSyllabus, generateTextAsset, Syllabus, TextAsset } from '../services/geminiService';
-import { BookOpen, FileText, Sparkles, Download, Copy, Loader2, Check } from 'lucide-react';
+import { BookOpen, FileText, Sparkles, Download, Copy, Loader2, Check, Clock } from 'lucide-react';
 
 export const AIContentFactoryView = () => {
     const [mode, setMode] = useState<'SYLLABUS' | 'TEXT'>('SYLLABUS');

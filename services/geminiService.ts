@@ -904,7 +904,7 @@ export const generateTextAsset = async (theme: string, genre: string): Promise<T
     };
 
     return callGeminiAPI<TextAsset>(prompt, schema, fallback);
-};};
+};
 
 // --- Internal Mock Generator (Fallback) ---
 const mockGenerate = (qty: number, type: QuestionType, diff: DifficultyLevel): GeneratedQuestion[] => {
