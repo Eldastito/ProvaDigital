@@ -218,6 +218,35 @@ const PROMPTS = {
           "polishedItems": any[],
           "variantsSuggested": any[]
         }
+    `,
+    GENERATE_SYLLABUS: (subject: string, grade: string, topic: string) => `
+        Atue como Coordenador Pedagógico alinhado à BNCC (Brasil).
+        Crie um Plano de Aula (Syllabus) estruturado para:
+        Disciplina: ${subject}
+        Ano/Série: ${grade}
+        Tópico Central: ${topic}
+        
+        REQUISITOS:
+        1. Identifique as Habilidades BNCC (Códigos) pertinentes.
+        2. Estruture em 4 Semanas (Módulos).
+        3. Para cada semana, defina: Tema, Objetivo e 1 Atividade Prática sugestiva.
+        
+        Retorne JSON: { "bnccCodes": string[], "overview": string, "weeks": [{ "week": number, "theme": string, "objective": string, "activity": string }] }
+    `,
+    GENERATE_TEXT_ASSET: (theme: string, genre: string) => `
+        Atue como um Autor de Material Didático Profissional.
+        Escreva um TEXTO ORIGINAL e INÉDITO para ser usado como "Texto-Base" em uma prova.
+        
+        Tema: ${theme}
+        Gênero Textual: ${genre} (ex: Notícia, Poema, Crônica, Texto Científico).
+        
+        Diretrizes:
+        1. O texto deve ser rico em vocabulário e adequado para avaliação de interpretação.
+        2. Deve ser totalmente livre de plágio (Copyright Free).
+        3. Tamanho: Entre 3 a 5 parágrafos (aprox. 300 palavras).
+        4. Inclua um Título criativo e uma "Fonte Fictícia" realista no final.
+        
+        Retorne JSON: { "title": string, "body": string, "source": string, "readingTime": string }
     `
 };
 
@@ -789,7 +818,6 @@ export const adaptItemForAccessibility = async (itemJson: string, profile: 'TEA'
                     }
                 }
             },
-            justification: { type: Type.STRING },
             isAccessible: { type: Type.BOOLEAN },
             accessibilityInstructions: { type: Type.STRING },
             difficulty: { type: Type.STRING },
@@ -798,7 +826,85 @@ export const adaptItemForAccessibility = async (itemJson: string, profile: 'TEA'
         required: ["statement", "alternatives", "isAccessible", "accessibilityInstructions"]
     };
     return callGeminiAPI<any>(prompt, schema, { ...JSON.parse(itemJson), isAccessible: true, accessibilityInstructions: "Modo Offline" });
+}
+
+// --- NEW FEATURES: AI CONTENT PIPELINE ---
+
+export interface Syllabus {
+    bnccCodes: string[];
+    overview: string;
+    weeks: {
+        week: number;
+        theme: string;
+        objective: string;
+        activity: string;
+    }[];
+}
+
+export interface TextAsset {
+    title: string;
+    body: string;
+    source: string;
+    readingTime: string;
+}
+
+export const generateSyllabus = async (subject: string, grade: string, topic: string): Promise<Syllabus> => {
+    const prompt = (PROMPTS as any).GENERATE_SYLLABUS(subject, grade, topic);
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            bnccCodes: { type: Type.ARRAY, items: { type: Type.STRING } },
+            overview: { type: Type.STRING },
+            weeks: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        week: { type: Type.NUMBER },
+                        theme: { type: Type.STRING },
+                        objective: { type: Type.STRING },
+                        activity: { type: Type.STRING }
+                    }
+                }
+            }
+        },
+        required: ["bnccCodes", "weeks"]
+    };
+
+    const fallback: Syllabus = {
+        bnccCodes: ["EF_OFFLINE"],
+        overview: "Plano gerado localmente (Offline)",
+        weeks: [
+            { week: 1, theme: "Introdução (Offline)", objective: "Revisar conexão", activity: "Leitura" },
+            { week: 2, theme: "Desenvolvimento (Offline)", objective: "Revisar conexão", activity: "Exercícios" }
+        ]
+    };
+
+    return callGeminiAPI<Syllabus>(prompt, schema, fallback);
 };
+
+export const generateTextAsset = async (theme: string, genre: string): Promise<TextAsset> => {
+    const prompt = (PROMPTS as any).GENERATE_TEXT_ASSET(theme, genre);
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            title: { type: Type.STRING },
+            body: { type: Type.STRING },
+            source: { type: Type.STRING },
+            readingTime: { type: Type.STRING }
+        },
+        required: ["title", "body"]
+    };
+
+    const fallback: TextAsset = {
+        title: "Texto Exemplo (Offline)",
+        body: "Lorem ipsum dolor sit amet. Este é um texto simulado pois a IA está offline.",
+        source: "Gerador Interno",
+        readingTime: "1 min"
+    };
+
+    return callGeminiAPI<TextAsset>(prompt, schema, fallback);
+};};
 
 // --- Internal Mock Generator (Fallback) ---
 const mockGenerate = (qty: number, type: QuestionType, diff: DifficultyLevel): GeneratedQuestion[] => {

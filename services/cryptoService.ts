@@ -1,5 +1,6 @@
 
-import { v4 as uuidv4 } from 'uuid';
+// uuid removed
+
 
 // AES-GCM Configuration
 const ALGORITHM = 'AES-GCM';
@@ -60,9 +61,10 @@ export const cryptoService = {
 
         return {
             data: arrayBufferToBase64(encryptedBuffer),
-            iv: arrayBufferToBase64(iv) // Send IV separately
+            iv: arrayBufferToBase64(iv.buffer) // Send IV separately
         };
     },
+
 
     /**
      * Decrypts a payload using the provided key.
