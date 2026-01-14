@@ -1965,6 +1965,66 @@ export const useAppStore = create<AppStore>((set, get) => ({
     },
 
 
+
+    // --- LIVE PROCTORING (REALTIME) ---
+    realtimeChannel: null as any,
+    liveAlerts: [] as any[], // Ephemeral alerts
+
+    initializeExamEvents: (examId: string) => {
+        const state = get();
+        if (state.realtimeChannel) return; // Already connected
+
+        const channel = supabase.channel(`exam_monitor:${examId}`, {
+            config: {
+                presence: {
+                    key: state.currentUser?.id,
+                },
+            },
+        });
+
+        channel
+            .on('presence', { event: 'sync' }, () => {
+                // Presence synced
+                // const newState = channel.presenceState();
+            })
+            .on('broadcast', { event: 'ALERT' }, (payload) => {
+                console.log("🚨 Live Alert:", payload);
+                set(state => ({ liveAlerts: [payload, ...state.liveAlerts] }));
+            })
+            .subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    const userStatus = {
+                        studentId: state.currentUser?.id,
+                        name: state.currentUser?.name,
+                        role: state.currentUser?.role,
+                        onlineAt: new Date().toISOString(),
+                    };
+                    await channel.track(userStatus);
+                }
+            });
+
+        set({ realtimeChannel: channel });
+    },
+
+    broadcastEvent: async (eventName: string, payload: any) => {
+        const state = get();
+        if (state.realtimeChannel) {
+            await state.realtimeChannel.send({
+                type: 'broadcast',
+                event: eventName,
+                payload: payload
+            });
+        }
+    },
+
+    leaveExamChannel: async () => {
+        const state = get();
+        if (state.realtimeChannel) {
+            await supabase.removeChannel(state.realtimeChannel);
+            set({ realtimeChannel: null });
+        }
+    },
+
 }));
 
 // Wrapper para garantir que arrays nunca sejam null/undefined

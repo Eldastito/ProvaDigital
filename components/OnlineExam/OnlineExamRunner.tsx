@@ -4,6 +4,7 @@ import { AccessibilityToolbar } from './AccessibilityToolbar';
 import { AccessibilityConfig, DEFAULT_ACCESSIBILITY_CONFIG } from './types';
 import { ChevronLeft, ChevronRight, CheckCircle, Clock, CloudUpload } from 'lucide-react';
 import { Exam, Item, StudentAnswer } from '../../types';
+import { useProctoring } from '../../hooks/useProctoring';
 
 interface OnlineExamRunnerProps {
     examId: string;
@@ -31,7 +32,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
     }, [exam, state.items]);
 
     // --- SESSION STATE ---
-    const { startExamAttempt, logSecurityEvent, submitExamAttempt } = state;
+    const { startExamAttempt, logSecurityEvent, submitExamAttempt, initializeExamEvents, leaveExamChannel } = state;
     const [attemptId, setAttemptId] = useState<string | null>(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<string, string>>({}); // itemId -> selectedAlternativeId
@@ -66,142 +67,42 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                     localStorage.setItem(`exam_attempt_${exam.id}_${studentId}`, id);
                 });
             }
+
+            // 3. Connect to Realtime Proctoring Channel
+            initializeExamEvents(examId); // Joins "exam_monitor:EXAM_ID"
         }
-    }, [exam, studentId, examId]);
-
-    // Apply variant UI settings if any
-    useEffect(() => {
-        if (variant && variant.accessibilityConfig) {
-            setA11y(prev => ({
-                ...prev,
-                ...variant.accessibilityConfig
-            }));
-        }
-    }, [variant]);
-
-    // --- ACCESSIBILITY STYLES COMPUTED ---
-    const containerStyle = {
-        fontSize: `${a11y.fontSize}%`,
-        lineHeight: a11y.lineHeight,
-        letterSpacing: `${a11y.letterSpacing}px`,
-        fontFamily: a11y.fontType === 'dyslexic' ? 'OpenDyslexic, sans-serif' : a11y.fontType === 'serif' ? 'serif' : 'sans-serif',
-    };
-
-    const getThemeClasses = () => {
-        switch (a11y.theme) {
-            case 'dark': return 'bg-slate-900 text-slate-100';
-            case 'sepia': return 'bg-[#f4e4bc] text-[#4f3e1e]';
-            case 'high-contrast': return 'bg-black text-yellow-400';
-            default: return 'bg-slate-50 text-slate-900';
-        }
-    };
-
-    // --- LOGIC ---
-    // Load saved answers on mount
-    useEffect(() => {
-        if (!attemptId) return;
-        const saved = localStorage.getItem(`exam_answers_${attemptId}`);
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                setAnswers(prev => ({ ...prev, ...parsed }));
-            } catch (e) {
-                console.error("Error loading saved answers", e);
-            }
-        }
-    }, [attemptId]);
-
-    const handleAnswer = (itemId: string, alternativeId: string) => {
-        setAnswers(prev => {
-            const newAnswers = { ...prev, [itemId]: alternativeId };
-            // Auto-save to localStorage
-            if (attemptId) {
-                localStorage.setItem(`exam_answers_${attemptId}`, JSON.stringify(newAnswers));
-            }
-            return newAnswers;
-        });
-    };
-
-    // BACKGROUND SYNC (Debounced)
-    useEffect(() => {
-        if (!attemptId || Object.keys(answers).length === 0) return;
-
-        const timer = setTimeout(() => {
-            state.saveExamProgress(attemptId, answers);
-        }, 2000); // Wait 2s after last answer to sync to cloud
-
-        return () => clearTimeout(timer);
-    }, [answers, attemptId]);
-
-    // TIMER EFFECT
-    useEffect(() => {
-        if (timeLeft <= 0) {
-            handleFinalize();
-            return;
-        }
-        const timer = setInterval(() => {
-            setTimeLeft(prev => prev - 1);
-        }, 1000);
-        return () => clearInterval(timer);
-    }, [timeLeft]);
-
-    // SECURITY LISTENERS
-    useEffect(() => {
-        if (!attemptId) return;
-
-        const handleBlur = () => {
-            logSecurityEvent({
-                attemptId,
-                eventType: 'focus_lost',
-                severity: 'warning',
-                eventData: { action: 'blur' }
-            });
-            alert("Atenção: Você saiu da aba da prova. Este evento foi registrado pela coordenação.");
-        };
-
-        const handleFocus = () => {
-            logSecurityEvent({
-                attemptId,
-                eventType: 'focus_gained',
-                severity: 'info'
-            });
-        };
-
-        const preventRightClick = (e: MouseEvent) => {
-            e.preventDefault();
-            logSecurityEvent({
-                attemptId,
-                eventType: 'mouse_violation',
-                severity: 'info',
-                eventData: { action: 'context_menu' }
-            });
-        };
-
-        const preventShortcuts = (e: KeyboardEvent) => {
-            if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'v' || e.key === 'x')) {
-                e.preventDefault();
-                logSecurityEvent({
-                    attemptId,
-                    eventType: 'keyboard_violation',
-                    severity: 'critical',
-                    eventData: { key: e.key }
-                });
-                alert("Atalhos de copiar/colar estão desativados.");
-            }
-        };
-
-        window.addEventListener('blur', handleBlur);
-        window.addEventListener('focus', handleFocus);
-        window.addEventListener('contextmenu', preventRightClick);
-        window.addEventListener('keydown', preventShortcuts);
 
         return () => {
-            window.removeEventListener('blur', handleBlur);
-            window.removeEventListener('focus', handleFocus);
-            window.removeEventListener('contextmenu', preventRightClick);
-            window.removeEventListener('keydown', preventShortcuts);
+            leaveExamChannel();
         };
-    }, [attemptId]);
+    }, [exam, studentId, examId]);
+
+    // --- LIVE PROCTORING HOOK ---
+    // Replaces manual listeners. Handles Alt-Tab, Focus, Offline, etc.
+    // Also broadcasts alerts to the professor via Supabase.
+    // We import it dynamically or assume it's available.
+    // Importing at top level recommended.
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { isKioskActive } = useProctoring({
+        isActive: !!attemptId,
+        studentId: studentId,
+        studentName: state.currentUser?.name,
+        onViolation: (reason, type) => {
+            if (attemptId) {
+                // Log persistent audit trail
+                logSecurityEvent({
+                    attemptId,
+                    eventType: type.toLowerCase() as any, // 'focus_lost', etc
+                    severity: type === 'FOCUS_LOST' ? 'warning' : 'info',
+                    eventData: { reason }
+                });
+            }
+            if (type === 'FOCUS_LOST') {
+                alert("⚠️ ATENÇÃO: O foco na prova foi perdido. O professor foi notificado.");
+            }
+        }
+    });
 
     const handleFinalize = () => {
         // Map Local Answers to StudentAnswer format

@@ -14,7 +14,41 @@ export const LiveExamMonitorView = () => {
     const navigate = useNavigate();
     const exam = state.exams.find(e => e.id === examId);
 
-    const { examAttempts, examAttemptEvents, students, registrations, reopenExamAttempt } = state;
+    const { examAttempts, examAttemptEvents, students, registrations, reopenExamAttempt, initializeExamEvents, leaveExamChannel, liveAlerts, realtimeChannel } = state;
+
+    // --- REALTIME PRESENCE ---
+    const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (examId) {
+            initializeExamEvents(examId);
+
+            return () => {
+                leaveExamChannel(); // Cleanup on exit
+            };
+        }
+    }, [examId]);
+
+    // Sync Presence from Channel
+    useEffect(() => {
+        if (!realtimeChannel) return;
+
+        const updatePresence = () => {
+            const state = realtimeChannel.presenceState();
+            // Flatten presence object
+            const users = Object.values(state).flat().map((u: any) => u.studentId);
+            setOnlineUsers(users);
+        };
+
+        // Initial check
+        updatePresence();
+
+        // Listen for sync
+        realtimeChannel.on('presence', { event: 'sync' }, updatePresence);
+        // No explicit off needed for sub-event if we destroy channel, but good practice if persistent
+
+    }, [realtimeChannel]);
+
 
     // Process live data
     const studentsData = registrations
@@ -22,18 +56,37 @@ export const LiveExamMonitorView = () => {
         .map(r => {
             const student = students.find(s => s.id === r.studentId);
             const attempt = examAttempts.find(a => a.studentId === r.studentId && a.examVersionId === examId);
-            const alerts = attempt ? examAttemptEvents.filter(e => e.attemptId === attempt.id) : [];
+            const persistentAlerts = attempt ? examAttemptEvents.filter(e => e.attemptId === attempt.id) : [];
+
+            // Merge with Ephemeral Live Alerts
+            const studentLiveAlerts = liveAlerts.filter((a: any) => a.studentId === r.studentId).map((a: any) => ({
+                type: a.type,
+                time: new Date(a.timestamp).toLocaleTimeString()
+            }));
+
+            // Combine alerts (dedup logic could be added)
+            // For now, show live ones first
+            const allAlerts = [...studentLiveAlerts, ...persistentAlerts.map(a => ({ type: a.eventType, time: new Date(a.createdAt).toLocaleTimeString() }))];
+
+            const isOnline = onlineUsers.includes(r.studentId);
 
             return {
                 id: r.studentId,
                 attemptId: attempt?.id,
                 name: student?.name || 'Aluno',
-                status: attempt?.status || r.status,
+                // Priority: Finished -> Online -> Offline (but "Em Prova" if started)
+                status: attempt?.status === 'submitted' ? RegistrationStatus.FINALIZADO :
+                    isOnline ? RegistrationStatus.PRESENTE :
+                        RegistrationStatus.AUSENTE,
+                // Override status text for UI
+                uiStatus: attempt?.status === 'submitted' ? 'Finalizado' :
+                    isOnline ? 'Online' : 'Offline',
+
                 progress: (attempt?.status === 'submitted' || r.status === RegistrationStatus.FINALIZADO) ? 100 : (attempt ? 40 : 0),
-                battery: 95,
-                connection: 'EXCELLENT',
-                securityAlerts: alerts.map(a => ({ type: a.eventType, time: new Date(a.createdAt).toLocaleTimeString() })),
-                violationCount: attempt?.violationCount || 0
+                battery: 95, // Mock for now
+                connection: isOnline ? 'EXCELLENT' : 'OFFLINE',
+                securityAlerts: allAlerts,
+                violationCount: (attempt?.violationCount || 0) + studentLiveAlerts.length
             };
         });
 
@@ -41,8 +94,8 @@ export const LiveExamMonitorView = () => {
 
     const stats = {
         total: studentsData.length,
-        online: studentsData.filter(s => s.status === RegistrationStatus.PRESENTE).length,
-        finished: studentsData.filter(s => s.status === RegistrationStatus.FINALIZADO).length,
+        online: studentsData.filter(s => s.uiStatus === 'Online').length,
+        finished: studentsData.filter(s => s.uiStatus === 'Finalizado').length,
         alerts: studentsData.filter(s => s.securityAlerts.length > 0).length
     };
 
