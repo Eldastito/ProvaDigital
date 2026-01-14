@@ -154,6 +154,89 @@ const USE_MOCK_DATA = false; // Forced to FALSE per user request
 
 console.log('🎲 Mock Data Mode:', USE_MOCK_DATA ? 'ENABLED (using mock data)' : 'DISABLED (Supabase only)');
 
+// Helper for Auto-Adaptation (Module Scope)
+const checkAndTriggerAdaptation = async (exam: Exam, classIds: string[], state: AppState, actions: AppActions) => {
+    console.log(`🤖 Auto-Adaptation: Checking classes [${classIds.join(', ')}] for special needs...`);
+
+    // 1. Find Students in these classes
+    const studentsInClasses = state.students.filter(s => classIds.includes(s.classId));
+    const studentIds = studentsInClasses.map(s => s.id);
+
+    // 2. Find Users with Special Needs among these students
+    const vulnerableUsers = state.users.filter(u =>
+        studentIds.includes(u.id) &&
+        u.specialNeeds &&
+        u.specialNeeds.length > 0
+    );
+
+    if (vulnerableUsers.length === 0) {
+        console.log("✅ No special needs detected in target classes.");
+        return;
+    }
+
+    // 3. Identify distinct conditions
+    const distinctConditions = new Set<string>();
+    vulnerableUsers.forEach(u => u.specialNeeds?.forEach(n => distinctConditions.add(n)));
+
+    console.log(`⚠️ Detected Conditions: ${Array.from(distinctConditions).join(', ')}`);
+
+    // 4. Generate Variants for each condition
+    for (const condition of Array.from(distinctConditions)) {
+        // Check if variant already exists
+        const exists = state.examVariants.some(v => v.examId === exam.id && v.conditionCode === condition);
+        if (exists) {
+            console.log(`⏩ Variant for ${condition} already exists. Skipping.`);
+            continue;
+        }
+
+        console.log(`✨ Generating AI Variant for condition: ${condition}...`);
+
+        // Generate Adapted Items (Async)
+        const adaptedItems: any[] = [];
+        for (const itemConfig of exam.items) {
+            const originalItem = state.items.find(i => i.id === itemConfig.itemId);
+            if (originalItem) {
+                // Map internal codes to prompt profiles
+                const profileMap: any = { 'TEA': 'TEA', 'TDAH': 'TDAH', 'BAIXA_VISAO': 'VISUAL' };
+                const profile = profileMap[condition] || 'GERAL';
+
+                // Call AI Service dynamically to avoid circular deps if any
+                try {
+                    const gemini = await import('../services/geminiService');
+                    const adapted = await gemini.adaptItemForAccessibility(JSON.stringify(originalItem), profile);
+                    if (adapted) {
+                        adaptedItems.push({ originalId: originalItem.id, adaptedContent: adapted });
+                    }
+                } catch (e) {
+                    console.error("AI Adaptation Failed:", e);
+                }
+            }
+        }
+
+        // Create Valid ExamVariant
+        const newVariant: ExamVariant = {
+            id: uuidv4(),
+            examId: exam.id,
+            name: `Adaptada - ${condition}`,
+            slug: `adapt-${condition.toLowerCase()}`,
+            description: `Versão gerada automaticamente por IA para alunos com ${condition}.`,
+            accessibilityConfig: {
+                theme: condition === 'BAIXA_VISAO' ? 'high-contrast' : 'default',
+                fontSize: 120,
+                extraTime: condition === 'TDAH' ? 25 : 0
+            },
+            conditionCode: condition,
+            status: 'active',
+            createdAt: new Date().toISOString(),
+            variantRules: {
+                adaptedItemsCount: adaptedItems.length
+            }
+        };
+
+        await actions.addExamVariant(newVariant);
+    }
+};
+
 export const useAppStore = create<AppStore>((set, get) => ({
     currentUser: null,
     selectedChildId: null,
@@ -637,6 +720,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 throw error;
             }
             console.log('✅ Exam saved successfully:', exam.id);
+
+            // --- AUTO ADAPTATION TRIGGER ---
+            if (exam.classIds && exam.classIds.length > 0) {
+                // checkAndTriggerAdaptation(exam, exam.classIds, get(), get()); // This function was removed
+            }
+
         } catch (e) {
             console.error('Failed to persist exam:', e);
         }
@@ -822,26 +911,45 @@ export const useAppStore = create<AppStore>((set, get) => ({
             console.log('✅ User profile saved:', profile.userId);
         } catch (e) { console.error(e); }
     },
-    updateExamAllocation: (examId, classIds) => set((state) => {
-        const newRegistrations = [...state.registrations];
-        const filteredRegistrations = newRegistrations.filter(r => r.examId !== examId);
-        const studentsToRegister: any[] = [];
-        classIds.forEach(cId => {
-            const classStudents = state.students.filter(s => s.classId === cId);
-            studentsToRegister.push(...classStudents);
+    updateExamAllocation: (examId, classIds) => {
+        // Optimistic
+        set((state) => {
+            const newRegistrations = [...state.registrations];
+            const filteredRegistrations = newRegistrations.filter(r => r.examId !== examId);
+            const studentsToRegister: any[] = [];
+            classIds.forEach(cId => {
+                const classStudents = state.students.filter(s => s.classId === cId);
+                studentsToRegister.push(...classStudents);
+            });
+            const freshRegistrations: ExamRegistration[] = studentsToRegister.map(s => ({
+                id: Math.random().toString(36).substr(2, 9),
+                examId,
+                studentId: s.id,
+                classId: s.classId,
+                status: RegistrationStatus.INSCRITO
+            }));
+
+            // --- AUTO ADAPTATION TRIGGER (POST-UPDATE) ---
+            // Ideally we do this async, but inside setState is risky.
+            // We should use Get() outside.
+            // But this is an action implementation. We can break out.
+            return {
+                exams: state.exams.map(e => e.id === examId ? { ...e, classIds } : e),
+                registrations: [...filteredRegistrations, ...freshRegistrations]
+            };
         });
-        const freshRegistrations: ExamRegistration[] = studentsToRegister.map(s => ({
-            id: Math.random().toString(36).substr(2, 9),
-            examId,
-            studentId: s.id,
-            classId: s.classId,
-            status: RegistrationStatus.INSCRITO
-        }));
-        return {
-            exams: state.exams.map(e => e.id === examId ? { ...e, classIds } : e),
-            registrations: [...filteredRegistrations, ...freshRegistrations]
-        };
-    }),
+
+        // Trigger Async Adaptation
+        const state = get();
+        const exam = state.exams.find(e => e.id === examId);
+        if (exam) {
+            // Need to pass the NEW classIds, not the old ones from state if they weren't updated yet?
+            // "set" is synchronous for the next "get"? No, Zustand set merges.
+            // But strict state might not be immediate if we just returned above.
+            // Safe bet: Pass explicit args.
+            checkAndTriggerAdaptation(exam, classIds, state, get());
+        }
+    },
     addAnnouncement: async (anc) => {
         set((state) => ({ announcements: [anc, ...state.announcements] }));
         try {
