@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { AccessibilityToolbar } from './AccessibilityToolbar';
 import { AccessibilityConfig, DEFAULT_ACCESSIBILITY_CONFIG } from './types';
-import { ChevronLeft, ChevronRight, CheckCircle, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle, Clock, CloudUpload } from 'lucide-react';
 import { Exam, Item, StudentAnswer } from '../../types';
 
 interface OnlineExamRunnerProps {
@@ -50,25 +50,31 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
     const totalDuration = (exam?.durationMinutes || 0) + extraTimeMinutes;
     const [timeLeft, setTimeLeft] = useState(totalDuration * 60);
 
-    // Initial attempt start
+    // Initial attempt start & Data Fetching
     useEffect(() => {
-        if (exam && !attemptId && studentId) {
-            startExamAttempt({
-                examVersionId: exam.id,
-                studentId: studentId
-            }).then(id => {
-                setAttemptId(id);
-                localStorage.setItem(`exam_attempt_${exam.id}_${studentId}`, id);
-            });
+        if (examId) {
+            // 1. Ensure items are loaded (Scalability)
+            state.fetchExamItems(examId);
+
+            // 2. Start Attempt
+            if (exam && !attemptId && studentId) {
+                startExamAttempt({
+                    examVersionId: exam.id,
+                    studentId: studentId
+                }).then(id => {
+                    setAttemptId(id);
+                    localStorage.setItem(`exam_attempt_${exam.id}_${studentId}`, id);
+                });
+            }
         }
-    }, [exam, studentId]);
+    }, [exam, studentId, examId]);
 
     // Apply variant UI settings if any
     useEffect(() => {
-        if (variant && variant.accessibilityRules) {
+        if (variant && variant.accessibilityConfig) {
             setA11y(prev => ({
                 ...prev,
-                ...variant.accessibilityRules
+                ...variant.accessibilityConfig
             }));
         }
     }, [variant]);
@@ -91,9 +97,41 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
     };
 
     // --- LOGIC ---
+    // Load saved answers on mount
+    useEffect(() => {
+        if (!attemptId) return;
+        const saved = localStorage.getItem(`exam_answers_${attemptId}`);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                setAnswers(prev => ({ ...prev, ...parsed }));
+            } catch (e) {
+                console.error("Error loading saved answers", e);
+            }
+        }
+    }, [attemptId]);
+
     const handleAnswer = (itemId: string, alternativeId: string) => {
-        setAnswers(prev => ({ ...prev, [itemId]: alternativeId }));
+        setAnswers(prev => {
+            const newAnswers = { ...prev, [itemId]: alternativeId };
+            // Auto-save to localStorage
+            if (attemptId) {
+                localStorage.setItem(`exam_answers_${attemptId}`, JSON.stringify(newAnswers));
+            }
+            return newAnswers;
+        });
     };
+
+    // BACKGROUND SYNC (Debounced)
+    useEffect(() => {
+        if (!attemptId || Object.keys(answers).length === 0) return;
+
+        const timer = setTimeout(() => {
+            state.saveExamProgress(attemptId, answers);
+        }, 2000); // Wait 2s after last answer to sync to cloud
+
+        return () => clearTimeout(timer);
+    }, [answers, attemptId]);
 
     // TIMER EFFECT
     useEffect(() => {
@@ -295,30 +333,36 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
             </main>
 
             {/* FOOTER NAVIGATION */}
-            <footer className={`p-6 border-t ${a11y.theme === 'high-contrast' ? 'border-yellow-400' : 'border-slate-200 dark:border-slate-700'} flex justify-center gap-4`}>
-                <button
-                    onClick={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
-                    disabled={currentQuestionIndex === 0}
-                    className="px-8 py-4 rounded-xl font-bold flex items-center gap-2 disabled:opacity-30 hover:bg-current/10 transition"
-                >
-                    <ChevronLeft /> Anterior
-                </button>
+            <footer className={`p-6 border-t ${a11y.theme === 'high-contrast' ? 'border-yellow-400' : 'border-slate-200 dark:border-slate-700'} flex justify-between items-center gap-4`}>
+                <div className="hidden md:flex items-center gap-4 text-xs font-mono opacity-60">
+                    <div className="flex items-center gap-1"><CheckCircle size={12} /> Local salvo</div>
+                    <div className="flex items-center gap-1" title="Sincronizado com a nuvem"><CloudUpload size={12} /> Cloud Sync</div>
+                </div>
+                <div className="flex gap-4">
+                    <button
+                        onClick={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
+                        disabled={currentQuestionIndex === 0}
+                        className="px-8 py-4 rounded-xl font-bold flex items-center gap-2 disabled:opacity-30 hover:bg-current/10 transition"
+                    >
+                        <ChevronLeft /> Anterior
+                    </button>
 
-                {isLastQuestion ? (
-                    <button
-                        onClick={handleFinalize}
-                        className={`px-12 py-4 rounded-xl font-bold flex items-center gap-2 shadow-xl ${a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black hover:bg-white' : 'bg-emerald-600 text-white hover:bg-emerald-500'}`}
-                    >
-                        <CheckCircle /> Finalizar Prova
-                    </button>
-                ) : (
-                    <button
-                        onClick={() => setCurrentQuestionIndex(Math.min(examItems.length - 1, currentQuestionIndex + 1))}
-                        className={`px-12 py-4 rounded-xl font-bold flex items-center gap-2 shadow-lg ${a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black hover:bg-white' : 'bg-brand-primary text-white hover:bg-blue-600'}`}
-                    >
-                        Próxima <ChevronRight />
-                    </button>
-                )}
+                    {isLastQuestion ? (
+                        <button
+                            onClick={handleFinalize}
+                            className={`px-12 py-4 rounded-xl font-bold flex items-center gap-2 shadow-xl ${a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black hover:bg-white' : 'bg-emerald-600 text-white hover:bg-emerald-500'}`}
+                        >
+                            <CheckCircle /> Finalizar Prova
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => setCurrentQuestionIndex(Math.min(examItems.length - 1, currentQuestionIndex + 1))}
+                            className={`px-12 py-4 rounded-xl font-bold flex items-center gap-2 shadow-lg ${a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black hover:bg-white' : 'bg-brand-primary text-white hover:bg-blue-600'}`}
+                        >
+                            Próxima <ChevronRight />
+                        </button>
+                    )}
+                </div>
             </footer>
 
             {/* FOCUS MODE OVERLAY (Ruler) */}

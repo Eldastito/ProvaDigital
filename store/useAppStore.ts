@@ -121,6 +121,7 @@ interface AppActions {
     logSecurityEvent: (event: { attemptId: string; eventType: string; severity: string; eventData?: any }) => Promise<void>;
     submitExamAttempt: (attemptId: string, status: 'submitted' | 'timed_out') => Promise<void>;
     reopenExamAttempt: (attemptId: string) => Promise<void>;
+    saveExamProgress: (attemptId: string, answers: Record<string, string>) => Promise<void>;
 
     // --- PHASE 4 ACTIONS ---
     calculateAndSaveResult: (attemptId: string, answers: any[]) => Promise<void>;
@@ -136,6 +137,9 @@ interface AppActions {
     addArcadeGame: (game: ArcadeGame) => Promise<void>;
     updateArcadeGame: (game: ArcadeGame) => Promise<void>;
     deleteArcadeGame: (id: string) => Promise<void>;
+
+    // --- PHASE 7: SCALABILITY ---
+    fetchExamItems: (examId: string) => Promise<void>;
 }
 
 export type AppStore = AppState & AppActions;
@@ -1011,86 +1015,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         }
     },
 
-    // --- ARCADE GAMES IMPLEMENTATION ---
-    loadArcadeGames: async () => {
-        try {
-            const { data, error } = await supabase.from('arcade_games').select('*');
-            if (error) throw error;
-            if (data) {
-                const games: ArcadeGame[] = data.map((d: any) => ({
-                    id: d.id,
-                    title: d.title,
-                    description: d.description,
-                    url: d.url,
-                    category: d.category,
-                    thumbnailUrl: d.thumbnail_url,
-                    isActive: d.is_active,
-                    playCount: d.play_count,
-                    tenantId: d.tenant_id,
-                    createdAt: d.created_at
-                }));
-                // Merge with mocks if needed, or just set
-                set({ arcadeGames: games });
-            }
-        } catch (e) {
-            console.error("Error loading arcade games:", e);
-        }
-    },
 
-    addArcadeGame: async (game) => {
-        // Optimistic
-        set(state => ({ arcadeGames: [...state.arcadeGames, game] }));
-        try {
-            const { error } = await supabase.from('arcade_games').insert({
-                id: game.id,
-                title: game.title,
-                description: game.description,
-                url: game.gameUrl,
-                category: game.category,
-                thumbnail_url: game.thumbnailUrl,
-                is_active: game.status === 'active',
-                play_count: 0, // Default
-                tenant_id: get().currentUser?.tenantId,
-                created_at: game.createdAt
-            });
-            if (error) throw error;
-        } catch (e) {
-            console.error("Error saving arcade game:", e);
-            // Rollback
-            set(state => ({ arcadeGames: state.arcadeGames.filter(g => g.id !== game.id) }));
-            alert("Erro ao salvar jogo. Verifique o console.");
-        }
-    },
-
-    updateArcadeGame: async (game) => {
-        // Optimistic
-        set(state => ({ arcadeGames: state.arcadeGames.map(g => g.id === game.id ? game : g) }));
-        try {
-            const { error } = await supabase.from('arcade_games').update({
-                title: game.title,
-                description: game.description,
-                url: game.gameUrl,
-                category: game.category,
-                thumbnail_url: game.thumbnailUrl,
-                is_active: game.status === 'active',
-                play_count: 0 // Keep unchanged ideally, but simplified for now
-            }).eq('id', game.id);
-            if (error) throw error;
-        } catch (e) {
-            console.error("Error updating arcade game:", e);
-        }
-    },
-
-    deleteArcadeGame: async (id) => {
-        // Optimistic
-        set(state => ({ arcadeGames: state.arcadeGames.filter(g => g.id !== id) }));
-        try {
-            const { error } = await supabase.from('arcade_games').delete().eq('id', id);
-            if (error) throw error;
-        } catch (e) {
-            console.error("Error deleting arcade game:", e);
-        }
-    },
 
     updateItemStatus: async (itemId, status) => {
         set((state) => ({
@@ -1213,6 +1138,28 @@ export const useAppStore = create<AppStore>((set, get) => ({
             console.error("Error starting attempt:", e);
         }
         return id;
+    },
+
+    saveExamProgress: async (attemptId: string, answers: Record<string, string>) => {
+        // Optimistic local update (already handled by Runner state, but good to have in validAttempt)
+        set((state) => ({
+            examAttempts: state.examAttempts.map(a =>
+                a.id === attemptId
+                    ? { ...a, metadata: { ...a.metadata, savedAnswers: answers }, lastPingAt: new Date().toISOString() }
+                    : a
+            )
+        }));
+
+        try {
+            // Persist to Supabase
+            // We use 'metadata' column to store partial answers
+            await supabase.from('exam_attempts').update({
+                metadata: { savedAnswers: answers }, // In a real app, merge with existing metadata
+                last_ping_at: new Date().toISOString()
+            }).eq('id', attemptId);
+        } catch (e) {
+            console.error("Error saving progress:", e);
+        }
     },
 
     logSecurityEvent: async (dto) => {
@@ -1662,6 +1609,114 @@ export const useAppStore = create<AppStore>((set, get) => ({
             console.error("Error loading arcade games:", e);
         }
     },
+
+    addArcadeGame: async (game) => {
+        set(state => ({ arcadeGames: [...state.arcadeGames, game] }));
+        try {
+            const { error } = await supabase.from('arcade_games').insert({
+                id: game.id,
+                title: game.title,
+                description: game.description,
+                url: game.gameUrl,
+                category: game.category,
+                thumbnail_url: game.thumbnailUrl,
+                is_active: game.status === 'active',
+                play_count: 0,
+                tenant_id: get().currentUser?.tenantId,
+                created_at: game.createdAt
+            });
+            if (error) throw error;
+        } catch (e) {
+            console.error("Error saving arcade game:", e);
+            set(state => ({ arcadeGames: state.arcadeGames.filter(g => g.id !== game.id) }));
+        }
+    },
+
+    updateArcadeGame: async (game) => {
+        set(state => ({ arcadeGames: state.arcadeGames.map(g => g.id === game.id ? game : g) }));
+        try {
+            const { error } = await supabase.from('arcade_games').update({
+                title: game.title,
+                description: game.description,
+                url: game.gameUrl,
+                category: game.category,
+                thumbnail_url: game.thumbnailUrl,
+                is_active: game.status === 'active'
+            }).eq('id', game.id);
+            if (error) throw error;
+        } catch (e) {
+            console.error("Error updating arcade game:", e);
+        }
+    },
+
+    deleteArcadeGame: async (id) => {
+        set(state => ({ arcadeGames: state.arcadeGames.filter(g => g.id !== id) }));
+        try {
+            const { error } = await supabase.from('arcade_games').delete().eq('id', id);
+            if (error) throw error;
+        } catch (e) {
+            console.error("Error deleting arcade game:", e);
+        }
+    },
+
+    // --- PHASE 7: SCALABLE EXAM LOADING ---
+    fetchExamItems: async (examId: string) => {
+        try {
+            const { data: exam } = await supabase.from('exams').select('items_config').eq('id', examId).single();
+            if (!exam || !exam.items_config) return;
+
+            const itemIds = exam.items_config.map((ic: any) => ic.itemId);
+
+            // Check which items we already have
+            const state = get();
+            const loadedIds = new Set(state.items.map(i => i.id));
+            const missingIds = itemIds.filter((id: string) => !loadedIds.has(id));
+
+            if (missingIds.length === 0) return; // All loaded
+
+            console.log(`📥 Fetching ${missingIds.length} missing items for exam ${examId}`);
+
+            const { data: dbItems, error } = await supabase
+                .from('items')
+                .select('*')
+                .in('id', missingIds);
+
+            if (dbItems && dbItems.length > 0) {
+                // Format items (reuse logic from loadRemoteData - simplified here)
+                const formattedItems: Item[] = dbItems.map((i: any) => ({
+                    id: i.id,
+                    tenantId: i.tenant_id,
+                    ownerId: i.owner_id || '',
+                    subject: i.subject,
+                    knowledgeArea: i.knowledge_area || i.subject,
+                    statement: i.statement,
+                    type: i.type,
+                    difficulty: i.difficulty,
+                    alternatives: i.alternatives,
+                    correctAnswerJustification: i.correct_justification,
+                    bnccCode: i.bncc_code || '',
+                    origin: i.origin || ItemOrigin.MANUAL,
+                    score: i.score || 1.0,
+                    tags: i.tags || [],
+                    triParams: i.tri_params,
+                    generationBatchId: i.generation_batch_id,
+                    lifecycleStatus: i.lifecycle_status,
+                    isAccessible: i.is_accessible,
+                    accessibilityInstructions: i.accessibility_instructions,
+                    multimedia: i.multimedia || [],
+                    currentVersionId: i.current_version_id,
+                    usageCount: i.usage_count || 0,
+                    createdAt: i.created_at || new Date().toISOString()
+                }));
+
+                set(state => ({
+                    items: [...state.items, ...formattedItems]
+                }));
+            }
+        } catch (e) {
+            console.error("Error fetching exam items:", e);
+        }
+    },
 }));
 
 // Wrapper para garantir que arrays nunca sejam null/undefined
@@ -1688,5 +1743,6 @@ export const useSafeAppStore = () => {
         userProfiles: store.userProfiles || [],
         gamifiedEvents: store.gamifiedEvents || [],
         events: store.events || [],
+        fetchExamItems: store.fetchExamItems
     };
 };
