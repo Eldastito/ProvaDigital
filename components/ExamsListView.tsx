@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, MoreHorizontal, Clock, FileText, Printer, ClipboardCheck, Globe, School, Activity, ShieldCheck } from 'lucide-react';
+import { Plus, MoreHorizontal, Clock, FileText, Printer, ClipboardCheck, Globe, School, Activity, ShieldCheck, Layers } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppState, ExamStatus } from '../types';
 import { Badge } from './ui/Badge';
@@ -95,6 +95,13 @@ export const ExamsListView = () => {
                                             title="Imprimir / Visualizar"
                                         >
                                             <Printer size={18} />
+                                        </button>
+                                        <button
+                                            onClick={() => navigate(`/exams/${exam.id}/variants`)}
+                                            className="text-amber-600 font-medium text-sm hover:text-amber-800 flex items-center gap-1 transition"
+                                            title="Gerenciar Variantes (V2)"
+                                        >
+                                            <Layers size={18} />
                                         </button>
                                         {/* Enable Monitor for ACTIVE exams */}
                                         {exam.status === ExamStatus.ACTIVE && (

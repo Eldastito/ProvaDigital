@@ -5,6 +5,7 @@ import { DashboardView } from './components/DashboardView';
 import { ItemsListView } from './components/ItemsListView';
 import { ItemEditorView } from './components/ItemEditorView';
 import { ItemEditorV2 } from './components/ItemBank/ItemEditorV2';
+import { ExamVariantsManager } from './components/ExamVariantsManager';
 import { ExamsListView } from './components/ExamsListView';
 import { ExamBuilderView } from './components/ExamBuilderView';
 import { AllocationView } from './components/AllocationView';
@@ -98,6 +99,7 @@ export const appRoutes: RouteObject[] = [
             { path: 'items/new', element: <ItemEditorView /> },
             { path: 'items/:id/edit-v2', element: <ItemEditorV2 /> },
             { path: 'exams', element: <ExamsListView /> },
+            { path: 'exams/:id/variants', element: <ExamVariantsManager /> },
             { path: 'exams/new', element: <ExamBuilderView /> },
             { path: 'exams/:id/print', element: <PrintableExamView /> },
             { path: 'exams/:id/results', element: <ResultsEntryView /> },

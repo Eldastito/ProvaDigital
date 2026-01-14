@@ -6,7 +6,7 @@ import {
     MentorshipRequest, MentorshipStatus, OwlTutorContext, ItemGenerationBatch,
     ItemLifecycleStatus, ExamVersion, ExamVariant, Tenant, School, SchoolClass,
     UserProfileExtended, ExamRegistration, RegistrationStatus,
-    ExamAttempt, ExamAttemptEvent, AuditLog, ArcadeGame
+    ExamAttempt, ExamAttemptEvent, AuditLog, ArcadeGame, ExamVariantOverride
 } from '../types';
 import { uuidv4 } from '../utils/helpers';
 import { INITIAL_TENANTS, INITIAL_SCHOOLS, INITIAL_CLASSES, INITIAL_USERS, INITIAL_ITEMS, INITIAL_STUDENTS, INITIAL_RESULTS, INITIAL_EXAMS, INITIAL_REGISTRATIONS, INITIAL_ANNOUNCEMENTS, INITIAL_MESSAGES, INITIAL_LESSON_PLANS, INITIAL_STUDY_PLANS, INITIAL_STUDENT_PROFILES, INITIAL_USER_PROFILES, INITIAL_SETTINGS, INITIAL_GAMIFIED_EVENTS } from '../utils/mockData';
@@ -105,14 +105,15 @@ interface AppActions {
     approveOneItem: (itemId: string) => Promise<void>;
     discardOneItem: (itemId: string) => Promise<void>;
     setActiveBatchId: (id: string | null) => void;
-    addExamVersion: (version: ExamVersion) => Promise<void>;
     addExamVariant: (variant: ExamVariant) => Promise<void>;
+    saveOverride: (override: ExamVariantOverride) => Promise<void>;
+    loadExamVariants: (examId: string) => Promise<void>;
     loadGenerationBatches: () => Promise<void>;
 
     // --- BULK ACTIONS ---
     removeItems: (ids: string[]) => Promise<void>;
     bulkAddTag: (ids: string[], tag: string) => Promise<void>;
-    forceFetchBatchItems: (batchId: string) => Promise<void>;
+    forceFetchBatchItems: (batchId: string) => Promise<Item[] | void>;
     deleteGenerationBatch: (batchId: string) => Promise<void>;
 
     // --- PHASE 3 ACTIONS ---
@@ -140,7 +141,8 @@ interface AppActions {
 export type AppStore = AppState & AppActions;
 
 // Check if mock data should be used
-const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+// const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+const USE_MOCK_DATA = false; // Forced to FALSE per user request
 
 console.log('🎲 Mock Data Mode:', USE_MOCK_DATA ? 'ENABLED (using mock data)' : 'DISABLED (Supabase only)');
 
@@ -154,6 +156,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
     students: USE_MOCK_DATA ? INITIAL_STUDENTS : [],
     items: USE_MOCK_DATA ? INITIAL_ITEMS : [],
     exams: USE_MOCK_DATA ? INITIAL_EXAMS : [],
+    examVariants: [],
+    variantOverrides: [],
     registrations: USE_MOCK_DATA ? INITIAL_REGISTRATIONS : [],
     results: USE_MOCK_DATA ? INITIAL_RESULTS : [],
     events: [],
@@ -171,7 +175,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     itemGenerationBatches: [],
     activeBatchId: null,
     examVersions: [],
-    examVariants: [],
+
     examAttempts: [],
     examAttemptEvents: [],
     settings: USE_MOCK_DATA ? INITIAL_SETTINGS : INITIAL_SETTINGS, // Always use settings
@@ -1041,12 +1045,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 id: game.id,
                 title: game.title,
                 description: game.description,
-                url: game.url,
+                url: game.gameUrl,
                 category: game.category,
                 thumbnail_url: game.thumbnailUrl,
-                is_active: game.isActive,
-                play_count: game.playCount,
-                tenant_id: game.tenantId || get().currentUser?.tenantId,
+                is_active: game.status === 'active',
+                play_count: 0, // Default
+                tenant_id: get().currentUser?.tenantId,
                 created_at: game.createdAt
             });
             if (error) throw error;
@@ -1065,11 +1069,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
             const { error } = await supabase.from('arcade_games').update({
                 title: game.title,
                 description: game.description,
-                url: game.url,
+                url: game.gameUrl,
                 category: game.category,
                 thumbnail_url: game.thumbnailUrl,
-                is_active: game.isActive,
-                play_count: game.playCount
+                is_active: game.status === 'active',
+                play_count: 0 // Keep unchanged ideally, but simplified for now
             }).eq('id', game.id);
             if (error) throw error;
         } catch (e) {
@@ -1160,22 +1164,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
         }
     },
 
-    addExamVariant: async (variant) => {
-        set((state) => ({ examVariants: [variant, ...state.examVariants] }));
-        try {
-            const { error } = await supabase.from('exam_variants').insert({
-                id: variant.id,
-                exam_version_id: variant.examVersionId,
-                condition_code: variant.conditionCode,
-                variant_rules_jsonb: variant.variantRules,
-                status: variant.status
-            });
-            if (error) throw error;
-        } catch (e) {
-            console.error("Error saving variant:", e);
-            throw e;
-        }
-    },
 
     loadGenerationBatches: async () => {
         const { data, error } = await supabase
@@ -1533,20 +1521,146 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 isAccessible: i.is_accessible,
                 accessibilityInstructions: i.accessibility_instructions,
                 multimedia: i.multimedia || [],
-                usageCount: 0,
-                createdAt: i.created_at
+                currentVersionId: i.current_version_id,
+                usageCount: i.usage_count || 0,
+                createdAt: i.created_at || new Date().toISOString(),
+                updatedAt: i.updated_at || new Date().toISOString()
             }));
-
-            set(state => {
-                const itemMap = new Map(state.items.map(i => [i.id, i]));
-                formattedItems.forEach(item => {
-                    itemMap.set(item.id, item);
-                });
-                return { items: Array.from(itemMap.values()) };
-            });
-            console.log(`✅ ${formattedItems.length} itens resgatados do lote.`);
+            return formattedItems;
         }
-    }
+    },
+
+    addExamVariant: async (variant) => {
+        set(state => ({ examVariants: [...state.examVariants, variant] }));
+        try {
+            const { error } = await supabase.from('exam_variants').insert({
+                id: variant.id,
+                exam_id: variant.examId,
+                name: variant.name,
+                slug: variant.slug,
+                description: variant.description,
+                accessibility_config: variant.accessibilityConfig,
+                created_at: variant.createdAt
+            });
+            if (error) {
+                console.error("❌ Error saving exam variant:", error);
+                set(state => ({ examVariants: state.examVariants.filter(v => v.id !== variant.id) }));
+                throw error;
+            }
+        } catch (e) { console.error(e); }
+    },
+
+    saveOverride: async (override) => {
+        // Optimistic
+        set(state => ({
+            variantOverrides: [...state.variantOverrides.filter(o => o.id !== override.id), override]
+        }));
+
+        try {
+            const payload = {
+                id: override.id,
+                variant_id: override.variantId,
+                item_version_id: override.itemVersionId,
+                override_payload: override.overridePayload,
+                rationale: override.rationale,
+                status: override.status,
+                created_by: override.createdBy,
+                created_at: override.createdAt,
+                updated_at: override.updatedAt
+            };
+
+            const { error } = await supabase.from('exam_variant_overrides').upsert(payload);
+
+            if (error) {
+                console.error("❌ Error saving override:", error);
+                // Rollback? Complicated for upsert. Just alert.
+                throw error;
+            }
+        } catch (e) { console.error(e); }
+    },
+
+    loadExamVariants: async (examId) => {
+        try {
+            const { data: variants } = await supabase.from('exam_variants').select('*').eq('exam_id', examId);
+            const { data: overrides } = await supabase.from('exam_variant_overrides')
+                .select('*')
+                .in('variant_id', (variants || []).map(v => v.id));
+
+            if (variants) {
+                const formattedVariants: ExamVariant[] = variants.map((v: any) => ({
+                    id: v.id,
+                    examId: v.exam_id,
+                    name: v.name,
+                    slug: v.slug,
+                    description: v.description,
+                    accessibilityConfig: v.accessibility_config,
+                    status: 'active', // Default for now as DB col missing
+                    createdAt: v.created_at
+                }));
+                // Merge into state (avoid duplicates)
+                set(state => ({
+                    examVariants: [
+                        ...state.examVariants.filter(old => !formattedVariants.some(newV => newV.id === old.id)),
+                        ...formattedVariants
+                    ]
+                }));
+            }
+
+            if (overrides) {
+                const formattedOverrides: ExamVariantOverride[] = overrides.map((o: any) => ({
+                    id: o.id,
+                    variantId: o.variant_id,
+                    itemVersionId: o.item_version_id,
+                    overridePayload: o.override_payload,
+                    rationale: o.rationale,
+                    status: o.status,
+                    createdBy: o.created_by,
+                    createdAt: o.created_at,
+                    updatedAt: o.updated_at
+                }));
+                set(state => ({
+                    variantOverrides: [
+                        ...state.variantOverrides.filter(old => !formattedOverrides.some(newO => newO.id === old.id)),
+                        ...formattedOverrides
+                    ]
+                }));
+            }
+
+        } catch (e) { console.error(e); }
+    },
+
+
+
+
+    loadArcadeGames: async () => {
+        try {
+            const { data } = await supabase.from('arcade_games')
+                .select('*')
+                .eq('is_active', true);
+
+            if (data) {
+                const games: ArcadeGame[] = data.map((g: any) => ({
+                    id: g.id,
+                    title: g.title,
+                    description: g.description,
+                    thumbnailUrl: g.thumbnail_url,
+                    gameUrl: g.url,
+                    category: g.category,
+                    minLevel: 1, // Default as not in DB
+                    status: g.is_active ? 'active' : 'inactive',
+                    createdAt: g.created_at
+                }));
+
+                set(state => {
+                    const existingIds = new Set(state.arcadeGames.map(g => g.id));
+                    const newGames = games.filter(g => !existingIds.has(g.id));
+                    return { arcadeGames: [...state.arcadeGames, ...newGames] };
+                });
+            }
+        } catch (e) {
+            console.error("Error loading arcade games:", e);
+        }
+    },
 }));
 
 // Wrapper para garantir que arrays nunca sejam null/undefined

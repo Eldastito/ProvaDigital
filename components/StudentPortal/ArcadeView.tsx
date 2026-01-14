@@ -9,7 +9,11 @@ export const ArcadeView = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
 
-    const games = useMemo(() => GamificationService.getArcadeGames(), []);
+    const { arcadeGames } = useAppStore();
+
+    // Combine store games with potentially some hardcoded ones if needed, but per request we use real data
+    // If store is empty (and remote load failed?), we might want fallback, but let's trust the store.
+    const games = useMemo(() => arcadeGames, [arcadeGames]);
 
     const filteredGames = games.filter(game => {
         const matchesSearch = game.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

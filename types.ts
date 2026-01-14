@@ -341,6 +341,10 @@ export interface ExamVariant {
   slug: string;
   description: string;
   accessibilityConfig: any;
+  examVersionId?: string; // Optional for now
+  conditionCode?: string; // e.g. TDAH, LOW_VISION
+  variantRules?: any;
+  status: 'active' | 'archived';
   createdAt: string;
 }
 
@@ -351,7 +355,9 @@ export interface ExamVariantOverride {
   overridePayload: any;
   rationale: string;
   status: string;
+  createdBy?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export enum RegistrationStatus {
@@ -448,15 +454,7 @@ export interface ExamAttemptEvent {
   createdAt: string;
 }
 
-export interface ExamVariant {
-  id: string;
-  examVersionId: string;
-  conditionCode: string; // TEA | TDAH | DIFIC_APRENDIZAGEM
-  variantRules: any;
-  status: 'active' | 'archived';
-  accessibilityRules?: any; // UI/Process overrides
-  createdAt: string;
-}
+
 
 
 
@@ -725,18 +723,7 @@ export interface StoredSession {
 // Phase 12: Arcade Mode
 // ============================================
 
-export interface ArcadeGame {
-  id: string;
-  title: string;
-  description: string;
-  url: string;
-  category: string;
-  thumbnailUrl?: string;
-  isActive: boolean;
-  playCount: number;
-  tenantId?: string;
-  createdAt?: string;
-}
+
 
 export interface AppState {
   currentUser: User | null;
@@ -748,6 +735,7 @@ export interface AppState {
   students: Student[];
   items: Item[];
   exams: Exam[];
+  // examVariants and variantOverrides moved below to avoid duplication
   registrations: ExamRegistration[];
   results: ExamResult[];
   mentorships: MentorshipRequest[]; // NOVO
@@ -767,6 +755,7 @@ export interface AppState {
   activeBatchId: string | null;
   examVersions: ExamVersion[];
   examVariants: ExamVariant[];
+  variantOverrides: ExamVariantOverride[]; // V2
   examAttempts: ExamAttempt[];
   examAttemptEvents: ExamAttemptEvent[];
   settings: AppSettings;
@@ -877,4 +866,16 @@ export interface ClassReportData {
   atRiskStudents: { studentId: string; name: string; riskLevel: RiskLevel }[];
   subjectBreakdown: SubjectPerformance[];
   bnccHeatmap: BNCCCompetency[];
+}
+
+export interface ArcadeGame {
+  id: string;
+  title: string;
+  description: string;
+  thumbnailUrl: string;
+  gameUrl: string;
+  category: string;
+  minLevel?: number;
+  status: 'active' | 'inactive';
+  createdAt: string;
 }
