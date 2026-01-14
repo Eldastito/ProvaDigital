@@ -92,6 +92,89 @@ export const cryptoService = {
         const result = await cryptoService.encryptData(answerPayload, key);
         // Pack IV and Data together for simpler transmission: "IV:DATA"
         return `${result.iv}:${result.data}`;
+    },
+
+    // --- PHASE 9: PKI (RSA-OAEP) ---
+
+    /**
+     * Generates a persistent RSA-OAEP Key Pair (2048-bit) for User Identity.
+     */
+    generateIdentityKeyPair: async (): Promise<CryptoKeyPair> => {
+        return await window.crypto.subtle.generateKey(
+            {
+                name: "RSA-OAEP",
+                modulusLength: 2048,
+                publicExponent: new Uint8Array([1, 0, 1]),
+                hash: "SHA-256"
+            },
+            true, // Exportable for storage in LocalStorage/IndexedDB
+            ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
+        );
+    },
+
+    /**
+     * Exports a Key (Public or Symmetric) to JWK for storage/transmission.
+     */
+    exportKey: async (key: CryptoKey): Promise<JsonWebKey> => {
+        return await window.crypto.subtle.exportKey("jwk", key);
+    },
+
+    /**
+     * Imports a Public Key (RSA) from JWK.
+     */
+    importPublicKey: async (jwk: JsonWebKey): Promise<CryptoKey> => {
+        return await window.crypto.subtle.importKey(
+            "jwk",
+            jwk,
+            { name: "RSA-OAEP", hash: "SHA-256" },
+            true,
+            ["wrapKey", "encrypt"]
+        );
+    },
+
+    /**
+     * Imports a Private Key (RSA) from JWK.
+     * NOTE: In a strictly secure env, Private Key should never leave IndexedDB.
+     */
+    importPrivateKey: async (jwk: JsonWebKey): Promise<CryptoKey> => {
+        return await window.crypto.subtle.importKey(
+            "jwk",
+            jwk,
+            { name: "RSA-OAEP", hash: "SHA-256" },
+            false,
+            ["unwrapKey", "decrypt"]
+        );
+    },
+
+    /**
+     * WRAP: Encrypts the Exam AES Key using the Student's Public RSA Key.
+     * Use this when the Professor sends the key to a specific student.
+     */
+    wrapKey: async (aesKey: CryptoKey, studentPublicKey: CryptoKey): Promise<string> => {
+        const wrappedBuffer = await window.crypto.subtle.wrapKey(
+            "raw", // AES keys are wrapped as raw bytes
+            aesKey,
+            studentPublicKey,
+            "RSA-OAEP"
+        );
+        return arrayBufferToBase64(wrappedBuffer);
+    },
+
+    /**
+     * UNWRAP: Decrypts the Encrypted AES Key using the Student's Private RSA Key.
+     * Use this when the Student receives the sealed exam.
+     */
+    unwrapKey: async (wrappedKeyB64: string, studentPrivateKey: CryptoKey): Promise<CryptoKey> => {
+        const wrappedBuffer = base64ToArrayBuffer(wrappedKeyB64);
+        return await window.crypto.subtle.unwrapKey(
+            "raw",
+            wrappedBuffer,
+            studentPrivateKey,
+            "RSA-OAEP",
+            { name: "AES-GCM", length: 256 }, // Algorithm of the key being unwrapped
+            false,
+            ["encrypt", "decrypt"]
+        );
     }
 };
 

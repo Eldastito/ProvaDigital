@@ -62,6 +62,7 @@ const DEFAULT_PERMISSIONS: PermissionMatrix = {
 
 interface AppActions {
     setCurrentUser: (user: User | null) => void;
+    initIdentity: () => Promise<void>; // Phase 9
     setSelectedChildId: (childId: string | null) => void;
     loadRemoteData: () => Promise<void>; // NOVA AÇÃO DE CARGA
     addItem: (item: Item) => void;
@@ -1697,28 +1698,47 @@ export const useAppStore = create<AppStore>((set, get) => ({
                     const payloadJson = exam.description.substring(16); // Remove prefix
                     const payload = JSON.parse(payloadJson);
 
-                    // In a real app, key comes from secure session or QR Code. Here asking user.
-                    const keyString = prompt("🔒 ESTA PROVA É CRIPTOGRAFADA (NÍVEL MILITAR)\n\nPor favor, insira a CHAVE DE ACESSO fornecida pelo professor:");
-
-                    if (!keyString) {
-                        alert("Chave obrigatória. Prova não pode ser aberta.");
-                        window.history.back(); // Kick out
-                        return;
-                    }
-
-                    // Dynamically import crypto logic
+                    // --- PHASE 9: PKI AUTO-UNLOCK ---
                     const { cryptoService } = await import('../services/cryptoService');
+                    let key: CryptoKey | null = null;
+                    const state = get();
 
-                    // Decrypt
-                    let keyJwk;
-                    try {
-                        keyJwk = JSON.parse(keyString);
-                    } catch (e) {
-                        alert("Formato da chave inválido (Deve ser um JWK JSON).");
-                        return;
+                    // 1. Try Automatic PKI Unwrap (Transparent)
+                    if (state.identityKeys) {
+                        try {
+                            const { data: secureKeyRecord } = await supabase
+                                .from('exam_secure_keys')
+                                .select('wrapped_key')
+                                .eq('exam_id', examId)
+                                .eq('student_id', state.currentUser?.id || '')
+                                .single();
+
+                            if (secureKeyRecord) {
+                                console.log("🔓 Attempting PKI Auto-Unlock...");
+                                key = await cryptoService.unwrapKey(secureKeyRecord.wrapped_key, state.identityKeys.privateKey);
+                                console.log("✅ Auto-Unlock Successful!");
+                            }
+                        } catch (unwrapErr) {
+                            console.warn("Auto-Unlock failed:", unwrapErr);
+                        }
                     }
 
-                    const key = await cryptoService.importKey(keyJwk);
+                    // 2. Fallback to Manual Key Entry (Interoperability)
+                    if (!key) {
+                        const keyString = prompt("🔒 ESTA PROVA É CRIPTOGRAFADA\n\n(Desbloqueio automático indisponível)\nPor favor, insira a CHAVE DE ACESSO manual:");
+                        if (!keyString) {
+                            alert("Chave obrigatória.");
+                            window.history.back();
+                            return;
+                        }
+                        try {
+                            const keyJwk = JSON.parse(keyString);
+                            key = await cryptoService.importKey(keyJwk);
+                        } catch (e) {
+                            alert("Chave inválida.");
+                            return;
+                        }
+                    }
                     console.log("🔓 Decrypting in Memory...");
                     const items = await cryptoService.decryptData(payload, key);
 
@@ -1793,50 +1813,119 @@ export const useAppStore = create<AppStore>((set, get) => ({
         }
     },
 
+    // --- PHASE 9: PKI IDENTITY ---
+    initIdentity: async () => {
+        const currentUser = get().currentUser;
+        if (!currentUser) return;
+
+        try {
+            const { cryptoService } = await import('../services/cryptoService');
+            const storageKey = `pki_identity_${currentUser.id}`;
+            const storedIdentity = localStorage.getItem(storageKey);
+
+            let keyPair: CryptoKeyPair;
+
+            if (storedIdentity) {
+                // Load existing
+                const jwks = JSON.parse(storedIdentity);
+                const publicKey = await cryptoService.importPublicKey(jwks.publicKey);
+                const privateKey = await cryptoService.importPrivateKey(jwks.privateKey);
+                keyPair = { publicKey, privateKey };
+                // console.log("🔑 Identity loaded");
+            } else {
+                // Generate new
+                console.log("🆕 Generating new PKI Identity...");
+                const newKeys = await cryptoService.generateIdentityKeyPair();
+
+                const pubJwk = await cryptoService.exportKey(newKeys.publicKey);
+                const privJwk = await cryptoService.exportKey(newKeys.privateKey);
+
+                localStorage.setItem(storageKey, JSON.stringify({ publicKey: pubJwk, privateKey: privJwk }));
+
+                await supabase.from('user_public_keys').upsert({
+                    user_id: currentUser.id,
+                    public_key_json: pubJwk
+                });
+
+                keyPair = newKeys;
+                console.log("☁️ Public Key Uploaded");
+            }
+
+            set({ identityKeys: keyPair });
+        } catch (e) {
+            console.error("Error initializing PKI identity:", e);
+        }
+    },
+
     // --- PHASE 8: ENCRYPTION (PREMIUM) ---
     sealExam: async (examId: string) => {
         try {
             // 1. Fetch complete exam data
-            const { data: exam } = await supabase.from('exams').select('items_config').eq('id', examId).single();
-            if (!exam || !exam.items_config) throw new Error("Exam config not found");
+            const { data: exam } = await supabase.from('exams').select('items_config, items(*)').eq('id', examId).single();
 
-            const itemIds = exam.items_config.map((ic: any) => ic.itemId);
-            const { data: items } = await supabase.from('items').select('*').in('id', itemIds);
+            // Fix: Hybrid fetch
+            let items = exam?.items;
+            if ((!items || items.length === 0) && exam?.items_config) {
+                const itemIds = exam.items_config.map((ic: any) => ic.itemId);
+                const { data: fetchedItems } = await supabase.from('items').select('*').in('id', itemIds);
+                items = fetchedItems;
+            }
 
-            if (!items) throw new Error("Items not found");
+            if (!items || items.length === 0) throw new Error("Items not found");
 
             // 2. Generate Key
             const { cryptoService } = await import('../services/cryptoService');
-            const keyJwk = await cryptoService.generateExamKey();
-            const key = await cryptoService.importKey(keyJwk);
+            const sessionKeyJwk = await cryptoService.generateExamKey();
+            const sessionKey = await cryptoService.importKey(sessionKeyJwk);
 
             // 3. Encrypt Blob
-            const payload = await cryptoService.encryptData(items, key);
+            const payload = await cryptoService.encryptData(items, sessionKey);
 
-            // 4. Save to Secure Table (Simulated here as a JSON column update on exam_versions or separate table)
-            // Ideally: await supabase.from('secure_exams').insert({ exam_id: examId, payload: payload.data, iv: payload.iv, key: JSON.stringify(keyJwk) });
-            // For now, we update 'metadata' in exams to store the "sealed" status and key (INSECURE DEMO - in production Key goes to user session ONLY)
+            // 4. PKI: Wrap Key for Allocated Students
+            const { data: allocations } = await supabase.from('exam_allocations').select('student_id').eq('exam_id', examId);
 
-            // 4. Save to DB (Simulated)
+            if (allocations && allocations.length > 0) {
+                const studentIds = allocations.map(a => a.student_id);
+                const { data: publicKeys } = await supabase.from('user_public_keys').select('user_id, public_key_json').in('user_id', studentIds);
+
+                const secureKeysPayload = [];
+                if (publicKeys) {
+                    for (const pkRecord of publicKeys) {
+                        try {
+                            const studentPubKey = await cryptoService.importPublicKey(pkRecord.public_key_json);
+                            const wrappedKey = await cryptoService.wrapKey(sessionKey, studentPubKey);
+                            secureKeysPayload.push({
+                                exam_id: examId,
+                                student_id: pkRecord.user_id,
+                                wrapped_key: wrappedKey
+                            });
+                        } catch (err) { console.warn("PKI Wrap Error:", err); }
+                    }
+                    if (secureKeysPayload.length > 0) {
+                        await supabase.from('exam_secure_keys').insert(secureKeysPayload);
+                    }
+                }
+            }
+
+            // 5. Save Sealed Exam Blob
             const { error: updateError } = await supabase.from('exams').update({
                 description: `[SECURE_PAYLOAD]${JSON.stringify(payload)}`,
                 status: 'published'
             }).eq('id', examId);
             if (updateError) throw updateError;
 
-            console.log("🔒 Exam Sealed Successfully:", payload);
-            alert(`Prova Criptografada e Salva!\n\nCHAVE DE ACESSO (Copie e envie ao aluno):\n${JSON.stringify(keyJwk)}`);
+            console.log("🔒 Exam Sealed Successfully (PKI Mode)", payload);
+            alert(`Prova Criptografada e Distribuída!\n${allocations?.length || 0} chaves digitais enviadas.`);
 
-            return {
-                payload,
-                key: keyJwk
-            };
+            return { payload, key: sessionKeyJwk };
 
         } catch (e) {
             console.error("Error sealing exam:", e);
             throw e;
         }
     },
+
+
 }));
 
 // Wrapper para garantir que arrays nunca sejam null/undefined

@@ -728,7 +728,8 @@ export interface StoredSession {
 export interface AppState {
   currentUser: User | null;
   selectedChildId: string | null;
-  examEncryptionKey: CryptoKey | null; // Phase 8: Encryption
+  examEncryptionKey: CryptoKey | null;
+  identityKeys: CryptoKeyPair | null; // Phase 9: PKI
   tenants: Tenant[];
   schools: School[];
   classes: SchoolClass[];

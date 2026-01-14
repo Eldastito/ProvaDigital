@@ -36,10 +36,16 @@ const TenantBadge = ({ type }: { type: TenantType }) => {
 
 export const DashboardLayout = () => {
     const store = useAppStore();
-    const { currentUser, setCurrentUser, tenants, students, schools, selectedChildId, setSelectedChildId, isInitialized } = store;
+    const { currentUser, setCurrentUser, tenants, students, schools, selectedChildId, setSelectedChildId, isInitialized, initIdentity, identityKeys } = store;
     const { canView } = usePermissions();
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [childMenuOpen, setChildMenuOpen] = useState(true);
+
+    React.useEffect(() => {
+        if (currentUser && !identityKeys) {
+            initIdentity();
+        }
+    }, [currentUser, identityKeys, initIdentity]);
 
     const navigate = useNavigate();
     const location = useLocation();
