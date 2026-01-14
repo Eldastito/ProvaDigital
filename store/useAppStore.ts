@@ -1273,6 +1273,33 @@ export const useAppStore = create<AppStore>((set, get) => ({
         const incorrectItems: any[] = [];
 
         // 1. Core Grading Logic
+        // SECURITY CHECK: If exam is encrypted, WE DO NOT GRADE ON CLIENT.
+        // We just verify that answers were captured and mark as submitted.
+        // The server will pick this up via Edge Function.
+        const isEncryptedSession = !!state.examEncryptionKey;
+
+        if (isEncryptedSession) {
+            console.log("🔒 Encrypted Session: Skipping Client-Side Grading. Delegating to Server.");
+
+            set(state => ({
+                examAttempts: state.examAttempts.map(a => a.id === attemptId ? { ...a, status: 'submitted' as const, submittedAt: new Date().toISOString() } : a)
+            }));
+
+            try {
+                // Just update status. The encrypted answers are already in 'metadata' from saveProgress
+                await supabase.from('exam_attempts').update({
+                    status: 'submitted', // Or 'pending_grading' if we add that enum
+                    submitted_at: new Date().toISOString()
+                }).eq('id', attemptId);
+
+                // We do NOT carry on to create exam_results locally.
+                return;
+            } catch (e) {
+                console.error("Error submitting encrypted attempt:", e);
+                return;
+            }
+        }
+
         (version.itemsSnapshot || []).forEach((snap: any) => {
             const studentAns = answers.find(a => a.itemId === (snap.id || snap.itemId));
             const item = state.items.find(i => i.id === (snap.id || snap.itemId));
@@ -1294,6 +1321,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 });
 
                 if (!isCorrect) {
+                    // Only generating feedback for non-encrypted exams locally
                     incorrectItems.push({
                         subject: item.subject,
                         statement: item.statement,
@@ -1907,7 +1935,18 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 }
             }
 
-            // 5. Save Sealed Exam Blob
+            // 5. SERVER GRADING: Store Key for the "Grading Bot" (Service Role)
+            // This table allows the server to decrypt and grade the exam later.
+            const { error: serverKeyError } = await supabase.from('exam_server_keys').insert({
+                exam_id: examId,
+                session_key_json: sessionKeyJwk
+            });
+            if (serverKeyError) {
+                console.error("Failed to save Server Key (Grading might fail):", serverKeyError);
+                // We don't block the flow, but warn logic could be better
+            }
+
+            // 6. Save Sealed Exam Blob
             const { error: updateError } = await supabase.from('exams').update({
                 description: `[SECURE_PAYLOAD]${JSON.stringify(payload)}`,
                 status: 'published'
