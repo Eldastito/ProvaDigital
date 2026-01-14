@@ -1648,6 +1648,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
                     category: g.category,
                     minLevel: 1, // Default as not in DB
                     status: g.is_active ? 'active' : 'inactive',
+                    playCount: g.play_count || 0,
                     createdAt: g.created_at
                 }));
 

@@ -39,10 +39,21 @@ const FormJogo = ({ jogo, onSalvar, onCancelar, categorias }: {
                     <label className="block text-sm font-bold text-slate-700 mb-1">URL do Jogo</label>
                     <input
                         type="url"
-                        value={form.url || ''}
-                        onChange={(e) => setForm({ ...form, url: e.target.value })}
+                        value={form.gameUrl || ''}
+                        onChange={(e) => setForm({ ...form, gameUrl: e.target.value })}
                         className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-brand-primary outline-none"
                         placeholder="https://..."
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">URL da Thumbnail (Imagem)</label>
+                    <input
+                        type="url"
+                        value={form.thumbnailUrl || ''}
+                        onChange={(e) => setForm({ ...form, thumbnailUrl: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-brand-primary outline-none"
+                        placeholder="https://exemplo.com/imagem.jpg"
                     />
                 </div>
 
@@ -112,10 +123,10 @@ export const GovernanceView = () => {
                 id: uuidv4(),
                 title: jogo.title || '',
                 description: jogo.description || '',
-                url: jogo.url || '',
+                gameUrl: jogo.gameUrl || '',
                 category: jogo.category || 'Geral',
                 thumbnailUrl: jogo.thumbnailUrl,
-                isActive: true, // Default active
+                status: 'active', // Default active
                 playCount: 0,
                 tenantId: state.currentUser?.tenantId,
                 createdAt: new Date().toISOString()
@@ -134,7 +145,9 @@ export const GovernanceView = () => {
     const toggleAtivo = async (id: string) => {
         const jogo = jogos.find(j => j.id === id);
         if (jogo) {
-            await updateArcadeGame({ ...jogo, isActive: !jogo.isActive });
+            if (jogo) {
+                await updateArcadeGame({ ...jogo, status: jogo.status === 'active' ? 'inactive' : 'active' });
+            }
         }
     };
 
@@ -192,15 +205,15 @@ export const GovernanceView = () => {
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-2">
                                             <h3 className="font-bold text-lg text-slate-800">{jogo.title}</h3>
-                                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${jogo.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                                                {jogo.isActive ? '✓ Ativo' : '✗ Inativo'}
+                                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${jogo.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                                                {jogo.status === 'active' ? '✓ Ativo' : '✗ Inativo'}
                                             </span>
                                         </div>
                                         <p className="text-sm text-slate-600 mb-2">{jogo.description}</p>
                                         <div className="flex items-center gap-4 text-xs text-slate-500">
                                             <span className="font-bold">📚 {jogo.category}</span>
-                                            <span>🎮 {jogo.playCount} jogadas</span>
-                                            <a href={jogo.url} target="_blank" rel="noopener noreferrer" className="text-brand-primary hover:underline">
+                                            <span>🎮 {jogo.playCount || 0} jogadas</span>
+                                            <a href={jogo.gameUrl} target="_blank" rel="noopener noreferrer" className="text-brand-primary hover:underline">
                                                 🔗 Ver jogo
                                             </a>
                                         </div>
@@ -209,10 +222,10 @@ export const GovernanceView = () => {
                                     <div className="flex items-center gap-2 ml-4">
                                         <button
                                             onClick={() => toggleAtivo(jogo.id)}
-                                            className={`p-2 rounded-lg transition ${jogo.isActive ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
-                                            title={jogo.isActive ? 'Desativar' : 'Ativar'}
+                                            className={`p-2 rounded-lg transition ${jogo.status === 'active' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                                            title={jogo.status === 'active' ? 'Desativar' : 'Ativar'}
                                         >
-                                            {jogo.isActive ? <Eye size={18} /> : <EyeOff size={18} />}
+                                            {jogo.status === 'active' ? <Eye size={18} /> : <EyeOff size={18} />}
                                         </button>
                                         <button
                                             onClick={() => setEditando(jogo.id)}

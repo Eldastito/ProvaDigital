@@ -877,5 +877,7 @@ export interface ArcadeGame {
   category: string;
   minLevel?: number;
   status: 'active' | 'inactive';
+  playCount: number;
+  tenantId?: string;
   createdAt: string;
 }
