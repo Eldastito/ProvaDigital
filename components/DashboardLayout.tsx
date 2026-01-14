@@ -156,9 +156,6 @@ export const DashboardLayout = () => {
                         <>
                             <NavItem icon={LayoutDashboard} label="Meu Desempenho" active={path === '/aluno'} onClick={() => navigate('/aluno')} />
                             <NavItem icon={Target} label="Plano de Estudos" active={path === '/study-plans'} onClick={() => navigate('/study-plans')} />
-                            <div className="px-4 pt-6 pb-2 text-[11px] font-bold text-[#48cae4] uppercase tracking-wider opacity-70">Gamificação</div>
-                            <NavItem icon={Swords} label="Desafio de Turma" active={path === '/battle-arena'} onClick={() => navigate('/battle-arena')} />
-                            <NavItem icon={Flame} label="Modo Sobrevivência" active={path === '/survival-mode'} onClick={() => navigate('/survival-mode')} />
                             <NavItem icon={Gamepad2} label="Games Arcade" active={path === '/aluno/arcade'} onClick={() => navigate('/aluno/arcade')} />
                             <NavItem icon={Trophy} label="Loja de Avatares" active={path === '/aluno/loja'} onClick={() => navigate('/aluno/loja')} />
                         </>

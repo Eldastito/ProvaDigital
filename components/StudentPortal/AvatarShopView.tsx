@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ArrowLeft, Coins, Lock, Check, Plus, Search, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { ArrowLeft, Coins, Lock, Shirt, Crown, User, HelpCircle, Check, Glasses, Medal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { GamificationService } from '../../services/gamificationService';
@@ -23,7 +23,7 @@ export const AvatarShopView = () => {
         avatarUrl: ''
     } as any;
 
-    const [selectedCategory, setSelectedCategory] = useState<'ALL' | 'BODY' | 'ACCESSORY' | 'BADGES'>('BODY');
+    const [selectedCategory, setSelectedCategory] = useState<'BODY' | 'HAT' | 'OUTFIT' | 'ACCESSORY'>('BODY');
     const [purchaseMessage, setPurchaseMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     // 2. Load Items
@@ -31,10 +31,14 @@ export const AvatarShopView = () => {
 
     // Group items logic
     const filteredItems = useMemo(() => {
-        if (selectedCategory === 'ALL') return shopItems;
-        if (selectedCategory === 'BODY') return shopItems.filter(i => i.category === 'BODY');
-        if (selectedCategory === 'ACCESSORY') return shopItems.filter(i => ['ACCESSORY', 'HAT', 'OUTFIT'].includes(i.category));
-        return shopItems.filter(i => i.category === 'ACCESSORY' && i.id.startsWith('badge'));
+        // Map UI category to ShopItemCategory if distinct
+        return shopItems.filter(i => {
+            if (selectedCategory === 'BODY') return i.category === 'BODY';
+            if (selectedCategory === 'HAT') return i.category === 'HAT';
+            if (selectedCategory === 'OUTFIT') return i.category === 'OUTFIT';
+            // ACCESSORY catches glasses, badges, and generic accessories
+            return i.category === 'ACCESSORY';
+        });
     }, [shopItems, selectedCategory]);
 
     // 3. Helper: Get Equipped Image
@@ -44,11 +48,11 @@ export const AvatarShopView = () => {
         return shopItems.find(i => i.id === itemId)?.imageUrl;
     };
 
-    // Default Body logic - if nothing equipped, show generic
+    // Default Body
     const currentBody = getEquippedImage('BODY') || '🧍';
 
     // 4. Level Calculation
-    const { level, progress } = GamificationService.calculateLevel(userProfile.xp || 0);
+    const { level } = GamificationService.calculateLevel(userProfile.xp || 0);
 
     // 5. Actions
     const showMessage = (type: 'success' | 'error', text: string) => {
@@ -67,6 +71,9 @@ export const AvatarShopView = () => {
             // Auto-equip if body
             let newEquipped = { ...userProfile.equippedItems };
             if (item.category === 'BODY') newEquipped.body = item.id;
+
+            // Auto-equip logic for others too?
+            // if (item.category === 'HAT') newEquipped.hat = item.id;
 
             updateUserProfile({
                 ...userProfile,
@@ -88,173 +95,168 @@ export const AvatarShopView = () => {
     };
 
     const categories = [
-        { id: 'BODY', label: 'Avatar', icon: '👤' },
-        { id: 'ACCESSORY', label: 'Acessórios', icon: '👓' },
-        { id: 'BADGES', label: 'Badges', icon: '🎖️' }, // Placeholder category logic
+        { id: 'BODY', label: 'Avatares', icon: <User size={18} /> },
+        { id: 'HAT', label: 'Chapéus', icon: <Crown size={18} /> },
+        { id: 'OUTFIT', label: 'Roupas', icon: <Shirt size={18} /> },
+        { id: 'ACCESSORY', label: 'Acessórios', icon: <Glasses size={18} /> },
     ] as const;
 
     return (
-        <div className="h-full bg-indigo-50/50 flex flex-col items-center justify-center font-sans">
-            {/* PHONE CONTAINER */}
-            <div className="w-full h-full max-w-[430px] bg-white shadow-2xl relative flex flex-col overflow-hidden sm:rounded-[3rem] sm:border-8 sm:border-slate-900">
-
-                {/* STATUS BAR MOCK (Optional aesthetic) */}
-                <div className="h-6 w-full bg-white flex justify-between items-center px-6 text-[10px] font-bold text-slate-800">
-                    <span>9:41</span>
-                    <div className="flex gap-1">
-                        <div className="w-4 h-2.5 bg-slate-800 rounded-[1px]"></div>
-                        <div className="w-0.5 h-1.5 bg-slate-800 rounded-[1px]"></div>
-                    </div>
+        <div className="min-h-screen bg-slate-50 flex flex-col font-sans animate-in fade-in duration-500">
+            {/* HEADER */}
+            <div className="bg-white border-b border-slate-200 px-8 py-4 flex justify-between items-center sticky top-0 z-30">
+                <button
+                    onClick={() => navigate(-1)}
+                    className="flex items-center gap-2 text-slate-500 hover:text-slate-800 font-bold transition"
+                >
+                    <ArrowLeft size={20} />
+                    <span>Voltar</span>
+                </button>
+                <div className="flex items-center gap-2 bg-amber-50 text-amber-600 px-4 py-2 rounded-full font-bold shadow-sm border border-amber-100">
+                    <Coins size={18} fill="currentColor" />
+                    <span>{userProfile.owlCoins}</span>
                 </div>
+            </div>
 
-                {/* HEADER */}
-                <div className="pt-2 pb-6 px-6 flex justify-between items-center bg-gradient-to-b from-purple-50 to-white/0 relative z-10">
-                    <button onClick={() => navigate(-1)} className="w-10 h-10 bg-white shadow-sm rounded-full flex items-center justify-center text-slate-600 hover:scale-105 transition">
-                        <ChevronLeft size={24} />
-                    </button>
-                    <h1 className="text-lg font-black text-slate-800">Loja de Avatares</h1>
-                    <div className="flex items-center gap-1 bg-white/80 backdrop-blur border border-purple-100 px-3 py-1.5 rounded-full shadow-sm text-xs font-bold text-slate-600">
-                        <Coins size={14} className="text-amber-500" fill="currentColor" />
-                        {userProfile.owlCoins}
+            <div className="max-w-7xl mx-auto w-full p-8 flex flex-col gap-10">
+
+                {/* HERO AREA: AVATAR CARD & TABS */}
+                <div className="flex flex-col md:flex-row gap-8 items-center justify-center">
+
+                    {/* LEFT: INFO "Regra do Jogo" Tooltip MOCK */}
+                    <div className="hidden md:flex bg-white p-4 rounded-xl shadow-sm border border-slate-100 max-w-xs relative items-start gap-3">
+                        <div className="text-brand-primary mt-1">
+                            <HelpCircle size={24} className="text-amber-500" />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-slate-700 text-sm">Regra do Jogo</h4>
+                            <p className="text-xs text-slate-500 leading-relaxed mt-1">
+                                Pode gastar à vontade! Usar suar moedas não diminui sua posição no Ranking nem seu Nível.
+                            </p>
+                        </div>
+                        {/* Arrow pointing right */}
+                        <div className="absolute top-6 -right-2 w-4 h-4 bg-white border-t border-r border-slate-100 rotate-45"></div>
                     </div>
-                </div>
 
-                {/* HERO AREA (AVATAR) */}
-                <div className="relative h-[420px] -mt-10 flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-200/40 via-purple-50/20 to-transparent">
-
-                    {/* AVATAR COMPOSITE */}
-                    <div className="relative z-10 p-10 transform scale-125 hover:scale-130 transition-transform duration-500 cursor-pointer">
-                        {/* The 'Body' is the base */}
-                        <div className="text-[140px] leading-none drop-shadow-2xl filter contrast-125">
-                            {currentBody}
+                    {/* CENTER: AVATAR CARD */}
+                    <div className="bg-slate-900 rounded-[2.5rem] w-64 h-80 relative flex flex-col items-center justify-center shadow-2xl shrink-0 overflow-hidden group">
+                        <div className="absolute top-4 text-slate-500 text-[10px] uppercase font-bold tracking-widest">
+                            Seu Visual
                         </div>
 
-                        {/* Accessories Overlay (Absolute positioning on top of body) */}
-                        {getEquippedImage('HAT') && (
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -mt-8 text-[80px] drop-shadow-lg z-20">
-                                {getEquippedImage('HAT')}
+                        {/* AVATAR COMPOSITE */}
+                        <div className="relative transform scale-[1.8] group-hover:scale-[1.9] transition-transform duration-500 cursor-pointer">
+                            {/* BODY */}
+                            <div className="text-[100px] leading-none drop-shadow-xl filter contrast-125">
+                                {currentBody}
                             </div>
-                        )}
-                        {getEquippedImage('ACCESSORY') && (
-                            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 text-[50px] z-30 opacity-90">
-                                {getEquippedImage('ACCESSORY')}
-                            </div>
-                        )}
-                        {/* Outfit overlay might be tricky with emojis, assuming Body IS the outfit for now or compositing */}
+
+                            {/* LAYERS */}
+                            {getEquippedImage('HAT') && (
+                                <div className="absolute -top-[15px] left-1/2 -translate-x-1/2 text-[50px] drop-shadow-lg z-20">
+                                    {getEquippedImage('HAT')}
+                                </div>
+                            )}
+                            {getEquippedImage('ACCESSORY') && (
+                                <div className="absolute top-[35px] left-1/2 -translate-x-1/2 text-[40px] z-30 opacity-90">
+                                    {getEquippedImage('ACCESSORY')}
+                                </div>
+                            )}
+                            {/* Outfit emoji is currently missing from logic but slot exists */}
+                        </div>
+
+                        {/* Glow Effect */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-indigo-900 via-transparent to-transparent opacity-50 pointers-events-none"></div>
                     </div>
 
-                    {/* Navigation Arrows */}
-                    <button className="absolute left-6 top-1/2 w-10 h-10 bg-white/60 backdrop-blur rounded-full flex items-center justify-center text-slate-400 hover:bg-white transition">
-                        <ChevronLeft size={20} />
-                    </button>
-                    <button className="absolute right-6 top-1/2 w-10 h-10 bg-white/60 backdrop-blur rounded-full flex items-center justify-center text-slate-400 hover:bg-white transition">
-                        <ChevronRight size={20} />
-                    </button>
-
-                    {/* Progress Bar (Desbloqueado) */}
-                    <div className="absolute bottom-4 w-full px-8">
-                        <div className="flex justify-between items-end mb-1">
-                            <span className="text-xs font-bold text-slate-400">Nível {level}</span>
-                            <span className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full">
-                                {Math.round(progress)}% Completo
-                            </span>
-                        </div>
-                        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-green-500 rounded-full w-3/4"></div> {/* Mock width for visual, use real progress */}
-                        </div>
-                    </div>
-                </div>
-
-                {/* BOTTOM SHEET (Shop Items) */}
-                <div className="flex-1 bg-white rounded-t-[2.5rem] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] flex flex-col relative z-20 overflow-hidden">
-
-                    {/* Drag Handle */}
-                    <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mt-4 mb-2"></div>
-
-                    {/* Categories */}
-                    <div className="px-6 mb-4 overflow-x-auto no-scrollbar pb-2">
-                        <div className="flex gap-4">
+                    {/* RIGHT: TABS */}
+                    <div className="flex-1 flex justify-center md:justify-start w-full">
+                        <div className="bg-slate-100 p-1.5 rounded-xl inline-flex gap-1 overflow-x-auto">
                             {categories.map(cat => (
                                 <button
                                     key={cat.id}
                                     onClick={() => setSelectedCategory(cat.id)}
-                                    className={`flex flex-col items-center gap-1 min-w-[4.5rem] p-2 rounded-2xl transition-all ${selectedCategory === cat.id
-                                            ? 'bg-purple-50 ring-2 ring-purple-100 transform scale-105'
-                                            : 'opacity-60 grayscale hover:opacity-100 hover:grayscale-0'
+                                    // @ts-ignore
+                                    className={`px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${selectedCategory === cat.id
+                                            ? 'bg-white text-slate-800 shadow-sm'
+                                            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
                                         }`}
                                 >
-                                    <div className="w-12 h-12 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center text-2xl">
-                                        {cat.icon}
-                                    </div>
-                                    <span className="text-[10px] font-bold text-slate-600">{cat.label}</span>
+                                    {cat.icon}
+                                    <span>{cat.label}</span>
                                 </button>
                             ))}
                         </div>
                     </div>
-
-                    {/* Grid */}
-                    <div className="flex-1 overflow-y-auto px-6 pb-24 custom-scrollbar">
-                        <div className="grid grid-cols-3 gap-4">
-                            {filteredItems.map(item => {
-                                const isOwned = userProfile.inventory?.includes(item.id);
-                                const canBuy = userProfile.owlCoins >= item.price;
-                                const isLocked = item.minLevel && level < item.minLevel;
-
-                                return (
-                                    <div
-                                        key={item.id}
-                                        onClick={() => isOwned ? handleEquip(item) : !isLocked && canBuy ? handleBuy(item) : null}
-                                        className={`aspect-square bg-slate-50 rounded-2xl p-2 relative flex flex-col items-center justify-between border cursor-pointer hover:scale-105 transition-all
-                                            ${isOwned ? 'border-purple-200 bg-purple-50/30' : 'border-slate-100'}
-                                        `}
-                                    >
-                                        {/* Lock Icon */}
-                                        {isLocked && (
-                                            <div className="absolute top-2 right-2 text-slate-300">
-                                                <Lock size={10} />
-                                            </div>
-                                        )}
-
-                                        <div className="flex-1 flex items-center justify-center text-[32px]">
-                                            {item.imageUrl}
-                                        </div>
-
-                                        <div className="w-full text-center">
-                                            {isOwned ? (
-                                                <div className="w-full bg-purple-100 text-purple-700 text-[9px] font-bold py-1 rounded-lg">
-                                                    USAR
-                                                </div>
-                                            ) : (
-                                                <div className={`w-full text-[9px] font-bold py-1 rounded-lg flex items-center justify-center gap-1 ${canBuy ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-400'
-                                                    }`}>
-                                                    <Coins size={8} fill="currentColor" /> {item.price}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    </div>
-
-                    {/* FAB (Floating Action Button) */}
-                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 shadow-2xl shadow-emerald-500/40 rounded-full">
-                        <button className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center text-white hover:bg-emerald-400 transition transform hover:scale-110 active:scale-95">
-                            <Plus size={32} />
-                        </button>
-                    </div>
-
-                    {/* Bottom Nav Mock */}
-                    <div className="absolute bottom-0 w-full h-20 bg-gradient-to-t from-white via-white to-transparent pointer-events-none"></div>
                 </div>
 
-                {/* TOAST */}
-                {purchaseMessage && (
-                    <div className="absolute top-24 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur text-white text-xs font-bold px-6 py-3 rounded-full shadow-xl animate-in fade-in zoom-in duration-300 z-50">
-                        {purchaseMessage.text}
-                    </div>
-                )}
+                {/* GRID ITEMS */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {filteredItems.map(item => {
+                        const isOwned = userProfile.inventory?.includes(item.id);
+                        const canBuy = userProfile.owlCoins >= item.price;
+                        const isLocked = item.minLevel && level < item.minLevel;
+
+                        return (
+                            <div key={item.id} className="bg-white rounded-2xl p-6 flex flex-col items-center gap-4 hover:shadow-xl transition-shadow border border-slate-100 group relative overflow-hidden">
+
+                                {/* Level Badge */}
+                                <div className="absolute top-4 left-4 bg-red-50 text-red-500 px-2 py-0.5 rounded text-[10px] font-bold border border-red-100 flex items-center gap-1">
+                                    <Lock size={8} /> Niv. {item.minLevel || 1}
+                                </div>
+
+                                {/* Image */}
+                                <div className="h-32 flex items-center justify-center text-[80px] group-hover:scale-110 transition-transform duration-300">
+                                    {item.imageUrl}
+                                </div>
+
+                                {/* Text */}
+                                <div className="text-center">
+                                    <h3 className="font-bold text-slate-800">{item.name}</h3>
+                                    <p className="text-xs text-slate-400 mt-1">{item.description}</p>
+                                </div>
+
+                                {/* Button */}
+                                <div className="mt-auto w-full pt-2">
+                                    {isOwned ? (
+                                        <button
+                                            onClick={() => handleEquip(item)}
+                                            className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition flex items-center justify-center gap-2"
+                                        >
+                                            <Check size={16} /> Equipar
+                                        </button>
+                                    ) : (
+                                        <button
+                                            disabled={!canBuy || isLocked}
+                                            onClick={() => handleBuy(item)}
+                                            className={`w-full py-3 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 ${isLocked
+                                                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                                    : canBuy
+                                                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100'
+                                                        : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                                }`}
+                                        >
+                                            {isLocked ? 'Bloqueado' : item.price === 0 ? 'Grátis' : (
+                                                <>
+                                                    <Coins size={16} /> {item.price}
+                                                </>
+                                            )}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+
             </div>
+
+            {/* TOAST */}
+            {purchaseMessage && (
+                <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm font-bold px-6 py-3 rounded-full shadow-2xl animate-in fade-in zoom-in duration-300 z-50">
+                    {purchaseMessage.text}
+                </div>
+            )}
         </div>
     );
 };
