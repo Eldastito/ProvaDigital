@@ -140,6 +140,9 @@ interface AppActions {
 
     // --- PHASE 7: SCALABILITY ---
     fetchExamItems: (examId: string) => Promise<void>;
+
+    // --- PHASE 8: ENCRYPTION ---
+    sealExam: (examId: string) => Promise<any>;
 }
 
 export type AppStore = AppState & AppActions;
@@ -179,6 +182,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
     itemGenerationBatches: [],
     activeBatchId: null,
     examVersions: [],
+
+    // Phase 8: Encryption
+    examEncryptionKey: null,
 
     examAttempts: [],
     examAttemptEvents: [],
@@ -1141,7 +1147,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
     },
 
     saveExamProgress: async (attemptId: string, answers: Record<string, string>) => {
-        // Optimistic local update (already handled by Runner state, but good to have in validAttempt)
+        const state = get();
+
+        // Optimistic local update
         set((state) => ({
             examAttempts: state.examAttempts.map(a =>
                 a.id === attemptId
@@ -1151,10 +1159,26 @@ export const useAppStore = create<AppStore>((set, get) => ({
         }));
 
         try {
+            let metadataToSave: any = { savedAnswers: answers };
+
+            // --- PHASE 8: ENCRYPTION (PREMIUM) ---
+            if (state.examEncryptionKey) {
+                const { cryptoService } = await import('../services/cryptoService');
+                // We encrypt the entire answers object as a single blob for efficiency
+                // In a granular system, we might encrypt each answer individually.
+                const encryptedPayload = await cryptoService.encryptAnswer(answers, state.examEncryptionKey);
+
+                metadataToSave = {
+                    savedAnswers: null, // Wipe plain text from DB payload
+                    encryptedAnswers: encryptedPayload,
+                    isEncrypted: true,
+                    encryptionMethod: 'AES-256-GCM'
+                };
+            }
+
             // Persist to Supabase
-            // We use 'metadata' column to store partial answers
             await supabase.from('exam_attempts').update({
-                metadata: { savedAnswers: answers }, // In a real app, merge with existing metadata
+                metadata: metadataToSave,
                 last_ping_at: new Date().toISOString()
             }).eq('id', attemptId);
         } catch (e) {
@@ -1662,8 +1686,59 @@ export const useAppStore = create<AppStore>((set, get) => ({
     // --- PHASE 7: SCALABLE EXAM LOADING ---
     fetchExamItems: async (examId: string) => {
         try {
-            const { data: exam } = await supabase.from('exams').select('items_config').eq('id', examId).single();
-            if (!exam || !exam.items_config) return;
+            const { data: exam } = await supabase.from('exams').select('items_config, description').eq('id', examId).single();
+            if (!exam) return;
+
+            // 1. CHECk FOR HIGH-SECURITY ENCRYPTED PAYLOAD (PHASE 8)
+            if (exam.description && exam.description.startsWith('[SECURE_PAYLOAD]')) {
+                console.log("🔐 Encrypted Exam Detected");
+
+                try {
+                    const payloadJson = exam.description.substring(16); // Remove prefix
+                    const payload = JSON.parse(payloadJson);
+
+                    // In a real app, key comes from secure session or QR Code. Here asking user.
+                    const keyString = prompt("🔒 ESTA PROVA É CRIPTOGRAFADA (NÍVEL MILITAR)\n\nPor favor, insira a CHAVE DE ACESSO fornecida pelo professor:");
+
+                    if (!keyString) {
+                        alert("Chave obrigatória. Prova não pode ser aberta.");
+                        window.history.back(); // Kick out
+                        return;
+                    }
+
+                    // Dynamically import crypto logic
+                    const { cryptoService } = await import('../services/cryptoService');
+
+                    // Decrypt
+                    let keyJwk;
+                    try {
+                        keyJwk = JSON.parse(keyString);
+                    } catch (e) {
+                        alert("Formato da chave inválido (Deve ser um JWK JSON).");
+                        return;
+                    }
+
+                    const key = await cryptoService.importKey(keyJwk);
+                    console.log("🔓 Decrypting in Memory...");
+                    const items = await cryptoService.decryptData(payload, key);
+
+                    if (items) {
+                        console.log("✅ Exam Decrypted Successfully in RAM");
+                        set(state => ({
+                            examEncryptionKey: key, // Store for answer encryption
+                            // Merge ensuring uniqueness
+                            items: [...state.items.filter(i => !items.find((newI: any) => newI.id === i.id)), ...items]
+                        }));
+                    }
+                    return; // Done, skip standard fetch
+                } catch (e) {
+                    console.error("Decryption failed:", e);
+                    alert("Falha crítica ao descriptografar. Chave incorreta ou arquivo adulterado.");
+                    return;
+                }
+            }
+
+            if (!exam.items_config) return;
 
             const itemIds = exam.items_config.map((ic: any) => ic.itemId);
 
@@ -1717,6 +1792,51 @@ export const useAppStore = create<AppStore>((set, get) => ({
             console.error("Error fetching exam items:", e);
         }
     },
+
+    // --- PHASE 8: ENCRYPTION (PREMIUM) ---
+    sealExam: async (examId: string) => {
+        try {
+            // 1. Fetch complete exam data
+            const { data: exam } = await supabase.from('exams').select('items_config').eq('id', examId).single();
+            if (!exam || !exam.items_config) throw new Error("Exam config not found");
+
+            const itemIds = exam.items_config.map((ic: any) => ic.itemId);
+            const { data: items } = await supabase.from('items').select('*').in('id', itemIds);
+
+            if (!items) throw new Error("Items not found");
+
+            // 2. Generate Key
+            const { cryptoService } = await import('../services/cryptoService');
+            const keyJwk = await cryptoService.generateExamKey();
+            const key = await cryptoService.importKey(keyJwk);
+
+            // 3. Encrypt Blob
+            const payload = await cryptoService.encryptData(items, key);
+
+            // 4. Save to Secure Table (Simulated here as a JSON column update on exam_versions or separate table)
+            // Ideally: await supabase.from('secure_exams').insert({ exam_id: examId, payload: payload.data, iv: payload.iv, key: JSON.stringify(keyJwk) });
+            // For now, we update 'metadata' in exams to store the "sealed" status and key (INSECURE DEMO - in production Key goes to user session ONLY)
+
+            // 4. Save to DB (Simulated)
+            const { error: updateError } = await supabase.from('exams').update({
+                description: `[SECURE_PAYLOAD]${JSON.stringify(payload)}`,
+                status: 'published'
+            }).eq('id', examId);
+            if (updateError) throw updateError;
+
+            console.log("🔒 Exam Sealed Successfully:", payload);
+            alert(`Prova Criptografada e Salva!\n\nCHAVE DE ACESSO (Copie e envie ao aluno):\n${JSON.stringify(keyJwk)}`);
+
+            return {
+                payload,
+                key: keyJwk
+            };
+
+        } catch (e) {
+            console.error("Error sealing exam:", e);
+            throw e;
+        }
+    },
 }));
 
 // Wrapper para garantir que arrays nunca sejam null/undefined
@@ -1743,6 +1863,7 @@ export const useSafeAppStore = () => {
         userProfiles: store.userProfiles || [],
         gamifiedEvents: store.gamifiedEvents || [],
         events: store.events || [],
-        fetchExamItems: store.fetchExamItems
+        fetchExamItems: store.fetchExamItems,
+        sealExam: store.sealExam
     };
 };

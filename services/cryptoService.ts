@@ -1,37 +1,103 @@
 
-import { EncryptedPackage, EventKey } from "../types";
+import { v4 as uuidv4 } from 'uuid';
 
-// Implementação de Criptografia AES-GCM (Galois/Counter Mode)
-// Garante confidencialidade E integridade.
+// AES-GCM Configuration
+const ALGORITHM = 'AES-GCM';
+const KEY_LENGTH = 256;
 
-// 1. Gerar uma chave simétrica para o evento
-export const generateEventKey = async (eventId: string): Promise<EventKey> => {
-    const key = await window.crypto.subtle.generateKey(
-        {
-            name: "AES-GCM",
-            length: 256,
-        },
-        true, // extractable (precisamos exportar para salvar no backend/transferir)
-        ["encrypt", "decrypt"]
-    );
+export interface EncryptedPayload {
+    data: string; // Base64 encoded ciphertext
+    iv: string;   // Base64 encoded initialization vector
+}
 
-    const jwk = await window.crypto.subtle.exportKey("jwk", key);
-    return { eventId, keyMaterial: jwk };
+export const cryptoService = {
+
+    /**
+     * Generates a random 256-bit key for exam encryption.
+     * Returns the key exported as a JWK (JSON Web Key) string for storage.
+     */
+    generateExamKey: async (): Promise<JsonWebKey> => {
+        const key = await window.crypto.subtle.generateKey(
+            {
+                name: ALGORITHM,
+                length: KEY_LENGTH
+            },
+            true,
+            ['encrypt', 'decrypt']
+        );
+        return await window.crypto.subtle.exportKey('jwk', key);
+    },
+
+    /**
+     * Imports a JWK key string back into a CryptoKey object.
+     */
+    importKey: async (jwk: JsonWebKey): Promise<CryptoKey> => {
+        return await window.crypto.subtle.importKey(
+            'jwk',
+            jwk,
+            { name: ALGORITHM, length: KEY_LENGTH },
+            false,
+            ['encrypt', 'decrypt']
+        );
+    },
+
+    /**
+     * Encrypts any JSON object using the provided key.
+     * Returns a base64 encoded payload and IV.
+     */
+    encryptData: async (data: any, key: CryptoKey): Promise<EncryptedPayload> => {
+        const iv = window.crypto.getRandomValues(new Uint8Array(12)); // 96-bit IV for GCM
+        const encodedData = new TextEncoder().encode(JSON.stringify(data));
+
+        const encryptedBuffer = await window.crypto.subtle.encrypt(
+            {
+                name: ALGORITHM,
+                iv: iv
+            },
+            key,
+            encodedData
+        );
+
+        return {
+            data: arrayBufferToBase64(encryptedBuffer),
+            iv: arrayBufferToBase64(iv) // Send IV separately
+        };
+    },
+
+    /**
+     * Decrypts a payload using the provided key.
+     */
+    decryptData: async (payload: EncryptedPayload, key: CryptoKey): Promise<any> => {
+        const encryptedData = base64ToArrayBuffer(payload.data);
+        const iv = base64ToArrayBuffer(payload.iv);
+
+        const decryptedBuffer = await window.crypto.subtle.decrypt(
+            {
+                name: ALGORITHM,
+                iv: iv
+            },
+            key,
+            encryptedData
+        );
+
+        const decodedString = new TextDecoder().decode(decryptedBuffer);
+        return JSON.parse(decodedString);
+    },
+
+    /**
+     * Helper to encrypt a single student answer securely.
+     * Useful for sending individual answers to the server.
+     */
+    encryptAnswer: async (answerPayload: any, key: CryptoKey): Promise<string> => {
+        const result = await cryptoService.encryptData(answerPayload, key);
+        // Pack IV and Data together for simpler transmission: "IV:DATA"
+        return `${result.iv}:${result.data}`;
+    }
 };
 
-// 2. Importar a chave JWK de volta para CryptoKey
-const importKey = async (jwk: JsonWebKey): Promise<CryptoKey> => {
-    return await window.crypto.subtle.importKey(
-        "jwk",
-        jwk,
-        { name: "AES-GCM" },
-        true,
-        ["encrypt", "decrypt"]
-    );
-};
+// --- Utilities ---
 
-// Helper: ArrayBuffer to Base64
-const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
     let binary = '';
     const bytes = new Uint8Array(buffer);
     const len = bytes.byteLength;
@@ -39,10 +105,9 @@ const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
         binary += String.fromCharCode(bytes[i]);
     }
     return window.btoa(binary);
-};
+}
 
-// Helper: Base64 to ArrayBuffer
-const base64ToArrayBuffer = (base64: string): ArrayBuffer => {
+function base64ToArrayBuffer(base64: string): ArrayBuffer {
     const binary_string = window.atob(base64);
     const len = binary_string.length;
     const bytes = new Uint8Array(len);
@@ -50,50 +115,4 @@ const base64ToArrayBuffer = (base64: string): ArrayBuffer => {
         bytes[i] = binary_string.charCodeAt(i);
     }
     return bytes.buffer;
-};
-
-// 3. Criptografar Objeto (JSON) -> Pacote
-export const encryptPackage = async (data: any, keyJwk: JsonWebKey): Promise<EncryptedPackage> => {
-    const key = await importKey(keyJwk);
-    const iv = window.crypto.getRandomValues(new Uint8Array(12)); // 12 bytes standard for GCM IV
-    
-    const encodedData = new TextEncoder().encode(JSON.stringify(data));
-
-    const encryptedBuffer = await window.crypto.subtle.encrypt(
-        {
-            name: "AES-GCM",
-            iv: iv
-        },
-        key,
-        encodedData
-    );
-
-    return {
-        iv: arrayBufferToBase64(iv.buffer),
-        data: arrayBufferToBase64(encryptedBuffer)
-    };
-};
-
-// 4. Descriptografar Pacote -> Objeto
-export const decryptPackage = async (pkg: EncryptedPackage, keyJwk: JsonWebKey): Promise<any> => {
-    try {
-        const key = await importKey(keyJwk);
-        const iv = base64ToArrayBuffer(pkg.iv);
-        const data = base64ToArrayBuffer(pkg.data);
-
-        const decryptedBuffer = await window.crypto.subtle.decrypt(
-            {
-                name: "AES-GCM",
-                iv: iv
-            },
-            key,
-            data
-        );
-
-        const decodedString = new TextDecoder().decode(decryptedBuffer);
-        return JSON.parse(decodedString);
-    } catch (error) {
-        console.error("Decryption failed:", error);
-        throw new Error("Falha na integridade ou chave incorreta.");
-    }
-};
+}

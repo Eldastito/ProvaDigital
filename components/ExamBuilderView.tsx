@@ -194,9 +194,15 @@ export const ExamBuilderView = () => {
                 });
             }
 
-            alert(publish ? 'Prova publicada com sucesso!' : 'Prova salva como rascunho!');
             localStorage.removeItem(`exam_builder_draft_${state.currentUser?.id}`);
-            navigate('/exams');
+
+            // If not returning ID for chaining, navigate standardly
+            if (!publish) {
+                alert('Prova salva como rascunho!');
+                navigate('/exams');
+            }
+
+            return examId;
         } catch (error: any) {
             console.error(error);
             alert('Erro ao salvar prova: ' + (error.message || 'Erro desconhecido. Verifique o console.'));
@@ -853,14 +859,53 @@ export const ExamBuilderView = () => {
                                     </div>
                                 </div>
                                 <button
-                                    onClick={() => handleSave(true)}
+                                    onClick={async () => {
+                                        const id = await handleSave(true);
+                                        if (id) {
+                                            alert('Prova Publicada! Redirecionando...');
+                                            navigate('/exams');
+                                        }
+                                    }}
                                     disabled={isSaving}
-                                    className={`w-full py-4 rounded-xl font-bold text-lg shadow-xl transition-transform flex items-center justify-center gap-2 ${isSaving ? 'bg-slate-300 cursor-not-allowed text-slate-500' : 'btn-gradient hover:scale-[1.02]'}`}
+                                    className={`w-full py-4 rounded-xl font-bold text-lg shadow-xl transition-transform flex items-center justify-center gap-2 ${isSaving ? 'bg-slate-300 cursor-not-allowed text-slate-500' : 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:scale-[1.02]'}`}
                                 >
                                     {isSaving ? (
                                         <>Updating...</>
                                     ) : (
-                                        <><Save size={20} /> Finalizar e Publicar Prova</>
+                                        <><Save size={20} /> Finalizar e Publicar (Padrão)</>
+                                    )}
+                                </button>
+
+                                <div className="relative my-4">
+                                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
+                                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-400 font-bold">Ou versão segura</span></div>
+                                </div>
+
+                                <button
+                                    onClick={async () => {
+                                        if (!confirm("Isso irá criptografar a prova com uma chave única (AES-256). Deseja continuar?")) return;
+
+                                        // 1. Save standard (DB)
+                                        const id = await handleSave(true);
+                                        if (id) {
+                                            // 2. Seal (Crypto)
+                                            setIsSaving(true);
+                                            try {
+                                                await state.sealExam(id);
+                                                navigate('/exams');
+                                            } catch (e) {
+                                                alert("Erro ao criptografar prova");
+                                                setIsSaving(false);
+                                            }
+                                        }
+                                    }}
+                                    disabled={isSaving}
+                                    className={`w-full py-4 rounded-xl font-bold text-lg shadow-xl transition-transform flex items-center justify-center gap-2 bg-slate-900 text-amber-400 border border-amber-500/30 hover:bg-black`}
+                                >
+                                    {isSaving ? (
+                                        <Loader2 className="animate-spin" />
+                                    ) : (
+                                        <><ShieldCheck size={20} /> Publicar & Criptografar (Premium)</>
                                     )}
                                 </button>
                                 <button onClick={() => setStep(2)} className="w-full text-slate-400 font-bold text-sm hover:text-slate-600 transition">Voltar para Seleção</button>
