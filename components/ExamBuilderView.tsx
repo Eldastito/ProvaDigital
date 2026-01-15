@@ -402,8 +402,22 @@ export const ExamBuilderView = () => {
             (statusFilter === 'APPROVED' ? i.lifecycleStatus === ItemLifecycleStatus.APPROVED : i.lifecycleStatus === ItemLifecycleStatus.DRAFT);
         const notSelected = !selectedItems.find(s => s.id === i.id);
 
-        // [NEW] Step 2 Enforcement: Filter by Config Subject
-        const matchesConfigSubject = !config.subject || iSubject.toLowerCase() === (config.subject || '').toLowerCase();
+        // [NEW] Step 2 Enforcement: Filter by Config Subject OR Distribution Table Subjects
+        const distributionSubjects = coverConfig.sections
+            .filter(s => s.type === 'distribution' && s.distribution)
+            .flatMap(s => s.distribution!.groups.flatMap(g => g.items.map(i => i.subject)))
+            .filter(s => s && s.trim().length > 0)
+            .map(s => s.toLowerCase());
+
+        const configSubject = (config.subject || '').toLowerCase();
+
+        // Allowed subjects: 
+        // 1. If we have distribution subjects, use ONLY them? 
+        //    Better approach: Combine Config Subject + Distribution Subjects.
+        //    If both are empty, show All.
+        const allowedSubjects = new Set([configSubject, ...distributionSubjects].filter(Boolean));
+
+        const matchesConfigSubject = allowedSubjects.size === 0 || allowedSubjects.has(iSubject.toLowerCase());
 
         return matchesSearch && matchesDiff && matchesStatus && notSelected && matchesConfigSubject;
     });
