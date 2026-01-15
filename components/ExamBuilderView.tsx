@@ -835,8 +835,10 @@ export const ExamBuilderView = () => {
                                     </div>
                                 </div>
                             </div>
-                )}
                         </div>
                     </div>
-                );
+                )}
+            </div>
+        </div>
+    );
 };
