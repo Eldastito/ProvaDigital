@@ -252,6 +252,7 @@ export const useProctoring = ({ studentId, studentName, isActive, onViolation }:
     securityLog,
     enterKioskMode,
     startScreenShare, // Export new capability
+    captureEvidence, // Export for manual evidence capture (e.g. Waiver acceptance)
     resetViolations: () => {
       setViolationCount(0);
       setSecurityLog([]);
