@@ -525,7 +525,7 @@ export const ExamBuilderView = () => {
                                 for (const v of summary.variantsSuggested) {
                                     await state.addExamVariant({
                                         id: uuidv4(),
-                                        examId: id || config.id,
+                                        examId: config.id,
                                         name: `Variante - ${v.conditionCode}`,
                                         slug: `${v.conditionCode.toLowerCase()}-${versionId.substring(0, 8)}`,
                                         description: `Adaptação automática para ${v.conditionCode}`,
