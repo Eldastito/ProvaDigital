@@ -502,43 +502,13 @@ export const ExamBuilderView = () => {
                         onComplete={async (polished, summary) => {
                             setSelectedItems(polished);
                             setIsReviewingExam(false);
-
-                            const versionId = uuidv4();
-                            if (state.addExamVersion) {
-                                await state.addExamVersion({
-                                    id: versionId,
-                                    examId: '', // To be updated on final save if legacy, or just kept for variant tracking
-                                    versionNumber: Date.now(),
-                                    itemsSnapshot: polished.map((item, idx) => ({
-                                        itemId: item.id,
-                                        weight: 1.0, // Default, updated on Step 3
-                                        position: idx + 1
-                                    })),
-                                    gradingConfig: gradingConfig,
-                                    coverConfig: coverConfig,
-                                    status: 'draft',
-                                    createdAt: new Date().toISOString()
-                                });
+                            // NOTE: Variants and versions will be created in handleSave to ensure examId exists.
+                            // We can store the summary if needed, but for now we trust the polished items are enough.
+                            if (summary.variantsSuggested.length > 0) {
+                                alert("Revisão concluída! Variantes serão geradas ao salvar a prova.");
+                                // Store variants in temporary state/ref if implemented, or re-generate on save.
+                                // For now, we proceed with manual save flow.
                             }
-
-                            if (summary.variantsSuggested && state.addExamVariant) {
-                                for (const v of summary.variantsSuggested) {
-                                    await state.addExamVariant({
-                                        id: uuidv4(),
-                                        examId: config.id,
-                                        name: `Variante - ${v.conditionCode}`,
-                                        slug: `${v.conditionCode.toLowerCase()}-${versionId.substring(0, 8)}`,
-                                        description: `Adaptação automática para ${v.conditionCode}`,
-                                        accessibilityConfig: {},
-                                        examVersionId: versionId,
-                                        conditionCode: v.conditionCode,
-                                        variantRules: v.adaptedItems,
-                                        status: 'active',
-                                        createdAt: new Date().toISOString()
-                                    });
-                                }
-                            }
-                            alert("Revisão concluída com sucesso! Versões e variantes para acessibilidade foram criadas.");
                         }}
                     />
                 ) : isReviewingBatch ? (
