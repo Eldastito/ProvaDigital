@@ -2,12 +2,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSafeAppStore } from '../store/useAppStore'; // Use safe wrapper
 import { SecurityEvent } from '../types';
+import html2canvas from 'html2canvas';
 
 interface ProctoringConfig {
   studentId?: string;
   studentName?: string;
   isActive: boolean;
-  onViolation?: (reason: string, type: SecurityEvent['type']) => void;
+  onViolation?: (reason: string, type: SecurityEvent['type'], evidence?: { screenshot?: string; webcam?: string }) => void;
 }
 
 export const useProctoring = ({ studentId, studentName, isActive, onViolation }: ProctoringConfig) => {
@@ -142,15 +143,55 @@ export const useProctoring = ({ studentId, studentName, isActive, onViolation }:
     }
   }, [isActive, studentId]);
 
-  const handleViolation = (reason: string, type: SecurityEvent['type']) => {
+  // 4. Evidence Capture (Snapshot & Screenshot)
+  const captureEvidence = async () => {
+    const evidence: { screenshot?: string; webcam?: string } = {};
+
+    try {
+      // A. Webcam Snapshot
+      if (videoRef.current && cameraActive) {
+        const canvas = document.createElement('canvas');
+        canvas.width = videoRef.current.videoWidth;
+        canvas.height = videoRef.current.videoHeight;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(videoRef.current, 0, 0);
+          evidence.webcam = canvas.toDataURL('image/jpeg', 0.5); // Low quality for storage
+        }
+      }
+
+      // B. Screen UI Snapshot (html2canvas)
+      // We capture document.body to show exam state
+      // Note: This is heavy, ensuring it doesn't freeze UI is hard, but necessary for proof
+      const canvas = await html2canvas(document.body, {
+        scale: 0.5, // Reduced quality
+        logging: false,
+        useCORS: true
+      });
+      evidence.screenshot = canvas.toDataURL('image/jpeg', 0.5);
+
+    } catch (e) {
+      console.error("Failed to capture evidence:", e);
+    }
+    return evidence;
+  };
+
+  const handleViolation = async (reason: string, type: SecurityEvent['type']) => {
     // Increment only for "bad" things
     if (type !== 'FOCUS_GAINED') {
       setViolationCount((prev) => prev + 1);
       setLastViolation(reason);
     }
 
+    // Capture Evidence for severe violations
+    let evidence = undefined;
+    if (['FOCUS_LOST', 'WINDOW_RESIZE', 'MOUSE_LEAVE', 'FULLSCREEN_EXIT'].includes(type as string)) {
+      evidence = await captureEvidence();
+    }
+
     // Log internally
-    logEvent(type, reason);
+    const event = logEvent(type, reason);
+    // Attach evidence to local log if needed (omitted to save memory)
 
     if (studentId && studentName) {
       // Broadcast to Supabase Realtime
@@ -159,11 +200,12 @@ export const useProctoring = ({ studentId, studentName, isActive, onViolation }:
         name: studentName,
         type,
         reason: reason,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        hasEvidence: !!evidence // Flag for teacher to verify in DB later
       });
     }
 
-    if (onViolation) onViolation(reason, type);
+    if (onViolation) onViolation(reason, type, evidence);
   };
 
   const enterKioskMode = async () => {

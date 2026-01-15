@@ -146,17 +146,20 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         isActive: !!attemptId,
         studentId: studentId,
         studentName: state.currentUser?.name,
-        onViolation: (reason, type) => {
+        onViolation: (reason, type, evidence) => {
             if (attemptId) {
                 logSecurityEvent({
                     attemptId,
                     eventType: type.toLowerCase() as any, // 'focus_lost', etc
                     severity: type === 'FOCUS_LOST' ? 'warning' : 'info',
-                    eventData: { reason }
+                    eventData: {
+                        reason,
+                        evidence // Includes webcam & screenshot Base64
+                    }
                 });
             }
             if (type === 'FOCUS_LOST') {
-                alert("⚠️ ATENÇÃO: O foco na prova foi perdido. O professor foi notificado.");
+                alert("⚠️ ATENÇÃO: O foco na prova foi perdido. O professor foi notificado e uma captura de tela foi registrada.");
             }
         }
     });
