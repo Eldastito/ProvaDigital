@@ -219,6 +219,30 @@ export const useProctoring = ({ studentId, studentName, isActive, onViolation }:
     }
   };
 
+  // 5. Screen Share Logic
+  const startScreenShare = async () => {
+    try {
+      // Request Screen Share - specifically asking for system audio if possible (optional)
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { cursor: "always" } as any,
+        audio: false
+      });
+
+      // If successful
+      setIsKioskActive(true); // Treat screen share as high-integrity mode
+
+      // Handle user clicking "Stop Sharing" on browser UI
+      stream.getVideoTracks()[0].onended = () => {
+        handleViolation('Aluno encerrou o compartilhamento de tela manualmente.', 'SCREEN_SHARE_ENDED');
+      };
+
+      return true;
+    } catch (err) {
+      console.warn("Screen Share denied:", err);
+      return false;
+    }
+  };
+
   return {
     cameraActive,
     isKioskActive,
@@ -227,6 +251,7 @@ export const useProctoring = ({ studentId, studentName, isActive, onViolation }:
     videoRef,
     securityLog,
     enterKioskMode,
+    startScreenShare, // Export new capability
     resetViolations: () => {
       setViolationCount(0);
       setSecurityLog([]);

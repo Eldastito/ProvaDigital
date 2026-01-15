@@ -140,9 +140,12 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         return () => clearInterval(timer);
     }, [isRestored, timeLeft]);
 
-    // --- LIVE PROCTORING HOOK ---
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { isKioskActive } = useProctoring({
+    // --- SECURITY GATE STATE ---
+    const [securityCheckPassed, setSecurityCheckPassed] = useState(false);
+    const [auditWaived, setAuditWaived] = useState(false);
+
+    // Replaces manual listeners. Handles Alt-Tab, Focus, Offline, etc.
+    const { isKioskActive, startScreenShare } = useProctoring({
         isActive: !!attemptId,
         studentId: studentId,
         studentName: state.currentUser?.name,
@@ -154,7 +157,8 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                     severity: type === 'FOCUS_LOST' ? 'warning' : 'info',
                     eventData: {
                         reason,
-                        evidence // Includes webcam & screenshot Base64
+                        evidence,
+                        auditRightsWaived: auditWaived // Tag logic
                     }
                 });
             }
@@ -163,6 +167,40 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
             }
         }
     });
+
+    const handleSecurityCheck = async () => {
+        const allowed = await startScreenShare();
+        if (allowed) {
+            setSecurityCheckPassed(true);
+        } else {
+            // Permission Denied Flow
+            const confirmWaiver = window.confirm(
+                "⚠️ COMPARTILHAMENTO NEGADO\n\n" +
+                "Ao negar o compartilhamento de tela:\n" +
+                "1. O professor será notificado imediatamente.\n" +
+                "2. Você abre mão do direito de solicitar auditoria em caso de anulação por suspeita de fraude.\n" +
+                "3. Um selo de 'Baixa Integridade' ficará visível no seu resultado.\n\n" +
+                "Deseja continuar mesmo assim assumindo os riscos?"
+            );
+
+            if (confirmWaiver) {
+                setAuditWaived(true);
+                setSecurityCheckPassed(true);
+                // Log Waiver
+                if (attemptId) {
+                    logSecurityEvent({
+                        attemptId,
+                        eventType: 'info',
+                        severity: 'info',
+                        eventData: {
+                            reason: 'User explicitly waived audit rights by denying screen share',
+                            action: 'AUDIT_WAIVER_ACCEPTED'
+                        }
+                    });
+                }
+            }
+        }
+    };
 
     const handleAnswer = async (itemId: string, alternativeId: string) => {
         const newAnswers = { ...answers, [itemId]: alternativeId };
@@ -198,6 +236,40 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
     };
 
     if (!exam) return <div className="p-8 text-center">Prova não encontrada.</div>;
+
+    // --- SECURITY GATE UI ---
+    if (!securityCheckPassed && !isRestored) {
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-95 text-white p-4">
+                <div className="max-w-md w-full bg-gray-800 rounded-xl p-6 shadow-2xl border border-gray-700">
+                    <h2 className="text-2xl font-bold mb-4 text-blue-400">🛡️ Verificação de Segurança</h2>
+                    <p className="mb-6 text-gray-300 leading-relaxed">
+                        Para garantir a integridade da prova e proteger seu resultado contra suspeitas de erro,
+                        solicitamos a permissão de <strong>Compartilhamento de Tela</strong>.
+                    </p>
+                    <ul className="text-sm text-gray-400 mb-6 space-y-2 list-disc pl-5">
+                        <li>Apenas monitores fiscais terão acesso.</li>
+                        <li>Usado para validar falhas técnicas.</li>
+                        <li>Garante seu direito de auditoria.</li>
+                    </ul>
+                    <div className="flex flex-col gap-3">
+                        <button
+                            onClick={handleSecurityCheck}
+                            className="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold transition-all shadow-lg text-white"
+                        >
+                            📸 Permitir e Iniciar Prova
+                        </button>
+                        <button
+                            onClick={handleSecurityCheck} // Will trigger deny flow if they cancel the browser prompt
+                            className="text-xs text-gray-500 hover:text-gray-300 underline mt-2"
+                        >
+                            Prefiro não compartilhar (Assumir riscos)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     const currentItem = examItems[currentQuestionIndex];
     const isLastQuestion = currentQuestionIndex === examItems.length - 1;
