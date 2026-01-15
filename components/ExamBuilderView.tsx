@@ -7,7 +7,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { AppState, Exam, Item, ExamModel, ExamStatus, QuestionType, DifficultyLevel, ItemOrigin } from '../types';
 import { Badge } from './ui/Badge';
-import { uuidv4 } from '../utils/helpers';
+import { uuidv4, normalizeString } from '../utils/helpers';
 import { useSafeAppStore } from '../store/useAppStore';
 import { translateDifficultyLevel } from '../utils/translations';
 import { smartSelectItems, ExamCriteria } from '../services/examService';
@@ -403,21 +403,27 @@ export const ExamBuilderView = () => {
         const notSelected = !selectedItems.find(s => s.id === i.id);
 
         // [NEW] Step 2 Enforcement: Filter by Config Subject OR Distribution Table Subjects
+        // [NEW] Step 2 Enforcement: Filter by Config Subject OR Distribution Table Subjects
         const distributionSubjects = coverConfig.sections
             .filter(s => s.type === 'distribution' && s.distribution)
             .flatMap(s => s.distribution!.groups.flatMap(g => g.items.map(i => i.subject)))
             .filter(s => s && s.trim().length > 0)
-            .map(s => s.toLowerCase());
+            .map(s => normalizeString(s));
 
-        const configSubject = (config.subject || '').toLowerCase();
+        const configSubject = normalizeString(config.subject || '');
 
-        // Allowed subjects: 
-        // 1. If we have distribution subjects, use ONLY them? 
-        //    Better approach: Combine Config Subject + Distribution Subjects.
-        //    If both are empty, show All.
+        // Allowed subjects (Normalized)
         const allowedSubjects = new Set([configSubject, ...distributionSubjects].filter(Boolean));
 
-        const matchesConfigSubject = allowedSubjects.size === 0 || allowedSubjects.has(iSubject.toLowerCase());
+        // Normalize Item Subject
+        const itemSubjectNorm = normalizeString(iSubject);
+
+        // Check inclusion (Robust match: either exact normalized or partial contains if needed)
+        // For strict "Subject Filtering", strict equality on normalized string is usually desired,
+        // but if the user types "Matematica" and item is "Matemática Financeira", maybe containment?
+        // Let's stick to normalized equality or if the item subject contains the allowed subject (e.g. "Matematica" matches "Matematica Financeira")
+        const matchesConfigSubject = allowedSubjects.size === 0 ||
+            Array.from(allowedSubjects).some(allowed => itemSubjectNorm.includes(allowed) || allowed.includes(itemSubjectNorm));
 
         return matchesSearch && matchesDiff && matchesStatus && notSelected && matchesConfigSubject;
     });
