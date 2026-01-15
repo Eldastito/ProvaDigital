@@ -149,7 +149,22 @@ export const ExamBuilderView = () => {
                         setSelectedItems(parsed.selectedItems || []);
                         setStep(parsed.step || 1);
                         if (parsed.gradingConfig) setGradingConfig(parsed.gradingConfig);
-                        if (parsed.coverConfig) setCoverConfig(parsed.coverConfig);
+                        if (parsed.coverConfig) {
+                            // Safe restore: Ensure sections exist if restoring from legacy draft
+                            setCoverConfig(prev => {
+                                const restored = parsed.coverConfig;
+                                if (!restored.sections) {
+                                    // Migration: Legacy -> Sections
+                                    return {
+                                        ...prev,
+                                        title: restored.title || prev.title,
+                                        instructions: restored.instructions || prev.instructions,
+                                        securityNotices: restored.securityNotices || prev.securityNotices
+                                    };
+                                }
+                                return restored;
+                            });
+                        }
                     } else {
                         localStorage.removeItem(key);
                     }
