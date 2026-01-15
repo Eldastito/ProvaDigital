@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     Plus, Search, Brain, Sparkles, AlertCircle, Trash2, Edit3, Check, X,
     ChevronLeft, ArrowRight, Tablet, Loader2, Save, History, ShieldCheck,
-    Settings2, BarChart, ChevronRight
+    Settings2, BarChart, ChevronRight, Info
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppState, Exam, Item, ExamModel, ExamStatus, QuestionType, DifficultyLevel, ItemOrigin } from '../types';
@@ -328,7 +328,10 @@ export const ExamBuilderView = () => {
             (statusFilter === 'APPROVED' ? i.lifecycleStatus === ItemLifecycleStatus.APPROVED : i.lifecycleStatus === ItemLifecycleStatus.DRAFT);
         const notSelected = !selectedItems.find(s => s.id === i.id);
 
-        return matchesSearch && matchesDiff && matchesStatus && notSelected;
+        // [NEW] Step 2 Enforcement: Filter by Config Subject
+        const matchesConfigSubject = !config.subject || i.subject.toLowerCase() === config.subject.toLowerCase();
+
+        return matchesSearch && matchesDiff && matchesStatus && notSelected && matchesConfigSubject;
     });
 
     const currentPreviewItem = selectedItems[previewIndex];
@@ -381,118 +384,201 @@ export const ExamBuilderView = () => {
 
             <div className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
                 {step === 1 ? (
-                    <div className="max-w-2xl mx-auto space-y-6 bg-white p-8 rounded-xl shadow-sm border border-slate-200">
-                        {/* ... Existing Step 1 Form ... */}
-                        <div className="grid grid-cols-2 gap-4 mb-6">
-                            <button
-                                onClick={() => setBuilderMode('MANUAL')}
-                                className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${builderMode === 'MANUAL' ? 'border-brand-primary bg-brand-light/50 ring-2 ring-brand-primary/20' : 'border-slate-200 hover:border-slate-300'}`}
-                            >
-                                <Settings2 size={24} className={builderMode === 'MANUAL' ? 'text-brand-primary' : 'text-slate-400'} />
-                                <div className="text-center">
-                                    <div className="font-bold text-slate-900 text-sm">Montagem Manual</div>
-                                    <div className="text-[10px] text-slate-500">Escolha questão por questão</div>
-                                </div>
-                            </button>
-                            <button
-                                onClick={() => setBuilderMode('SMART')}
-                                className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${builderMode === 'SMART' ? 'border-brand-primary bg-brand-light/50 ring-2 ring-brand-primary/20' : 'border-slate-200 hover:border-slate-300'}`}
-                            >
-                                <Sparkles size={24} className={builderMode === 'SMART' ? 'text-brand-primary' : 'text-slate-400'} />
-                                <div className="text-center">
-                                    <div className="font-bold text-slate-900 text-sm">Montagem Inteligente</div>
-                                    <div className="text-[10px] text-slate-500">Geração equilibrada por IA</div>
-                                </div>
-                            </button>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Título da Prova</label>
-                            <input className="w-full border rounded-lg p-2" value={config.title} onChange={e => setConfig({ ...config, title: e.target.value })} placeholder="Ex: Avaliação Bimestral de História" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Disciplina</label>
-                                <input className="w-full border rounded-lg p-2" value={config.subject || smartCriteria.subject} onChange={e => {
-                                    setConfig({ ...config, subject: e.target.value });
-                                    setSmartCriteria({ ...smartCriteria, subject: e.target.value });
-                                }} />
+                    <div className="flex gap-8 h-[80vh]">
+                        {/* LEFT: Configuration Form */}
+                        <div className="flex-1 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-y-auto space-y-6">
+                            <div className="border-b pb-4">
+                                <h3 className="text-lg font-bold text-slate-900 mb-1">Configuração da Prova</h3>
+                                <p className="text-sm text-slate-500">Defina os metadados e a aparência da capa.</p>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Duração (minutos)</label>
-                                <input type="number" className="w-full border rounded-lg p-2" value={config.duration} onChange={e => setConfig({ ...config, duration: parseInt(e.target.value) })} />
-                            </div>
-                        </div>
 
-                        {builderMode === 'SMART' && (
-                            <div className="animate-in slide-in-from-bottom-4 space-y-4 pt-4 border-t border-slate-100">
-                                <div className="flex items-center gap-2 text-brand-primary font-bold text-sm mb-2">
-                                    <BarChart size={18} /> Critérios de Seleção Inteligente
+                            {/* Mode Selection */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <button
+                                    onClick={() => setBuilderMode('MANUAL')}
+                                    className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${builderMode === 'MANUAL' ? 'border-brand-primary bg-brand-light/50 ring-2 ring-brand-primary/20' : 'border-slate-200 hover:border-slate-300'}`}
+                                >
+                                    <Settings2 size={20} className={builderMode === 'MANUAL' ? 'text-brand-primary' : 'text-slate-400'} />
+                                    <div className="text-center">
+                                        <div className="font-bold text-slate-900 text-xs">Manual</div>
+                                    </div>
+                                </button>
+                                <button
+                                    onClick={() => setBuilderMode('SMART')}
+                                    className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${builderMode === 'SMART' ? 'border-brand-primary bg-brand-light/50 ring-2 ring-brand-primary/20' : 'border-slate-200 hover:border-slate-300'}`}
+                                >
+                                    <Sparkles size={20} className={builderMode === 'SMART' ? 'text-brand-primary' : 'text-slate-400'} />
+                                    <div className="text-center">
+                                        <div className="font-bold text-slate-900 text-xs">Inteligente (IA)</div>
+                                    </div>
+                                </button>
+                            </div>
+
+                            {/* Essential Metadata */}
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-1">Título da Prova <span className="text-rose-500">*</span></label>
+                                    <input
+                                        className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-brand-primary outline-none font-bold text-slate-800"
+                                        value={config.title}
+                                        onChange={e => {
+                                            setConfig({ ...config, title: e.target.value });
+                                            setCoverConfig({ ...coverConfig, title: e.target.value }); // Sync cover title
+                                        }}
+                                        placeholder="Ex: Avaliação de História - 1º Bimestre"
+                                    />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Qtd de Questões</label>
-                                        <input type="number" className="w-full border rounded-lg p-2 font-bold" value={smartCriteria.targetCount} onChange={e => setSmartCriteria({ ...smartCriteria, targetCount: parseInt(e.target.value) })} />
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">Disciplina <span className="text-rose-500">*</span></label>
+                                        <input
+                                            className="w-full border rounded-lg p-2"
+                                            value={config.subject}
+                                            onChange={e => {
+                                                setConfig({ ...config, subject: e.target.value });
+                                                setSmartCriteria({ ...smartCriteria, subject: e.target.value });
+                                            }}
+                                            placeholder="Ex: História"
+                                        />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Distribuição de Dificuldade</label>
-                                        <div className="flex gap-2">
-                                            <div className="flex-1">
-                                                <input type="number" className="w-full border rounded-lg p-1 text-xs text-center border-emerald-200" value={smartCriteria.difficultyDistribution[DifficultyLevel.EASY]} onChange={e => setSmartCriteria({ ...smartCriteria, difficultyDistribution: { ...smartCriteria.difficultyDistribution, [DifficultyLevel.EASY]: parseInt(e.target.value) } })} />
-                                                <div className="text-[8px] text-center text-emerald-600 font-bold mt-1">FÁCIL %</div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">Duração (min)</label>
+                                        <input type="number" className="w-full border rounded-lg p-2" value={config.duration} onChange={e => setConfig({ ...config, duration: parseInt(e.target.value) })} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Cover Instructions (Moved from Step 3) */}
+                            <div className="space-y-4 pt-4 border-t border-slate-100">
+                                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                    <ShieldCheck size={16} className="text-brand-primary" /> Instruções da Capa
+                                </h4>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Instruções Gerais</label>
+                                    <textarea
+                                        className="w-full border rounded-lg p-2 text-sm h-24"
+                                        value={coverConfig.instructions}
+                                        onChange={e => setCoverConfig({ ...coverConfig, instructions: e.target.value })}
+                                        placeholder="Instruções visíveis na capa..."
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Avisos de Segurança</label>
+                                    <textarea
+                                        className="w-full border rounded-lg p-2 text-sm h-20"
+                                        value={coverConfig.securityNotices}
+                                        onChange={e => setCoverConfig({ ...coverConfig, securityNotices: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Model Config */}
+                            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Modelo</label>
+                                    <select className="w-full border rounded-lg p-2 bg-slate-50" value={config.model} onChange={e => setConfig({ ...config, model: e.target.value as ExamModel })}>
+                                        <option value="SOMATIVO">Somativo (Nota)</option>
+                                        <option value="ADAPTADO">Adaptado (Flexível)</option>
+                                    </select>
+                                </div>
+                                <div className="flex items-end">
+                                    <div className="flex items-center justify-between w-full p-2 bg-amber-50 rounded-lg border border-amber-100">
+                                        <div className="text-xs text-amber-800 font-bold flex items-center gap-2"><Brain size={14} /> Embaralhar Itens</div>
+                                        <input
+                                            type="checkbox"
+                                            checked={config.shuffleItems}
+                                            onChange={e => setConfig({ ...config, shuffleItems: e.target.checked })}
+                                            className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-6 flex justify-end">
+                                <button
+                                    onClick={() => {
+                                        if (!config.title || !config.subject) return alert("Preencha Título e Disciplina");
+                                        if (builderMode === 'SMART') {
+                                            handleSmartGenerate();
+                                        } else {
+                                            setStep(2);
+                                        }
+                                    }}
+                                    className="btn-gradient w-full py-4 rounded-xl flex items-center justify-center gap-2 font-bold text-lg shadow-lg hover:shadow-xl transition-all"
+                                >
+                                    {builderMode === 'SMART' ? <><Sparkles size={20} /> Gerar Prova</> : <>Selecionar Questões <ChevronRight size={20} /></>}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* RIGHT: Tablet Simulator (Cover Preview) */}
+                        <div className="w-[480px] flex flex-col items-center justify-center bg-slate-100 rounded-3xl p-8 border-4 border-white shadow-inner">
+                            <div className="mb-4 flex items-center gap-2 opacity-50">
+                                <Tablet size={20} /> <span className="font-bold text-xs uppercase tracking-widest">Preview do Aluno</span>
+                            </div>
+
+                            {/* Device Frame */}
+                            <div className="w-full h-[600px] bg-slate-900 rounded-[2.5rem] p-3 shadow-2xl relative ring-4 ring-slate-900/50">
+                                {/* Screen */}
+                                <div className="w-full h-full bg-white rounded-[2rem] overflow-hidden flex flex-col relative text-slate-800">
+                                    {/* App Bar */}
+                                    <div className="bg-brand-primary h-14 flex items-center justify-center shadow-md z-10">
+                                        <div className="font-black text-white text-lg tracking-tight">ExamePad</div>
+                                    </div>
+
+                                    {/* Content Scroll */}
+                                    <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50">
+                                        {/* Exam Card */}
+                                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+                                            <div className="w-12 h-12 bg-brand-light text-brand-primary rounded-xl flex items-center justify-center mb-2">
+                                                <Brain size={28} />
                                             </div>
-                                            <div className="flex-1">
-                                                <input type="number" className="w-full border rounded-lg p-1 text-xs text-center border-amber-200" value={smartCriteria.difficultyDistribution[DifficultyLevel.MEDIUM]} onChange={e => setSmartCriteria({ ...smartCriteria, difficultyDistribution: { ...smartCriteria.difficultyDistribution, [DifficultyLevel.MEDIUM]: parseInt(e.target.value) } })} />
-                                                <div className="text-[8px] text-center text-amber-600 font-bold mt-1">MÉDIO %</div>
+                                            <div>
+                                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{config.subject || 'Disciplina'}</div>
+                                                <h2 className="text-xl font-black text-slate-900 leading-tight">{config.title || 'Título da Prova'}</h2>
                                             </div>
-                                            <div className="flex-1">
-                                                <input type="number" className="w-full border rounded-lg p-1 text-xs text-center border-rose-200" value={smartCriteria.difficultyDistribution[DifficultyLevel.HARD]} onChange={e => setSmartCriteria({ ...smartCriteria, difficultyDistribution: { ...smartCriteria.difficultyDistribution, [DifficultyLevel.HARD]: parseInt(e.target.value) } })} />
-                                                <div className="text-[8px] text-center text-rose-600 font-bold mt-1">DIFÍCIL %</div>
+                                            <div className="flex gap-3 text-xs font-bold text-slate-500">
+                                                <span className="bg-slate-100 px-2 py-1 rounded">⏱️ {config.duration} min</span>
+                                                <span className="bg-slate-100 px-2 py-1 rounded">📅 {new Date().toLocaleDateString()}</span>
                                             </div>
+                                        </div>
+
+                                        {/* Instructions */}
+                                        <div className="space-y-3">
+                                            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                                <Info size={14} className="text-brand-secondary" /> Instruções
+                                            </h3>
+                                            <div className="text-xs text-slate-600 space-y-1 bg-white p-4 rounded-xl border border-slate-100">
+                                                {coverConfig.instructions.split('\n').map((line, i) => (
+                                                    <p key={i} className="flex gap-2">
+                                                        <span className="text-brand-primary font-bold">•</span>
+                                                        {line.replace(/^\d+\.\s*/, '')}
+                                                    </p>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Security */}
+                                        <div className="space-y-3">
+                                            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                                <ShieldCheck size={14} className="text-rose-500" /> Segurança
+                                            </h3>
+                                            <div className="text-[10px] text-slate-500 bg-rose-50 p-3 rounded-lg border border-rose-100">
+                                                {coverConfig.securityNotices.split('\n').filter(l => l.trim()).map((line, i) => (
+                                                    <p key={i} className="mb-1">{line}</p>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Footer Button */}
+                                    <div className="p-4 bg-white border-t border-slate-100">
+                                        <div className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-center shadow-lg opacity-50 cursor-not-allowed text-sm">
+                                            Iniciar Prova
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        )}
-
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Modelo de Avaliação</label>
-                            <select className="w-full border rounded-lg p-2" value={config.model} onChange={e => setConfig({ ...config, model: e.target.value as ExamModel })}>
-                                <option value="SOMATIVO">Somativo</option>
-                                <option value="ADAPTADO">Adaptado</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Descrição/Instruções</label>
-                            <textarea className="w-full border rounded-lg p-2 h-24" value={config.description} onChange={e => setConfig({ ...config, description: e.target.value })} />
-                        </div>
-                        <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 flex items-center justify-between shadow-sm">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-amber-100 text-amber-600 rounded-lg">
-                                    <Brain size={20} />
-                                </div>
-                                <div>
-                                    <h4 className="text-sm font-bold text-amber-900">Segurança Anti-Cola</h4>
-                                    <p className="text-xs text-amber-700">Embaralhar ordem das questões aleatoriamente para cada aluno.</p>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => setConfig({ ...config, shuffleItems: !config.shuffleItems })}
-                                className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer ${config.shuffleItems ? 'bg-amber-500' : 'bg-slate-300'}`}
-                            >
-                                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${config.shuffleItems ? 'left-7' : 'left-1'}`} />
-                            </button>
-                        </div>
-                        <div className="flex justify-end pt-4">
-                            {builderMode === 'MANUAL' ? (
-                                <button onClick={() => setStep(2)} className="btn-gradient px-6 py-3 rounded-lg flex items-center gap-2 font-bold shadow-lg">
-                                    Próximo: Selecionar Questões <ChevronRight size={18} />
-                                </button>
-                            ) : (
-                                <button onClick={handleSmartGenerate} className="bg-brand-primary text-white px-6 py-3 rounded-lg flex items-center gap-2 font-bold shadow-lg hover:bg-brand-dark transition">
-                                    <Sparkles size={18} /> Gerar Prova Inteligente <ChevronRight size={18} />
-                                </button>
-                            )}
                         </div>
                     </div>
                 ) : isReviewingExam ? (
@@ -746,69 +832,114 @@ export const ExamBuilderView = () => {
                     </div>
                 ) : (
                     /* STEP 3: Grading and Cover */
-                    <div className="max-w-6xl mx-auto space-y-8 pb-12">
-                        <div className="grid grid-cols-12 gap-8">
-                            {/* Left Column: Cover & Instructions (7 cols) */}
-                            <div className="col-span-7 space-y-6">
-                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
-                                    <div className="border-b pb-4 mb-4">
-                                        <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                                            <ShieldCheck className="text-brand-primary" /> Capa e Instruções
-                                        </h3>
-                                        <p className="text-slate-500 text-sm mt-1">Configure as informações que o aluno verá antes de iniciar.</p>
-                                    </div>
+                    /* STEP 3: Review & Grading */
+                    <div className="max-w-4xl mx-auto space-y-8 pb-12">
+                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                            <div className="border-b pb-6 mb-6">
+                                <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                                    <Check className="text-emerald-500" size={24} /> Revisão Final e Pontuação
+                                </h3>
+                                <p className="text-slate-500 text-sm mt-1">Confira os dados da prova e defina a pontuação antes de publicar.</p>
+                            </div>
 
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Título Personalizado da Prova</label>
-                                        <input
-                                            className="w-full border rounded-lg p-3 text-lg font-bold text-slate-800 focus:ring-2 focus:ring-brand-primary outline-none"
-                                            value={coverConfig.title || config.title}
-                                            onChange={e => setCoverConfig({ ...coverConfig, title: e.target.value })}
-                                            placeholder="Ex: AVALIAÇÃO TRIMESTRAL - UNIDADE I"
-                                        />
-                                        <div className="text-xs text-slate-400 mt-2 flex gap-4">
-                                            <span>📅 Data: {new Date().toLocaleDateString()}</span>
-                                            <span>⏱️ Duração: {config.duration} min</span>
+                            <div className="grid grid-cols-2 gap-12">
+                                {/* Summary */}
+                                <div className="space-y-6">
+                                    <h4 className="font-bold text-slate-900 text-sm uppercase tracking-wide">Resumo da Prova</h4>
+
+                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
+                                        <div>
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase">Título</div>
+                                            <div className="font-bold text-slate-800">{config.title}</div>
                                         </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-
-                                        <div className="relative my-4">
-                                            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
-                                            <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-400 font-bold">Ou versão segura</span></div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <div className="text-[10px] font-bold text-slate-400 uppercase">Disciplina</div>
+                                                <div className="font-bold text-slate-800">{config.subject}</div>
+                                            </div>
+                                            <div>
+                                                <div className="text-[10px] font-bold text-slate-400 uppercase">Duração</div>
+                                                <div className="font-bold text-slate-800">{config.duration} min</div>
+                                            </div>
                                         </div>
-
-                                        <button
-                                            onClick={async () => {
-                                                if (!confirm("Isso irá criptografar a prova com uma chave única (AES-256). Deseja continuar?")) return;
-
-                                                // 1. Save standard (DB)
-                                                const id = await handleSave(true);
-                                                if (id) {
-                                                    // 2. Seal (Crypto)
-                                                    setIsSaving(true);
-                                                    try {
-                                                        await state.sealExam(id);
-                                                        navigate('/exams');
-                                                    } catch (e) {
-                                                        alert("Erro ao criptografar prova");
-                                                        setIsSaving(false);
-                                                    }
-                                                }
-                                            }}
-                                            disabled={isSaving}
-                                            className={`w-full py-4 rounded-xl font-bold text-lg shadow-xl transition-transform flex items-center justify-center gap-2 bg-slate-900 text-amber-400 border border-amber-500/30 hover:bg-black`}
-                                        >
-                                            {isSaving ? (
-                                                <Loader2 className="animate-spin" />
-                                            ) : (
-                                                <><ShieldCheck size={20} /> Publicar & Criptografar (Premium)</>
-                                            )}
-                                        </button>
-                                        <button onClick={() => setStep(2)} className="w-full text-slate-400 font-bold text-sm hover:text-slate-600 transition">Voltar para Seleção</button>
+                                        <div>
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase">Questões</div>
+                                            <div className="font-bold text-slate-800">{selectedItems.length} itens selecionados</div>
+                                        </div>
                                     </div>
                                 </div>
+
+                                {/* Scoring */}
+                                <div className="space-y-6">
+                                    <h4 className="font-bold text-slate-900 text-sm uppercase tracking-wide">Configuração de Notas</h4>
+
+                                    <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-4">
+                                        <div>
+                                            <div className="flex justify-between text-sm mb-2">
+                                                <span className="font-bold text-slate-700">Nota Máxima da Prova</span>
+                                                <span className="font-bold text-brand-primary">10.0</span>
+                                            </div>
+                                            <input
+                                                type="number"
+                                                className="w-full border rounded-lg p-2 font-bold text-slate-900 focus:ring-2 focus:ring-brand-primary outline-none"
+                                                defaultValue={10}
+                                                onChange={(e) => {
+                                                    const val = parseFloat(e.target.value);
+                                                    setGradingConfig(prev => ({
+                                                        ...prev,
+                                                        totalsByDiscipline: { ...prev.totalsByDiscipline, [config.subject]: val }
+                                                    }));
+                                                }}
+                                            />
+                                        </div>
+                                        <div className="bg-blue-50 p-3 rounded-lg text-xs text-blue-700 border border-blue-100 flex items-center gap-2">
+                                            <Info size={16} />
+                                            <span>
+                                                Cada questão valerá aproximadamente <b>{(10 / (selectedItems.length || 1)).toFixed(2)}</b> pontos.
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-10 flex items-center gap-4 pt-8 border-t border-slate-100">
+                                <button onClick={() => setStep(2)} className="px-6 py-3 rounded-lg border border-slate-300 font-bold text-slate-600 hover:bg-slate-50 transition">
+                                    Voltar
+                                </button>
+                                <div className="flex-1"></div>
+                                <button onClick={() => handleSave(false)} className="px-6 py-3 rounded-lg font-bold text-slate-600 hover:bg-slate-50 transition">
+                                    Salvar Rascunho
+                                </button>
+
+                                <button
+                                    onClick={() => handleSave(true)}
+                                    className="bg-brand-primary text-white px-6 py-3 rounded-lg font-bold shadow-lg hover:bg-brand-dark transition flex items-center gap-2"
+                                >
+                                    <Save size={18} /> Publicar Normal
+                                </button>
+
+                                {/* Premium Crypto Button */}
+                                <button
+                                    onClick={async () => {
+                                        if (!confirm("Isso irá criptografar a prova com uma chave única (AES-256). Deseja continuar?")) return;
+                                        const id = await handleSave(true);
+                                        if (id) {
+                                            setIsSaving(true);
+                                            try {
+                                                await state.sealExam(id);
+                                                navigate('/exams');
+                                            } catch (e) {
+                                                alert("Erro ao criptografar prova");
+                                                setIsSaving(false);
+                                            }
+                                        }
+                                    }}
+                                    disabled={isSaving}
+                                    className={`bg-slate-900 text-amber-400 px-6 py-3 rounded-lg font-bold shadow-lg flex items-center gap-2 hover:bg-black border border-amber-500/30 transition-all ${isSaving ? 'opacity-75 cursor-wait' : ''}`}
+                                >
+                                    {isSaving ? <Loader2 className="animate-spin" size={18} /> : <ShieldCheck size={18} />}
+                                    Publicar & Criptografar
+                                </button>
                             </div>
                         </div>
                     </div>
