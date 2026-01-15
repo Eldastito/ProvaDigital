@@ -43,16 +43,15 @@ export const ExamBuilderView = () => {
 
     const [coverConfig, setCoverConfig] = useState({
         title: '',
-        instructions: [
-            'Como navegar entre questões',
-            'Como marcar respostas e revisar antes de enviar',
-            'Aviso de que envio é definitivo (confirmação)'
-        ],
-        securityNotices: [
-            'O sistema registra ocorrências (perda de foco, alt-tab)',
-            'Regras de conduta: silêncio, atenção total',
-            'Finalização automática ao atingir o tempo limite'
-        ]
+        // Unified Text Areas with Professional Defaults
+        instructions: `1. Navegue entre as questões utilizando as setas ou o painel lateral.
+2. Questões respondidas ficarão marcadas em verde.
+3. Você pode revisar suas respostas a qualquer momento antes de finalizar.
+4. O sistema salva seu progresso automaticamente.`,
+        securityNotices: `1. O modo de tela cheia é obrigatório. Sair da tela cheia pode ser registrado como infração.
+2. O sistema monitora a troca de abas e perda de foco.
+3. Certifique-se de que sua bateria está carregada e conexão estável.
+4. Identificação de cola ou consulta não autorizada anulará a prova.`
     });
 
     const [smartCriteria, setSmartCriteria] = useState<ExamCriteria>({
@@ -212,13 +211,20 @@ export const ExamBuilderView = () => {
     };
 
     const toggleItem = (item: Item) => {
-        if (selectedItems.find(i => i.id === item.id)) {
+        // Strict Duplicate Check (ID based)
+        const exists = selectedItems.find(i => i.id === item.id);
+
+        if (exists) {
+            // Remove (Toggle OFF)
             const newItems = selectedItems.filter(i => i.id !== item.id);
             setSelectedItems(newItems);
             if (previewIndex >= newItems.length && newItems.length > 0) {
                 setPreviewIndex(newItems.length - 1);
             }
         } else {
+            // Add (Toggle ON) - Check for content duplication logic if needed?
+            // For now, strict ID check is sufficient as per "Questão repetida na mesma prova".
+            // Double safety: Ensure ID isn't somehow already in list (though find covers it)
             setSelectedItems([...selectedItems, item]);
         }
     };
@@ -765,155 +771,74 @@ export const ExamBuilderView = () => {
                     </div>
                 ) : (
                     /* STEP 3: Grading and Cover */
-                    <div className="max-w-4xl mx-auto space-y-8 pb-12">
-                        <div className="grid grid-cols-5 gap-8">
-                            <div className="col-span-3 space-y-6">
-                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-                                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                        <ShieldCheck className="text-brand-primary" /> Capa e Instruções
-                                    </h3>
+                    <div className="max-w-6xl mx-auto space-y-8 pb-12">
+                        <div className="grid grid-cols-12 gap-8">
+                            {/* Left Column: Cover & Instructions (7 cols) */}
+                            <div className="col-span-7 space-y-6">
+                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                                    <div className="border-b pb-4 mb-4">
+                                        <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                                            <ShieldCheck className="text-brand-primary" /> Capa e Instruções
+                                        </h3>
+                                        <p className="text-slate-500 text-sm mt-1">Configure as informações que o aluno verá antes de iniciar.</p>
+                                    </div>
+
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Título Customizado da Capa</label>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Título Personalizado da Prova</label>
                                         <input
-                                            className="w-full border rounded-lg p-3 text-lg font-bold"
+                                            className="w-full border rounded-lg p-3 text-lg font-bold text-slate-800 focus:ring-2 focus:ring-brand-primary outline-none"
                                             value={coverConfig.title || config.title}
                                             onChange={e => setCoverConfig({ ...coverConfig, title: e.target.value })}
                                             placeholder="Ex: AVALIAÇÃO TRIMESTRAL - UNIDADE I"
                                         />
-                                    </div>
-                                    <div className="space-y-3">
-                                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Instruções de Navegação</label>
-                                        {coverConfig.instructions.map((ins, idx) => (
-                                            <div key={idx} className="flex gap-2">
-                                                <input className="flex-1 border rounded-lg p-2 text-sm" value={ins} onChange={e => {
-                                                    const newIns = [...coverConfig.instructions];
-                                                    newIns[idx] = e.target.value;
-                                                    setCoverConfig({ ...coverConfig, instructions: newIns });
-                                                }} />
-                                                <button onClick={() => setCoverConfig({ ...coverConfig, instructions: coverConfig.instructions.filter((_, i) => i !== idx) })} className="text-rose-500 p-2"><X size={16} /></button>
-                                            </div>
-                                        ))}
-                                        <button onClick={() => setCoverConfig({ ...coverConfig, instructions: [...coverConfig.instructions, ''] })} className="text-xs font-bold text-brand-primary flex items-center gap-1"><Plus size={14} /> Adicionar Instrução</button>
-                                    </div>
-                                    <div className="space-y-3">
-                                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Avisos de Segurança</label>
-                                        {coverConfig.securityNotices.map((not, idx) => (
-                                            <div key={idx} className="flex gap-2">
-                                                <input
-                                                    className="flex-1 border rounded-lg p-2 text-sm"
-                                                    value={not}
-                                                    onChange={e => {
-                                                        const newNot = [...coverConfig.securityNotices];
-                                                        newNot[idx] = e.target.value;
-                                                        setCoverConfig({ ...coverConfig, securityNotices: newNot });
-                                                    }}
-                                                />
-                                                <button onClick={() => setCoverConfig({ ...coverConfig, securityNotices: coverConfig.securityNotices.filter((_, i) => i !== idx) })} className="text-rose-500 p-2"><X size={16} /></button>
-                                            </div>
-                                        ))}
-                                        <button onClick={() => setCoverConfig({ ...coverConfig, securityNotices: [...coverConfig.securityNotices, ''] })} className="text-xs font-bold text-brand-primary flex items-center gap-1"><Plus size={14} /> Adicionar Aviso</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="col-span-2 space-y-6">
-                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-4">
-                                        <BarChart className="text-brand-secondary" /> Pesos e Pontuação
-                                    </h3>
-                                    <div className="space-y-4">
-                                        {Array.from(new Set(selectedItems.map(i => i.subject))).map(subj => (
-                                            <div key={subj} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm font-bold text-slate-700">{subj}</span>
-                                                    <span className="text-[10px] text-slate-400 font-bold uppercase">{selectedItems.filter(i => i.subject === subj).length} Questões</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        type="number"
-                                                        step="0.1"
-                                                        className="w-16 border rounded-lg p-2 text-center font-bold text-brand-primary"
-                                                        value={gradingConfig.totalsByDiscipline[subj] || 10.0}
-                                                        onChange={e => {
-                                                            const val = parseFloat(e.target.value) || 0;
-                                                            const newTotals = { ...gradingConfig.totalsByDiscipline, [subj as string]: val };
-                                                            setGradingConfig({
-                                                                ...gradingConfig,
-                                                                totalsByDiscipline: newTotals,
-                                                                totalScore: (Object.values(newTotals) as number[]).reduce((a, b) => a + b, 0)
-                                                            });
-                                                        }}
-                                                    />
-                                                    <span className="text-[10px] font-bold text-slate-400">PTS</span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="mt-8 pt-6 border-t border-slate-100 flex justify-between items-center">
-                                        <div className="text-slate-500 font-bold text-sm uppercase tracking-widest">Total da Prova</div>
-                                        <div className="text-3xl font-black text-brand-primary">
-                                            {(Object.values(gradingConfig.totalsByDiscipline).length > 0
-                                                ? (Object.values(gradingConfig.totalsByDiscipline) as number[]).reduce((a, b) => a + b, 0)
-                                                : selectedItems.length * 1.0).toFixed(1)}
+                                        <div className="text-xs text-slate-400 mt-2 flex gap-4">
+                                            <span>📅 Data: {new Date().toLocaleDateString()}</span>
+                                            <span>⏱️ Duração: {config.duration} min</span>
                                         </div>
                                     </div>
-                                </div>
-                                <button
-                                    onClick={async () => {
-                                        const id = await handleSave(true);
-                                        if (id) {
-                                            alert('Prova Publicada! Redirecionando...');
-                                            navigate('/exams');
-                                        }
-                                    }}
-                                    disabled={isSaving}
-                                    className={`w-full py-4 rounded-xl font-bold text-lg shadow-xl transition-transform flex items-center justify-center gap-2 ${isSaving ? 'bg-slate-300 cursor-not-allowed text-slate-500' : 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:scale-[1.02]'}`}
-                                >
-                                    {isSaving ? (
-                                        <>Updating...</>
-                                    ) : (
-                                        <><Save size={20} /> Finalizar e Publicar (Padrão)</>
+
+                                    <div className="space-y-4">
                                     )}
-                                </button>
+                                    </button>
 
-                                <div className="relative my-4">
-                                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
-                                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-400 font-bold">Ou versão segura</span></div>
-                                </div>
+                                    <div className="relative my-4">
+                                        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
+                                        <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-400 font-bold">Ou versão segura</span></div>
+                                    </div>
 
-                                <button
-                                    onClick={async () => {
-                                        if (!confirm("Isso irá criptografar a prova com uma chave única (AES-256). Deseja continuar?")) return;
+                                    <button
+                                        onClick={async () => {
+                                            if (!confirm("Isso irá criptografar a prova com uma chave única (AES-256). Deseja continuar?")) return;
 
-                                        // 1. Save standard (DB)
-                                        const id = await handleSave(true);
-                                        if (id) {
-                                            // 2. Seal (Crypto)
-                                            setIsSaving(true);
-                                            try {
-                                                await state.sealExam(id);
-                                                navigate('/exams');
-                                            } catch (e) {
-                                                alert("Erro ao criptografar prova");
-                                                setIsSaving(false);
+                                            // 1. Save standard (DB)
+                                            const id = await handleSave(true);
+                                            if (id) {
+                                                // 2. Seal (Crypto)
+                                                setIsSaving(true);
+                                                try {
+                                                    await state.sealExam(id);
+                                                    navigate('/exams');
+                                                } catch (e) {
+                                                    alert("Erro ao criptografar prova");
+                                                    setIsSaving(false);
+                                                }
                                             }
-                                        }
-                                    }}
-                                    disabled={isSaving}
-                                    className={`w-full py-4 rounded-xl font-bold text-lg shadow-xl transition-transform flex items-center justify-center gap-2 bg-slate-900 text-amber-400 border border-amber-500/30 hover:bg-black`}
-                                >
-                                    {isSaving ? (
-                                        <Loader2 className="animate-spin" />
-                                    ) : (
-                                        <><ShieldCheck size={20} /> Publicar & Criptografar (Premium)</>
-                                    )}
-                                </button>
-                                <button onClick={() => setStep(2)} className="w-full text-slate-400 font-bold text-sm hover:text-slate-600 transition">Voltar para Seleção</button>
+                                        }}
+                                        disabled={isSaving}
+                                        className={`w-full py-4 rounded-xl font-bold text-lg shadow-xl transition-transform flex items-center justify-center gap-2 bg-slate-900 text-amber-400 border border-amber-500/30 hover:bg-black`}
+                                    >
+                                        {isSaving ? (
+                                            <Loader2 className="animate-spin" />
+                                        ) : (
+                                            <><ShieldCheck size={20} /> Publicar & Criptografar (Premium)</>
+                                        )}
+                                    </button>
+                                    <button onClick={() => setStep(2)} className="w-full text-slate-400 font-bold text-sm hover:text-slate-600 transition">Voltar para Seleção</button>
+                                </div>
                             </div>
                         </div>
-                    </div>
                 )}
-            </div>
+                    </div>
         </div>
-    );
+            );
 };

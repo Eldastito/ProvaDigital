@@ -245,14 +245,33 @@ export const ExamVariantsManager = () => {
                         <div className="p-6 space-y-4">
                             <div>
                                 <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Nome da Variante</label>
-                                <input
-                                    type="text"
+                                <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Tipo de Adaptação</label>
+                                <select
                                     value={newVariantName}
-                                    onChange={e => setNewVariantName(e.target.value)}
-                                    className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    placeholder="Ex: Prova Expandida (TDAH)"
+                                    onChange={e => {
+                                        setNewVariantName(e.target.value);
+                                        // Auto-fill description based on selection
+                                        const descMap: any = {
+                                            'TDAH': 'Adaptação com foco em redução de distrações e tempo estendido.',
+                                            'TEA': 'Adaptação com linguagem direta e suporte visual reforçado.',
+                                            'Baixa Visão': 'Fonte ampliada e alto contraste.',
+                                            'Dislexia': 'Fonte OpenDyslexic e espaçamento aumentado.',
+                                            'Superdotação': 'Nível de desafio ajustado (enrichment).',
+                                            'Outro': ''
+                                        };
+                                        if (descMap[e.target.value]) setNewVariantDesc(descMap[e.target.value]);
+                                    }}
+                                    className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
                                     autoFocus
-                                />
+                                >
+                                    <option value="">Selecione o tipo...</option>
+                                    <option value="TDAH">TDAH (Transtorno de Déficit de Atenção)</option>
+                                    <option value="TEA">TEA (Transtorno do Espectro Autista)</option>
+                                    <option value="Baixa Visão">Baixa Visão / Deficiência Visual</option>
+                                    <option value="Dislexia">Dislexia</option>
+                                    <option value="Superdotação">Altas Habilidades / Superdotação</option>
+                                    <option value="Outro">Outro (Personalizado)</option>
+                                </select>
                             </div>
                             <div>
                                 <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Descrição</label>
