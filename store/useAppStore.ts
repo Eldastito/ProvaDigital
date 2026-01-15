@@ -246,6 +246,8 @@ const checkAndTriggerAdaptation = async (exam: Exam, classIds: string[], state: 
 export const useAppStore = create<AppStore>((set, get) => ({
     currentUser: null,
     selectedChildId: null,
+    examEncryptionKey: null,
+    identityKeys: null,
     tenants: USE_MOCK_DATA ? INITIAL_TENANTS : [],
     schools: USE_MOCK_DATA ? INITIAL_SCHOOLS : [],
     classes: USE_MOCK_DATA ? INITIAL_CLASSES : [],
