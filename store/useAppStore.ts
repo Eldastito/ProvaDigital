@@ -275,8 +275,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     activeBatchId: null,
     examVersions: [],
 
-    // Phase 8: Encryption
-    examEncryptionKey: null,
+
 
     examAttempts: [],
     examAttemptEvents: [],
