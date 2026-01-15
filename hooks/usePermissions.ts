@@ -14,7 +14,7 @@ export const usePermissions = () => {
         // 2. Check Tenant Level Restrictions (Feature Flags)
         // Se o tenant desativou a feature, ninguém (exceto super admin) pode usar.
         const tenant = tenants.find(t => t.id === currentUser.tenantId);
-        if (tenant?.disabledFeatures?.includes(resource)) {
+        if (tenant?.disabledResources?.includes(resource)) {
             return false;
         }
 

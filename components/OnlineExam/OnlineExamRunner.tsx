@@ -159,6 +159,21 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
             </div>
         );
     }
+    // --- HELPERS ---
+    const getThemeClasses = () => {
+        if (a11y.theme === 'high-contrast') return 'bg-black text-yellow-400 font-bold';
+        if (a11y.theme === 'dark') return 'bg-slate-900 text-white';
+        return 'bg-slate-50 text-slate-900';
+    };
+
+    const containerStyle = {
+        fontSize: `${a11y.fontSize}%`,
+        lineHeight: a11y.lineSpacing
+    };
+
+    const handleAnswer = (itemId: string, alternativeId: string) => {
+        setAnswers(prev => ({ ...prev, [itemId]: alternativeId }));
+    };
 
     return (
         <div className={`min-h-screen transition-colors duration-300 ${getThemeClasses()} flex flex-col`} style={containerStyle}>

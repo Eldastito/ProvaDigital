@@ -5,7 +5,8 @@
  */
 
 import { useAppStore } from '../store/useAppStore';
-import { calculateRiskScore, calculateSchoolRisk, RiskLevel } from './riskDetectionEngine';
+import { calculateRiskScore, calculateSchoolRisk } from './riskDetectionEngine';
+import { RiskLevel } from '../types';
 
 export const validateRiskEngine = () => {
     const state = useAppStore.getState();
@@ -19,7 +20,8 @@ export const validateRiskEngine = () => {
     console.log(`\n📊 Analisando ${sampleStudents.length} alunos...\n`);
 
     const assessments = sampleStudents.map(student => {
-        const assessment = calculateRiskScore(student.id, state);
+        const studentResults = state.results.filter(r => r.studentId === student.id);
+        const assessment = calculateRiskScore(student, studentResults);
 
         console.log(`\n👤 ${assessment.studentName} (${student.registrationNumber})`);
         console.log(`   Score de Risco: ${assessment.riskScore}/100`);

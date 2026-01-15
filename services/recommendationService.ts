@@ -1,4 +1,4 @@
-import { QuestionType, DifficultyLevel, AppState, Question } from '../types';
+import { QuestionType, DifficultyLevel, AppState, Item, ItemOrigin } from '../types';
 import { generateQuestionsFromText } from './geminiService';
 
 export interface RecommendationRequest {
@@ -8,7 +8,7 @@ export interface RecommendationRequest {
     excludeItemIds?: string[];
 }
 
-export interface RecommendedItem extends Question {
+export interface RecommendedItem extends Item {
     reason: string; // Why this item was recommended (e.g. "Low performance in Algebra")
     matchScore: number; // 0-100
 }
@@ -61,10 +61,15 @@ export const getRecommendedItems = async (
                 })),
                 correctAnswerJustification: item.justification,
                 difficulty: DifficultyLevel.MEDIUM,
-                bncc: item.bnccCode || targetSpot.bncc, // Fallback to requested BNCC
+                bnccCode: item.bnccCode || targetSpot.bncc, // Fallback to requested BNCC
                 tags: ['Recomendado por IA', targetSpot.topic],
                 score: 1.0,
-                authorId: 'AI_MENTOR',
+                ownerId: 'AI_MENTOR',
+                tenantId: 'system',
+                knowledgeArea: 'Matemática', // Helper/Mock
+                subject: request.subject,
+                origin: ItemOrigin.IA,
+                usageCount: 0,
                 createdAt: new Date().toISOString(),
                 reason: targetSpot.reason,
                 matchScore: 95
@@ -87,10 +92,15 @@ export const getRecommendedItems = async (
         ],
         correctAnswerJustification: "Subtrai 10 de ambos os lados e divide por 2.",
         difficulty: DifficultyLevel.EASY,
-        bncc: 'EF07MA18',
+        bnccCode: 'EF07MA18',
         tags: ['Recomendado (Offline)', 'Álgebra'],
         score: 1.0,
-        authorId: 'SYSTEM',
+        ownerId: 'SYSTEM',
+        tenantId: 'system',
+        knowledgeArea: 'Matemática',
+        subject: 'Matemática',
+        origin: ItemOrigin.MANUAL,
+        usageCount: 0,
         createdAt: new Date().toISOString(),
         reason: 'Turma com dificuldade em Equações (Simulado)',
         matchScore: 88

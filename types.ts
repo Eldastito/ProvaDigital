@@ -18,6 +18,8 @@ export enum TenantType {
   PRIVATE = 'PRIVATE'
 }
 
+// Tenant duplicado removido
+/* 
 export interface Tenant {
   id: string;
   name: string;
@@ -31,6 +33,7 @@ export interface Tenant {
   };
   createdAt: string;
 }
+*/
 
 export interface AuditLog {
   id: string;
@@ -166,6 +169,13 @@ export interface Tenant {
   type: TenantType; // NOVO: Tipo de Rede
   cnpj: string;
   disabledResources?: Resource[];
+  features?: {
+    ai_audit?: boolean;
+    neuro_screening?: boolean;
+    tablet_mode?: boolean;
+    offline_sync?: boolean;
+    bi_advanced?: boolean;
+  };
 }
 
 export interface SchoolResources {
@@ -705,7 +715,7 @@ export interface StudentStats {
 
 export interface SecurityEvent {
   timestamp: string;
-  type: 'FOCUS_LOST' | 'ALT_TAB' | 'FULLSCREEN_EXIT' | 'KEYBOARD_VIOLATION' | 'MOUSE_VIOLATION';
+  type: 'FOCUS_LOST' | 'FOCUS_GAINED' | 'ALT_TAB' | 'FULLSCREEN_EXIT' | 'KEYBOARD_VIOLATION' | 'MOUSE_VIOLATION';
   details: string;
 }
 

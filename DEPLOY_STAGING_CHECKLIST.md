@@ -10,9 +10,9 @@ Fazer deploy do ExamePad v3.0 em ambiente de staging para validação antes da p
 - [x] Migration SQL criada
 - [x] Testes de segurança passando (12/12)
 - [x] Build local funcionando
-- [ ] Ambiente Supabase staging configurado
-- [ ] Variáveis de ambiente definidas
-- [ ] Scripts de deploy criados
+- [x] Ambiente Supabase staging configurado
+- [x] Variáveis de ambiente definidas
+- [x] Scripts de deploy criados
 
 ---
 
@@ -179,7 +179,7 @@ Após validação em staging:
 
 ---
 
-**Status:** 🟡 **Aguardando Configuração**
+**Status:** 🟡 **Aguardando Validação Manual**
 
 **Responsável:** Equipe ExamePad  
 **Prazo:** Esta semana  

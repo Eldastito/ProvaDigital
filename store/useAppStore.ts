@@ -150,6 +150,7 @@ interface AppActions {
 
     // --- EXAM BUILDER V2 ---
     addExamVersion: (version: ExamVersion) => Promise<void>;
+    broadcastEvent: (type: string, payload: any) => Promise<void>;
 }
 
 export type AppStore = AppState & AppActions;

@@ -68,7 +68,7 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
 
         // 1. Generate Key for this Class Session
         const eventId = `${exam.id}_${classId}`;
-        const keyPair = await generateEventKey(eventId);
+        const keyPair = await generateEventKey();
 
         // 2. Create Payload for Professor Tablet
         const students = state.students.filter(s => s.classId === classId);
@@ -78,7 +78,7 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
             schoolName: school?.name,
             className: targetClass.name,
             eventId: eventId,
-            key: keyPair.keyMaterial, // Professor gets the key to distribute
+            key: keyPair, // Professor gets the key to distribute
             students: students.map(s => ({ id: s.id, name: s.name, reg: s.registrationNumber })),
             examContent: exam // In real scenario, this might be encrypted too or just config
         };

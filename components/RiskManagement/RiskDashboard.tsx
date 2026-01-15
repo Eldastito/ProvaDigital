@@ -412,11 +412,11 @@ const StatCard = ({ title, value, subtitle, icon: Icon, color, alert }: any) => 
 };
 
 // Componente de Card de Aluno em Risco
-const StudentRiskCard = ({ assessment, isExpanded, onToggle }: {
+const StudentRiskCard: React.FC<{
     assessment: RiskAssessment;
     isExpanded: boolean;
     onToggle: () => void;
-}) => {
+}> = ({ assessment, isExpanded, onToggle }) => {
     const { classes } = useAppStore();
     const studentClass = classes.find(c => c.id === assessment.classId);
 
