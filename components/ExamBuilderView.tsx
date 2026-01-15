@@ -463,8 +463,79 @@ export const ExamBuilderView = () => {
         toggleItem(item);
     };
 
+    const csvImportRef = useRef<HTMLInputElement>(null);
+
+    const handleBatchImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: async (results) => {
+                const rows = results.data as any[];
+                const newItems: Item[] = [];
+                let skipCount = 0;
+
+                rows.forEach(row => {
+                    // Basic Validation
+                    if (!row.enunciado || !row.disciplina || !row.alternativa_a || !row.gabarito) {
+                        skipCount++;
+                        return;
+                    }
+
+                    // Map Alternatives
+                    const alts = [];
+                    if (row.alternativa_a) alts.push({ id: uuidv4(), text: row.alternativa_a, isCorrect: row.gabarito.toUpperCase() === 'A' });
+                    if (row.alternativa_b) alts.push({ id: uuidv4(), text: row.alternativa_b, isCorrect: row.gabarito.toUpperCase() === 'B' });
+                    if (row.alternativa_c) alts.push({ id: uuidv4(), text: row.alternativa_c, isCorrect: row.gabarito.toUpperCase() === 'C' });
+                    if (row.alternativa_d) alts.push({ id: uuidv4(), text: row.alternativa_d, isCorrect: row.gabarito.toUpperCase() === 'D' });
+                    if (row.alternativa_e) alts.push({ id: uuidv4(), text: row.alternativa_e, isCorrect: row.gabarito.toUpperCase() === 'E' });
+
+                    // Difficulty Normalization
+                    let diff = DifficultyLevel.MEDIUM;
+                    if (row.dificuldade?.toUpperCase() === 'FACIL') diff = DifficultyLevel.EASY;
+                    if (row.dificuldade?.toUpperCase() === 'DIFICIL') diff = DifficultyLevel.HARD;
+
+                    newItems.push({
+                        id: uuidv4(),
+                        tenantId: state.currentUser?.tenantId || 't1',
+                        ownerId: state.currentUser?.id || 'sys',
+                        statement: row.enunciado,
+                        knowledgeArea: 'Geral', // Default
+                        subject: row.disciplina,
+                        type: row.tipo?.toUpperCase() === 'VERDADEIRO_FALSO' ? QuestionType.TRUE_FALSE : QuestionType.MULTIPLE_CHOICE,
+                        difficulty: diff,
+                        alternatives: alts,
+                        correctAnswerJustification: row.justificativa,
+                        tags: row.tags ? row.tags.split(',').map((t: string) => t.trim()) : ['Importado'],
+                        score: 1.0,
+                        origin: ItemOrigin.MANUAL, // Marked manual to distinct from AI
+                        lifecycleStatus: ItemLifecycleStatus.APPROVED, // Direct approve? Or Draft? Let's say Approved for util.
+                        usageCount: 0,
+                        createdAt: new Date().toISOString()
+                    });
+                });
+
+                if (newItems.length > 0) {
+                    await state.addItems(newItems);
+                    alert(`Importação concluída! ${newItems.length} questões adicionadas. ${skipCount > 0 ? `(${skipCount} ignoradas por erro)` : ''}`);
+                } else {
+                    alert('Nenhuma questão válida encontrada no arquivo.');
+                }
+            },
+            error: (err) => {
+                alert("Erro ao ler CSV: " + err.message);
+            }
+        });
+
+        if (csvImportRef.current) csvImportRef.current.value = '';
+    };
+
+
     return (
         <div className="bg-white rounded-xl shadow-lg border border-brand-primary flex flex-col h-[calc(100vh-120px)]">
+            <input type="file" ref={csvImportRef} className="hidden" accept=".csv" onChange={handleBatchImport} />
             <div className="p-6 border-b flex justify-between items-center bg-slate-50">
                 <div>
                     <h2 className="text-xl font-bold text-slate-900">Montar Prova</h2>
@@ -986,6 +1057,13 @@ export const ExamBuilderView = () => {
                                             onChange={e => setFilter(e.target.value)}
                                         />
                                     </div>
+                                    <button
+                                        onClick={() => csvImportRef.current?.click()}
+                                        className="px-3 py-2 rounded-lg text-sm font-bold bg-white text-emerald-600 border border-emerald-200 hover:bg-emerald-50 transition flex items-center gap-2"
+                                        title="Importar CSV"
+                                    >
+                                        <FileUp size={16} /> Importar
+                                    </button>
                                     <button
                                         onClick={handleGetRecommendations}
                                         className={`px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition border ${showRecommendations ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-purple-50 hover:text-purple-600'}`}
