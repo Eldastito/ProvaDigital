@@ -75,7 +75,7 @@ export const ExamBuilderView = () => {
                 id: '1',
                 type: 'text',
                 title: 'INSTRUÇÕES GERAIS',
-                content: `01 - O candidato recebeu do fiscal o seguinte material:\na) este CADERNO DE QUESTÕES, com o enunciado das questões objetivas, sem repetição ou falha.`
+                content: `1 - Navegue entre as questões utilizando as setas ou o painel lateral.\n2 - Questões respondidas ficarão marcadas em verde.\n3 - Você pode revisar suas respostas a qualquer momento antes de finalizar.\n4 - O sistema salva seu progresso automaticamente.`
             },
             {
                 id: '2',
@@ -104,7 +104,7 @@ export const ExamBuilderView = () => {
                 id: '3',
                 type: 'text',
                 title: 'AVISOS DE SEGURANÇA',
-                content: 'É proibido o uso de calculadoras, relógios digitais e equipamentos eletrônicos.\nA violação destas regras implicará na desclassificação imediata.'
+                content: `1 - O modo de tela cheia é obrigatório. Sair da tela cheia pode ser registrado como infração.\n2 - O sistema monitora a troca de abas e perda de foco.\n3 - Certifique-se de que sua bateria está carregada e conexão estável.\n4 - Identificação de cola ou consulta não autorizada anulará a prova.`
             }
         ]
     });
