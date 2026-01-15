@@ -239,8 +239,20 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         lineHeight: a11y.lineSpacing
     };
 
+    const handlePreventClipboard = (e: React.ClipboardEvent) => {
+        e.preventDefault();
+        alert('Ação bloqueada por segurança.');
+    };
+
     return (
-        <div className={`min-h-screen transition-colors duration-300 ${getThemeClasses()} flex flex-col`} style={containerStyle}>
+        <div
+            className={`min-h-screen transition-colors duration-300 ${getThemeClasses()} flex flex-col select-none`}
+            style={containerStyle}
+            onCopy={handlePreventClipboard}
+            onPaste={handlePreventClipboard}
+            onCut={handlePreventClipboard}
+            onContextMenu={(e) => e.preventDefault()}
+        >
 
             {/* TOOLBAR (Floating) */}
             <AccessibilityToolbar config={a11y} onChange={setA11y} />

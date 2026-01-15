@@ -75,11 +75,17 @@ export const useProctoring = ({ studentId, studentName, isActive, onViolation }:
         const forbiddenKeys = ['Alt', 'Tab', 'Meta', 'F12', 'PrintScreen', 'Escape'];
 
         if (forbiddenKeys.includes(e.key) || (e.ctrlKey && ['c', 'v', 'p', 'shift', 'i'].includes(e.key))) {
-          // e.preventDefault(); // Don't block everything, just warn
+          e.preventDefault(); // BLOCK ACTION
           if (forbiddenKeys.includes(e.key)) {
             handleViolation(`Tentativa de atalho de sistema: ${e.key}`, 'KEYBOARD_VIOLATION');
           }
         }
+      };
+
+      // D. Context Menu (Right Click)
+      const handleContextMenu = (e: Event) => {
+        e.preventDefault();
+        // Optional: Alert user minimally or just block silently
       };
 
       // E. Fullscreen Change
@@ -95,66 +101,67 @@ export const useProctoring = ({ studentId, studentName, isActive, onViolation }:
       document.addEventListener('visibilitychange', handleVisibilityChange);
       window.addEventListener('blur', handleBlur);
       document.addEventListener('keydown', handleKeyDown);
+      document.addEventListener('contextmenu', handleContextMenu);
       document.addEventListener('fullscreenchange', handleFullscreenChange);
 
       // Force focus back
       window.focus();
 
-      return () => {
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-        window.removeEventListener('blur', handleBlur);
-        document.removeEventListener('keydown', handleKeyDown);
-        document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      };
-    }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }
   }, [isActive, studentId]);
 
-  const handleViolation = (reason: string, type: SecurityEvent['type']) => {
-    // Increment only for "bad" things
-    if (type !== 'FOCUS_GAINED') {
-      setViolationCount((prev) => prev + 1);
-      setLastViolation(reason);
+const handleViolation = (reason: string, type: SecurityEvent['type']) => {
+  // Increment only for "bad" things
+  if (type !== 'FOCUS_GAINED') {
+    setViolationCount((prev) => prev + 1);
+    setLastViolation(reason);
+  }
+
+  // Log internally
+  logEvent(type, reason);
+
+  if (studentId && studentName) {
+    // Broadcast to Supabase Realtime
+    broadcastEvent('ALERT', {
+      studentId,
+      name: studentName,
+      type,
+      reason: reason,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  if (onViolation) onViolation(reason, type);
+};
+
+const enterKioskMode = async () => {
+  try {
+    if (document.documentElement.requestFullscreen) {
+      await document.documentElement.requestFullscreen();
+      setIsKioskActive(true);
     }
+  } catch (e) {
+    console.warn('Fullscreen denied');
+  }
+};
 
-    // Log internally
-    logEvent(type, reason);
-
-    if (studentId && studentName) {
-      // Broadcast to Supabase Realtime
-      broadcastEvent('ALERT', {
-        studentId,
-        name: studentName,
-        type,
-        reason: reason,
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    if (onViolation) onViolation(reason, type);
-  };
-
-  const enterKioskMode = async () => {
-    try {
-      if (document.documentElement.requestFullscreen) {
-        await document.documentElement.requestFullscreen();
-        setIsKioskActive(true);
-      }
-    } catch (e) {
-      console.warn('Fullscreen denied');
-    }
-  };
-
-  return {
-    cameraActive,
-    isKioskActive,
-    violationCount,
-    lastViolation,
-    videoRef,
-    securityLog,
-    enterKioskMode,
-    resetViolations: () => {
-      setViolationCount(0);
-      setSecurityLog([]);
-    }
-  };
+return {
+  cameraActive,
+  isKioskActive,
+  violationCount,
+  lastViolation,
+  videoRef,
+  securityLog,
+  enterKioskMode,
+  resetViolations: () => {
+    setViolationCount(0);
+    setSecurityLog([]);
+  }
+};
 };
