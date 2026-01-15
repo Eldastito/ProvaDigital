@@ -32,10 +32,15 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
     }, [exam, state.items]);
 
     // --- SESSION STATE ---
-    const { startExamAttempt, logSecurityEvent, submitExamAttempt, initializeExamEvents, leaveExamChannel } = state;
-    const [attemptId, setAttemptId] = useState<string | null>(null);
+    const { startExamAttempt, logSecurityEvent, submitExamAttempt, initializeExamEvents, leaveExamChannel, saveExamProgress, examAttempts } = state;
+    const [attemptId, setAttemptId] = useState<string | null>(() => {
+        // Try to recover from localStorage immediately for hydration
+        return localStorage.getItem(`exam_attempt_${examId}_${studentId}`);
+    });
+
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<string, string>>({}); // itemId -> selectedAlternativeId
+    const [isRestored, setIsRestored] = useState(false);
 
     // --- ACCESSIBILITY VARIANT LOGIC ---
     const variant = state.examVariants.find(v => v.id === variantId);
@@ -48,41 +53,94 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
             : 0;
     }, [variant, exam]);
 
-    const totalDuration = (exam?.durationMinutes || 0) + extraTimeMinutes;
-    const [timeLeft, setTimeLeft] = useState(totalDuration * 60);
+    const totalDurationSeconds = ((exam?.durationMinutes || 0) + extraTimeMinutes) * 60;
+    const [timeLeft, setTimeLeft] = useState(totalDurationSeconds);
 
     // Initial attempt start & Data Fetching
     useEffect(() => {
-        if (examId) {
-            // 1. Ensure items are loaded (Scalability)
-            state.fetchExamItems(examId);
+        if (!examId || !studentId || !exam) return;
 
-            // 2. Start Attempt
-            if (exam && !attemptId && studentId) {
-                startExamAttempt({
-                    examVersionId: exam.id,
-                    studentId: studentId
-                }).then(id => {
-                    setAttemptId(id);
-                    localStorage.setItem(`exam_attempt_${exam.id}_${studentId}`, id);
-                });
+        const initSession = async () => {
+            // 1. Ensure items are loaded
+            await state.fetchExamItems(examId);
+
+            // 2. Check for existing active attempt (Server State -> LocalStorage)
+            let activeId = attemptId;
+
+            // If we don't have local ID, check store/DB for an open attempt for this user+exam
+            if (!activeId) {
+                const existing = examAttempts.find(a =>
+                    a.studentId === studentId &&
+                    a.examVersionId === exam.id &&
+                    a.status === 'started'
+                );
+                if (existing) activeId = existing.id;
             }
 
-            // 3. Connect to Realtime Proctoring Channel
-            initializeExamEvents(examId); // Joins "exam_monitor:EXAM_ID"
+            // 3. Start or Resume
+            if (!activeId) {
+                // New Attempt
+                activeId = await startExamAttempt({
+                    examVersionId: exam.id,
+                    studentId: studentId
+                });
+                setAttemptId(activeId);
+                localStorage.setItem(`exam_attempt_${exam.id}_${studentId}`, activeId);
+            } else {
+                setAttemptId(activeId);
+                // Resume logic: Load answers and sync timer
+                const attempt = examAttempts.find(a => a.id === activeId);
+                if (attempt) {
+                    // Restore Answers
+                    if (attempt.metadata?.savedAnswers) {
+                        setAnswers(attempt.metadata.savedAnswers);
+                    }
+
+                    // Restore Timer
+                    if (attempt.startedAt) {
+                        const startTime = new Date(attempt.startedAt).getTime();
+                        const now = Date.now();
+                        const elapsedSeconds = Math.floor((now - startTime) / 1000);
+                        const remaining = Math.max(0, totalDurationSeconds - elapsedSeconds);
+                        setTimeLeft(remaining);
+                    }
+                }
+            }
+
+            setIsRestored(true);
+
+            // 4. Join Realtime
+            initializeExamEvents(examId);
+        };
+
+        if (!isRestored) {
+            initSession();
         }
 
         return () => {
             leaveExamChannel();
         };
-    }, [exam, studentId, examId]);
+    }, [exam, studentId, examId, isRestored]); // Run once until restored
+
+    // Timer Tick
+    useEffect(() => {
+        if (!isRestored || timeLeft <= 0) return;
+
+        const timer = setInterval(() => {
+            setTimeLeft(prev => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    handleFinalize(true); // Auto-submit
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [isRestored, timeLeft]);
 
     // --- LIVE PROCTORING HOOK ---
-    // Replaces manual listeners. Handles Alt-Tab, Focus, Offline, etc.
-    // Also broadcasts alerts to the professor via Supabase.
-    // We import it dynamically or assume it's available.
-    // Importing at top level recommended.
-
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { isKioskActive } = useProctoring({
         isActive: !!attemptId,
@@ -90,7 +148,6 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         studentName: state.currentUser?.name,
         onViolation: (reason, type) => {
             if (attemptId) {
-                // Log persistent audit trail
                 logSecurityEvent({
                     attemptId,
                     eventType: type.toLowerCase() as any, // 'focus_lost', etc
@@ -104,7 +161,17 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         }
     });
 
-    const handleFinalize = () => {
+    const handleAnswer = async (itemId: string, alternativeId: string) => {
+        const newAnswers = { ...answers, [itemId]: alternativeId };
+        setAnswers(newAnswers);
+
+        // Auto-save debounce could be added here, but for safety we save critical progress immediately
+        if (attemptId) {
+            await saveExamProgress(attemptId, newAnswers);
+        }
+    };
+
+    const handleFinalize = (isTimeout = false) => {
         // Map Local Answers to StudentAnswer format
         const finalAnswers: StudentAnswer[] = examItems.map(item => {
             const selectedAltId = answers[item.id];
@@ -120,7 +187,8 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         });
 
         if (attemptId) {
-            submitExamAttempt(attemptId, timeLeft <= 0 ? 'timed_out' : 'submitted');
+            submitExamAttempt(attemptId, isTimeout ? 'timed_out' : 'submitted');
+            localStorage.removeItem(`exam_attempt_${examId}_${studentId}`); // Clear local session
         }
 
         onComplete(finalAnswers);
@@ -169,10 +237,6 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
     const containerStyle = {
         fontSize: `${a11y.fontSize}%`,
         lineHeight: a11y.lineSpacing
-    };
-
-    const handleAnswer = (itemId: string, alternativeId: string) => {
-        setAnswers(prev => ({ ...prev, [itemId]: alternativeId }));
     };
 
     return (
