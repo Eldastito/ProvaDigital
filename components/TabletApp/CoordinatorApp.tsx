@@ -5,7 +5,7 @@ import { AppState, ExamEvent, EventStatus } from '../../types';
 import { encryptPackage, generateEventKey } from '../../services/cryptoService';
 import { QRDataTransfer } from '../../services/qrCodecService';
 
-import { useAppStore } from '../../store/useAppStore';
+import { useSafeAppStore } from '../../store/useAppStore';
 
 interface CoordinatorAppProps {
     initialPayload?: any; // Contains schoolId, userId, userName
@@ -20,7 +20,7 @@ interface RoundData {
 }
 
 export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: CoordinatorAppProps) => {
-    const state = useAppStore();
+    const state = useSafeAppStore();
     // Extract data passed from Launcher
     // Extract data passed from Launcher or Current User context
     const coordinatorSchoolId = initialPayload?.schoolId || state.currentUser?.schoolId || 's1'; // Prioritize payload, then user, then dev fallback

@@ -4,7 +4,7 @@ import {
     LayoutDashboard, BookOpen, GraduationCap, Users, FileText,
     LogOut, Menu, ChevronRight, Tablet, PieChart, MessageCircle, Bot, Target, UserCircle, Shield, Stethoscope, Map, Home, ChevronDown, Swords, Flame, Trophy, Cast, Calendar, Gamepad2, BarChart
 } from 'lucide-react';
-import { useAppStore } from '../store/useAppStore';
+import { useSafeAppStore } from '../store/useAppStore';
 import { UserRole, TenantType } from '../types';
 import { usePermissions } from '../hooks/usePermissions';
 import { ProfileSwitcher } from './ProfileSwitcher';
@@ -35,7 +35,7 @@ const TenantBadge = ({ type }: { type: TenantType }) => {
 };
 
 export const DashboardLayout = () => {
-    const store = useAppStore();
+    const store = useSafeAppStore();
     const { currentUser, setCurrentUser, tenants, students, schools, selectedChildId, setSelectedChildId, isInitialized, initIdentity, identityKeys } = store;
     const { canView } = usePermissions();
     const [sidebarOpen, setSidebarOpen] = useState(true);

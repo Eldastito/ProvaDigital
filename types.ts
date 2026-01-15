@@ -725,6 +725,9 @@ export interface StoredSession {
 
 
 
+// @ts-ignore
+import { RealtimeChannel } from '@supabase/supabase-js';
+
 export interface AppState {
   currentUser: User | null;
   selectedChildId: string | null;
@@ -765,6 +768,8 @@ export interface AppState {
   hasConsented: boolean; // LGPD Consent Status
   isInitialized: boolean;
   auditLogs: AuditLog[];
+  liveAlerts: any[]; // Phase 5: Live Monitoring
+  realtimeChannel: RealtimeChannel | null;
 }
 
 // ============================================

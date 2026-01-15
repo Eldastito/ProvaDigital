@@ -5,7 +5,7 @@ import { AppState, Item, DifficultyLevel, QuestionType, ItemOrigin, ItemLifecycl
 import { generateQuestionsFromText, improveItemStatement, generateDistractors, suggestBNCC, generateJustification, variateItem, adaptItemForAccessibility, extractItemFromImage, auditPedagogicalItem } from '../services/geminiService';
 import { uuidv4 } from '../utils/helpers';
 import { RichTextEditor } from './RichTextEditor';
-import { useAppStore } from '../store/useAppStore';
+import { useSafeAppStore } from '../store/useAppStore';
 import { Badge } from './ui/Badge';
 import { BatchReviewPanel } from './OnlineExam/BatchReviewPanel';
 import { translateQuestionType, translateDifficultyLevel } from '../utils/translations';
@@ -41,7 +41,7 @@ const BRAZILIAN_SUBJECTS = [
 
 export const ItemEditorView = () => {
     const navigate = useNavigate();
-    const state = useAppStore();
+    const state = useSafeAppStore();
     const { addItem } = state;
     const [mode, setMode] = useState<'MANUAL' | 'AI'>('MANUAL');
     const fileInputRef = useRef<HTMLInputElement>(null);

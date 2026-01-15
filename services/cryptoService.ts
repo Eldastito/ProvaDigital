@@ -201,3 +201,7 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
     }
     return bytes.buffer;
 }
+
+// Aliases for compatibility with CoordinatorApp
+export const encryptPackage = cryptoService.encryptData;
+export const generateEventKey = cryptoService.generateExamKey;

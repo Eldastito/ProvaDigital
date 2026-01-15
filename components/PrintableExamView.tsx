@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { ArrowLeft, Printer } from 'lucide-react';
 import { AppState, Exam, QuestionType, PrintConfig } from '../types';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useAppStore } from '../store/useAppStore';
+import { useSafeAppStore } from '../store/useAppStore';
 import { ExamCoverGenerator } from './Print/ExamCoverGenerator';
 import { AnswerSheetGenerator } from './Print/AnswerSheetGenerator';
 import '../styles/print.css';
@@ -10,7 +10,7 @@ import '../styles/print.css';
 export const PrintableExamView = () => {
   const { id: examId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const state = useAppStore();
+  const state = useSafeAppStore();
 
   const onBack = () => navigate(-1);
   const exam = state.exams.find(e => e.id === examId);

@@ -3,7 +3,7 @@ import { Search, Filter, Plus, Eye, X, Check, Brain, ChevronDown, ChevronUp, His
 import { useNavigate } from 'react-router-dom';
 import { AppState, Item, DifficultyLevel, ItemOrigin, Exam, QuestionType, UserRole } from '../types';
 import { Badge } from './ui/Badge';
-import { useAppStore } from '../store/useAppStore';
+import { useSafeAppStore } from '../store/useAppStore';
 
 export interface ItemRowProps {
     item: Item;
@@ -87,7 +87,7 @@ const ItemRow: React.FC<ItemRowProps> = ({ item, onSelect, onHistory, getUsageCo
 };
 
 export const ItemsListView = () => {
-    const state = useAppStore();
+    const state = useSafeAppStore();
     const { currentUser } = state;
     const navigate = useNavigate();
     const userTenantId = currentUser?.tenantId;
@@ -105,7 +105,7 @@ export const ItemsListView = () => {
     const [selectedExamPreview, setSelectedExamPreview] = useState<Exam | null>(null);
 
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
-    const { removeItems, bulkAddTag } = useAppStore();
+    const { removeItems, bulkAddTag } = useSafeAppStore();
 
     const [filterSubject, setFilterSubject] = useState('');
     const [filterDifficulty, setFilterDifficulty] = useState('');

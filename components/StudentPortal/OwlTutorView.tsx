@@ -4,7 +4,7 @@ import { Send, Brain, Sparkles, Bot, ShieldAlert } from 'lucide-react';
 import { AppState, User, OwlSession, ExamStatus } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
 import { askOwlTutor } from '../../services/geminiService';
-import { useAppStore } from '../../store/useAppStore';
+import { useSafeAppStore } from '../../store/useAppStore';
 import { uuidv4 } from '../../utils/helpers';
 
 interface OwlTutorViewProps {
@@ -13,7 +13,7 @@ interface OwlTutorViewProps {
 }
 
 export const OwlTutorView = () => {
-    const state = useAppStore();
+    const state = useSafeAppStore();
     const { currentUser: user } = state;
 
     if (!user) return null;
@@ -36,7 +36,7 @@ export const OwlTutorView = () => {
     const [loading, setLoading] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
     const { owlTutorContext } = state;
-    const setOwlTutorContext = useAppStore(s => s.setOwlTutorContext);
+    const { setOwlTutorContext } = useSafeAppStore();
 
     // --- RATE LIMITING (Client Side) ---
     const checkRateLimit = () => {

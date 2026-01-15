@@ -144,6 +144,12 @@ interface AppActions {
 
     // --- PHASE 8: ENCRYPTION ---
     sealExam: (examId: string) => Promise<any>;
+    // --- REALTIME ---
+    initializeExamEvents: (examId: string) => void;
+    leaveExamChannel: () => Promise<void>;
+
+    // --- EXAM BUILDER V2 ---
+    addExamVersion: (version: ExamVersion) => Promise<void>;
 }
 
 export type AppStore = AppState & AppActions;

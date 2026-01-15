@@ -5,14 +5,14 @@ import { AppState } from '../../types';
 import { QRDataTransfer } from '../../services/qrCodecService';
 import { supabase } from '../../services/supabaseClient';
 
-import { useAppStore } from '../../store/useAppStore';
+import { useSafeAppStore } from '../../store/useAppStore';
 
 interface ProfessorAppProps {
     onBack: () => void;
 }
 
 export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
-    const state = useAppStore();
+    const state = useSafeAppStore();
     // Check URL params for Live Controller Mode
     const params = new URLSearchParams(window.location.search);
     const isLiveController = params.get('action') === 'CONTROL';

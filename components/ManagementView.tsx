@@ -8,11 +8,11 @@ import { ManagementForms } from './Management/ManagementForms';
 
 type ManagementTab = 'SCHOOLS' | 'CLASSES' | 'STUDENTS' | 'USERS' | 'COMMAND_CENTER' | 'SETTINGS' | 'BATCH_IMPORT' | 'HIERARCHY' | 'TENANT_SETTINGS';
 
-import { useAppStore } from '../store/useAppStore';
+import { useSafeAppStore } from '../store/useAppStore';
 import { translateUserRole } from '../utils/translations';
 
 export const ManagementView = () => {
-    const state = useAppStore();
+    const state = useSafeAppStore();
     const {
         addSchool: onAddSchool,
         addClass: onAddClass,

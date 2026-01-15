@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Heart, Shield, Zap, Flame, Trophy, Coins, SkipForward, AlertTriangle, ArrowRight, CheckCircle, XCircle, LogOut } from 'lucide-react';
 import { AppState, User, QuestionType, UserProfileExtended, Item, DifficultyLevel, ItemOrigin } from '../../types';
 
-import { useAppStore } from '../../store/useAppStore';
+import { useSafeAppStore } from '../../store/useAppStore';
 
 // Fallback questions for the demo if store is empty
 const SURVIVAL_MOCK_QUESTIONS: Item[] = [
@@ -15,7 +15,7 @@ const SURVIVAL_MOCK_QUESTIONS: Item[] = [
 ];
 
 export const SurvivalView = () => {
-    const state = useAppStore();
+    const state = useSafeAppStore();
     const { currentUser: user, updateUserProfile: onUpdateProfile } = state;
 
     if (!user) return null;

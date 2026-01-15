@@ -7,14 +7,14 @@ import { uuidv4 } from '../../utils/helpers';
 import { useProctoring } from '../../hooks/useProctoring';
 import { saveSession } from '../../services/offlineDb';
 
-import { useAppStore } from '../../store/useAppStore';
+import { useSafeAppStore } from '../../store/useAppStore';
 
 interface StudentAppProps {
     onBack: () => void;
 }
 
 export const StudentApp = ({ onBack }: StudentAppProps) => {
-    const state = useAppStore();
+    const state = useSafeAppStore();
     const params = new URLSearchParams(window.location.search);
     // Pega parâmetros reais do QR Code gerado pelo Lobby
     const classIdParam = params.get('classId');

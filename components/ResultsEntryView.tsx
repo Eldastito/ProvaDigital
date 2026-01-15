@@ -6,12 +6,12 @@ import { uuidv4 } from '../utils/helpers';
 import { gradeEssayAnswer, batchGradeAnswers } from '../services/geminiService';
 
 import { useNavigate, useParams } from 'react-router-dom';
-import { useAppStore } from '../store/useAppStore';
+import { useSafeAppStore } from '../store/useAppStore';
 
 export const ResultsEntryView = () => {
     const { id: examId } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const state = useAppStore();
+    const state = useSafeAppStore();
     const { updateResults: onSaveResults } = state;
 
     const onBack = () => navigate(-1);

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { QrCode, ArrowLeft, ShieldCheck, Users, GraduationCap, Scan, Search, School, User, Lock, ChevronRight, LogIn } from 'lucide-react';
 import { UserRole, AppState, School as SchoolType, User as UserType } from '../../types';
 
-import { useAppStore } from '../../store/useAppStore';
+import { useSafeAppStore } from '../../store/useAppStore';
 
 interface TabletLauncherProps {
     onSelectApp: (app: 'COORDINATOR' | 'PROFESSOR' | 'STUDENT', payload?: any) => void;
@@ -11,7 +11,7 @@ interface TabletLauncherProps {
 }
 
 export const TabletLauncher = ({ onSelectApp, onBack }: TabletLauncherProps) => {
-    const state = useAppStore();
+    const state = useSafeAppStore();
     // Main Mode
     const [mode, setMode] = useState<'SELECT' | 'SCANNING_QR' | 'COORD_FLOW'>('SELECT');
 

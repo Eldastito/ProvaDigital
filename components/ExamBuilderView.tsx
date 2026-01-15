@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { AppState, Exam, Item, ExamModel, ExamStatus, QuestionType, DifficultyLevel, ItemOrigin } from '../types';
 import { Badge } from './ui/Badge';
 import { uuidv4 } from '../utils/helpers';
-import { useAppStore } from '../store/useAppStore';
+import { useSafeAppStore } from '../store/useAppStore';
 import { translateDifficultyLevel } from '../utils/translations';
 import { smartSelectItems, ExamCriteria } from '../services/examService';
 // - [x] Criar `services/examService.ts` com algoritmos de seleção
@@ -23,7 +23,7 @@ import { ItemLifecycleStatus } from '../types';
 
 export const ExamBuilderView = () => {
     const navigate = useNavigate();
-    const state = useAppStore();
+    const state = useSafeAppStore();
     const { addExam, addItem, addItems } = state;
     const [step, setStep] = useState(1); // 1: Config, 2: Selection, 3: Grading & Cover
     const [builderMode, setBuilderMode] = useState<'MANUAL' | 'SMART'>('MANUAL');

@@ -3,7 +3,7 @@ import { TrendingUp, AlertTriangle, BookOpen, CheckCircle, Calendar, Clock, Brai
 import { useNavigate } from 'react-router-dom';
 import { AppState, RiskLevel, User, Exam, ExamResult, QuestionType, UserRole, GamifiedEventStatus, ExamStatus, MentorshipStatus } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
-import { useAppStore } from '../../store/useAppStore';
+import { useSafeAppStore } from '../../store/useAppStore';
 import { useFeatureFlag } from '../../context/FeatureFlagContext'; // [NEW]
 import { translateRiskLevel, translateExamStatus, translateGamifiedEventStatus } from '../../utils/translations';
 
@@ -59,12 +59,12 @@ const EvolutionChart = ({ data }: { data: { label: string, value: number }[] }) 
 };
 
 export const StudentDashboardView = () => {
-    const state = useAppStore();
+    const state = useSafeAppStore();
     const { currentUser: user } = state;
     const navigate = useNavigate();
     const isParent = user.role === UserRole.PAIS;
     const { isEnabled } = useFeatureFlag(); // [NEW]
-    const { registerStudentToEvent, setOwlTutorContext } = useAppStore();
+    const { registerStudentToEvent, setOwlTutorContext } = useSafeAppStore();
 
     // Se for pai, pega o filho selecionado na store (selectedChildId)
     // Se não houver seleção, fallback para o primeiro filho disponível
@@ -312,7 +312,7 @@ export const StudentDashboardView = () => {
     };
 
     // --- MENTORSHIP HANDLERS ---
-    const { addMentorshipRequest, acceptMentorshipRequest, confirmMentorship, updateUserProfile } = useAppStore();
+    const { addMentorshipRequest, acceptMentorshipRequest, confirmMentorship, updateUserProfile } = useSafeAppStore();
 
     // Mock handler (Need state for modal in real implementation)
     const handleCreateRequest = () => {

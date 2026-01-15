@@ -62,7 +62,7 @@ if (!$SkipBuild) {
     Write-Host ""
     Write-Host "[4/6] Compilando projeto..." -ForegroundColor Yellow
     
-    npm run build
+    npm run build -- --mode staging
     
     if ($LASTEXITCODE -ne 0) {
         Write-Host "✗ Build falhou!" -ForegroundColor Red
@@ -93,8 +93,10 @@ switch ($Platform) {
             npm install -g vercel
         }
         
-        # Deploy
-        vercel --prod `
+        # Deploy force yes with explicit env vars
+        $env:VITE_ENV = "staging"
+        
+        vercel --prod --yes `
             --env VITE_SUPABASE_URL=$env:VITE_SUPABASE_URL `
             --env VITE_SUPABASE_ANON_KEY=$env:VITE_SUPABASE_ANON_KEY `
             --env VITE_GEMINI_API_KEY=$env:VITE_GEMINI_API_KEY `
@@ -108,7 +110,6 @@ switch ($Platform) {
     "netlify" {
         Write-Host "Usando Netlify..." -ForegroundColor Gray
         
-        # Verificar se Netlify CLI está instalado
         try {
             netlify --version | Out-Null
         }
@@ -117,7 +118,6 @@ switch ($Platform) {
             npm install -g netlify-cli
         }
         
-        # Deploy
         netlify deploy --prod --dir=dist
         
         if ($LASTEXITCODE -eq 0) {
@@ -128,10 +128,8 @@ switch ($Platform) {
     "github" {
         Write-Host "Usando GitHub Pages..." -ForegroundColor Gray
         
-        # Build com base path
         npm run build -- --base=/examepad-staging/
         
-        # Deploy
         npm install -g gh-pages
         gh-pages -d dist
         
@@ -155,10 +153,4 @@ Write-Host "========================================" -ForegroundColor Green
 Write-Host "✓ DEPLOY CONCLUÍDO!" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "Próximos passos:" -ForegroundColor Yellow
-Write-Host "1. Acessar a URL de staging e fazer login" -ForegroundColor White
-Write-Host "2. Executar validação manual (ver DEPLOY_STAGING_CHECKLIST.md)" -ForegroundColor White
-Write-Host "3. Monitorar logs e erros" -ForegroundColor White
-Write-Host "4. Convidar escolas piloto" -ForegroundColor White
-Write-Host ""
-Write-Host "URL de staging será exibida acima ☝️" -ForegroundColor Cyan
+Write-Host "Lembre-se de validar o ambiente de staging!" -ForegroundColor White
