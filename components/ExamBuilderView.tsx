@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     Plus, Search, Brain, Sparkles, AlertCircle, Trash2, Edit3, Check, X,
     ChevronLeft, ArrowRight, Tablet, Loader2, Save, History, ShieldCheck,
-    Settings2, BarChart, ChevronRight, Info
+    Settings2, BarChart, ChevronRight, Info, GripVertical, PlusCircle, Trash
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppState, Exam, Item, ExamModel, ExamStatus, QuestionType, DifficultyLevel, ItemOrigin } from '../types';
@@ -20,6 +20,26 @@ import { generateQuestionsFromText, reviewExamAdvanced } from '../services/gemin
 import { BatchReviewPanel } from './OnlineExam/BatchReviewPanel';
 import { AdvancedReviewPipeline } from './OnlineExam/AdvancedReviewPipeline';
 import { ItemLifecycleStatus } from '../types';
+
+// --- Types for Cover Sections ---
+type CoverSectionType = 'text' | 'distribution';
+
+interface CoverSection {
+    id: string;
+    title: string;
+    type: CoverSectionType;
+    content?: string; // For text type
+    distribution?: {  // For distribution type
+        groups: {
+            name: string; // e.g. "Conhecimentos Básicos"
+            items: {
+                subject: string; // e.g. "Português"
+                range: string;   // e.g. "1 a 10"
+                points: string;  // e.g. "1,0"
+            }[];
+        }[];
+    };
+}
 
 export const ExamBuilderView = () => {
     const navigate = useNavigate();
@@ -41,17 +61,52 @@ export const ExamBuilderView = () => {
         totalScore: 0
     });
 
-    const [coverConfig, setCoverConfig] = useState({
+    const [coverConfig, setCoverConfig] = useState<{
+        title: string;
+        sections: CoverSection[];
+        instructions: string; // Deprecated but kept for type safety until full cleanup
+        securityNotices: string; // Deprecated
+    }>({
         title: '',
-        // Unified Text Areas with Professional Defaults
-        instructions: `1. Navegue entre as questões utilizando as setas ou o painel lateral.
-2. Questões respondidas ficarão marcadas em verde.
-3. Você pode revisar suas respostas a qualquer momento antes de finalizar.
-4. O sistema salva seu progresso automaticamente.`,
-        securityNotices: `1. O modo de tela cheia é obrigatório. Sair da tela cheia pode ser registrado como infração.
-2. O sistema monitora a troca de abas e perda de foco.
-3. Certifique-se de que sua bateria está carregada e conexão estável.
-4. Identificação de cola ou consulta não autorizada anulará a prova.`
+        instructions: '',
+        securityNotices: '',
+        sections: [
+            {
+                id: '1',
+                type: 'text',
+                title: 'INSTRUÇÕES GERAIS',
+                content: `01 - O candidato recebeu do fiscal o seguinte material:\na) este CADERNO DE QUESTÕES, com o enunciado das questões objetivas, sem repetição ou falha.`
+            },
+            {
+                id: '2',
+                type: 'distribution',
+                title: 'DISTRIBUIÇÃO DE QUESTÕES',
+                distribution: {
+                    groups: [
+                        {
+                            name: "CONHECIMENTOS BÁSICOS",
+                            items: [
+                                { subject: "Língua Portuguesa", range: "1 a 10", points: "1,0 cada" },
+                                { subject: "Matemática", range: "11 a 20", points: "1,0 cada" }
+                            ]
+                        },
+                        {
+                            name: "CONHECIMENTOS ESPECÍFICOS",
+                            items: [
+                                { subject: "Bloco 1", range: "21 a 40", points: "1,0 cada" },
+                                { subject: "Bloco 2", range: "41 a 60", points: "1,0 cada" }
+                            ]
+                        }
+                    ]
+                }
+            },
+            {
+                id: '3',
+                type: 'text',
+                title: 'AVISOS DE SEGURANÇA',
+                content: 'É proibido o uso de calculadoras, relógios digitais e equipamentos eletrônicos.\nA violação destas regras implicará na desclassificação imediata.'
+            }
+        ]
     });
 
     const [smartCriteria, setSmartCriteria] = useState<ExamCriteria>({
@@ -452,27 +507,162 @@ export const ExamBuilderView = () => {
                                 </div>
                             </div>
 
-                            {/* Cover Instructions (Moved from Step 3) */}
-                            <div className="space-y-4 pt-4 border-t border-slate-100">
-                                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                                    <ShieldCheck size={16} className="text-brand-primary" /> Instruções da Capa
-                                </h4>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Instruções Gerais</label>
-                                    <textarea
-                                        className="w-full border rounded-lg p-2 text-sm h-24"
-                                        value={coverConfig.instructions}
-                                        onChange={e => setCoverConfig({ ...coverConfig, instructions: e.target.value })}
-                                        placeholder="Instruções visíveis na capa..."
-                                    />
+                            {/* Cover Sections Editor (New Pattern) */}
+                            <div className="space-y-6 pt-6 border-t border-slate-100">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                        <ShieldCheck size={16} className="text-brand-primary" /> Seções da Capa
+                                    </h4>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => setCoverConfig(prev => ({
+                                                ...prev,
+                                                sections: [...prev.sections, { id: Math.random().toString(), type: 'text', title: 'NOVA SEÇÃO', content: '' }]
+                                            }))}
+                                            className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-lg transition"
+                                        >
+                                            + Texto
+                                        </button>
+                                        <button
+                                            onClick={() => setCoverConfig(prev => ({
+                                                ...prev,
+                                                sections: [...prev.sections, {
+                                                    id: Math.random().toString(),
+                                                    type: 'distribution',
+                                                    title: 'QUADRO DE QUESTÕES',
+                                                    distribution: { groups: [{ name: "GRUPO 1", items: [{ subject: "Matéria", range: "1-10", points: "1.0" }] }] }
+                                                }]
+                                            }))}
+                                            className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-lg transition"
+                                        >
+                                            + Quadro
+                                        </button>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Avisos de Segurança</label>
-                                    <textarea
-                                        className="w-full border rounded-lg p-2 text-sm h-20"
-                                        value={coverConfig.securityNotices}
-                                        onChange={e => setCoverConfig({ ...coverConfig, securityNotices: e.target.value })}
-                                    />
+
+                                <div className="space-y-4">
+                                    {coverConfig.sections.map((section, index) => (
+                                        <div key={section.id} className="group border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50 hover:bg-white hover:shadow-md transition-all">
+                                            {/* Header */}
+                                            <div className="bg-slate-100 p-2 flex items-center gap-2 border-b border-slate-200">
+                                                <GripVertical size={14} className="text-slate-400 cursor-move" />
+                                                <input
+                                                    className="bg-transparent border-none text-xs font-bold text-slate-700 uppercase focus:ring-0 p-0 w-full"
+                                                    value={section.title}
+                                                    onChange={e => {
+                                                        const newSections = [...coverConfig.sections];
+                                                        newSections[index].title = e.target.value;
+                                                        setCoverConfig({ ...coverConfig, sections: newSections });
+                                                    }}
+                                                />
+                                                <button
+                                                    onClick={() => {
+                                                        const newSections = coverConfig.sections.filter((_, i) => i !== index);
+                                                        setCoverConfig({ ...coverConfig, sections: newSections });
+                                                    }}
+                                                    className="text-slate-400 hover:text-rose-500"
+                                                >
+                                                    <Trash size={14} />
+                                                </button>
+                                            </div>
+
+                                            {/* Body */}
+                                            <div className="p-3">
+                                                {section.type === 'text' ? (
+                                                    <textarea
+                                                        className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs h-20 focus:ring-1 focus:ring-brand-primary outline-none resize-none"
+                                                        value={section.content}
+                                                        onChange={e => {
+                                                            const newSections = [...coverConfig.sections];
+                                                            newSections[index].content = e.target.value;
+                                                            setCoverConfig({ ...coverConfig, sections: newSections });
+                                                        }}
+                                                        placeholder="Digite o conteúdo da seção..."
+                                                    />
+                                                ) : (
+                                                    /* Distribution Table Editor */
+                                                    <div className="space-y-4">
+                                                        {section.distribution?.groups.map((group, gIdx) => (
+                                                            <div key={gIdx} className="bg-white border border-slate-200 rounded-lg p-3">
+                                                                <div className="flex items-center gap-2 mb-2">
+                                                                    <input
+                                                                        className="flex-1 text-xs font-bold border-b border-dashed border-slate-300 focus:border-brand-primary outline-none pb-1"
+                                                                        value={group.name}
+                                                                        onChange={e => {
+                                                                            const newSections = [...coverConfig.sections];
+                                                                            if (newSections[index].distribution) {
+                                                                                newSections[index].distribution!.groups[gIdx].name = e.target.value;
+                                                                                setCoverConfig({ ...coverConfig, sections: newSections });
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            const newSections = [...coverConfig.sections];
+                                                                            if (newSections[index].distribution) {
+                                                                                newSections[index].distribution!.groups.splice(gIdx, 1);
+                                                                                setCoverConfig({ ...coverConfig, sections: newSections });
+                                                                            }
+                                                                        }}
+                                                                        className="text-rose-400 hover:text-rose-600"
+                                                                    >
+                                                                        <X size={12} />
+                                                                    </button>
+                                                                </div>
+                                                                {/* Columns */}
+                                                                <div className="space-y-2">
+                                                                    {group.items.map((item, iIdx) => (
+                                                                        <div key={iIdx} className="grid grid-cols-6 gap-2 items-center">
+                                                                            <input className="col-span-3 text-[10px] border rounded p-1" placeholder="Matéria" value={item.subject} onChange={e => {
+                                                                                const newSections = [...coverConfig.sections];
+                                                                                newSections[index].distribution!.groups[gIdx].items[iIdx].subject = e.target.value;
+                                                                                setCoverConfig({ ...coverConfig, sections: newSections });
+                                                                            }} />
+                                                                            <input className="col-span-1 text-[10px] border rounded p-1" placeholder="Ex: 1-10" value={item.range} onChange={e => {
+                                                                                const newSections = [...coverConfig.sections];
+                                                                                newSections[index].distribution!.groups[gIdx].items[iIdx].range = e.target.value;
+                                                                                setCoverConfig({ ...coverConfig, sections: newSections });
+                                                                            }} />
+                                                                            <input className="col-span-1 text-[10px] border rounded p-1" placeholder="Pts" value={item.points} onChange={e => {
+                                                                                const newSections = [...coverConfig.sections];
+                                                                                newSections[index].distribution!.groups[gIdx].items[iIdx].points = e.target.value;
+                                                                                setCoverConfig({ ...coverConfig, sections: newSections });
+                                                                            }} />
+                                                                            <button onClick={() => {
+                                                                                const newSections = [...coverConfig.sections];
+                                                                                newSections[index].distribution!.groups[gIdx].items.splice(iIdx, 1);
+                                                                                setCoverConfig({ ...coverConfig, sections: newSections });
+                                                                            }} className="text-slate-300 hover:text-rose-500 justify-self-center"><X size={12} /></button>
+                                                                        </div>
+                                                                    ))}
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            const newSections = [...coverConfig.sections];
+                                                                            newSections[index].distribution!.groups[gIdx].items.push({ subject: "", range: "", points: "" });
+                                                                            setCoverConfig({ ...coverConfig, sections: newSections });
+                                                                        }}
+                                                                        className="w-full text-[10px] text-slate-400 hover:text-brand-primary border border-dashed border-slate-200 rounded p-1 mt-2"
+                                                                    >
+                                                                        + Adicionar Matéria
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                        <button
+                                                            onClick={() => {
+                                                                const newSections = [...coverConfig.sections];
+                                                                newSections[index].distribution!.groups.push({ name: "NOVO GRUPO", items: [] });
+                                                                setCoverConfig({ ...coverConfig, sections: newSections });
+                                                            }}
+                                                            className="w-full py-2 border border-dashed border-slate-300 rounded-lg text-xs font-bold text-slate-500 hover:border-brand-primary hover:text-brand-primary transition"
+                                                        >
+                                                            + Adicionar Grupo de Colunas
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
 
@@ -547,31 +737,50 @@ export const ExamBuilderView = () => {
                                             </div>
                                         </div>
 
-                                        {/* Instructions */}
-                                        <div className="space-y-3">
-                                            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                                                <Info size={14} className="text-brand-secondary" /> Instruções
-                                            </h3>
-                                            <div className="text-xs text-slate-600 space-y-1 bg-white p-4 rounded-xl border border-slate-100">
-                                                {coverConfig.instructions.split('\n').map((line, i) => (
-                                                    <p key={i} className="flex gap-2">
-                                                        <span className="text-brand-primary font-bold">•</span>
-                                                        {line.replace(/^\d+\.\s*/, '')}
-                                                    </p>
-                                                ))}
-                                            </div>
-                                        </div>
+                                        {/* Dynamic Cover Sections Preview */}
+                                        <div className="space-y-6">
+                                            {coverConfig.sections.map((section, idx) => (
+                                                <div key={section.id} className="space-y-2">
+                                                    <h3 className="text-center font-bold text-slate-900 uppercase tracking-widest text-[10px]">
+                                                        {section.title}
+                                                    </h3>
 
-                                        {/* Security */}
-                                        <div className="space-y-3">
-                                            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                                                <ShieldCheck size={14} className="text-rose-500" /> Segurança
-                                            </h3>
-                                            <div className="text-[10px] text-slate-500 bg-rose-50 p-3 rounded-lg border border-rose-100">
-                                                {coverConfig.securityNotices.split('\n').filter(l => l.trim()).map((line, i) => (
-                                                    <p key={i} className="mb-1">{line}</p>
-                                                ))}
-                                            </div>
+                                                    {section.type === 'text' ? (
+                                                        <div className="text-[10px] text-slate-700 leading-relaxed bg-white p-3 rounded border border-slate-200 whitespace-pre-line text-justify">
+                                                            {section.content}
+                                                        </div>
+                                                    ) : (
+                                                        /* Table Preview */
+                                                        <div className="border border-slate-800 rounded bg-white overflow-hidden text-[9px]">
+                                                            <div className="flex border-b border-slate-800 bg-slate-100">
+                                                                {section.distribution?.groups.map((group, i) => (
+                                                                    <div key={i} className={`flex-1 text-center py-1 font-bold uppercase border-r border-slate-800 last:border-r-0`}>
+                                                                        {group.name}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                            <div className="flex">
+                                                                {section.distribution?.groups.map((group, i) => (
+                                                                    <div key={i} className="flex-1 border-r border-slate-800 last:border-r-0">
+                                                                        <div className="grid grid-cols-12 border-b border-slate-800 bg-slate-50 font-bold text-[8px]">
+                                                                            <div className="col-span-6 p-1 border-r border-slate-300">DISCIPLINA</div>
+                                                                            <div className="col-span-3 p-1 text-center border-r border-slate-300">QTD</div>
+                                                                            <div className="col-span-3 p-1 text-center">PTS</div>
+                                                                        </div>
+                                                                        {group.items.map((item, ii) => (
+                                                                            <div key={ii} className="grid grid-cols-12 border-b border-slate-200 last:border-b-0">
+                                                                                <div className="col-span-6 p-1 truncate border-r border-slate-200 font-medium">{item.subject || '-'}</div>
+                                                                                <div className="col-span-3 p-1 text-center border-r border-slate-200">{item.range || '-'}</div>
+                                                                                <div className="col-span-3 p-1 text-center">{item.points || '-'}</div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
 
