@@ -321,15 +321,19 @@ export const ExamBuilderView = () => {
     const [statusFilter, setStatusFilter] = useState<'APPROVED' | 'DRAFT' | 'ALL'>('ALL');
 
     const filteredAvailableItems = state.items.filter(i => {
-        const matchesSearch = i.statement.toLowerCase().includes(filter.toLowerCase()) ||
-            i.subject.toLowerCase().includes(filter.toLowerCase());
+        const iStatement = i.statement || '';
+        const iSubject = i.subject || '';
+        const filterStr = filter.toLowerCase();
+
+        const matchesSearch = iStatement.toLowerCase().includes(filterStr) ||
+            iSubject.toLowerCase().includes(filterStr);
         const matchesDiff = difficultyFilter === 'ALL' || i.difficulty === difficultyFilter;
         const matchesStatus = statusFilter === 'ALL' ||
             (statusFilter === 'APPROVED' ? i.lifecycleStatus === ItemLifecycleStatus.APPROVED : i.lifecycleStatus === ItemLifecycleStatus.DRAFT);
         const notSelected = !selectedItems.find(s => s.id === i.id);
 
         // [NEW] Step 2 Enforcement: Filter by Config Subject
-        const matchesConfigSubject = !config.subject || i.subject.toLowerCase() === config.subject.toLowerCase();
+        const matchesConfigSubject = !config.subject || iSubject.toLowerCase() === (config.subject || '').toLowerCase();
 
         return matchesSearch && matchesDiff && matchesStatus && notSelected && matchesConfigSubject;
     });
