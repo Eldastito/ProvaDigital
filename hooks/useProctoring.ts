@@ -98,70 +98,96 @@ export const useProctoring = ({ studentId, studentName, isActive, onViolation }:
         }
       };
 
+      // F. Mouse Leave (Intent to Switch Tab/App)
+      const handleMouseLeave = (e: MouseEvent) => {
+        // Only trigger if mouse leaves the top of the viewport (tab bar area)
+        if (e.clientY <= 0) {
+          handleViolation('Aluno moveu o cursor para fora da janela (Intenção de trocar aba).', 'MOUSE_LEAVE');
+        }
+      };
+
+      // G. Window Resize (Split Screen Attempt)
+      const handleResize = () => {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const screenW = window.screen.width;
+
+        // If window is significantly smaller than screen (e.g. < 90%), it might be split screen
+        // Note: Fullscreen usually forces match, but this catches non-fullscreen resizing
+        if (width < screenW * 0.9) {
+          handleViolation('Janela redimensionada (Possível Split-Screen).', 'WINDOW_RESIZE');
+        }
+      };
+
       document.addEventListener('visibilitychange', handleVisibilityChange);
       window.addEventListener('blur', handleBlur);
       document.addEventListener('keydown', handleKeyDown);
       document.addEventListener('contextmenu', handleContextMenu);
       document.addEventListener('fullscreenchange', handleFullscreenChange);
+      document.documentElement.addEventListener('mouseleave', handleMouseLeave);
+      window.addEventListener('resize', handleResize);
 
       // Force focus back
       window.focus();
 
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('blur', handleBlur);
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('contextmenu', handleContextMenu);
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    };
-  }
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('blur', handleBlur);
+        document.removeEventListener('keydown', handleKeyDown);
+        document.removeEventListener('contextmenu', handleContextMenu);
+        document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        document.documentElement.removeEventListener('mouseleave', handleMouseLeave);
+        window.removeEventListener('resize', handleResize);
+      };
+    }
   }, [isActive, studentId]);
 
-const handleViolation = (reason: string, type: SecurityEvent['type']) => {
-  // Increment only for "bad" things
-  if (type !== 'FOCUS_GAINED') {
-    setViolationCount((prev) => prev + 1);
-    setLastViolation(reason);
-  }
-
-  // Log internally
-  logEvent(type, reason);
-
-  if (studentId && studentName) {
-    // Broadcast to Supabase Realtime
-    broadcastEvent('ALERT', {
-      studentId,
-      name: studentName,
-      type,
-      reason: reason,
-      timestamp: new Date().toISOString()
-    });
-  }
-
-  if (onViolation) onViolation(reason, type);
-};
-
-const enterKioskMode = async () => {
-  try {
-    if (document.documentElement.requestFullscreen) {
-      await document.documentElement.requestFullscreen();
-      setIsKioskActive(true);
+  const handleViolation = (reason: string, type: SecurityEvent['type']) => {
+    // Increment only for "bad" things
+    if (type !== 'FOCUS_GAINED') {
+      setViolationCount((prev) => prev + 1);
+      setLastViolation(reason);
     }
-  } catch (e) {
-    console.warn('Fullscreen denied');
-  }
-};
 
-return {
-  cameraActive,
-  isKioskActive,
-  violationCount,
-  lastViolation,
-  videoRef,
-  securityLog,
-  enterKioskMode,
-  resetViolations: () => {
-    setViolationCount(0);
-    setSecurityLog([]);
-  }
-};
+    // Log internally
+    logEvent(type, reason);
+
+    if (studentId && studentName) {
+      // Broadcast to Supabase Realtime
+      broadcastEvent('ALERT', {
+        studentId,
+        name: studentName,
+        type,
+        reason: reason,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    if (onViolation) onViolation(reason, type);
+  };
+
+  const enterKioskMode = async () => {
+    try {
+      if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen();
+        setIsKioskActive(true);
+      }
+    } catch (e) {
+      console.warn('Fullscreen denied');
+    }
+  };
+
+  return {
+    cameraActive,
+    isKioskActive,
+    violationCount,
+    lastViolation,
+    videoRef,
+    securityLog,
+    enterKioskMode,
+    resetViolations: () => {
+      setViolationCount(0);
+      setSecurityLog([]);
+    }
+  };
 };
