@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Shield } from 'lucide-react';
-import { School, SchoolClass, UserRole, SchoolResources } from '../../types';
+import { School, SchoolClass, UserRole, SchoolResources } from '../../../types';
 
 interface ManagementFormsProps {
     activeTab: string;

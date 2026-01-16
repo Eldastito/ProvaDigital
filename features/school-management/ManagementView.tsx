@@ -1,15 +1,15 @@
 
 import React, { useState, useRef } from 'react';
 import { GraduationCap, Briefcase, Users, Settings, Plus, X, School as SchoolIcon, Upload, Radio, FileText, Download, Network, GitMerge, ArrowRight, ShieldCheck, Link, Database, AlertTriangle } from 'lucide-react';
-import { AppState, School, SchoolClass, Student, User, UserRole, AppSettings, SchoolResources } from '../types';
-import { uuidv4 } from '../utils/helpers';
-import { CommandCenter } from './Management/CommandCenter';
-import { ManagementForms } from './Management/ManagementForms';
+import { AppState, School, SchoolClass, Student, User, UserRole, AppSettings, SchoolResources } from '../../types';
+import { uuidv4 } from '../../utils/helpers';
+import { CommandCenter } from './components/CommandCenter';
+import { ManagementForms } from './components/ManagementForms';
 
 type ManagementTab = 'SCHOOLS' | 'CLASSES' | 'STUDENTS' | 'USERS' | 'COMMAND_CENTER' | 'SETTINGS' | 'BATCH_IMPORT' | 'HIERARCHY' | 'TENANT_SETTINGS';
 
-import { useSafeAppStore } from '../store/useAppStore';
-import { translateUserRole } from '../utils/translations';
+import { useSafeAppStore } from '../../store/useAppStore';
+import { translateUserRole } from '../../utils/translations';
 
 export const ManagementView = () => {
     const state = useSafeAppStore();

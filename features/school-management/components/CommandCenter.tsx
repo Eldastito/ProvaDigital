@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Radio, Power, Server, Box, Layers, MapPin, Briefcase, Truck, CheckCircle, AlertTriangle, RefreshCcw } from 'lucide-react';
-import { AppState, MeshPeer, ProvisioningPayload } from '../../types';
-import { meshService } from '../../services/localMeshService';
+import { AppState, MeshPeer, ProvisioningPayload } from '../../../types';
+import { meshService } from '../../../services/localMeshService';
 
 interface CommandCenterProps {
     state: AppState;
@@ -12,7 +12,7 @@ interface CommandCenterProps {
 export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
     const [peers, setPeers] = useState<MeshPeer[]>([]);
     const [selectedTenantId, setSelectedTenantId] = useState(state.currentUser?.tenantId || '');
-    
+
     // Configuração de Lote
     const [suitcaseSize, setSuitcaseSize] = useState<number>(20); // 20, 10, 5
     const [selectedExamIds, setSelectedExamIds] = useState<string[]>([]); // Multiplas provas (semana toda)
@@ -32,11 +32,11 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
     }, []);
 
     // --- LÓGICA DE CARGA REGIONAL ---
-    
+
     // 1. Total de Tablets Necessários no Município (Visão Macro)
     const tenantSchools = state.schools.filter(s => s.tenantId === selectedTenantId);
     const totalStudentsInTenant = state.students.filter(s => s.tenantId === selectedTenantId).length;
-    
+
     // Provas disponíveis para carga (ex: todas as provas da semana)
     const availableExams = state.exams.filter(e => e.tenantId === selectedTenantId);
 
@@ -65,7 +65,7 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
         availableTablets.forEach((tablet, idx) => {
             // Lógica de Mala: Agrupar visualmente
             const suitcaseNumber = Math.floor(idx / suitcaseSize) + 1;
-            
+
             // O payload agora é genérico para a região. 
             // O tablet do aluno vira um "Cofre Fechado"
             meshService.sendTo(tablet.id, 'PROVISION_CMD', {
@@ -82,7 +82,7 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
     const handleProvisionCoordinators = () => {
         // Coordenadores recebem chaves mestras, não apenas dados cifrados
         const targets = availableTablets.slice(0, tenantSchools.length); // 1 por escola idealmente
-        
+
         if (targets.length === 0) return alert("Sem dispositivos.");
 
         targets.forEach((t, i) => {
@@ -98,12 +98,12 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
 
     return (
         <div className="p-6 bg-slate-50 min-h-[600px] space-y-8">
-            
+
             {/* Header */}
             <div className="flex justify-between items-center bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                 <div>
                     <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
-                        <Server className="text-brand-primary" size={32}/> Logística de Carga Unificada
+                        <Server className="text-brand-primary" size={32} /> Logística de Carga Unificada
                     </h2>
                     <p className="text-slate-500 mt-1">Prepare dispositivos para o município inteiro. Flexibilidade total entre escolas.</p>
                 </div>
@@ -117,15 +117,15 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                
+
                 {/* COLUNA 1: O PACOTE DE DADOS (Conteúdo) */}
                 <div className="space-y-6">
                     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Layers size={20}/> 1. Conteúdo do Pacote</h3>
-                        
+                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Layers size={20} /> 1. Conteúdo do Pacote</h3>
+
                         <div className="mb-4">
                             <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Município / Rede</label>
-                            <select 
+                            <select
                                 className="w-full border rounded-lg p-2 text-sm bg-slate-50 font-medium"
                                 value={selectedTenantId}
                                 onChange={e => setSelectedTenantId(e.target.value)}
@@ -138,8 +138,8 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                         <div className="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-2 bg-slate-50">
                             <div className="text-xs text-slate-400 uppercase font-bold px-2 py-1">Provas Disponíveis na Nuvem</div>
                             {availableExams.map(exam => (
-                                <div 
-                                    key={exam.id} 
+                                <div
+                                    key={exam.id}
                                     onClick={() => toggleExam(exam.id)}
                                     className={`p-3 rounded-lg border cursor-pointer flex justify-between items-center transition ${selectedExamIds.includes(exam.id) ? 'bg-sky-50 border-brand-primary' : 'bg-white border-slate-200 hover:border-slate-300'}`}
                                 >
@@ -147,14 +147,14 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                                         <div className="font-bold text-sm text-slate-800">{exam.title}</div>
                                         <div className="text-xs text-slate-500">{exam.subject} • {exam.durationMinutes} min</div>
                                     </div>
-                                    {selectedExamIds.includes(exam.id) && <CheckCircle size={16} className="text-brand-primary"/>}
+                                    {selectedExamIds.includes(exam.id) && <CheckCircle size={16} className="text-brand-primary" />}
                                 </div>
                             ))}
                             {availableExams.length === 0 && <div className="text-center text-slate-400 text-xs py-4">Nenhuma prova encontrada.</div>}
                         </div>
-                        
+
                         <div className="mt-4 p-3 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-800">
-                            <AlertTriangle size={14} className="inline mr-1 mb-0.5"/>
+                            <AlertTriangle size={14} className="inline mr-1 mb-0.5" />
                             <strong>Nota:</strong> Todos os dados serão carregados criptografados. O tablet só abre o conteúdo se receber a chave da escola correta.
                         </div>
                     </div>
@@ -163,16 +163,16 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                 {/* COLUNA 2: A LOGÍSTICA FÍSICA (Malas) */}
                 <div className="space-y-6">
                     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Briefcase size={20}/> 2. Configuração das Malas</h3>
-                        
+                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Briefcase size={20} /> 2. Configuração das Malas</h3>
+
                         <div className="grid grid-cols-3 gap-3 mb-6">
                             {[20, 10, 5].map(size => (
-                                <button 
+                                <button
                                     key={size}
                                     onClick={() => setSuitcaseSize(size)}
                                     className={`py-3 rounded-lg border-2 font-bold text-sm flex flex-col items-center gap-1 transition ${suitcaseSize === size ? 'border-brand-primary bg-brand-light text-brand-dark' : 'border-slate-100 bg-slate-50 text-slate-400 hover:bg-slate-100'}`}
                                 >
-                                    <Box size={20}/>
+                                    <Box size={20} />
                                     {size} un.
                                 </button>
                             ))}
@@ -187,20 +187,20 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                             <div className="text-xs text-slate-400 mt-1">Para {availableTablets.length} tablets detectados</div>
                         </div>
 
-                        <button 
+                        <button
                             onClick={handleBatchLoad}
                             disabled={availableTablets.length === 0 || selectedExamIds.length === 0}
                             className="w-full mt-6 bg-brand-primary text-white py-4 rounded-xl font-bold shadow-lg hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
-                            <Truck size={20}/> Iniciar Carga em Massa
+                            <Truck size={20} /> Iniciar Carga em Massa
                         </button>
                     </div>
-                    
-                    <button 
+
+                    <button
                         onClick={handleProvisionCoordinators}
                         className="w-full bg-white border-2 border-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-50 hover:text-brand-primary transition flex items-center justify-center gap-2"
                     >
-                        <MapPin size={18}/> Configurar Tablets MESTRES (Coord)
+                        <MapPin size={18} /> Configurar Tablets MESTRES (Coord)
                     </button>
                 </div>
 
@@ -208,16 +208,16 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                 <div className="space-y-6">
                     <div className="bg-slate-800 text-white p-6 rounded-xl shadow-lg h-full flex flex-col">
                         <h3 className="font-bold text-sm uppercase text-slate-400 mb-4 flex items-center gap-2">
-                            <RefreshCcw size={16}/> Gestão de Ativos (Tempo Real)
+                            <RefreshCcw size={16} /> Gestão de Ativos (Tempo Real)
                         </h3>
-                        
+
                         <div className="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
                             {peers.map(peer => (
                                 <div key={peer.id} className="flex justify-between items-center border-b border-slate-700 pb-2">
                                     <div className="flex items-center gap-2">
                                         <div className={`w-2 h-2 rounded-full ${peer.isOnline ? 'bg-emerald-400' : 'bg-slate-600'}`}></div>
                                         <div>
-                                            <div className="text-xs font-mono text-slate-300">{peer.id.slice(0,8)}</div>
+                                            <div className="text-xs font-mono text-slate-300">{peer.id.slice(0, 8)}</div>
                                             <div className="text-[10px] font-bold text-white">{peer.name}</div>
                                         </div>
                                     </div>
@@ -228,7 +228,7 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                             ))}
                             {peers.length === 0 && (
                                 <div className="flex flex-col items-center justify-center h-32 text-slate-500 text-xs text-center">
-                                    <Server size={24} className="mb-2 opacity-20"/>
+                                    <Server size={24} className="mb-2 opacity-20" />
                                     Aguardando conexão dos dispositivos...
                                 </div>
                             )}
