@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings2, Sparkles, Brain, ShieldCheck, GripVertical, Trash, X } from 'lucide-react';
+import { Settings2, Sparkles, Brain, ShieldCheck, GripVertical, Trash, X, ArrowRight } from 'lucide-react';
 import { ExamModel } from '../../../types';
 
 interface CoverSection {
