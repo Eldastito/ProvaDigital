@@ -8,7 +8,7 @@ import { useSafeAppStore } from '../../store/useAppStore';
 import { smartSelectItems, ExamCriteria } from '../../services/examService';
 import { generateQuestionsFromText } from '../../services/geminiService';
 import { ExamLauncher } from '../../features/exam-taking/ExamLauncher';
-import { AdvancedReviewPipeline } from '../../components/OnlineExam/AdvancedReviewPipeline';
+import { AdvancedReviewPipeline } from '../../features/exam-taking/AdvancedReviewPipeline';
 
 import { ExamBasicInfo } from './components/ExamBasicInfo';
 import { ExamQuestionSelector } from './components/ExamQuestionSelector';
