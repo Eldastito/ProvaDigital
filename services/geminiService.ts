@@ -18,11 +18,16 @@ const PROMPTS = {
         DIRETRIZES TÉCNICAS (PADRÃO INEP):
         1. INEDITISMO ABSOLUTO (CRÍTICO): As questões devem ser 100% ORIGINAIS e INÉDITAS. É terminantemente proibido copiar questões de vestibulares (ENEM, FUVEST, VUNESP, etc.) ou concursos. Use o contexto apenas como base técnica para criar algo novo.
         2. ENUNCIADO: Deve ser claro, objetivo e conter todos os elementos necessários para a resolução. Use um "Texto-Base" se necessário. Evite termos negativos ("Exceto", "Não").
-        3. ALTERNATIVAS (Para MULTIPLE_CHOICE): Sempre gere exatamente 5 alternativas (A, B, C, D, E).
-        4. HOMOGENEIDADE: Todas as alternativas devem ter extensão e estrutura gramatical similares.
-        5. DISTRATORES: Não devem ser "pegadinhas". Devem representar erros de raciocínio lógico ou interpretações parciais plausíveis.
-        6. JUSTIFICATIVA: Obrigatória para cada item. Explique por que a correta é a correta e qual o erro pedagógico por trás dos distratores.
-        7. TRI (Teoria de Resposta ao Item): Estime o grau de dificuldade (Fácil, Médio, Difícil) e a complexidade cognitiva (Taxonomia de Bloom).
+        3. SUPORTE A MÍDIA E STEM (MUITO IMPORTANTE):
+           - FÓRMULAS: Use LaTeX delimitado por $$ para blocos (ex: $$E=mc^2$$) ou $ para inline (ex: $x=2$).
+           - CÓDIGO: Use blocos de código com tripla crase (\`\`\`) para linguagens de programação.
+           - FORMATAÇÃO: Use **negrito** para termos chave e __sublinhado__ para ênfase.
+           - MULTIMÍDIA: Se o contexto mencionar uma imagem ou vídeo essencial, use as tags [img]url[/img] ou [video]url[/video].
+        4. ALTERNATIVAS (Para MULTIPLE_CHOICE): Sempre gere exatamente 5 alternativas (A, B, C, D, E).
+        5. HOMOGENEIDADE: Todas as alternativas devem ter extensão e estrutura gramatical similares.
+        6. DISTRATORES: Não devem ser "pegadinhas". Devem representar erros de raciocínio lógico ou interpretações parciais plausíveis.
+        7. JUSTIFICATIVA: Obrigatória para cada item. Explique por que a correta é a correta e qual o erro pedagógico por trás dos distratores.
+        8. TRI (Teoria de Resposta ao Item): Estime o grau de dificuldade (Fácil, Médio, Difícil) e a complexidade cognitiva (Taxonomia de Bloom).
         
         ESPECIFICAÇÕES:
         - Matéria: ${subject}

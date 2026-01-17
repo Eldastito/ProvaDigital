@@ -1,8 +1,9 @@
 import React, { useState, useId } from 'react';
-import { 
-    Bold, Italic, Underline, Code, Sigma, 
-    Eye, Edit2, AlignCenter, AlignLeft, AlignRight, 
-    AlignJustify, Type, List, AlertCircle, FunctionSquare 
+import {
+    Bold, Italic, Underline, Code, Sigma,
+    Eye, Edit2, AlignCenter, AlignLeft, AlignRight,
+    AlignJustify, Type, List, AlertCircle, FunctionSquare,
+    Image as ImageIcon, Video, Music
 } from 'lucide-react';
 import { RichTextRenderer } from './RichTextRenderer';
 
@@ -29,16 +30,16 @@ export const RichTextEditor = ({ value, onChange, placeholder, height = "h-40", 
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
         const text = textarea.value;
-        
+
         const before = text.substring(0, start);
         const selection = text.substring(start, end);
         const after = text.substring(end);
 
         const insertedText = selection.length > 0 ? selection : (startTag.includes('```') ? "code" : "texto");
         const newText = before + startTag + insertedText + endTag + after;
-        
+
         onChange(newText);
-        
+
         setTimeout(() => {
             textarea.focus();
             const newCursorStart = start + startTag.length;
@@ -48,13 +49,13 @@ export const RichTextEditor = ({ value, onChange, placeholder, height = "h-40", 
     };
 
     const Button = ({ icon: Icon, onClick, title, label }: any) => (
-        <button 
-            onClick={onClick} 
-            className="p-1.5 hover:bg-slate-200 rounded text-slate-600 transition-colors flex items-center justify-center gap-1" 
+        <button
+            onClick={onClick}
+            className="p-1.5 hover:bg-slate-200 rounded text-slate-600 transition-colors flex items-center justify-center gap-1"
             title={title}
             type="button"
         >
-            {Icon && <Icon size={miniMode ? 14 : 16}/>}
+            {Icon && <Icon size={miniMode ? 14 : 16} />}
             {label && <span className="text-xs font-bold">{label}</span>}
         </button>
     );
@@ -69,9 +70,9 @@ export const RichTextEditor = ({ value, onChange, placeholder, height = "h-40", 
                     <Button icon={Italic} onClick={() => insertTag('*')} title="Itálico" />
                     <Button icon={Underline} onClick={() => insertTag('__')} title="Sublinhado" />
                     <Button icon={AlertCircle} onClick={() => insertTag('[red]', '[/red]')} title="Destaque (Vermelho)" />
-                    
+
                     <div className="w-px h-4 bg-slate-300 mx-1"></div>
-                    
+
                     {/* Alignment - Hidden in miniMode to save space */}
                     {!miniMode && (
                         <>
@@ -91,19 +92,34 @@ export const RichTextEditor = ({ value, onChange, placeholder, height = "h-40", 
                             <div className="w-px h-4 bg-slate-300 mx-1"></div>
                         </>
                     )}
-                    
+
                     {/* Math & Code */}
                     <Button label="fx" onClick={() => insertTag('$', '$')} title="Fórmula (Linha)" />
                     <Button icon={Sigma} onClick={() => insertTag('$$', '$$')} title="Fórmula (Bloco)" />
                     <Button icon={Code} onClick={() => insertTag('```\n', '\n```')} title="Bloco de Código" />
+                    <div className="w-px h-4 bg-slate-300 mx-1"></div>
+
+                    {/* Multimedia */}
+                    <Button icon={ImageIcon} onClick={() => {
+                        const url = prompt("Insira a URL da imagem:");
+                        if (url) insertTag(`[img]${url}`, `[/img]`);
+                    }} title="Inserir Imagem" />
+                    <Button icon={Video} onClick={() => {
+                        const url = prompt("Insira a URL do vídeo (YouTube ou MP4):");
+                        if (url) insertTag(`[video]${url}`, `[/video]`);
+                    }} title="Inserir Vídeo" />
+                    <Button icon={Music} onClick={() => {
+                        const url = prompt("Insira a URL do áudio (MP3):");
+                        if (url) insertTag(`[audio]${url}`, `[/audio]`);
+                    }} title="Inserir Áudio" />
                 </div>
 
-                <button 
+                <button
                     onClick={() => setIsPreview(!isPreview)}
                     className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-bold transition-colors ${isPreview ? 'bg-brand-primary text-white' : 'text-slate-500 hover:bg-slate-200'}`}
                     type="button"
                 >
-                    {isPreview ? <><Edit2 size={12}/> Editar</> : <><Eye size={12}/> Visualizar</>}
+                    {isPreview ? <><Edit2 size={12} /> Editar</> : <><Eye size={12} /> Visualizar</>}
                 </button>
             </div>
 
@@ -111,7 +127,7 @@ export const RichTextEditor = ({ value, onChange, placeholder, height = "h-40", 
             <div className={`relative ${miniMode ? 'h-auto' : height}`}>
                 {isPreview ? (
                     <div className={`w-full h-full p-3 overflow-y-auto bg-white text-left ${miniMode ? 'min-h-[40px]' : ''}`}>
-                         <RichTextRenderer content={value || `<span class="text-slate-400 italic">${placeholder || 'Vazio'}</span>`} />
+                        <RichTextRenderer content={value || `<span class="text-slate-400 italic">${placeholder || 'Vazio'}</span>`} />
                     </div>
                 ) : (
                     <textarea

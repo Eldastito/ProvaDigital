@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { Item, ItemVersion, QuestionType, DifficultyLevel } from '../../types';
-import { Save, History, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Save, History, ArrowLeft, AlertTriangle, Plus, Trash2, Video, Music, Image as ImageIcon } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { RichTextEditor } from '../RichTextEditor';
 
 export const ItemEditorV2 = () => {
     const { id } = useParams<{ id: string }>();
@@ -76,12 +77,76 @@ export const ItemEditorV2 = () => {
                 {activeTab === 'EDIT' ? (
                     <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm p-8">
                         <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Enunciado da Questão</label>
-                            <textarea
-                                className="w-full p-4 border rounded-lg focus:ring-2 focus:ring-indigo-500 h-40"
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Enunciado da Questão</label>
+                            <RichTextEditor
                                 value={item.statement}
-                                onChange={e => setItem({ ...item, statement: e.target.value })}
+                                onChange={val => setItem({ ...item, statement: val })}
+                                height="h-64"
                             />
+                        </div>
+
+                        {/* Multimedia Section */}
+                        <div className="mb-6">
+                            <div className="flex justify-between items-center mb-2">
+                                <label className="block text-sm font-medium text-gray-700">Multimídia (Imagens, Vídeos, Áudios)</label>
+                                <button
+                                    onClick={() => {
+                                        const newMulti = [...(item.multimedia || [])];
+                                        newMulti.push({ type: 'IMAGE', url: '' });
+                                        setItem({ ...item, multimedia: newMulti });
+                                    }}
+                                    className="text-xs flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-bold"
+                                >
+                                    <Plus size={14} /> Adicionar Mídia
+                                </button>
+                            </div>
+                            <div className="space-y-3">
+                                {(item.multimedia || []).map((m, idx) => (
+                                    <div key={idx} className="flex gap-2 items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                        <select
+                                            value={m.type}
+                                            onChange={(e) => {
+                                                const newMulti = [...item.multimedia!];
+                                                newMulti[idx].type = e.target.value as any;
+                                                setItem({ ...item, multimedia: newMulti });
+                                            }}
+                                            className="text-sm border rounded p-1 bg-white"
+                                        >
+                                            <option value="IMAGE">Imagem</option>
+                                            <option value="VIDEO">Vídeo</option>
+                                            <option value="AUDIO">Áudio</option>
+                                        </select>
+                                        <div className="relative flex-1">
+                                            {m.type === 'IMAGE' && <ImageIcon size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />}
+                                            {m.type === 'VIDEO' && <Video size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />}
+                                            {m.type === 'AUDIO' && <Music size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />}
+                                            <input
+                                                type="text"
+                                                placeholder="URL do recurso..."
+                                                className="w-full pl-8 p-1.5 text-sm border rounded"
+                                                value={m.url}
+                                                onChange={(e) => {
+                                                    const newMulti = [...item.multimedia!];
+                                                    newMulti[idx].url = e.target.value;
+                                                    setItem({ ...item, multimedia: newMulti });
+                                                }}
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                const newMulti = item.multimedia!.filter((_, i) => i !== idx);
+                                                setItem({ ...item, multimedia: newMulti });
+                                            }}
+                                            className="text-red-500 hover:bg-red-50 p-1.5 rounded"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                                {(item.multimedia || []).length === 0 && (
+                                    <p className="text-xs text-gray-400 italic">Nenhuma mídia externa anexada. Use a barra do editor para mídia inline.</p>
+                                )}
+                            </div>
                         </div>
 
                         {/* Just a basic alternative editor for MVP */}
@@ -118,11 +183,11 @@ export const ItemEditorV2 = () => {
                         </div>
 
                         <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Justificativa da Resposta</label>
-                            <textarea
-                                className="w-full p-3 border rounded-lg focus:ring-1 focus:ring-indigo-500 h-24 text-sm"
-                                value={item.correctAnswerJustification}
-                                onChange={e => setItem({ ...item, correctAnswerJustification: e.target.value })}
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Justificativa da Resposta</label>
+                            <RichTextEditor
+                                value={item.correctAnswerJustification || ''}
+                                onChange={val => setItem({ ...item, correctAnswerJustification: val })}
+                                height="h-32"
                             />
                         </div>
 
