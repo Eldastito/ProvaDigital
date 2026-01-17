@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, Brain, Save, Trash2, Loader2, Image as ImageIcon, CheckCircle2, ArrowRight } from 'lucide-react';
 import { QuestionType, DifficultyLevel, Item, ItemOrigin, ItemLifecycleStatus } from '../../types';
 import { generateQuestionsFromText, generateEssayQuestion, generateVisualSuggestion, GeneratedEssay, VisualSuggestion } from '../../services/geminiService';
@@ -28,6 +28,38 @@ export const AIQuestionGeneratorView = () => {
     const [batchId, setBatchId] = useState<string | null>(null);
     const [generatedItems, setGeneratedItems] = useState<any[]>([]);
     const [visualSuggestions, setVisualSuggestions] = useState<Record<number, VisualSuggestion>>({});
+
+    // Persistence Logic
+    useEffect(() => {
+        const key = `ai_generator_draft_${state.currentUser?.id}`;
+        const saved = localStorage.getItem(key);
+        if (saved) {
+            try {
+                const draft = JSON.parse(saved);
+                setConfig(draft.config);
+                setContext(draft.context);
+                setBatchId(draft.batchId);
+                setGeneratedItems(draft.generatedItems);
+                setVisualSuggestions(draft.visualSuggestions || {});
+                setStep(draft.step);
+            } catch (e) { console.error("Error restoring AI draft", e); }
+        }
+    }, [state.currentUser?.id]);
+
+    useEffect(() => {
+        if (!config.topic && generatedItems.length === 0) return;
+        const key = `ai_generator_draft_${state.currentUser?.id}`;
+        const draft = {
+            config,
+            context,
+            batchId,
+            generatedItems,
+            visualSuggestions,
+            step,
+            updatedAt: Date.now()
+        };
+        localStorage.setItem(key, JSON.stringify(draft));
+    }, [config, context, batchId, generatedItems, visualSuggestions, step, state.currentUser?.id]);
 
     const handleGenerate = async () => {
         setLoading(true);
@@ -108,6 +140,7 @@ export const AIQuestionGeneratorView = () => {
         });
 
         await state.addItems(newItems);
+        localStorage.removeItem(`ai_generator_draft_${state.currentUser?.id}`);
         alert(`${newItems.length} itens salvos no banco!`);
         navigate('/items');
     };
