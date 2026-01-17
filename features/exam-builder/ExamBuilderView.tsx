@@ -7,7 +7,7 @@ import * as Papa from 'papaparse';
 import { useSafeAppStore } from '../../store/useAppStore';
 import { smartSelectItems, ExamCriteria } from '../../services/examService';
 import { generateQuestionsFromText } from '../../services/geminiService';
-import { BatchReviewPanel } from '../../components/OnlineExam/BatchReviewPanel';
+import { ExamLauncher } from '../../features/exam-taking/ExamLauncher';
 import { AdvancedReviewPipeline } from '../../components/OnlineExam/AdvancedReviewPipeline';
 
 import { ExamBasicInfo } from './components/ExamBasicInfo';
