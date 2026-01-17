@@ -18,7 +18,7 @@ import {
 import { AnalyticsFilter, ClassReportData } from '../../types';
 
 // Child Components
-import { PerformanceLineChart } from '../Charts/PerformanceLineChart';
+import { PerformanceLineChart } from '../../components/Charts/PerformanceLineChart';
 import { CompetencyTracker } from './CompetencyTracker';
 import { ComparativeAnalysis } from './ComparativeAnalysis';
 
