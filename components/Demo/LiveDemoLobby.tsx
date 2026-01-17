@@ -6,6 +6,7 @@ import { uuidv4 } from '../../utils/helpers';
 import { useAppStore } from '../../store/useAppStore';
 import { RichTextRenderer } from '../RichTextRenderer';
 import { StudentApp } from '../TabletApp/StudentApp';
+import { ProfessorRemoteControl } from './ProfessorRemoteControl';
 
 interface LiveDemoLobbyProps {
     onClose: () => void;
@@ -14,13 +15,19 @@ interface LiveDemoLobbyProps {
 // Removidos gabaritos hardcoded para suportar dinamismo do Banco de Itens
 
 export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
-    // Check for Student Mode first
+    // Check for Mobile Modes
     const params = new URLSearchParams(window.location.search);
     const roleParam = params.get('role');
     const classIdParam = params.get('classId');
 
-    if (roleParam === 'STUDENT' || classIdParam) {
+    // 1. Student Mobile App
+    if (roleParam === 'STUDENT') {
         return <StudentApp onBack={onClose} />;
+    }
+
+    // 2. Professor Remote Control (NOVO)
+    if (roleParam === 'PROFESSOR' && classIdParam) {
+        return <ProfessorRemoteControl classId={classIdParam} onExit={onClose} />;
     }
 
     const state = useAppStore();
