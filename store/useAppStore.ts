@@ -729,6 +729,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
             const { error } = await supabase.from('exams').insert({
                 id: exam.id,
                 title: exam.title,
+                description: exam.description,
                 tenant_id: exam.tenantId,
                 school_id: exam.schoolId,
                 creator_id: exam.creatorId,
@@ -739,6 +740,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 model: exam.model,
                 duration_minutes: exam.durationMinutes,
                 target_question_count: exam.targetQuestionCount,
+                max_score: exam.maxScore,
+                shuffle_items: exam.shuffleItems,
                 scheduled_date: exam.scheduledDate,
                 created_at: exam.createdAt
             });
@@ -758,8 +761,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 // checkAndTriggerAdaptation(exam, exam.classIds, get(), get()); // This function was removed
             }
 
-        } catch (e) {
-            console.error('Failed to persist exam:', e);
+        } finally {
+            // Cleanup or final logs if needed
         }
     },
 
