@@ -207,6 +207,7 @@ export interface SchoolClass {
   name: string;
   series: string;
   shift: 'MANHA' | 'TARDE' | 'NOITE';
+  room?: string; // Sala de aula física
 }
 
 export interface User {

@@ -25,6 +25,7 @@ export const ManagementView = () => {
     const [activeTab, setActiveTab] = useState<ManagementTab>('SCHOOLS');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
+    const [editingStudent, setEditingStudent] = useState<Student | null>(null);
     const csvInputRef = useRef<HTMLInputElement>(null);
     const batchSchoolInputRef = useRef<HTMLInputElement>(null);
 
@@ -49,7 +50,7 @@ export const ManagementView = () => {
             transportation: false, security: false, ac_cooling: false
         }
     });
-    const [classForm, setClassForm] = useState({ name: '', series: '', shift: 'MANHA', schoolId: userSchoolId || '' });
+    const [classForm, setClassForm] = useState({ name: '', series: '', shift: 'MANHA', schoolId: userSchoolId || '', room: '' });
     const [studentForm, setStudentForm] = useState({ name: '', reg: '', classId: '' });
     const [userForm, setUserForm] = useState({ name: '', email: '', role: UserRole.PROFESSOR, schoolId: userSchoolId || '' });
 
@@ -127,19 +128,37 @@ export const ManagementView = () => {
                 schoolId: classForm.schoolId,
                 name: classForm.name,
                 series: classForm.series,
-                shift: classForm.shift as any
+                shift: classForm.shift as any,
+                room: classForm.room
             });
         } else if (activeTab === 'STUDENTS') {
             if (!studentForm.name || !studentForm.classId) return alert('Campos obrigatórios');
             const selectedClass = state.classes.find(c => c.id === studentForm.classId);
-            onAddStudent({
-                id: uuidv4(),
-                tenantId: currentTenantId,
-                schoolId: selectedClass?.schoolId || '',
-                classId: studentForm.classId,
-                name: studentForm.name,
-                registrationNumber: studentForm.reg
-            });
+
+            if (editingStudent) {
+                // UPDATE STUDENT
+                // Note: We need to implement updateStudent in store first! 
+                // Currently only addStudent exists.
+                // Assuming we will add it shortly.
+                state.updateStudent({
+                    id: editingStudent.id,
+                    tenantId: editingStudent.tenantId,
+                    schoolId: selectedClass?.schoolId || editingStudent.schoolId,
+                    classId: studentForm.classId,
+                    name: studentForm.name,
+                    registrationNumber: studentForm.reg
+                });
+            } else {
+                // CREATE STUDENT
+                onAddStudent({
+                    id: uuidv4(),
+                    tenantId: currentTenantId,
+                    schoolId: selectedClass?.schoolId || '',
+                    classId: studentForm.classId,
+                    name: studentForm.name,
+                    registrationNumber: studentForm.reg
+                });
+            }
         } else if (activeTab === 'USERS') {
             if (!userForm.name || !userForm.email) return alert('Campos obrigatórios');
             if (editingUser) {
@@ -220,7 +239,7 @@ export const ManagementView = () => {
         setUserForm({ name: '', email: '', role: UserRole.PROFESSOR, schoolId: userSchoolId || '' });
     };
 
-    const openModal = (item?: any, type?: 'SCHOOL' | 'USER') => {
+    const openModal = (item?: any, type?: 'SCHOOL' | 'USER' | 'STUDENT') => {
         if (activeTab === 'SCHOOLS' && item) {
             setSchoolForm({
                 name: item.name,
@@ -235,9 +254,21 @@ export const ManagementView = () => {
                 role: item.role,
                 schoolId: item.schoolId || ''
             });
+        } else if (activeTab === 'STUDENTS' && type === 'STUDENT' && item) {
+            setStudentForm({
+                name: item.name,
+                reg: item.registrationNumber,
+                classId: item.classId
+            });
+            // We need to store the editing student ID somewhere to support Update.
+            // For now, we reuse editingUser or add a new state editingStudent.
+            // Simpler: Reuse editingUser state but we need to cast or add separate state.
+            // Let's add 'editingStudent' state near the top.
+            setEditingStudent(item);
         } else {
             resetForms();
             setEditingUser(null);
+            setEditingStudent(null);
         }
         setIsModalOpen(true);
     };
@@ -510,7 +541,10 @@ export const ManagementView = () => {
                             <div key={c.id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 hover:bg-slate-50">
                                 <div>
                                     <div className="font-bold text-slate-800 text-sm md:text-base">{c.name} <span className="text-slate-400 text-[10px] md:text-xs font-normal">({c.series})</span></div>
-                                    <div className="text-[10px] md:text-xs text-slate-500 uppercase font-medium">{c.shift} • {state.schools.find(s => s.id === c.schoolId)?.name}</div>
+                                    <div className="text-[10px] md:text-xs text-slate-500 uppercase font-medium">
+                                        {c.shift} • {state.schools.find(s => s.id === c.schoolId)?.name}
+                                        {c.room && <span className="ml-2 text-slate-400 normal-case">• Sala: {c.room}</span>}
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -526,7 +560,10 @@ export const ManagementView = () => {
                                     <div className="font-bold text-slate-800">{s.name}</div>
                                     <div className="text-xs text-slate-500">Mat: {s.registrationNumber}</div>
                                 </div>
-                                <span className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-500">{state.classes.find(c => c.id === s.classId)?.name}</span>
+                                <span className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-500 mr-4">{state.classes.find(c => c.id === s.classId)?.name}</span>
+                                <button onClick={() => openModal(s, 'STUDENT')} className="text-slate-400 hover:text-brand-primary p-1 rounded" title="Editar Aluno">
+                                    <Settings size={16} />
+                                </button>
                             </div>
                         ))}
                         {visibleStudents.length === 0 && <div className="p-8 text-center text-slate-400">Nenhum aluno cadastrado.</div>}
@@ -659,7 +696,7 @@ export const ManagementView = () => {
                     <div className={`bg-white rounded-xl shadow-2xl w-full overflow-hidden border border-brand-primary/20 ${activeTab === 'SCHOOLS' ? 'max-w-2xl' : 'max-w-md'}`}>
                         <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
                             <h3 className="font-bold text-slate-800">
-                                {activeTab === 'SCHOOLS' ? (isDirector ? 'Atualizar Censo Escolar' : 'Gerenciar Escola') : `${editingUser ? 'Editar' : 'Adicionar'} ${activeTab === 'CLASSES' ? 'Turma' : activeTab === 'STUDENTS' ? 'Aluno' : 'Usuário'}`}
+                                {activeTab === 'SCHOOLS' ? (isDirector ? 'Atualizar Censo Escolar' : 'Gerenciar Escola') : `${editingUser || editingStudent ? 'Editar' : 'Adicionar'} ${activeTab === 'CLASSES' ? 'Turma' : activeTab === 'STUDENTS' ? 'Aluno' : 'Usuário'}`}
                             </h3>
                             <button onClick={() => setIsModalOpen(false)}><X size={20} className="text-slate-400 hover:text-slate-600" /></button>
                         </div>

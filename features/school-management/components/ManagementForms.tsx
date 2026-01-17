@@ -15,7 +15,7 @@ interface ManagementFormsProps {
     schoolForm: { name: string, inep: string, resources: SchoolResources };
     setSchoolForm: (val: any) => void;
 
-    classForm: { name: string, series: string, shift: string, schoolId: string };
+    classForm: { name: string, series: string, shift: string, schoolId: string, room?: string };
     setClassForm: (val: any) => void;
 
     studentForm: { name: string, reg: string, classId: string };
@@ -126,6 +126,10 @@ export const ManagementForms = ({
                             <option value="NOITE">Noite</option>
                         </select>
                     </div>
+                </div>
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Sala (Opcional)</label>
+                    <input className="w-full border rounded-lg p-2" placeholder="Ex: Sala 101, Bloco B" value={classForm.room || ''} onChange={e => setClassForm({ ...classForm, room: e.target.value })} />
                 </div>
                 <button onClick={onSubmit} className="w-full btn-gradient text-white py-3 rounded-lg font-bold mt-6 shadow-md">Salvar Turma</button>
             </div>

@@ -805,6 +805,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 name: cls.name,
                 series: cls.series,
                 shift: cls.shift,
+                room: cls.room,
                 teacher_id: cls.teacherId
             });
             if (error) {
@@ -832,6 +833,26 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 throw error;
             }
             console.log('✅ Student saved:', student.id);
+        } catch (e) { console.error(e); }
+    },
+    updateStudent: async (student) => {
+        set((state) => ({
+            students: state.students.map(s => s.id === student.id ? student : s)
+        }));
+        try {
+            const { error } = await supabase.from('students').update({
+                name: student.name,
+                registration_number: student.registrationNumber,
+                class_id: student.classId,
+                school_id: student.schoolId
+            }).eq('id', student.id);
+
+            if (error) {
+                console.error('❌ Error updating student:', error);
+                // Rollback logic could be added here
+                throw error;
+            }
+            console.log('✅ Student updated:', student.id);
         } catch (e) { console.error(e); }
     },
     addUser: async (user) => {
