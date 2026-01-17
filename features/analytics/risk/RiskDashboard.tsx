@@ -3,7 +3,6 @@ import { useSafeAppStore } from '../../../store/useAppStore';
 import { calculateSchoolRisk, calculateBatchRisk, RiskAssessment } from '../../../services/riskDetectionEngine';
 import { RiskLevel } from '../../../types';
 import { processSchoolRiskAlerts } from '../../../services/alertService';
-import { sendRiskAlert } from '../../../services/notificationService';
 import {
     AlertTriangle,
     TrendingDown,
@@ -418,7 +417,7 @@ const StudentRiskCard: React.FC<{
     isExpanded: boolean;
     onToggle: () => void;
 }> = ({ assessment, isExpanded, onToggle }) => {
-    const { classes } = useAppStore();
+    const { classes } = useSafeAppStore();
     const studentClass = classes.find(c => c.id === assessment.classId);
 
     const riskColor = {
