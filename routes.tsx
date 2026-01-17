@@ -42,6 +42,7 @@ import { OnlineExamRunner } from './features/exam-taking/OnlineExamRunner';
 import { useAppStore } from './store/useAppStore';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { PerformanceAnalyticsDashboard } from './features/analytics/PerformanceAnalyticsDashboard';
+import { AIQuestionGeneratorView } from './features/exam-builder/AIQuestionGeneratorView';
 
 // Helper for Role-based Dashboard
 const ConditionalDashboard = () => {
@@ -97,6 +98,7 @@ export const appRoutes: RouteObject[] = [
             { path: 'dashboard', element: <DashboardView /> },
             { path: 'items', element: <ItemsListView /> },
             { path: 'items/new', element: <ItemEditorView /> },
+            { path: 'items/ai-generator', element: <AIQuestionGeneratorView /> },
             { path: 'items/:id/edit-v2', element: <ItemEditorV2 /> },
             { path: 'exams', element: <ExamsListView /> },
             { path: 'exams/:id/variants', element: <ExamVariantsManager /> },

@@ -247,6 +247,39 @@ const PROMPTS = {
         4. Inclua um Título criativo e uma "Fonte Fictícia" realista no final.
         
         Retorne JSON: { "title": string, "body": string, "source": string, "readingTime": string }
+    `,
+    GENERATE_ESSAY: (subject: string, theme: string) => `
+        Você é um Professor Especialista em Redação e Linguagens.
+        Crie uma PROPOSTA DE REDAÇÃO completa e inédita.
+        
+        TEMA: ${theme}
+        ÁREA: ${subject}
+        
+        REQUISITOS:
+        1. TEXTO MOTIVADOR: Crie um texto base (3-4 parágrafos) que forneça contexto e reflexão sobre o tema.
+        2. COMANDO: Escreva a instrução da redação (ex: "Desenvolva um texto dissertativo-argumentativo...").
+        3. CRITÉRIOS DE AVALIAÇÃO: Defina 5 competências (ex: Domínio da norma culta, Proposta de intervenção) e o que se espera em cada uma.
+        4. BNCC: Indique o código BNCC relacionado à produção de texto para esta série.
+        
+        Retorne JSON: {
+            "title": string,
+            "motivationalText": string,
+            "instruction": string,
+            "criteria": [ { "name": string, "description": string, "maxPoints": number } ],
+            "bnccCode": string
+        }
+    `,
+    GENERATE_MULTIMODAL_DESCRIPTION: (context: string) => `
+        Analise o contexto pedagógico abaixo e sugira um RECURSO VISUAL (Gráfico, Mapa, Imagem ou Infográfico) que enriqueceria a questão.
+        
+        CONTEXTO: "${context}"
+        
+        TAREFA:
+        1. Descreva DETALHADAMENTE o que deve conter nessa imagem (ex: "Um gráfico de barras mostrando a evolução do PIB...").
+        2. Explique como esse recurso ajuda a resolver a questão.
+        3. Forneça o "Prompt de Geração" que o professor poderia usar em uma IA de imagem (DALL-E/Midjourney).
+        
+        Retorne JSON: { "visualType": string, "description": string, "pedagogicalValue": string, "imageGeneratorPrompt": string }
     `
 };
 
@@ -397,6 +430,21 @@ interface AssessmentReport {
     report: string;
     strengths: string[];
     weaknesses: string[];
+}
+
+export interface GeneratedEssay {
+    title: string;
+    motivationalText: string;
+    instruction: string;
+    criteria: { name: string; description: string; maxPoints: number }[];
+    bnccCode: string;
+}
+
+export interface VisualSuggestion {
+    visualType: string;
+    description: string;
+    pedagogicalValue: string;
+    imageGeneratorPrompt: string;
 }
 
 // --- Helper Functions ---
@@ -1037,4 +1085,69 @@ export const generatePedagogicalReport = async (
         console.error('[GeminiService] Error generating pedagogical report:', error);
         return fallback;
     }
+};
+
+/**
+ * Gera uma proposta de redação completa com texto motivador e critérios.
+ */
+export const generateEssayQuestion = async (
+    subject: string,
+    theme: string
+): Promise<GeneratedEssay> => {
+    const prompt = PROMPTS.GENERATE_ESSAY(subject, theme);
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            title: { type: Type.STRING },
+            motivationalText: { type: Type.STRING },
+            instruction: { type: Type.STRING },
+            criteria: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        name: { type: Type.STRING },
+                        description: { type: Type.STRING },
+                        maxPoints: { type: Type.NUMBER }
+                    }
+                }
+            },
+            bnccCode: { type: Type.STRING }
+        },
+        required: ["title", "motivationalText", "instruction", "criteria"]
+    };
+
+    return callGeminiAPI<GeneratedEssay>(prompt, schema, {
+        title: "Tema de Redação Simulado",
+        motivationalText: "Texto motivador offline...",
+        instruction: "Instrução offline...",
+        criteria: [{ name: "Competência 1", description: "Descrição...", maxPoints: 200 }],
+        bnccCode: "OFFLINE"
+    });
+};
+
+/**
+ * Sugere um recurso visual (gráfico, mapa, etc) para uma questão.
+ */
+export const generateVisualSuggestion = async (
+    context: string
+): Promise<VisualSuggestion> => {
+    const prompt = PROMPTS.GENERATE_MULTIMODAL_DESCRIPTION(context);
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            visualType: { type: Type.STRING },
+            description: { type: Type.STRING },
+            pedagogicalValue: { type: Type.STRING },
+            imageGeneratorPrompt: { type: Type.STRING }
+        },
+        required: ["visualType", "description", "imageGeneratorPrompt"]
+    };
+
+    return callGeminiAPI<VisualSuggestion>(prompt, schema, {
+        visualType: "Gráfico",
+        description: "Descrição offline...",
+        pedagogicalValue: "Valor offline...",
+        imageGeneratorPrompt: "Prompt offline..."
+    });
 };
