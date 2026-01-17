@@ -70,7 +70,8 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
                 await state.fetchExamItems(sessionConfig.selectedExamId);
                 const exam = state.exams.find(e => e.id === sessionConfig.selectedExamId);
                 if (exam) {
-                    const items = exam.items.map(config => {
+                    const itemsSource = (exam as any).items || (exam as any).items_config || [];
+                    const items = itemsSource.map((config: any) => {
                         const item = state.items.find(i => i.id === config.itemId);
                         return item ? { ...item, ...config } : null;
                     }).filter(Boolean);
