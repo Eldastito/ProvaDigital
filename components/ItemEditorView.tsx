@@ -7,7 +7,7 @@ import { uuidv4 } from '../utils/helpers';
 import { RichTextEditor } from './RichTextEditor';
 import { useSafeAppStore } from '../store/useAppStore';
 import { Badge } from './ui/Badge';
-import { BatchReviewPanel } from './OnlineExam/BatchReviewPanel';
+import { BatchReviewPanel } from '../features/exam-taking/BatchReviewPanel';
 import { translateQuestionType, translateDifficultyLevel } from '../utils/translations';
 
 // Bibliotecas para leitura de documentos
