@@ -717,7 +717,7 @@ export interface StudentStats {
 
 export interface SecurityEvent {
   timestamp: string;
-  type: 'FOCUS_LOST' | 'FOCUS_GAINED' | 'ALT_TAB' | 'FULLSCREEN_EXIT' | 'KEYBOARD_VIOLATION' | 'MOUSE_VIOLATION';
+  type: 'FOCUS_LOST' | 'FOCUS_GAINED' | 'ALT_TAB' | 'FULLSCREEN_EXIT' | 'KEYBOARD_VIOLATION' | 'MOUSE_VIOLATION' | 'MOUSE_LEAVE' | 'WINDOW_RESIZE' | 'SCREEN_SHARE_ENDED';
   details: string;
 }
 
