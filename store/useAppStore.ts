@@ -70,10 +70,12 @@ interface AppActions {
     updateItem: (item: Item) => Promise<void>;
     updateItemWithVersion: (itemId: string, updates: Partial<Item>, changeReason: string) => Promise<void>;
     addExam: (exam: Exam) => void;
-    addSchool: (school: any) => void;
-    addClass: (cls: any) => void;
-    addStudent: (student: any) => void;
-    addUser: (user: User) => void;
+    addSchool: (school: School) => Promise<void>;
+    updateSchool: (school: School) => Promise<void>; // Added
+    addClass: (cls: SchoolClass) => Promise<void>;
+    addStudent: (student: Student) => Promise<void>;
+    updateStudent: (student: Student) => Promise<void>; // Added
+    addUser: (user: User) => Promise<void>;
     updateSettings: (settings: AppSettings) => void;
     updatePermissions: (matrix: PermissionMatrix) => void;
     updateMessages: (messages: ChatMessage[]) => void;
@@ -314,6 +316,20 @@ export const useAppStore = create<AppStore>((set, get) => ({
             const { data: dbSchools } = await supabase.from('schools').select('*');
             if (dbSchools && dbSchools.length > 0) {
                 set({ schools: dbSchools });
+            }
+
+            const { data: dbClasses } = await supabase.from('classes').select('*');
+            if (dbClasses && dbClasses.length > 0) {
+                const formattedClasses: SchoolClass[] = dbClasses.map((c: any) => ({
+                    id: c.id,
+                    schoolId: c.school_id,
+                    name: c.name,
+                    series: c.series,
+                    shift: c.shift,
+                    room: c.room,
+                    teacherId: c.teacher_id
+                }));
+                set({ classes: formattedClasses });
             }
 
             // 0. Carregar Usuários (Users)
@@ -794,6 +810,24 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 throw error;
             }
             console.log('✅ School saved:', school.id);
+        } catch (e) { console.error(e); }
+    },
+    updateSchool: async (school) => {
+        set((state) => ({
+            schools: state.schools.map(s => s.id === school.id ? school : s)
+        }));
+        try {
+            const { error } = await supabase.from('schools').update({
+                name: school.name,
+                inep: school.inep,
+                resources: school.resources
+            }).eq('id', school.id);
+
+            if (error) {
+                console.error('❌ Error updating school:', error);
+                throw error;
+            }
+            console.log('✅ School updated:', school.id);
         } catch (e) { console.error(e); }
     },
     addClass: async (cls) => {

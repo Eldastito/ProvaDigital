@@ -26,6 +26,7 @@ export const ManagementView = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+    const [editingSchool, setEditingSchool] = useState<School | null>(null);
     const csvInputRef = useRef<HTMLInputElement>(null);
     const batchSchoolInputRef = useRef<HTMLInputElement>(null);
 
@@ -114,13 +115,25 @@ export const ManagementView = () => {
     const handleSubmit = () => {
         if (activeTab === 'SCHOOLS') {
             if (!schoolForm.name) return alert('Nome obrigatório');
-            onAddSchool({
-                id: uuidv4(), // In a real app, this would handle Update ID if editing
-                tenantId: currentTenantId,
-                name: schoolForm.name,
-                inep: schoolForm.inep,
-                resources: schoolForm.resources
-            });
+
+            if (editingSchool) {
+                // UPDATE
+                state.updateSchool({
+                    ...editingSchool,
+                    name: schoolForm.name,
+                    inep: schoolForm.inep,
+                    resources: schoolForm.resources
+                });
+            } else {
+                // CREATE
+                onAddSchool({
+                    id: uuidv4(),
+                    tenantId: currentTenantId,
+                    name: schoolForm.name,
+                    inep: schoolForm.inep,
+                    resources: schoolForm.resources
+                });
+            }
         } else if (activeTab === 'CLASSES') {
             if (!classForm.name || !classForm.schoolId) return alert('Campos obrigatórios');
             onAddClass({
@@ -241,6 +254,7 @@ export const ManagementView = () => {
 
     const openModal = (item?: any, type?: 'SCHOOL' | 'USER' | 'STUDENT') => {
         if (activeTab === 'SCHOOLS' && item) {
+            setEditingSchool(item);
             setSchoolForm({
                 name: item.name,
                 inep: item.inep,
@@ -269,6 +283,7 @@ export const ManagementView = () => {
             resetForms();
             setEditingUser(null);
             setEditingStudent(null);
+            setEditingSchool(null);
         }
         setIsModalOpen(true);
     };
