@@ -1,12 +1,12 @@
 
 import React from 'react';
 import { AppState, UserRole } from '../types';
-import { NetworkDashboardView } from './Analytics/NetworkDashboardView';
-import { SchoolPrincipalDashboard } from './Analytics/SchoolPrincipalDashboard';
-import { PedagogicalDashboard } from './Analytics/PedagogicalDashboard';
+import { NetworkDashboardView } from '../features/analytics/NetworkDashboardView';
+import { SchoolPrincipalDashboard } from '../features/analytics/SchoolPrincipalDashboard';
+import { PedagogicalDashboard } from '../features/analytics/PedagogicalDashboard';
 import { ParentsDashboardView } from './Parents/ParentsDashboardView';
-import { ProfessorDashboardView } from './Analytics/ProfessorDashboardView';
-import { StudentDashboardView } from './StudentPortal/StudentDashboardView';
+import { ProfessorDashboardView } from '../features/analytics/ProfessorDashboardView';
+import { StudentDashboardView } from '../features/student-portal/StudentDashboardView';
 
 import { useAppStore } from '../store/useAppStore';
 
