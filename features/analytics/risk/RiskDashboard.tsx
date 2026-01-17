@@ -1,8 +1,7 @@
-```
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSafeAppStore } from '../../../store/useAppStore';
-import { calculateStudentRisk, calculateBatchRisk, RiskAssessment } from '../../../services/riskDetectionEngine';
-import { AppState, School, SchoolClass, Student, RiskProfile, RiskFactor, RiskLevel } from '../../../types';
+import { calculateSchoolRisk, calculateBatchRisk, RiskAssessment } from '../../../services/riskDetectionEngine';
+import { RiskLevel } from '../../../types';
 import { processSchoolRiskAlerts } from '../../../services/alertService';
 import { sendRiskAlert } from '../../../services/notificationService';
 import {
@@ -24,7 +23,7 @@ import {
 type FilterLevel = 'ALL' | RiskLevel;
 
 export const RiskDashboard = () => {
-    const state = useAppStore();
+    const state = useSafeAppStore();
     const { currentUser, schools, classes } = state;
 
     const [filterLevel, setFilterLevel] = useState<FilterLevel>('ALL');
@@ -163,9 +162,9 @@ export const RiskDashboard = () => {
             setLastSaved(new Date().toISOString());
             alert(
                 `✅ Alertas processados com sucesso!\n\n` +
-                `• ${ result.created } novos alertas criados\n` +
-                `• ${ result.updated } alertas atualizados\n` +
-                `• ${ result.notifications } notificações enviadas\n\n` +
+                `• ${result.created} novos alertas criados\n` +
+                `• ${result.updated} alertas atualizados\n` +
+                `• ${result.notifications} notificações enviadas\n\n` +
                 `Coordenadores e pais foram notificados.`
             );
         } catch (error) {
@@ -212,7 +211,7 @@ export const RiskDashboard = () => {
                 <StatCard
                     title="Risco Alto"
                     value={stats.high}
-                    subtitle={`${ ((stats.high / stats.total) * 100).toFixed(1) }% `}
+                    subtitle={`${((stats.high / stats.total) * 100).toFixed(1)}% `}
                     icon={AlertTriangle}
                     color="red"
                     alert
@@ -220,14 +219,14 @@ export const RiskDashboard = () => {
                 <StatCard
                     title="Risco Médio"
                     value={stats.medium}
-                    subtitle={`${ ((stats.medium / stats.total) * 100).toFixed(1) }% `}
+                    subtitle={`${((stats.medium / stats.total) * 100).toFixed(1)}% `}
                     icon={AlertCircle}
                     color="yellow"
                 />
                 <StatCard
                     title="Risco Baixo"
                     value={stats.low}
-                    subtitle={`${ ((stats.low / stats.total) * 100).toFixed(1) }% `}
+                    subtitle={`${((stats.low / stats.total) * 100).toFixed(1)}% `}
                     icon={CheckCircle}
                     color="green"
                 />
@@ -398,10 +397,10 @@ const StatCard = ({ title, value, subtitle, icon: Icon, color, alert }: any) => 
     };
 
     return (
-        <div className={`bg - white p - 6 rounded - xl border - 2 ${ alert ? borderClasses[color as keyof typeof borderClasses] : 'border-slate-200' } shadow - sm`}>
+        <div className={`bg - white p - 6 rounded - xl border - 2 ${alert ? borderClasses[color as keyof typeof borderClasses] : 'border-slate-200'} shadow - sm`}>
             <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-medium text-slate-600">{title}</span>
-                <div className={`p - 2 rounded - lg ${ colorClasses[color as keyof typeof colorClasses] } `}>
+                <div className={`p - 2 rounded - lg ${colorClasses[color as keyof typeof colorClasses]} `}>
                     <Icon size={20} />
                 </div>
             </div>
@@ -441,7 +440,7 @@ const StudentRiskCard: React.FC<{
     };
 
     return (
-        <div className={`border - l - 4 ${ riskColor[assessment.riskLevel] } `}>
+        <div className={`border - l - 4 ${riskColor[assessment.riskLevel]} `}>
             <div className="p-6">
                 {/* Header do Card */}
                 <div className="flex items-start justify-between">
@@ -450,7 +449,7 @@ const StudentRiskCard: React.FC<{
                             <h3 className="text-lg font-semibold text-slate-800">
                                 {assessment.studentName}
                             </h3>
-                            <span className={`px - 3 py - 1 rounded - full text - xs font - medium ${ riskBadge[assessment.riskLevel] } `}>
+                            <span className={`px - 3 py - 1 rounded - full text - xs font - medium ${riskBadge[assessment.riskLevel]} `}>
                                 {riskLabel[assessment.riskLevel]}
                             </span>
                         </div>
@@ -488,11 +487,10 @@ const StudentRiskCard: React.FC<{
                                                     Valor atual: <strong>{factor.value}</strong> (Limiar: {factor.threshold})
                                                 </div>
                                             </div>
-                                            <span className={`px - 2 py - 1 rounded text - xs font - medium ${
-    factor.severity === 'HIGH' ? 'bg-red-100 text-red-700' :
-    factor.severity === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
-        'bg-blue-100 text-blue-700'
-} `}>
+                                            <span className={`px - 2 py - 1 rounded text - xs font - medium ${factor.severity === 'HIGH' ? 'bg-red-100 text-red-700' :
+                                                factor.severity === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
+                                                    'bg-blue-100 text-blue-700'
+                                                } `}>
                                                 {factor.severity}
                                             </span>
                                         </div>
@@ -521,19 +519,17 @@ const StudentRiskCard: React.FC<{
                             </h4>
                             <div className="space-y-3">
                                 {assessment.interventions.map((intervention, idx) => (
-                                    <div key={idx} className={`p - 4 rounded - lg border - 2 ${
-    intervention.priority === 'URGENT' ? 'bg-red-50 border-red-300' :
-    intervention.priority === 'HIGH' ? 'bg-orange-50 border-orange-300' :
-        'bg-blue-50 border-blue-300'
-} `}>
+                                    <div key={idx} className={`p - 4 rounded - lg border - 2 ${intervention.priority === 'URGENT' ? 'bg-red-50 border-red-300' :
+                                        intervention.priority === 'HIGH' ? 'bg-orange-50 border-orange-300' :
+                                            'bg-blue-50 border-blue-300'
+                                        } `}>
                                         <div className="flex items-start justify-between mb-2">
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2">
-                                                    <span className={`px - 2 py - 1 rounded text - xs font - bold ${
-    intervention.priority === 'URGENT' ? 'bg-red-600 text-white' :
-    intervention.priority === 'HIGH' ? 'bg-orange-600 text-white' :
-        'bg-blue-600 text-white'
-} `}>
+                                                    <span className={`px - 2 py - 1 rounded text - xs font - bold ${intervention.priority === 'URGENT' ? 'bg-red-600 text-white' :
+                                                        intervention.priority === 'HIGH' ? 'bg-orange-600 text-white' :
+                                                            'bg-blue-600 text-white'
+                                                        } `}>
                                                         {intervention.priority}
                                                     </span>
                                                     <span className="font-semibold text-slate-800">{intervention.action}</span>
