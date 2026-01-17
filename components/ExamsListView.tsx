@@ -5,7 +5,7 @@ import { AppState, ExamStatus } from '../types';
 import { Badge } from './ui/Badge';
 
 import { useAppStore } from '../store/useAppStore';
-import { AdvancedReviewPipeline } from './AdvancedReviewPipeline';
+import { AdvancedReviewPipeline } from '../features/exam-taking/AdvancedReviewPipeline';
 
 export const ExamsListView = () => {
     const state = useAppStore();
