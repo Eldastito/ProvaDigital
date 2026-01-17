@@ -5,6 +5,7 @@ import { supabase } from '../../services/supabaseClient';
 import { uuidv4 } from '../../utils/helpers';
 import { useAppStore } from '../../store/useAppStore';
 import { RichTextRenderer } from '../RichTextRenderer';
+import { StudentApp } from '../TabletApp/StudentApp';
 
 interface LiveDemoLobbyProps {
     onClose: () => void;
@@ -13,6 +14,15 @@ interface LiveDemoLobbyProps {
 // Removidos gabaritos hardcoded para suportar dinamismo do Banco de Itens
 
 export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
+    // Check for Student Mode first
+    const params = new URLSearchParams(window.location.search);
+    const roleParam = params.get('role');
+    const classIdParam = params.get('classId');
+
+    if (roleParam === 'STUDENT' || classIdParam) {
+        return <StudentApp onBack={onClose} />;
+    }
+
     const state = useAppStore();
     // Estados do Fluxo
     const [step, setStep] = useState<'SETUP' | 'WAITING_PROFESSOR' | 'LOBBY_ACTIVE' | 'RESULTS'>('SETUP');
