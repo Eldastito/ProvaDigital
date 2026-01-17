@@ -158,6 +158,9 @@ interface AppActions {
     // --- EXAM BUILDER V2 ---
     addExamVersion: (version: ExamVersion) => Promise<void>;
     broadcastEvent: (type: string, payload: any) => Promise<void>;
+
+    // --- PHASE 9: AI REFINEMENTS ---
+    updatePedagogicalFeedback: (resultId: string, feedback: string) => Promise<void>;
 }
 
 export type AppStore = AppState & AppActions;
@@ -1542,19 +1545,39 @@ export const useAppStore = create<AppStore>((set, get) => ({
         });
 
         // 2. AI Pedagogical Feedback
-        let pedagogicalFeedback = "Bom desempenho! Continue praticando os tópicos abordados.";
-        if (incorrectItems.length > 0) {
-            try {
-                const { generateStudyPlanSuggestions } = await import('../services/geminiService');
-                const feedback = await generateStudyPlanSuggestions(
-                    state.currentUser?.name || 'Aluno',
-                    incorrectItems[0].subject,
-                    totalScore
-                );
-                pedagogicalFeedback = `${feedback.title}: ${feedback.tasks.join(', ')}`;
-            } catch (e) {
-                console.error("Error generating AI feedback:", e);
-            }
+        let pedagogicalFeedback = "";
+        try {
+            const { generatePedagogicalReport } = await import('../services/geminiService');
+
+            const correctCount = autoGradeLog.filter(l => l.isCorrect).length;
+            const totalCount = autoGradeLog.length;
+            const exam = state.exams.find(e => e.id === version.examId);
+
+            const maxScore = version.itemsSnapshot?.reduce((acc: number, snap: any) => {
+                return acc + (version.gradingConfig?.totalsByDiscipline?.[snap.subject] || 1);
+            }, 0) || 0;
+
+            const subjectBreakdown = Array.from(new Set(version.itemsSnapshot?.map((s: any) => s.subject))).map(subject => {
+                const subjectItems = autoGradeLog.filter(l => {
+                    const item = version.itemsSnapshot?.find((s: any) => (s.id || s.itemId) === l.itemId);
+                    return item?.subject === subject;
+                });
+                const subjCorrect = subjectItems.filter(l => l.isCorrect).length;
+                return { subject: subject as string, correct: subjCorrect, total: subjectItems.length };
+            });
+
+            pedagogicalFeedback = await generatePedagogicalReport(
+                state.currentUser?.name || 'Aluno',
+                exam?.title || 'Avaliação',
+                totalScore,
+                maxScore,
+                correctCount,
+                totalCount,
+                subjectBreakdown
+            );
+        } catch (e) {
+            console.error("Error generating AI feedback:", e);
+            pedagogicalFeedback = "Bom desempenho! Continue praticando os tópicos abordados.";
         }
 
         // 3. Save Result
@@ -1598,6 +1621,21 @@ export const useAppStore = create<AppStore>((set, get) => ({
             }).eq('id', attemptId);
         } catch (e) {
             console.error("Error persisting result:", e);
+        }
+    },
+
+    updatePedagogicalFeedback: async (resultId, feedback) => {
+        set(state => ({
+            results: state.results.map(r => r.id === resultId ? { ...r, pedagogicalFeedback: feedback } : r)
+        }));
+        try {
+            const { error } = await supabase
+                .from('exam_results')
+                .update({ pedagogical_feedback: feedback })
+                .eq('id', resultId);
+            if (error) throw error;
+        } catch (e) {
+            console.error("Error updating pedagogical feedback:", e);
         }
     },
 

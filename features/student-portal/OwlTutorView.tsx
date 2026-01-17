@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Send, Brain, Sparkles, Bot, ShieldAlert } from 'lucide-react';
 import { AppState, User, OwlSession, ExamStatus } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
@@ -15,6 +16,8 @@ interface OwlTutorViewProps {
 export const OwlTutorView = () => {
     const state = useSafeAppStore();
     const { currentUser: user } = state;
+    const location = useLocation();
+    const externalContext = location.state?.context;
 
     if (!user) return null;
     const student = state.students.find(s => s.id === user.id) || state.students[0];
@@ -53,7 +56,11 @@ export const OwlTutorView = () => {
 
     // Handle Context on Mount
     useEffect(() => {
-        if (owlTutorContext) {
+        if (externalContext) {
+            setMessages([
+                { role: 'model', text: `Olá! Recebi os detalhes da sua recente avaliação. Notei pontos interessantes para conversarmos. O que você gostaria de esclarecer sobre o feedback que recebeu? 🦉` }
+            ]);
+        } else if (owlTutorContext) {
             // If there is a context (e.g. from Error Explanation), override initial state
             if (owlTutorContext.initialMessage) {
                 // If it's a specific question/context, we start fresh-ish or append
@@ -61,7 +68,7 @@ export const OwlTutorView = () => {
                 setMessages([initialMsg]);
             }
         }
-    }, []); // Run once on mount
+    }, [externalContext]); // Run on mount or context change
 
     const handleSend = async () => {
         if (!inputText.trim() || loading) return;
@@ -78,6 +85,9 @@ export const OwlTutorView = () => {
 
         // Combine base context with specific context if available
         let context = `Ponto fraco: ${stats?.weakestSubject}. IDG (Nota Global): ${stats?.idgScore}.`;
+        if (externalContext) {
+            context += `\n[CONTEXTO DE RESULTADO DA PROVA]: ${externalContext}`;
+        }
         if (owlTutorContext && owlTutorContext.contextData) {
             context += `\n[CONTEXTO ESPECÍFICO]: ${owlTutorContext.contextData}`;
         }

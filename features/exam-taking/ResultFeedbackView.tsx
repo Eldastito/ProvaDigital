@@ -3,14 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 import {
     CheckCircle2, XCircle, Brain, Target, ArrowLeft,
-    Award, BookOpen, AlertCircle, RefreshCw, BarChart, Loader2
+    Award, BookOpen, AlertCircle, RefreshCw, BarChart, Loader2, MessageCircle
 } from 'lucide-react';
 import { generatePedagogicalReport } from '../../services/geminiService';
+import { RichTextRenderer } from '../../components/RichTextRenderer';
 
 export const ResultFeedbackView = () => {
     const { examId } = useParams();
     const navigate = useNavigate();
-    const { results, exams, currentUser, items } = useAppStore();
+    const { results, exams, currentUser, items, updatePedagogicalFeedback } = useAppStore();
 
     const result = results.find(r => r.examId === examId && r.studentId === currentUser?.id);
     const exam = exams.find(e => e.id === examId);
@@ -74,6 +75,9 @@ export const ResultFeedbackView = () => {
                 subjectBreakdown
             );
             setAiFeedback(feedback);
+            if (result?.id) {
+                await updatePedagogicalFeedback(result.id, feedback);
+            }
         } catch (error) {
             console.error('Error generating feedback:', error);
             setAiFeedback('Análise em processamento... Em alguns instantes seu tutor IA terminará o relatório detalhado.');
@@ -156,16 +160,34 @@ export const ResultFeedbackView = () => {
                             <span className="text-xs font-bold uppercase tracking-widest">Feedback da IA Tutor</span>
                         </div>
                         <h2 className="text-xl font-bold mb-4">Análise de Carga Cognitiva e Gap de Aprendizagem</h2>
-                        <div className="text-indigo-50 leading-relaxed bg-white/10 p-4 rounded-xl backdrop-blur-sm border border-white/10">
+                        <div className="text-indigo-50 leading-relaxed bg-white/10 p-6 rounded-xl backdrop-blur-sm border border-white/10">
                             {isGeneratingFeedback ? (
                                 <div className="flex items-center gap-2">
                                     <Loader2 size={16} className="animate-spin" />
                                     <span>Gerando análise personalizada...</span>
                                 </div>
                             ) : (
-                                aiFeedback || "Análise em processamento... Em alguns instantes seu tutor IA terminará o relatório detalhado."
+                                aiFeedback ? (
+                                    <div className="prose prose-invert max-w-none">
+                                        <RichTextRenderer content={aiFeedback} className="text-white" />
+                                    </div>
+                                ) : (
+                                    "Análise em processamento... Em alguns instantes seu tutor IA terminará o relatório detalhado."
+                                )
                             )}
                         </div>
+
+                        {!isGeneratingFeedback && aiFeedback && (
+                            <div className="mt-6 flex justify-end">
+                                <button
+                                    onClick={() => navigate('/owl-tutor', { state: { context: `Feedback Prova: ${exam.title}. Resultado: ${aiFeedback}` } })}
+                                    className="flex items-center gap-2 bg-white text-indigo-600 px-4 py-2 rounded-xl font-bold text-sm hover:bg-indigo-50 transition shadow-sm"
+                                >
+                                    <MessageCircle size={18} />
+                                    Conversar com o Corujão sobre este resultado
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
 

@@ -989,14 +989,23 @@ export const generatePedagogicalReport = async (
         - Desempenho por Matéria: ${subjectSummary}
         
         TAREFA:
-        Gere um feedback pedagógico personalizado, motivador e construtivo para o aluno. O feedback deve:
-        1. Reconhecer os pontos fortes (matérias com bom desempenho)
-        2. Identificar áreas de melhoria (matérias com desempenho abaixo de 60%)
-        3. Sugerir estratégias de estudo específicas
-        4. Manter um tom encorajador e positivo
-        5. Ser conciso (máximo 3-4 frases)
+        Gere um feedback pedagógico personalizado, motivador e estruturado para o aluno usando Markdown.
+        O feedback deve ser dividido EXATAMENTE nestas 3 seções:
         
-        Retorne APENAS o texto do feedback, sem prefixos ou formatação especial.
+        ### ✨ Seus Pontos Fortes
+        (Destaque as matérias ou temas onde o aluno brilhou)
+        
+        ### 🎯 Onde Melhorar
+        (Identifique de forma construtiva os pontos de atenção baseados nos erros)
+        
+        ### 🚀 Plano de Voo
+        (Dê 2 ou 3 dicas práticas de estudo para os próximos dias)
+        
+        REGRAS:
+        - Use um tom encorajador e positivo.
+        - Mantenha o texto conciso e direto ao ponto.
+        - Use negrito e listas para facilitar a leitura.
+        - Retorne APENAS o texto formatado em Markdown, sem blocos de código (fences) ou introduções.
     `;
 
     const fallback = `Parabéns, ${studentName}! Você obteve ${percentage}% de aproveitamento. ${percentage >= 70
