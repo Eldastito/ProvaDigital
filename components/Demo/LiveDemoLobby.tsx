@@ -125,8 +125,6 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
                 }
             }
 
-            if (examError) throw examError;
-
             setActiveClassId(classId);
             setActiveExamId(examId);
             setStep('WAITING_PROFESSOR');
