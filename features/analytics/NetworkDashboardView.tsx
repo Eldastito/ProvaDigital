@@ -7,7 +7,7 @@ import { AnalyticsService } from '../../services/analyticsService';
 
 import { GlobalRankingView } from './GlobalRankingView';
 import { GeoMap } from './GeoMap';
-import { AuditLogView } from '../Admin/AuditLogView';
+import { AuditLogView } from '../../components/Admin/AuditLogView';
 
 export const NetworkDashboardView = () => {
     const state = useAppStore();

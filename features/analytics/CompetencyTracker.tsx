@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { Target, ChevronRight, AlertCircle, BookOpen } from 'lucide-react';
 import { analyzeBNCCCompetencies } from '../../services/analyticsEngine';
-import { CompetencyRadarChart } from '../Charts/CompetencyRadarChart';
+import { CompetencyRadarChart } from '../../components/Charts/CompetencyRadarChart';
 import { generateCompetencyRadarData } from '../../services/analyticsEngine';
 
 export const CompetencyTracker = () => {
@@ -65,15 +65,15 @@ export const CompetencyTracker = () => {
                                 key={comp.code}
                                 onClick={() => setSelectedCompetency(comp.code)}
                                 className={`p-4 rounded-lg border cursor-pointer transition-all ${selectedCompetency === comp.code
-                                        ? 'border-indigo-500 bg-indigo-50 shadow-md transform scale-[1.01]'
-                                        : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50'
+                                    ? 'border-indigo-500 bg-indigo-50 shadow-md transform scale-[1.01]'
+                                    : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50'
                                     }`}
                             >
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="font-bold text-slate-800">{comp.code}</span>
                                     <span className={`text-xs px-2 py-1 rounded-full font-medium ${comp.masteryLevel === 'high' ? 'bg-green-100 text-green-800' :
-                                            comp.masteryLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                                                'bg-red-100 text-red-800'
+                                        comp.masteryLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                            'bg-red-100 text-red-800'
                                         }`}>
                                         {comp.averageScore.toFixed(0)}% de Domínio
                                     </span>
@@ -81,8 +81,8 @@ export const CompetencyTracker = () => {
                                 <div className="w-full bg-slate-200 rounded-full h-1.5 mb-2">
                                     <div
                                         className={`h-1.5 rounded-full ${comp.masteryLevel === 'high' ? 'bg-green-500' :
-                                                comp.masteryLevel === 'medium' ? 'bg-yellow-500' :
-                                                    'bg-red-500'
+                                            comp.masteryLevel === 'medium' ? 'bg-yellow-500' :
+                                                'bg-red-500'
                                             }`}
                                         style={{ width: `${comp.averageScore}%` }}
                                     />
