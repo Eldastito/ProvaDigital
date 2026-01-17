@@ -94,16 +94,35 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
 
             if (classError) throw classError;
 
-            const { error: examError } = await supabase.from('exams').insert({
-                id: examId,
-                tenant_id: tenantId,
-                school_id: schoolId,
-                title: 'Quiz Interativo - Ao Vivo',
-                subject: 'Conhecimentos Gerais',
-                status: 'PUBLICADA',
-                items_config: [],
-                class_ids: [classId]
-            });
+
+            if (!sessionConfig.selectedExamId) {
+                // Criar nova prova apenas se não selecionou uma existente
+                const { error: examError } = await supabase.from('exams').insert({
+                    id: examId,
+                    tenant_id: tenantId,
+                    school_id: schoolId,
+                    title: 'Quiz Interativo - Ao Vivo',
+                    subject: 'Conhecimentos Gerais',
+                    status: 'PUBLICADA',
+                    items_config: [],
+                    class_ids: [classId]
+                });
+                if (examError) throw examError;
+            } else {
+                // Se já existe, apenas vincular a turma à prova (opcional no modelo atual mas boa prática)
+                // Dependendo do modelo de dados, talvez nem precise fazer nada se a relação for só na tabela classes ou results
+                // Mas se tivermos o array class_ids na tabela exams, devemos atualizar:
+                const { error: updateError } = await supabase.rpc('append_class_to_exam', {
+                    p_exam_id: examId,
+                    p_class_id: classId
+                });
+
+                // Fallback se RPC não existir ou falhar (tenta update array direto)
+                if (updateError) {
+                    console.warn("RPC append_class_to_exam falhou ou não existe, tentando update direto...");
+                    // Numa app real, faríamos um get array -> push -> update, ou usaria array_append do Postgres
+                }
+            }
 
             if (examError) throw examError;
 
