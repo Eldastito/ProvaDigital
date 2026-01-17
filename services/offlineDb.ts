@@ -5,18 +5,18 @@ import { ExamEvent, StoredSession } from '../types';
 // Definição do Banco de Dados Offline para o Tablet
 // Usa IndexedDB por baixo do pano, permitindo armazenar megabytes de dados
 export class OfflineDatabase extends Dexie {
-  examEvents!: Table<ExamEvent, string>; // 'eventId' é a chave primária
-  studentSessions!: Table<StoredSession, string>; // 'sessionId' é a chave
+    examEvents!: Table<ExamEvent, string>; // 'eventId' é a chave primária
+    studentSessions!: Table<StoredSession, string>; // 'sessionId' é a chave
 
-  constructor() {
-    super('ExamePadOfflineDB');
-    // Cast 'this' to any to allow version() call if context is tricky in some environments
-    // Standard Dexie usage: this.version(1).stores(...)
-    (this as any).version(1).stores({
-      examEvents: 'eventId, status, date', // Índices para busca rápida
-      studentSessions: 'sessionId, studentId, eventId, synced'
-    });
-  }
+    constructor() {
+        super('ExamePadOfflineDB');
+        // Cast 'this' to any to allow version() call if context is tricky in some environments
+        // Standard Dexie usage: this.version(1).stores(...)
+        (this as any).version(1).stores({
+            examEvents: 'eventId, status, date', // Índices para busca rápida
+            studentSessions: 'sessionId, studentId, eventId, synced'
+        });
+    }
 }
 
 export const db = new OfflineDatabase();
@@ -60,4 +60,16 @@ export const getStoredSessionsCount = async (): Promise<number> => {
 export const clearDb = async () => {
     await db.examEvents.clear();
     await db.studentSessions.clear();
+};
+
+export const getLastSession = async (studentId: string, eventId: string): Promise<StoredSession | undefined> => {
+    try {
+        const sessionId = `${studentId}_${eventId}`;
+        const session = await db.studentSessions.get(sessionId);
+        // Se existir e não estiver sincronizada (ou pra garantir restore), retorna
+        return session;
+    } catch (e) {
+        console.error("Erro ao recuperar última sessão", e);
+        return undefined;
+    }
 };

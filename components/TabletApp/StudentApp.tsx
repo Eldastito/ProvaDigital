@@ -5,9 +5,11 @@ import { AppState, QuestionType } from '../../types';
 import { supabase } from '../../services/supabaseClient'; // Import Real Client
 import { uuidv4 } from '../../utils/helpers';
 import { useProctoring } from '../../hooks/useProctoring';
-import { saveSession } from '../../services/offlineDb';
+import { saveSession, getLastSession, clearDb } from '../../services/offlineDb';
+import { StoredSession } from '../../types';
 
 import { useSafeAppStore } from '../../store/useAppStore';
+import { RichTextRenderer } from '../RichTextRenderer';
 
 interface StudentAppProps {
     onBack: () => void;
@@ -31,6 +33,14 @@ export const StudentApp = ({ onBack }: StudentAppProps) => {
 
     // Scratchpad State
     const [answers, setAnswers] = useState<Record<string, string>>({});
+    const [examItems, setExamItems] = useState<any[]>([]);
+    const [loadingExam, setLoadingExam] = useState(false);
+    const [currentTime, setCurrentTime] = useState(7200); // 2 horas (exemplo default)
+    const [timerActive, setTimerActive] = useState(false);
+
+    // Auto-Resume State
+    const [foundSession, setFoundSession] = useState<StoredSession | null>(null);
+    const [showResumeModal, setShowResumeModal] = useState(false);
 
     // --- PROCTORING INTEGRATION ---
     const { videoRef, cameraActive, violationCount, securityLog, isKioskActive } = useProctoring({
@@ -43,12 +53,40 @@ export const StudentApp = ({ onBack }: StudentAppProps) => {
         }
     });
 
+    // --- DATA LOADING ---
+    useEffect(() => {
+        if (examIdParam) {
+            loadRealExam(examIdParam);
+        }
+    }, [examIdParam]);
+
+    const loadRealExam = async (examId: string) => {
+        setLoadingExam(true);
+        try {
+            await state.fetchExamItems(examId);
+            const exam = state.exams.find(e => e.id === examId);
+            if (exam) {
+                const items = exam.items.map(config => {
+                    const item = state.items.find(i => i.id === config.itemId);
+                    return item ? { ...item, ...config } : null;
+                }).filter(Boolean);
+                setExamItems(items);
+            }
+        } catch (e) {
+            console.error("Error loading exam items:", e);
+        } finally {
+            setLoadingExam(false);
+        }
+    };
+
     // QUESTÕES DEMO ATUALIZADAS (Tech & Lógica)
     const mockItems = [
         { id: 'q1', type: QuestionType.MULTIPLE_CHOICE, statement: 'Tech: Qual destas linguagens é usada para estilizar páginas web?', alternatives: [{ id: 'a', text: 'HTML' }, { id: 'b', text: 'Python' }, { id: 'c', text: 'CSS' }, { id: 'd', text: 'Java' }] },
         { id: 'q2', type: QuestionType.MULTIPLE_CHOICE, statement: 'Lógica: O pai de Maria tem 5 filhas: Lalá, Lelé, Lili, Loló e...?', alternatives: [{ id: 'a', text: 'Lulu' }, { id: 'b', text: 'Maria' }, { id: 'c', text: 'Joana' }, { id: 'd', text: 'Laura' }] },
         { id: 'q3', type: QuestionType.MULTIPLE_CHOICE, statement: 'Cultura: O que significa a sigla "IA"?', alternatives: [{ id: 'a', text: 'Internet Aberta' }, { id: 'b', text: 'Inteligência Artificial' }, { id: 'c', text: 'Interação Avançada' }, { id: 'd', text: 'Inovação Atual' }] },
     ];
+
+    const actualItems = examItems.length > 0 ? examItems : mockItems;
 
     // --- ACTIONS ---
 
@@ -102,8 +140,76 @@ export const StudentApp = ({ onBack }: StudentAppProps) => {
         }
     };
 
+    // --- AUTO-RESUME LOGIC ---
+    useEffect(() => {
+        if (!studentData || !studentData.id || !studentData.eventId) return;
+
+        const checkSavedSession = async () => {
+            // Tenta recuperar sessão anterior
+            const saved = await getLastSession(studentData.id, studentData.eventId || 'demo');
+            if (saved && !saved.synced) {
+                console.log("Sessão encontrada:", saved);
+                setFoundSession(saved);
+                setShowResumeModal(true);
+            } else {
+                setStep('CONFIRM_IDENTITY');
+            }
+        };
+
+        checkSavedSession();
+    }, [studentData]);
+
+    const handleResumeSession = () => {
+        if (foundSession) {
+            try {
+                const parsedAnswers = JSON.parse(foundSession.encryptedData);
+                setAnswers(parsedAnswers);
+                if (foundSession.currentQuestionIndex !== undefined) {
+                    setCurrentQuestionIdx(foundSession.currentQuestionIndex);
+                }
+                if (foundSession.remainingSeconds !== undefined) {
+                    setCurrentTime(foundSession.remainingSeconds);
+                    alert(`⚠️ ATENÇÃO AO FISCAL DE SALA ⚠️\n\nO aluno ${studentData?.name} teve seu tablet substituído ou a sessão restaurada.\n\nO tempo de prova continuará de onde parou (${Math.floor(foundSession.remainingSeconds / 60)} min restantes).\n\nLEMBRETE: Os últimos 3 alunos a terminarem devem sair juntos.`);
+                }
+                setStep('EXAM');
+                setTimerActive(true);
+                setStep('EXAM');
+                setShowResumeModal(false);
+            } catch (e) {
+                console.error("Erro ao restaurar sessão:", e);
+                alert("Erro ao restaurar dados. Iniciando nova prova.");
+                setStep('CONFIRM_IDENTITY');
+                setShowResumeModal(false);
+            }
+        }
+    };
+
+    const handleDiscardSession = async () => {
+        if (confirm("Tem certeza? Todo o progresso anterior será perdido.")) {
+            // await clearDb(); // Limpar tudo é agressivo em multi-user
+            setStep('CONFIRM_IDENTITY');
+            setShowResumeModal(false);
+        }
+    };
+
     const handleOptionSelect = (qId: string, optId: string) => {
-        setAnswers(prev => ({ ...prev, [qId]: optId }));
+        const newAnswers = { ...answers, [qId]: optId };
+        setAnswers(newAnswers);
+
+        // --- OFFLINE PERSISTENCE (PHASE 2) ---
+        if (studentData) {
+            saveSession({
+                sessionId: `${studentData.id}_${studentData.examId || 'demo'}`,
+                studentId: studentData.id,
+                studentName: studentData.name,
+                eventId: studentData.eventId || 'demo',
+                encryptedData: JSON.stringify(newAnswers),
+                timestamp: new Date().toISOString(),
+                synced: false,
+                currentQuestionIndex: currentQuestionIdx,
+                remainingSeconds: currentTime
+            });
+        }
     };
 
     const handleFinishExam = async () => {
@@ -157,8 +263,8 @@ export const StudentApp = ({ onBack }: StudentAppProps) => {
         }
     };
 
-    const item = mockItems[currentQuestionIdx];
-    const isLast = currentQuestionIdx === mockItems.length - 1;
+    const item = actualItems[currentQuestionIdx];
+    const isLast = currentQuestionIdx === actualItems.length - 1;
 
     // --- RENDERERS ---
 
@@ -271,6 +377,51 @@ export const StudentApp = ({ onBack }: StudentAppProps) => {
         );
     }
 
+    if (showResumeModal) {
+        return (
+            <div className="fixed inset-0 bg-slate-900/90 flex flex-col items-center justify-center p-6 text-center z-50 animate-in fade-in">
+                <div className="bg-white p-8 rounded-2xl max-w-sm w-full shadow-2xl">
+                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
+                        <Cloud size={32} />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-900 mb-2">Prova em Andamento</h2>
+                    <p className="text-slate-600 mb-6 text-sm">
+                        Encontramos uma prova não finalizada salva neste dispositivo. Deseja continuar de onde parou?
+                    </p>
+                    <div className="space-y-3">
+                        <button
+                            onClick={handleResumeSession}
+                            className="w-full py-3 bg-brand-primary text-white font-bold rounded-xl hover:bg-brand-dark transition flex items-center justify-center gap-2"
+                        >
+                            <Play size={18} /> Continuar Prova
+                        </button>
+                        <button
+                            onClick={handleDiscardSession}
+                            className="w-full py-3 bg-slate-100 text-slate-500 font-bold rounded-xl hover:bg-slate-200 transition"
+                        >
+                            Começar do Zero
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // --- SYNC MONITOR COMPONENT ---
+    const SyncMonitor = () => (
+        <div className="bg-slate-800 p-3 rounded-xl border border-slate-700 flex items-center justify-between mt-4">
+            <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${cameraActive ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                <span className="text-[10px] text-slate-300 font-bold uppercase">Monitoria</span>
+            </div>
+            <div className="flex items-center gap-2">
+                <Cloud size={14} className="text-brand-primary" />
+                <span className="text-[10px] text-slate-300 font-bold uppercase">Sincronizado</span>
+                <CheckCircle size={14} className="text-emerald-500" />
+            </div>
+        </div>
+    );
+
     // --- EXAM UI ---
     return (
         <div className="fixed inset-0 flex flex-col bg-slate-50 overflow-hidden font-sans">
@@ -312,7 +463,7 @@ export const StudentApp = ({ onBack }: StudentAppProps) => {
             <div className="flex-1 overflow-y-auto p-4 pb-24 scroll-smooth">
                 <div className="max-w-2xl mx-auto">
                     <div className="w-full bg-slate-200 h-1.5 rounded-full mb-6 overflow-hidden">
-                        <div className="bg-brand-primary h-full transition-all duration-300" style={{ width: `${((currentQuestionIdx + 1) / mockItems.length) * 100}%` }}></div>
+                        <div className="bg-brand-primary h-full transition-all duration-300" style={{ width: `${((currentQuestionIdx + 1) / actualItems.length) * 100}%` }}></div>
                     </div>
 
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-4 relative overflow-hidden">
@@ -355,7 +506,12 @@ export const StudentApp = ({ onBack }: StudentAppProps) => {
                             </div>
                         )}
 
-                        <h2 className="text-lg font-semibold text-slate-800 mb-6 leading-snug mt-2">{item.statement}</h2>
+                        <div className="mb-6 mt-2">
+                            <RichTextRenderer
+                                content={item.statement}
+                                className="text-lg font-semibold text-slate-800 leading-snug"
+                            />
+                        </div>
 
                         <div className="space-y-3">
                             {item.alternatives?.map((alt: any) => {
@@ -370,13 +526,18 @@ export const StudentApp = ({ onBack }: StudentAppProps) => {
                                             <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 text-sm font-bold ${isSelected ? 'border-brand-primary bg-brand-primary text-white' : 'border-slate-300 text-slate-400'}`}>
                                                 {alt.id.toUpperCase()}
                                             </div>
-                                            <span className="font-medium">{alt.text}</span>
+                                            <RichTextRenderer
+                                                content={alt.text}
+                                                className="font-medium"
+                                            />
                                         </div>
                                     </button>
                                 );
                             })}
                         </div>
                     </div>
+
+                    <SyncMonitor />
                 </div>
             </div>
 

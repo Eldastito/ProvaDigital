@@ -5,6 +5,7 @@ import { AccessibilityConfig, DEFAULT_ACCESSIBILITY_CONFIG } from './types';
 import { ChevronLeft, ChevronRight, CheckCircle, Clock, CloudUpload } from 'lucide-react';
 import { Exam, Item, StudentAnswer } from '../../types';
 import { useProctoring } from '../../hooks/useProctoring';
+import { RichTextRenderer } from '../../components/RichTextRenderer';
 
 interface OnlineExamRunnerProps {
     examId: string;
@@ -360,8 +361,11 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                 <div className={`w-full max-w-4xl transition-all ${a11y.focusMode ? '' : 'bg-white/5 p-6 rounded-3xl border border-current/10'}`}>
 
                     {/* Item Statement */}
-                    <div className="text-2xl font-medium mb-8 leading-relaxed">
-                        {currentItem.statement}
+                    <div className="mb-8">
+                        <RichTextRenderer
+                            content={currentItem.statement}
+                            className="text-2xl font-medium leading-relaxed"
+                        />
                     </div>
 
                     {/* Alternatives */}
@@ -389,7 +393,10 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                                     <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-current' : 'border-current/50'}`}>
                                         {isSelected && <div className="w-4 h-4 rounded-full bg-current" />}
                                     </div>
-                                    {alt.text}
+                                    <RichTextRenderer
+                                        content={alt.text}
+                                        className="font-medium"
+                                    />
                                 </button>
                             );
                         })}

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import {
     AppState, Exam, Item, ExamModel, ExamStatus, QuestionType, DifficultyLevel,
     ItemOrigin, UserRole, User, AppSettings, PermissionMatrix, ChatMessage,
-    ChatGroup, Announcement, LessonPlan, StudyPlan, GamifiedEvent, ExamResult,
+    ChatGroup, Announcement, LessonPlan, StudyPlan, GamifiedEvent, ExamResult, Student,
     MentorshipRequest, MentorshipStatus, OwlTutorContext, ItemGenerationBatch,
     ItemLifecycleStatus, ExamVersion, ExamVariant, Tenant, School, SchoolClass,
     UserProfileExtended, ExamRegistration, RegistrationStatus,
@@ -954,6 +954,17 @@ export const useAppStore = create<AppStore>((set, get) => ({
             console.log('✅ User saved:', user.id);
         } catch (e) { console.error(e); }
     },
+
+    deleteUser: async (userId) => {
+        try {
+            await supabase.from('users').delete().eq('id', userId);
+            set((state) => ({ users: state.users.filter(u => u.id !== userId) }));
+            console.log('✅ User deleted:', userId);
+        } catch (e) {
+            console.error('❌ Error deleting user:', e);
+        }
+    }
+    ,
     updateUser: async (user) => {
         set((state) => ({
             users: state.users.map(u => u.id === user.id ? user : u)

@@ -729,6 +729,8 @@ export interface StoredSession {
   encryptedData: string;
   timestamp: string;
   synced: boolean;
+  currentQuestionIndex?: number;
+  remainingSeconds?: number;
 }
 
 // ============================================

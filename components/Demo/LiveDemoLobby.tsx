@@ -3,31 +3,17 @@ import React, { useState, useEffect } from 'react';
 import { X, Smartphone, Users, QrCode, Wifi, Play, UserPlus, AlertTriangle, CheckCircle, Lock, Unlock, ShieldCheck, BarChart2, Trophy, Zap, Award, PieChart } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
 import { uuidv4 } from '../../utils/helpers';
+import { useAppStore } from '../../store/useAppStore';
+import { RichTextRenderer } from '../RichTextRenderer';
 
 interface LiveDemoLobbyProps {
     onClose: () => void;
 }
 
-// Gabarito da Prova Demo (Deve bater com os IDs do StudentApp)
-const DEMO_ANSWER_KEY: Record<string, string> = {
-    'q1': 'c', // CSS
-    'q2': 'b', // Maria
-    'q3': 'b'  // Inteligência Artificial
-};
-
-const QUESTIONS_LABELS: Record<string, string> = {
-    'q1': 'Tecnologia: Estilização Web',
-    'q2': 'Lógica: Sequência Familiar',
-    'q3': 'Cultura: Sigla IA'
-};
-
-const QUESTIONS_OPTIONS: Record<string, any[]> = {
-    'q1': [{ id: 'a', label: 'HTML' }, { id: 'b', label: 'Python' }, { id: 'c', label: 'CSS (Correto)' }, { id: 'd', label: 'Java' }],
-    'q2': [{ id: 'a', label: 'Lulu' }, { id: 'b', label: 'Maria (Correto)' }, { id: 'c', label: 'Joana' }, { id: 'd', label: 'Laura' }],
-    'q3': [{ id: 'a', label: 'Internet Aberta' }, { id: 'b', label: 'Inteligência Artificial (Correto)' }, { id: 'c', label: 'Interação' }, { id: 'd', label: 'Inovação' }]
-};
+// Removidos gabaritos hardcoded para suportar dinamismo do Banco de Itens
 
 export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
+    const state = useAppStore();
     // Estados do Fluxo
     const [step, setStep] = useState<'SETUP' | 'WAITING_PROFESSOR' | 'LOBBY_ACTIVE' | 'RESULTS'>('SETUP');
 
@@ -38,6 +24,7 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
     const [sessionConfig, setSessionConfig] = useState({
         className: 'Turma Demo - Evento Ao Vivo',
         capacity: 50,
+        selectedExamId: ''
     });
     const [loading, setLoading] = useState(false);
 
@@ -48,8 +35,9 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
 
     // Resultados
     const [examStats, setExamStats] = useState<any>(null);
-    const [detailedStats, setDetailedStats] = useState<any>(null); // New: Stats per question option
+    const [detailedStats, setDetailedStats] = useState<any>(null);
     const [topPerformers, setTopPerformers] = useState<any[]>([]);
+    const [selectedExamItems, setSelectedExamItems] = useState<any[]>([]);
 
     // Results View Mode (Overview vs Question Detail)
     const [resultView, setResultView] = useState<'OVERVIEW' | string>('OVERVIEW'); // 'OVERVIEW' or 'q1', 'q2'...
@@ -67,10 +55,23 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
         try {
             const tenantId = 't1';
             const schoolId = 's1';
-            const classId = uuidv4();
-            const examId = uuidv4();
+            // 1. Garantir que os itens da prova estejam carregados
+            if (sessionConfig.selectedExamId) {
+                await state.fetchExamItems(sessionConfig.selectedExamId);
+                const exam = state.exams.find(e => e.id === sessionConfig.selectedExamId);
+                if (exam) {
+                    const items = exam.items.map(config => {
+                        const item = state.items.find(i => i.id === config.itemId);
+                        return item ? { ...item, ...config } : null;
+                    }).filter(Boolean);
+                    setSelectedExamItems(items);
+                }
+            }
 
-            // Criar Turma com status WAITING_PROFESSOR (Bloqueada)
+            const classId = uuidv4();
+            const examId = sessionConfig.selectedExamId || uuidv4();
+
+            // Usar examId existente ou criar mock se nenhum selecionado
             const { error: classError } = await supabase.from('classes').insert({
                 id: classId,
                 school_id: schoolId,
@@ -154,13 +155,17 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
 
         // Processar Dados
         let totalSubmissions = results.length;
-        let questionCorrectCounts: any = { q1: 0, q2: 0, q3: 0 };
-        // New: Track distribution per option per question
-        let questionDistributions: any = {
-            q1: { a: 0, b: 0, c: 0, d: 0 },
-            q2: { a: 0, b: 0, c: 0, d: 0 },
-            q3: { a: 0, b: 0, c: 0, d: 0 }
-        };
+        let questionCorrectCounts: any = {};
+        let questionDistributions: any = {};
+
+        // Inicializar com itens da prova
+        selectedExamItems.forEach(item => {
+            questionCorrectCounts[item.id] = 0;
+            questionDistributions[item.id] = {};
+            item.alternatives.forEach((alt: any) => {
+                questionDistributions[item.id][alt.id] = 0;
+            });
+        });
 
         let studentScores: any[] = [];
 
@@ -168,42 +173,45 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
         const { data: students } = await supabase.from('students').select('id, name').in('id', results.map(r => r.student_id));
 
         results.forEach((res: any) => {
-            let correctCount = 0;
+            let correctPoints = 0;
 
-            // Verifica cada resposta do aluno contra o gabarito
             res.answers.forEach((ans: any) => {
                 const qId = ans.itemId;
                 const selected = ans.selectedAlternativeId;
 
+                const item = selectedExamItems.find(i => i.id === qId);
+                if (!item) return;
+
                 // Update Distribution
-                if (questionDistributions[qId] && questionDistributions[qId][selected] !== undefined) {
+                if (questionDistributions[qId] && selected && questionDistributions[qId][selected] !== undefined) {
                     questionDistributions[qId][selected]++;
                 }
 
                 // Check Correctness
-                if (DEMO_ANSWER_KEY[qId] === selected) {
+                const correctAlt = item.alternatives.find((a: any) => a.isCorrect);
+                if (correctAlt && correctAlt.id === selected) {
                     questionCorrectCounts[qId]++;
-                    correctCount++;
+                    correctPoints += (item.score || 1);
                 }
             });
 
             const studentName = students?.find(s => s.id === res.student_id)?.name || 'Anônimo';
             studentScores.push({
                 name: studentName,
-                score: correctCount,
-                timeBonus: Math.random() // Mock tie-breaker since we don't track exact time in this demo payload
+                score: correctPoints,
+                timeBonus: Math.random()
             });
         });
 
         // Ordenar Pódio
         const podium = studentScores.sort((a, b) => b.score - a.score || b.timeBonus - a.timeBonus).slice(0, 3);
 
-        setExamStats({
-            total: totalSubmissions,
-            q1: Math.round((questionCorrectCounts.q1 / (totalSubmissions || 1)) * 100),
-            q2: Math.round((questionCorrectCounts.q2 / (totalSubmissions || 1)) * 100),
-            q3: Math.round((questionCorrectCounts.q3 / (totalSubmissions || 1)) * 100),
+        const stats: any = { total: totalSubmissions };
+        selectedExamItems.forEach(item => {
+            stats[item.id] = Math.round((questionCorrectCounts[item.id] / (totalSubmissions || 1)) * 100);
         });
+
+        setExamStats(stats);
         setDetailedStats(questionDistributions);
         setTopPerformers(podium);
         setStep('RESULTS');
@@ -220,16 +228,14 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
     const renderDistributionBar = (qId: string) => {
         if (!detailedStats) return null;
         const dist = detailedStats[qId];
-        const options = QUESTIONS_OPTIONS[qId];
         const total = Object.values(dist).reduce((a: any, b: any) => a + b, 0) as number || 1;
-        const correctOptId = DEMO_ANSWER_KEY[qId];
 
         return (
             <div className="flex items-end gap-8 h-64 w-full max-w-3xl mx-auto px-8">
-                {options.map((opt) => {
-                    const count = dist[opt.id] as number;
+                {selectedExamItems.find(i => i.id === qId)?.alternatives.map((opt: any) => {
+                    const count = dist[opt.id] as number || 0;
                     const percentage = (count / total) * 100;
-                    const isCorrect = opt.id === correctOptId;
+                    const isCorrect = opt.isCorrect;
 
                     return (
                         <div key={opt.id} className="flex-1 flex flex-col items-center group">
@@ -242,8 +248,8 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
                                     {isCorrect && <div className="absolute top-2 left-1/2 -translate-x-1/2 text-white"><CheckCircle size={20} /></div>}
                                 </div>
                             </div>
-                            <div className={`mt-4 px-4 py-2 rounded-lg text-sm font-bold w-full text-center ${isCorrect ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}>
-                                {opt.label}
+                            <div className={`mt-4 px-2 py-2 rounded-lg text-[10px] md:text-xs font-bold w-full text-center ${isCorrect ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}>
+                                <RichTextRenderer content={opt.text} className="truncate" />
                             </div>
                         </div>
                     )
@@ -282,6 +288,22 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
                                     onChange={e => setSessionConfig({ ...sessionConfig, className: e.target.value })}
                                     placeholder="Ex: Demo Evento Tech"
                                 />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Selecione a Prova do Banco</label>
+                                <select
+                                    className="w-full bg-slate-900 border border-slate-600 rounded-xl p-4 text-white focus:border-brand-primary outline-none"
+                                    value={sessionConfig.selectedExamId}
+                                    onChange={e => setSessionConfig({ ...sessionConfig, selectedExamId: e.target.value })}
+                                >
+                                    <option value="">Selecione uma prova...</option>
+                                    {state.exams.map(e => (
+                                        <option key={e.id} value={e.id}>{e.title}</option>
+                                    ))}
+                                </select>
+                                {sessionConfig.selectedExamId === '' && (
+                                    <p className="text-amber-400 text-[10px] mt-1 font-bold">⚠️ Se não selecionar, as questões demo originais serão usadas.</p>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Capacidade Esperada (Espectadores)</label>
@@ -427,31 +449,22 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
                 <div className="flex-1 bg-slate-900 p-8 flex flex-col items-center overflow-y-auto">
                     <div className="max-w-6xl w-full animate-in zoom-in duration-500">
                         {/* Navigation / Header */}
-                        <div className="flex justify-center mb-8 gap-4">
+                        <div className="flex justify-center mb-8 gap-4 flex-wrap">
                             <button
                                 onClick={() => setResultView('OVERVIEW')}
                                 className={`px-6 py-2 rounded-full font-bold transition ${resultView === 'OVERVIEW' ? 'bg-brand-primary text-white shadow-lg' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
                             >
                                 Visão Geral
                             </button>
-                            <button
-                                onClick={() => setResultView('q1')}
-                                className={`px-6 py-2 rounded-full font-bold transition ${resultView === 'q1' ? 'bg-purple-600 text-white shadow-lg' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
-                            >
-                                Questão 1
-                            </button>
-                            <button
-                                onClick={() => setResultView('q2')}
-                                className={`px-6 py-2 rounded-full font-bold transition ${resultView === 'q2' ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
-                            >
-                                Questão 2
-                            </button>
-                            <button
-                                onClick={() => setResultView('q3')}
-                                className={`px-6 py-2 rounded-full font-bold transition ${resultView === 'q3' ? 'bg-orange-600 text-white shadow-lg' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
-                            >
-                                Questão 3
-                            </button>
+                            {selectedExamItems.map((item, idx) => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => setResultView(item.id)}
+                                    className={`px-6 py-2 rounded-full font-bold transition ${resultView === item.id ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+                                >
+                                    Q{idx + 1}
+                                </button>
+                            ))}
                         </div>
 
                         {resultView === 'OVERVIEW' ? (
@@ -469,30 +482,19 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
                                         <div className="text-slate-400 text-sm font-bold uppercase mb-2">Total de Provas</div>
                                         <div className="text-5xl font-black text-white">{examStats.total}</div>
                                     </div>
-                                    <div
-                                        className="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center cursor-pointer hover:border-purple-500 transition"
-                                        onClick={() => setResultView('q1')}
-                                    >
-                                        <div className="text-slate-400 text-sm font-bold uppercase mb-2">Acerto em Tecnologia</div>
-                                        <div className={`text-5xl font-black ${examStats.q1 > 70 ? 'text-emerald-400' : 'text-amber-400'}`}>{examStats.q1}%</div>
-                                        <div className="text-xs text-slate-500 mt-2">{QUESTIONS_LABELS['q1']}</div>
-                                    </div>
-                                    <div
-                                        className="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center cursor-pointer hover:border-blue-500 transition"
-                                        onClick={() => setResultView('q2')}
-                                    >
-                                        <div className="text-slate-400 text-sm font-bold uppercase mb-2">Acerto em Lógica</div>
-                                        <div className={`text-5xl font-black ${examStats.q2 > 70 ? 'text-emerald-400' : 'text-amber-400'}`}>{examStats.q2}%</div>
-                                        <div className="text-xs text-slate-500 mt-2">{QUESTIONS_LABELS['q2']}</div>
-                                    </div>
-                                    <div
-                                        className="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center cursor-pointer hover:border-orange-500 transition"
-                                        onClick={() => setResultView('q3')}
-                                    >
-                                        <div className="text-slate-400 text-sm font-bold uppercase mb-2">Acerto em Cultura</div>
-                                        <div className={`text-5xl font-black ${examStats.q3 > 70 ? 'text-emerald-400' : 'text-amber-400'}`}>{examStats.q3}%</div>
-                                        <div className="text-xs text-slate-500 mt-2">{QUESTIONS_LABELS['q3']}</div>
-                                    </div>
+                                    {selectedExamItems.slice(0, 3).map((item, idx) => (
+                                        <div
+                                            key={item.id}
+                                            className="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center cursor-pointer hover:border-brand-primary transition"
+                                            onClick={() => setResultView(item.id)}
+                                        >
+                                            <div className="text-slate-400 text-sm font-bold uppercase mb-2">Acerto Questão {idx + 1}</div>
+                                            <div className={`text-5xl font-black ${examStats[item.id] > 70 ? 'text-emerald-400' : 'text-amber-400'}`}>{examStats[item.id]}%</div>
+                                            <div className="text-[10px] text-slate-500 mt-2 truncate max-w-full">
+                                                <RichTextRenderer content={item.statement} className="truncate" />
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
 
                                 {/* Podium */}
@@ -556,8 +558,12 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
                                     <div className="inline-block p-4 rounded-full bg-slate-800 mb-4">
                                         <PieChart size={40} className="text-brand-secondary" />
                                     </div>
-                                    <h2 className="text-4xl font-bold text-white">{QUESTIONS_LABELS[resultView]}</h2>
-                                    <p className="text-slate-400 mt-2">Distribuição de Respostas da Turma</p>
+                                    <h2 className="text-4xl font-bold text-white">
+                                        Questão {selectedExamItems.findIndex(i => i.id === resultView) + 1}
+                                    </h2>
+                                    <div className="text-slate-400 mt-4 max-w-2xl mx-auto">
+                                        <RichTextRenderer content={selectedExamItems.find(i => i.id === resultView)?.statement || ''} />
+                                    </div>
                                 </div>
                                 {renderDistributionBar(resultView)}
                             </div>
