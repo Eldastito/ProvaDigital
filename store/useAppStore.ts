@@ -71,11 +71,16 @@ interface AppActions {
     updateItemWithVersion: (itemId: string, updates: Partial<Item>, changeReason: string) => Promise<void>;
     addExam: (exam: Exam) => void;
     addSchool: (school: School) => Promise<void>;
-    updateSchool: (school: School) => Promise<void>; // Added
+    updateSchool: (school: School) => Promise<void>;
+    deleteSchool: (schoolId: string) => Promise<void>; // Added
     addClass: (cls: SchoolClass) => Promise<void>;
+    updateClass: (cls: SchoolClass) => Promise<void>; // Added
+    deleteClass: (classId: string) => Promise<void>; // Added
     addStudent: (student: Student) => Promise<void>;
-    updateStudent: (student: Student) => Promise<void>; // Added
+    updateStudent: (student: Student) => Promise<void>;
+    deleteStudent: (studentId: string) => Promise<void>; // Added
     addUser: (user: User) => Promise<void>;
+    deleteUser: (userId: string) => Promise<void>; // Added
     updateSettings: (settings: AppSettings) => void;
     updatePermissions: (matrix: PermissionMatrix) => void;
     updateMessages: (messages: ChatMessage[]) => void;
@@ -850,6 +855,27 @@ export const useAppStore = create<AppStore>((set, get) => ({
             console.log('✅ Class saved:', cls.id);
         } catch (e) { console.error(e); }
     },
+    updateClass: async (cls) => {
+        set((state) => ({
+            classes: state.classes.map(c => c.id === cls.id ? cls : c)
+        }));
+        try {
+            const { error } = await supabase.from('classes').update({
+                name: cls.name,
+                series: cls.series,
+                shift: cls.shift,
+                room: cls.room,
+                teacher_id: cls.teacherId
+            }).eq('id', cls.id);
+            if (error) throw error;
+        } catch (e) { console.error(e); }
+    },
+    deleteClass: async (classId) => {
+        set((state) => ({ classes: state.classes.filter(c => c.id !== classId) }));
+        try {
+            await supabase.from('classes').delete().eq('id', classId);
+        } catch (e) { console.error(e); }
+    },
     addStudent: async (student) => {
         set((state) => ({ students: [...state.students, student] }));
         try {
@@ -887,6 +913,18 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 throw error;
             }
             console.log('✅ Student updated:', student.id);
+        } catch (e) { console.error(e); }
+    },
+    deleteStudent: async (studentId) => {
+        set((state) => ({ students: state.students.filter(s => s.id !== studentId) }));
+        try {
+            await supabase.from('students').delete().eq('id', studentId);
+        } catch (e) { console.error(e); }
+    },
+    deleteSchool: async (schoolId) => {
+        set((state) => ({ schools: state.schools.filter(s => s.id !== schoolId) }));
+        try {
+            await supabase.from('schools').delete().eq('id', schoolId);
         } catch (e) { console.error(e); }
     },
     addUser: async (user) => {
