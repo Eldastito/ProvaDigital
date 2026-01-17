@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Check, X, Edit3, Trash2, ArrowRight, CheckCircle2, AlertCircle, Sparkles, RefreshCw, Loader2 } from 'lucide-react';
 import { Item, ItemLifecycleStatus } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
-import { Badge } from '../ui/Badge';
+import { Badge } from '../../components/ui/Badge';
 import { ItemEditModal } from './ItemEditModal';
 import { translateDifficultyLevel } from '../../utils/translations';
 
