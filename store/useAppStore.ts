@@ -1976,8 +1976,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
     // --- PHASE 7: SCALABLE EXAM LOADING ---
     fetchExamItems: async (examId: string) => {
         try {
-            const { data: exam } = await supabase.from('exams').select('items_config, description').eq('id', examId).single();
-            if (!exam) return;
+            const { data: exam, error } = await supabase.from('exams').select('items_config, description').eq('id', examId).single();
+            if (error || !exam) {
+                console.error("fetchExamItems failed:", error);
+                throw new Error("Prova não encontrada ou erro de conexão.");
+            }
 
             // 1. CHECk FOR HIGH-SECURITY ENCRYPTED PAYLOAD (PHASE 8)
             if (exam.description && exam.description.startsWith('[SECURE_PAYLOAD]')) {
