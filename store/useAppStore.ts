@@ -2061,6 +2061,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
             if (missingIds.length === 0) return; // All loaded
 
+            // alert(`DEBUG: Buscando ${missingIds.length} questões do DB...`);
+
             console.log(`📥 Fetching ${missingIds.length} missing items for exam ${examId}`);
 
             const { data: dbItems, error: itemsError } = await supabase
@@ -2068,7 +2070,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 .select('*')
                 .in('id', missingIds);
 
+            if (itemsError) {
+                alert("DEBUG: Erro Supabase: " + itemsError.message);
+            }
+
             if (dbItems && dbItems.length > 0) {
+                // alert(`DEBUG: Achou ${dbItems.length} questões!`);
                 // Format items (reuse logic from loadRemoteData - simplified here)
                 const formattedItems: Item[] = dbItems.map((i: any) => ({
                     id: i.id,
