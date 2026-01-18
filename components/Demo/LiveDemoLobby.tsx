@@ -155,30 +155,40 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
         if (!activeClassId || !activeExamId) return;
 
         // A. Canal de Broadcast (Alertas de Segurança do StudentApp)
-        const monitorChannel = supabase.channel(`exam_monitor:${activeExamId}`)
+        // A. Canal de Broadcast (Alertas de Segurança do StudentApp)
+        const monitorChannel = supabase.channel(`exam_monitor:${activeExamId}`, { config: { broadcast: { self: false } } })
             .on('broadcast', { event: 'ALERT' }, (payload) => {
                 console.log("🚨 Alerta Recebido no Lobby:", payload);
+                if (!payload.payload) return;
+
                 const { studentId, type } = payload.payload;
 
                 // Registra apenas o primeiro para exibir ícone (ou atualiza, conforme preferência)
                 setSecurityAlerts(prev => {
                     const newMap = new Map(prev);
-                    if (!newMap.has(studentId)) {
-                        // Mapear tipos técnicos para textos amigáveis em PT-BR
-                        const labelMap: any = {
-                            'FOCUS_LOST': 'Minimizou/Saiu',
-                            'ALT_TAB': 'Atalho Proibido',
-                            'COPY_PASTE': 'Copiou/Colou',
-                            'MOUSE_LEAVE': 'Mouse Fora',
-                            'WINDOW_RESIZE': 'Redimensionou',
-                            'SCREEN_SHARE_ENDED': 'Parou Tela'
-                        };
-                        newMap.set(studentId, labelMap[type] || 'Atividade Suspeita');
-                    }
+                    // Always update to show latest violation type if needed, or keep first. 
+                    // Let's keep first distinct violation visually but log all in console.
+
+                    // Mapear tipos técnicos para textos amigáveis em PT-BR
+                    const labelMap: any = {
+                        'FOCUS_LOST': 'Minimizou/Saiu',
+                        'ALT_TAB': 'Atalho Proibido',
+                        'COPY_PASTE': 'Copiou/Colou',
+                        'MOUSE_LEAVE': 'Mouse Fora',
+                        'WINDOW_RESIZE': 'Redimensionou',
+                        'SCREEN_SHARE_ENDED': 'Parou Tela',
+                        'FULLSCREEN_EXIT': 'Saiu Tela Cheia'
+                    };
+
+                    // Simple logic: overwrite to show most recent bad behavior
+                    newMap.set(studentId, labelMap[type] || 'Atividade Suspeita');
+
                     return newMap;
                 });
             })
-            .subscribe();
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') console.log(`✅ Lobby monitorando canal: exam_monitor:${activeExamId}`);
+            });
 
         // B. Tabela de Resultados (Monitorar quem acabou)
         const resultsChannel = supabase.channel(`results_monitor:${activeExamId}`)

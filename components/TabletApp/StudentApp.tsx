@@ -167,6 +167,11 @@ export const StudentApp = ({ onBack }: StudentAppProps) => {
                     eventId: classIdParam,
                     examId: examIdParam
                 });
+
+                // INITIALIZE REALTIME EVENTS FOR BROADCASTING ALERTS
+                if (examIdParam) {
+                    state.initializeExamEvents(examIdParam);
+                }
             } else {
                 // Modo Local (Fallback)
                 setStudentData({
@@ -227,6 +232,11 @@ export const StudentApp = ({ onBack }: StudentAppProps) => {
                 alert("Erro ao restaurar dados. Iniciando nova prova.");
                 setStep('CONFIRM_IDENTITY');
                 setShowResumeModal(false);
+            }
+
+            // Re-connect to realtime if we have examId
+            if (sessionMode === 'LIVE_REAL' && examIdParam) {
+                state.initializeExamEvents(examIdParam);
             }
         }
     };
