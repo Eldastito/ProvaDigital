@@ -1986,11 +1986,41 @@ export const useAppStore = create<AppStore>((set, get) => ({
     // --- PHASE 7: SCALABLE EXAM LOADING ---
     fetchExamItems: async (examId: string) => {
         try {
-            const { data: exam, error } = await supabase.from('exams').select('items_config, description').eq('id', examId).single();
+            // FETCH FULL EXAM DATA (Fix for "Prova não encontrada" error)
+            const { data: exam, error } = await supabase.from('exams').select('*').eq('id', examId).single();
+
             if (error || !exam) {
                 console.error("fetchExamItems failed:", error);
                 throw new Error("Prova não encontrada ou erro de conexão.");
             }
+
+            // Upsert Exam into Local Store (Crucial for Mobile App)
+            set(state => {
+                const existing = state.exams.find(e => e.id === examId);
+                if (!existing) {
+                    const formattedExam: Exam = {
+                        id: exam.id,
+                        title: exam.title,
+                        description: exam.description,
+                        items_config: exam.items_config,
+                        schoolId: exam.school_id,
+                        tenantId: exam.tenant_id,
+                        status: exam.status as any,
+                        createdAt: exam.created_at,
+                        // updatedAt removed to match interface
+                        durationMinutes: exam.settings?.duration || 60,
+                        items: [], // Will be filled below
+                        classIds: exam.class_ids,
+                        creatorId: exam.creator_id || 'system',
+                        subject: exam.subject || 'Geral',
+                        model: exam.model || 'SOMATIVO',
+                        targetQuestionCount: exam.settings?.target_questions || 10,
+                        maxScore: exam.settings?.max_score || 100
+                    } as Exam;
+                    return { exams: [...state.exams, formattedExam] };
+                }
+                return {};
+            });
 
             // 1. CHECk FOR HIGH-SECURITY ENCRYPTED PAYLOAD (PHASE 8)
             if (exam.description && exam.description.startsWith('[SECURE_PAYLOAD]')) {
