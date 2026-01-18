@@ -123,6 +123,18 @@ export const ExamsListView = () => {
                                                 <ClipboardCheck size={18} />
                                             </button>
                                         )}
+                                        <button
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
+                                                if (confirm('Tem certeza que deseja excluir esta prova?')) {
+                                                    await state.deleteExam(exam.id);
+                                                }
+                                            }}
+                                            className="text-red-500 font-medium text-sm hover:text-red-700 flex items-center gap-1 transition"
+                                            title="Excluir Prova"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
                                     </div>
                                 </div>
                             </div>
