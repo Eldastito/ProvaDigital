@@ -338,6 +338,21 @@ export const StudentApp = ({ onBack }: StudentAppProps) => {
     const item = actualItems[currentQuestionIdx];
     const isLast = currentQuestionIdx === actualItems.length - 1;
 
+    // --- SAFETY CHECK FOR EMPTY/FAILED EXAM ---
+    if (!item && !loadingExam && step === 'EXAM') {
+        return (
+            <div className="fixed inset-0 bg-[#0f1d2e] flex flex-col items-center justify-center text-white p-6 text-center z-50">
+                <AlertTriangle size={48} className="text-amber-500 mb-4" />
+                <h2 className="text-xl font-bold mb-2">Erro ao carregar questões</h2>
+                <p className="text-slate-400 mb-6">Não foi possível obter as questões da prova (ID: {examIdParam}).</p>
+                <div className="flex gap-4">
+                    <button onClick={() => window.location.reload()} className="px-6 py-3 bg-brand-primary rounded-xl font-bold">Tentar Novamente</button>
+                    <button onClick={onBack} className="px-6 py-3 bg-slate-700 rounded-xl font-bold">Sair</button>
+                </div>
+            </div>
+        );
+    }
+
     // --- RENDERERS ---
 
     // Apply Accessibility Styles Helper
