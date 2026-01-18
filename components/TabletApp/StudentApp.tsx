@@ -119,23 +119,35 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         setLoadError(null);
         try {
             await state.fetchExamItems(examId);
-            const exam = state.exams.find(e => e.id === examId);
-            if (exam) {
-                const items = exam.items.map(config => {
-                    const item = state.items.find(i => i.id === config.itemId);
-                    return item ? { ...item, ...config } : null;
-                }).filter(Boolean);
 
-                if (items.length === 0) {
-                    setLoadError(`Prova encontrada, mas sem questões. (Config: ${exam.items_config?.length || 0})`);
+            // USE FRESH STATE after async call
+            const freshState = useAppStore.getState();
+            const exam = freshState.exams.find(e => e.id === examId);
+
+            if (exam) {
+                // Handle schema mismatch (items vs items_config) and missing items
+                const configSource = (exam.items && exam.items.length > 0) ? exam.items : (exam.items_config || []);
+
+                if (!configSource || configSource.length === 0) {
+                    setLoadError(`Prova encontrada, mas configuração de itens vazia. (ID: ${examId})`);
+                    setExamItems([]);
+                } else {
+                    const items = configSource.map((config: any) => {
+                        const item = freshState.items.find(i => i.id === config.itemId);
+                        return item ? { ...item, ...config } : null;
+                    }).filter(Boolean);
+
+                    if (items.length === 0) {
+                        setLoadError(`Prova carregada, mas questões não encontradas no cache. (Qtd: ${configSource.length})`);
+                    }
+                    setExamItems(items);
                 }
-                setExamItems(items);
             } else {
-                setLoadError("Prova não encontrada no cache local após busca.");
+                setLoadError("Prova não encontrada no estado global após fetch.");
             }
         } catch (e: any) {
             console.error("Error loading exam items:", e);
-            setLoadError(e.message || JSON.stringify(e));
+            setLoadError("Erro Fatal: " + (e.message || JSON.stringify(e)));
         } finally {
             setLoadingExam(false);
         }
