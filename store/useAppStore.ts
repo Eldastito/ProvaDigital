@@ -70,6 +70,7 @@ interface AppActions {
     updateItem: (item: Item) => Promise<void>;
     updateItemWithVersion: (itemId: string, updates: Partial<Item>, changeReason: string) => Promise<void>;
     addExam: (exam: Exam) => void;
+    deleteExam: (examId: string) => Promise<void>; // Added
     addSchool: (school: School) => Promise<void>;
     updateSchool: (school: School) => Promise<void>;
     deleteSchool: (schoolId: string) => Promise<void>; // Added
@@ -963,7 +964,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
         } catch (e) {
             console.error('❌ Error deleting user:', e);
         }
-    }
+    },
+    deleteExam: async (examId) => {
+        set((state) => ({ exams: state.exams.filter(e => e.id !== examId) }));
+        try {
+            await supabase.from('exams').delete().eq('id', examId);
+            console.log('✅ Exam deleted:', examId);
+        } catch (e) {
+            console.error('❌ Error deleting exam:', e);
+        }
+    },
     ,
     updateUser: async (user) => {
         set((state) => ({

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, MoreHorizontal, Clock, FileText, Printer, ClipboardCheck, Globe, School, Activity, ShieldCheck, Layers } from 'lucide-react';
+import { Plus, MoreHorizontal, Clock, FileText, Printer, ClipboardCheck, Globe, School, Activity, ShieldCheck, Layers, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppState, ExamStatus } from '../types';
 import { Badge } from './ui/Badge';
