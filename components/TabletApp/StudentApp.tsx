@@ -19,9 +19,10 @@ interface StudentAppProps {
 
 // --- ERROR BOUNDARY ---
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: Error | null }> {
+    state: { hasError: boolean, error: Error | null } = { hasError: false, error: null };
+
     constructor(props: { children: React.ReactNode }) {
         super(props);
-        this.state = { hasError: false, error: null };
     }
 
     static getDerivedStateFromError(error: Error) {
