@@ -17,7 +17,49 @@ interface StudentAppProps {
     onBack: () => void;
 }
 
-export const StudentApp = ({ onBack }: StudentAppProps) => {
+// --- ERROR BOUNDARY ---
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: Error | null }> {
+    constructor(props: { children: React.ReactNode }) {
+        super(props);
+        this.state = { hasError: false, error: null };
+    }
+
+    static getDerivedStateFromError(error: Error) {
+        return { hasError: true, error };
+    }
+
+    componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+        console.error("StudentApp Crash:", error, errorInfo);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="fixed inset-0 bg-[#0f1d2e] flex flex-col items-center justify-center p-6 text-center text-white z-50">
+                    <AlertTriangle size={48} className="text-red-500 mb-4" />
+                    <h2 className="text-xl font-bold mb-2">Algo deu errado</h2>
+                    <p className="text-slate-400 mb-6 max-w-sm text-sm p-2 bg-slate-900 rounded border border-slate-700 font-mono">
+                        {this.state.error?.message || 'Erro desconhecido'}
+                    </p>
+                    <button onClick={() => window.location.reload()} className="px-6 py-3 bg-brand-primary rounded-xl font-bold">
+                        Recarregar
+                    </button>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
+
+export const StudentApp = (props: StudentAppProps) => {
+    return (
+        <ErrorBoundary>
+            <StudentAppContent {...props} />
+        </ErrorBoundary>
+    );
+};
+
+const StudentAppContent = ({ onBack }: StudentAppProps) => {
     const state = useSafeAppStore();
     const params = new URLSearchParams(window.location.search);
     // Pega parâmetros reais do QR Code gerado pelo Lobby
