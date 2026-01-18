@@ -391,23 +391,22 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 <h2 className="text-xl font-bold mb-2">Erro ao carregar questões</h2>
                 <p className="text-slate-400 mb-6">Não foi possível obter as questões da prova (ID: {examIdParam}).</p>
                 <div className="flex gap-4">
-                    <div className="flex gap-4">
-                        <button
-                            onClick={() => {
-                                if (examIdParam) {
-                                    loadRealExam(examIdParam);
-                                } else {
-                                    window.location.reload();
-                                }
-                            }}
-                            className="px-6 py-3 bg-brand-primary rounded-xl font-bold"
-                        >
-                            Tentar Novamente
-                        </button>
-                        <button onClick={onBack} className="px-6 py-3 bg-slate-700 rounded-xl font-bold">Sair</button>
-                    </div>
+                    <button
+                        onClick={() => {
+                            if (examIdParam) {
+                                loadRealExam(examIdParam);
+                            } else {
+                                window.location.reload();
+                            }
+                        }}
+                        className="px-6 py-3 bg-brand-primary rounded-xl font-bold"
+                    >
+                        Tentar Novamente
+                    </button>
+                    <button onClick={onBack} className="px-6 py-3 bg-slate-700 rounded-xl font-bold">Sair</button>
                 </div>
-                );
+            </div>
+        );
     }
 
     // --- RENDERERS ---
@@ -415,355 +414,355 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     // Apply Accessibility Styles Helper
     const getThemeClasses = () => {
         if (a11y.theme === 'high-contrast') return 'bg-black text-yellow-400 font-bold';
-                if (a11y.theme === 'dark') return 'bg-slate-900 text-white';
-                if (a11y.theme === 'sepia') return 'bg-[#f4e4bc] text-[#4f3e1e]';
-                return 'bg-slate-50 text-slate-900';
+        if (a11y.theme === 'dark') return 'bg-slate-900 text-white';
+        if (a11y.theme === 'sepia') return 'bg-[#f4e4bc] text-[#4f3e1e]';
+        return 'bg-slate-50 text-slate-900';
     };
 
-                const containerStyle = {
-                    fontSize: `${a11y.fontSize}%`,
-                lineHeight: a11y.lineSpacing,
-                letterSpacing: `${a11y.letterSpacing}em`
+    const containerStyle = {
+        fontSize: `${a11y.fontSize}%`,
+        lineHeight: a11y.lineSpacing,
+        letterSpacing: `${a11y.letterSpacing}em`
     };
 
-                // Global Login/Cover wrappers don't strictly need unique a11y yet, but consistent is better.
-                // For now we apply mainly to EXAM step.
+    // Global Login/Cover wrappers don't strictly need unique a11y yet, but consistent is better.
+    // For now we apply mainly to EXAM step.
 
-                if (step === 'LOGIN_FORM') {
+    if (step === 'LOGIN_FORM') {
         return (
-                <div className="fixed inset-0 bg-[#0f1d2e] flex flex-col items-center justify-center p-6 text-center z-50">
-                    <div className="w-full max-w-md">
-                        <div className="mb-8">
-                            <Wifi size={48} className="text-emerald-400 mx-auto mb-4 animate-pulse" />
-                            <h1 className="text-2xl font-bold text-white">Conectar à Turma</h1>
-                            <p className="text-slate-400 text-sm mt-2">
-                                {sessionMode === 'LIVE_REAL' ? 'Sessão Ao Vivo Detectada' : 'Modo Demonstração Local'}
-                            </p>
+            <div className="fixed inset-0 bg-[#0f1d2e] flex flex-col items-center justify-center p-6 text-center z-50">
+                <div className="w-full max-w-md">
+                    <div className="mb-8">
+                        <Wifi size={48} className="text-emerald-400 mx-auto mb-4 animate-pulse" />
+                        <h1 className="text-2xl font-bold text-white">Conectar à Turma</h1>
+                        <p className="text-slate-400 text-sm mt-2">
+                            {sessionMode === 'LIVE_REAL' ? 'Sessão Ao Vivo Detectada' : 'Modo Demonstração Local'}
+                        </p>
+                    </div>
+
+                    <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 space-y-4">
+                        <div>
+                            <label className="block text-left text-xs font-bold text-slate-400 uppercase mb-1">Seu Nome Completo</label>
+                            <input
+                                className="w-full bg-slate-900 border border-slate-600 rounded-xl p-4 text-white focus:border-brand-primary outline-none"
+                                placeholder="Ex: João Silva"
+                                value={inputName}
+                                onChange={e => setInputName(e.target.value)}
+                            />
                         </div>
-
-                        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 space-y-4">
-                            <div>
-                                <label className="block text-left text-xs font-bold text-slate-400 uppercase mb-1">Seu Nome Completo</label>
-                                <input
-                                    className="w-full bg-slate-900 border border-slate-600 rounded-xl p-4 text-white focus:border-brand-primary outline-none"
-                                    placeholder="Ex: João Silva"
-                                    value={inputName}
-                                    onChange={e => setInputName(e.target.value)}
-                                />
-                            </div>
-                            <button
-                                onClick={handleJoinClass}
-                                disabled={joining}
-                                className="w-full py-4 bg-brand-primary text-white font-bold rounded-xl text-lg hover:bg-brand-dark transition shadow-lg disabled:opacity-50"
-                            >
-                                {joining ? 'Entrando...' : 'Entrar na Sala'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                );
-    }
-
-                if (step === 'CONFIRM_IDENTITY') {
-        return (
-                <div className="fixed inset-0 bg-white flex flex-col items-center justify-center p-6 text-center animate-in fade-in z-50">
-                    <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mb-6 mx-auto shadow-lg text-emerald-600">
-                        <CheckCircle size={32} />
-                    </div>
-                    <h1 className="text-2xl font-bold text-slate-800 mb-1">Bem-vindo(a), {studentData.name.split(' ')[0]}!</h1>
-                    <p className="text-slate-500 text-sm mb-8">Sua presença foi confirmada no painel do professor.</p>
-
-                    <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 mb-8 text-left max-w-sm text-sm text-amber-800">
-                        <p className="font-bold mb-1 flex items-center gap-2"><Lock size={14} /> Modo Seguro Ativado</p>
-                        <ul className="list-disc pl-4 space-y-1 opacity-80">
-                            <li>Câmera será ativada para monitoria.</li>
-                            <li>Sair da tela cheia ou trocar de aba registrará uma infração.</li>
-                            <li>Cópia e uso de atalhos bloqueados.</li>
-                        </ul>
-                    </div>
-
-                    <div className="flex flex-col w-full max-w-sm gap-3">
-                        <button onClick={() => setStep('EXAM')} className="w-full py-4 bg-brand-primary text-white font-bold rounded-xl text-lg hover:bg-brand-dark transition shadow-lg flex items-center justify-center gap-3">
-                            <Play size={20} fill="white" /> Iniciar Prova
+                        <button
+                            onClick={handleJoinClass}
+                            disabled={joining}
+                            className="w-full py-4 bg-brand-primary text-white font-bold rounded-xl text-lg hover:bg-brand-dark transition shadow-lg disabled:opacity-50"
+                        >
+                            {joining ? 'Entrando...' : 'Entrar na Sala'}
                         </button>
                     </div>
                 </div>
-                );
+            </div>
+        );
     }
 
-                if (step === 'COMPLETED') {
-        const score = (studentData as any)?.lastScore;
-                const total = (studentData as any)?.lastTotal;
-                const percentage = total ? Math.round((score / total) * 100) : 0;
+    if (step === 'CONFIRM_IDENTITY') {
+        return (
+            <div className="fixed inset-0 bg-white flex flex-col items-center justify-center p-6 text-center animate-in fade-in z-50">
+                <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mb-6 mx-auto shadow-lg text-emerald-600">
+                    <CheckCircle size={32} />
+                </div>
+                <h1 className="text-2xl font-bold text-slate-800 mb-1">Bem-vindo(a), {studentData.name.split(' ')[0]}!</h1>
+                <p className="text-slate-500 text-sm mb-8">Sua presença foi confirmada no painel do professor.</p>
 
-                return (
-                <div className="fixed inset-0 bg-[#0f1d2e] flex flex-col items-center justify-center p-6 text-center animate-in zoom-in z-50 overflow-hidden font-sans">
-                    {/* Confetti Effect */}
-                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                        {[...Array(30)].map((_, i) => (
-                            <div key={i} className="absolute w-3 h-3 rounded-full opacity-0 animate-[confetti_4s_ease-out_infinite]"
-                                style={{
-                                    left: `${Math.random() * 100}%`,
-                                    top: `-20px`,
-                                    animationDelay: `${Math.random() * 2}s`,
-                                    backgroundColor: ['#FBBF24', '#34D399', '#60A5FA', '#F87171'][Math.floor(Math.random() * 4)]
-                                }}>
-                            </div>
-                        ))}
-                    </div>
-                    <style>{`
+                <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 mb-8 text-left max-w-sm text-sm text-amber-800">
+                    <p className="font-bold mb-1 flex items-center gap-2"><Lock size={14} /> Modo Seguro Ativado</p>
+                    <ul className="list-disc pl-4 space-y-1 opacity-80">
+                        <li>Câmera será ativada para monitoria.</li>
+                        <li>Sair da tela cheia ou trocar de aba registrará uma infração.</li>
+                        <li>Cópia e uso de atalhos bloqueados.</li>
+                    </ul>
+                </div>
+
+                <div className="flex flex-col w-full max-w-sm gap-3">
+                    <button onClick={() => setStep('EXAM')} className="w-full py-4 bg-brand-primary text-white font-bold rounded-xl text-lg hover:bg-brand-dark transition shadow-lg flex items-center justify-center gap-3">
+                        <Play size={20} fill="white" /> Iniciar Prova
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (step === 'COMPLETED') {
+        const score = (studentData as any)?.lastScore;
+        const total = (studentData as any)?.lastTotal;
+        const percentage = total ? Math.round((score / total) * 100) : 0;
+
+        return (
+            <div className="fixed inset-0 bg-[#0f1d2e] flex flex-col items-center justify-center p-6 text-center animate-in zoom-in z-50 overflow-hidden font-sans">
+                {/* Confetti Effect */}
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    {[...Array(30)].map((_, i) => (
+                        <div key={i} className="absolute w-3 h-3 rounded-full opacity-0 animate-[confetti_4s_ease-out_infinite]"
+                            style={{
+                                left: `${Math.random() * 100}%`,
+                                top: `-20px`,
+                                animationDelay: `${Math.random() * 2}s`,
+                                backgroundColor: ['#FBBF24', '#34D399', '#60A5FA', '#F87171'][Math.floor(Math.random() * 4)]
+                            }}>
+                        </div>
+                    ))}
+                </div>
+                <style>{`
                   @keyframes confetti {
                       0% { transform: translateY(0) rotate(0deg); opacity: 1; }
                       100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
                   }
               `}</style>
 
-                    <div className="relative z-10 bg-slate-800/80 backdrop-blur-md p-8 rounded-3xl border border-slate-700 shadow-2xl max-w-sm w-full">
-                        <div className="w-24 h-24 mx-auto bg-gradient-to-br from-yellow-400 to-amber-600 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-amber-500/20 animate-bounce">
-                            <Trophy size={48} className="text-white" />
+                <div className="relative z-10 bg-slate-800/80 backdrop-blur-md p-8 rounded-3xl border border-slate-700 shadow-2xl max-w-sm w-full">
+                    <div className="w-24 h-24 mx-auto bg-gradient-to-br from-yellow-400 to-amber-600 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-amber-500/20 animate-bounce">
+                        <Trophy size={48} className="text-white" />
+                    </div>
+
+                    <h1 className="text-3xl font-black text-white mb-2">Prova Finalizada!</h1>
+                    <p className="text-slate-400 mb-8">Parabéns, você completou o desafio.</p>
+
+                    <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-700 mb-8">
+                        <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Sua Pontuação</div>
+                        <div className="text-6xl font-black text-white flex items-center justify-center gap-1">
+                            {score !== undefined ? score : '?'}
+                            <span className="text-2xl text-slate-500 font-bold">/{total || '?'}</span>
                         </div>
+                        <div className="mt-2 text-xs text-slate-500">Aguaring Results...</div>
+                    </div>
 
-                        <h1 className="text-3xl font-black text-white mb-2">Prova Finalizada!</h1>
-                        <p className="text-slate-400 mb-8">Parabéns, você completou o desafio.</p>
-
-                        <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-700 mb-8">
-                            <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Sua Pontuação</div>
-                            <div className="text-6xl font-black text-white flex items-center justify-center gap-1">
-                                {score !== undefined ? score : '?'}
-                                <span className="text-2xl text-slate-500 font-bold">/{total || '?'}</span>
-                            </div>
-                            <div className="mt-2 text-xs text-slate-500">Aguaring Results...</div>
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-xl text-sm mb-4">
+                        <div className="flex items-center gap-2 text-emerald-400 font-bold mb-1">
+                            <CheckCircle size={16} /> Respostas Salvas
                         </div>
+                        <p className="text-slate-400 text-xs">Seus dados foram sincronizados com o servidor do professor.</p>
+                    </div>
 
-                        <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-xl text-sm mb-4">
-                            <div className="flex items-center gap-2 text-emerald-400 font-bold mb-1">
-                                <CheckCircle size={16} /> Respostas Salvas
-                            </div>
-                            <p className="text-slate-400 text-xs">Seus dados foram sincronizados com o servidor do professor.</p>
-                        </div>
+                    <p className="text-slate-500 text-xs">
+                        Aguarde o encerramento no telão para ver se você entrou no
+                        <span className="text-yellow-500 font-bold ml-1">Podium</span>!
+                    </p>
 
-                        <p className="text-slate-500 text-xs">
-                            Aguarde o encerramento no telão para ver se você entrou no
-                            <span className="text-yellow-500 font-bold ml-1">Podium</span>!
-                        </p>
+                    <button
+                        onClick={() => window.location.href = '/'}
+                        className="mt-8 w-full py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold transition"
+                    >
+                        Sair / Encerrar
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
+    if (step === 'SENDING') {
+        return (
+            <div className="fixed inset-0 bg-[#0f1d2e] flex flex-col items-center justify-center text-white p-8 text-center z-50">
+                <div className="relative mb-12">
+                    <div className="w-24 h-24 border-4 border-slate-700 rounded-full"></div>
+                    <div className="w-24 h-24 border-4 border-emerald-500 rounded-full border-t-transparent absolute top-0 left-0 animate-spin"></div>
+                    <Cloud size={32} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-emerald-500" />
+                </div>
+                <div className="space-y-4 w-full max-w-xs text-left">
+                    <div className="flex items-center gap-3 text-emerald-400 animate-in slide-in-from-left duration-500">
+                        <CheckCircle size={16} /> <span>Sincronizando Respostas...</span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (showResumeModal) {
+        return (
+            <div className="fixed inset-0 bg-slate-900/90 flex flex-col items-center justify-center p-6 text-center z-50 animate-in fade-in">
+                <div className="bg-white p-8 rounded-2xl max-w-sm w-full shadow-2xl">
+                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
+                        <Cloud size={32} />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-900 mb-2">Prova em Andamento</h2>
+                    <p className="text-slate-600 mb-6 text-sm">
+                        Encontramos uma prova não finalizada salva neste dispositivo. Deseja continuar de onde parou?
+                    </p>
+                    <div className="space-y-3">
                         <button
-                            onClick={() => window.location.href = '/'}
-                            className="mt-8 w-full py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold transition"
+                            onClick={handleResumeSession}
+                            className="w-full py-3 bg-brand-primary text-white font-bold rounded-xl hover:bg-brand-dark transition flex items-center justify-center gap-2"
                         >
-                            Sair / Encerrar
+                            <Play size={18} /> Continuar Prova
+                        </button>
+                        <button
+                            onClick={handleDiscardSession}
+                            className="w-full py-3 bg-slate-100 text-slate-500 font-bold rounded-xl hover:bg-slate-200 transition"
+                        >
+                            Começar do Zero
                         </button>
                     </div>
                 </div>
-                );
-    }
-
-                if (step === 'SENDING') {
-        return (
-                <div className="fixed inset-0 bg-[#0f1d2e] flex flex-col items-center justify-center text-white p-8 text-center z-50">
-                    <div className="relative mb-12">
-                        <div className="w-24 h-24 border-4 border-slate-700 rounded-full"></div>
-                        <div className="w-24 h-24 border-4 border-emerald-500 rounded-full border-t-transparent absolute top-0 left-0 animate-spin"></div>
-                        <Cloud size={32} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-emerald-500" />
-                    </div>
-                    <div className="space-y-4 w-full max-w-xs text-left">
-                        <div className="flex items-center gap-3 text-emerald-400 animate-in slide-in-from-left duration-500">
-                            <CheckCircle size={16} /> <span>Sincronizando Respostas...</span>
-                        </div>
-                    </div>
-                </div>
-                );
-    }
-
-                if (showResumeModal) {
-        return (
-                <div className="fixed inset-0 bg-slate-900/90 flex flex-col items-center justify-center p-6 text-center z-50 animate-in fade-in">
-                    <div className="bg-white p-8 rounded-2xl max-w-sm w-full shadow-2xl">
-                        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
-                            <Cloud size={32} />
-                        </div>
-                        <h2 className="text-xl font-bold text-slate-900 mb-2">Prova em Andamento</h2>
-                        <p className="text-slate-600 mb-6 text-sm">
-                            Encontramos uma prova não finalizada salva neste dispositivo. Deseja continuar de onde parou?
-                        </p>
-                        <div className="space-y-3">
-                            <button
-                                onClick={handleResumeSession}
-                                className="w-full py-3 bg-brand-primary text-white font-bold rounded-xl hover:bg-brand-dark transition flex items-center justify-center gap-2"
-                            >
-                                <Play size={18} /> Continuar Prova
-                            </button>
-                            <button
-                                onClick={handleDiscardSession}
-                                className="w-full py-3 bg-slate-100 text-slate-500 font-bold rounded-xl hover:bg-slate-200 transition"
-                            >
-                                Começar do Zero
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                );
+            </div>
+        );
     }
 
     // --- SYNC MONITOR COMPONENT ---
     const SyncMonitor = () => (
-                <div className={`p-3 rounded-xl border flex items-center justify-between mt-4 ${a11y.theme === 'high-contrast' ? 'border-yellow-400' : 'bg-slate-800 border-slate-700'}`}>
-                    <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${cameraActive ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                        <span className={`text-[10px] font-bold uppercase ${a11y.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-300'}`}>Monitoria</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Cloud size={14} className={a11y.theme === 'high-contrast' ? 'text-white' : 'text-brand-primary'} />
-                        <span className={`text-[10px] font-bold uppercase ${a11y.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-300'}`}>Sincronizado</span>
-                        <CheckCircle size={14} className="text-emerald-500" />
-                    </div>
-                </div>
-                );
+        <div className={`p-3 rounded-xl border flex items-center justify-between mt-4 ${a11y.theme === 'high-contrast' ? 'border-yellow-400' : 'bg-slate-800 border-slate-700'}`}>
+            <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${cameraActive ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                <span className={`text-[10px] font-bold uppercase ${a11y.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-300'}`}>Monitoria</span>
+            </div>
+            <div className="flex items-center gap-2">
+                <Cloud size={14} className={a11y.theme === 'high-contrast' ? 'text-white' : 'text-brand-primary'} />
+                <span className={`text-[10px] font-bold uppercase ${a11y.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-300'}`}>Sincronizado</span>
+                <CheckCircle size={14} className="text-emerald-500" />
+            </div>
+        </div>
+    );
 
-                // --- EXAM UI ---
-                return (
-                <div
-                    className={`fixed inset-0 flex flex-col overflow-hidden font-sans transition-colors duration-300 ${getThemeClasses()}`}
-                    style={containerStyle}
-                    onCopy={handlePreventClipboard}
-                    onPaste={handlePreventClipboard}
-                    onCut={handlePreventClipboard}
-                    onContextMenu={handleContextMenu}
+    // --- EXAM UI ---
+    return (
+        <div
+            className={`fixed inset-0 flex flex-col overflow-hidden font-sans transition-colors duration-300 ${getThemeClasses()}`}
+            style={containerStyle}
+            onCopy={handlePreventClipboard}
+            onPaste={handlePreventClipboard}
+            onCut={handlePreventClipboard}
+            onContextMenu={handleContextMenu}
+        >
+            <AccessibilityToolbar config={a11y} onChange={setA11y} />
+
+            {/* CAMERA PREVIEW (PROCTORING UI) */}
+            <div className={`fixed top-16 md:top-20 right-2 md:right-4 w-24 h-18 md:w-32 md:h-24 bg-black rounded-lg shadow-xl overflow-hidden z-30 border-2 group ${a11y.theme === 'high-contrast' ? 'border-yellow-400' : 'border-slate-800'}`}>
+                <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className={`w-full h-full object-cover opacity-80 ${!cameraActive && 'hidden'}`}
+                />
+                {!cameraActive && (
+                    <div className="w-full h-full flex items-center justify-center text-slate-500 bg-slate-900">
+                        <Video size={16} />
+                    </div>
+                )}
+                <div className="absolute top-1 left-1 bg-red-600 w-1.5 h-1.5 md:w-2 md:h-2 rounded-full animate-pulse"></div>
+            </div>
+
+            {/* WARNING BANNER */}
+            {violationCount > 0 && (
+                <div className="fixed top-16 left-1/2 -translate-x-1/2 bg-red-500 text-white px-6 py-2 rounded-full shadow-lg z-40 font-bold text-sm flex items-center gap-2 animate-bounce">
+                    <AlertTriangle size={16} /> {violationCount} Infrações Detectadas
+                </div>
+            )}
+
+            <div className={`h-14 flex justify-between items-center px-4 shadow-md flex-shrink-0 z-20 ${a11y.theme === 'high-contrast' ? 'bg-black text-yellow-400 border-b border-yellow-400' : 'bg-[#0f1d2e] text-white'}`}>
+                <div className="text-sm font-bold truncate max-w-[150px] md:max-w-none">{studentData.name}</div>
+                <div className="flex gap-2">
+                    <div className={`px-2 py-1 rounded font-mono text-[10px] md:text-xs border flex items-center gap-1 ${a11y.theme === 'high-contrast' ? 'border-yellow-400 text-yellow-400' : 'bg-slate-800 border-slate-700 text-emerald-400'}`}>
+                        <Wifi size={10} /> <span className="hidden sm:inline">{sessionMode === 'LIVE_REAL' ? 'Online' : 'Local'}</span>
+                    </div>
+                    {isKioskActive && <div className={`px-2 py-1 rounded font-mono text-[10px] md:text-xs border ${a11y.theme === 'high-contrast' ? 'border-white text-white' : 'bg-emerald-900 text-emerald-300 border-emerald-700'}`}>Kiosk</div>}
+                </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 pb-24 scroll-smooth">
+                <div className={`max-w-2xl mx-auto transition-all ${a11y.focusMode ? 'flex flex-col justify-center min-h-[60vh]' : ''}`}>
+                    <div className="w-full bg-slate-200 h-1.5 rounded-full mb-6 overflow-hidden">
+                        <div className="bg-brand-primary h-full transition-all duration-300" style={{ width: `${((currentQuestionIdx + 1) / actualItems.length) * 100}%` }}></div>
+                    </div>
+
+                    <div className={`p-6 rounded-2xl shadow-sm border mb-4 relative overflow-hidden transition-colors ${a11y.theme === 'high-contrast' ? 'bg-black border-yellow-400' : (a11y.theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200')}`}>
+                        <span className={`absolute top-0 right-0 text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider ${a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black' : 'bg-slate-100 text-slate-500'}`}>Questão {currentQuestionIdx + 1}</span>
+
+                        {/* MULTIMEDIA RENDERER */}
+                        {(item as any).multimedia && (item as any).multimedia.length > 0 && (
+                            <div className="mb-4 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
+                                {(item as any).multimedia.map((media: any, idx: number) => {
+                                    if (media.type === 'IMAGE') return <img key={idx} src={media.url} alt={media.description} className="w-full h-auto max-h-64 object-contain" />;
+                                    // ... other media types similar logic or generic ...
+                                    return null;
+                                })}
+                            </div>
+                        )}
+
+                        <div className="mb-6 mt-2">
+                            <RichTextRenderer
+                                content={item.statement}
+                                className={`text-lg font-semibold leading-snug ${a11y.theme === 'high-contrast' ? 'text-yellow-400' : (a11y.theme === 'dark' ? 'text-white' : 'text-slate-800')}`}
+                            />
+                        </div>
+
+                        <div className="space-y-3">
+                            {item.alternatives?.map((alt: any) => {
+                                const isSelected = answers[item.id] === alt.id;
+                                const highContrastClass = isSelected ? 'bg-yellow-400 text-black border-4 border-yellow-400 font-bold' : 'bg-black text-yellow-400 border-2 border-yellow-400 hover:bg-yellow-900';
+                                const defaultClass = isSelected ? 'border-brand-primary bg-brand-light/30 text-brand-dark shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-600 hover:bg-slate-100';
+                                const darkClass = isSelected ? 'border-brand-primary bg-brand-primary/20 text-white' : 'border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700';
+
+                                let btnClass = defaultClass;
+                                if (a11y.theme === 'high-contrast') btnClass = highContrastClass;
+                                else if (a11y.theme === 'dark') btnClass = darkClass;
+                                else if (a11y.theme === 'sepia') btnClass = isSelected ? 'bg-[#e0d0a0] border-[#8a6a4b] text-[#4f3e1e]' : 'bg-[#f4e4bc] border-[#d8c8a0] hover:bg-[#e0d0a0]';
+
+
+                                return (
+                                    <button
+                                        key={alt.id}
+                                        onClick={() => handleOptionSelect(item.id, alt.id)}
+                                        className={`w-full text-left p-4 rounded-xl border-2 transition-all active:scale-[0.98] ${btnClass}`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 text-sm font-bold ${isSelected ? 'border-current bg-current text-white' : 'border-current opacity-50'}`}>
+                                                {!isSelected && alt.id.toUpperCase()}
+                                            </div>
+                                            <RichTextRenderer
+                                                content={alt.text}
+                                                className="font-medium"
+                                            />
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <SyncMonitor />
+                </div>
+            </div>
+
+            <div className={`absolute bottom-0 left-0 right-0 border-t p-4 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20 safe-area-pb ${a11y.theme === 'high-contrast' ? 'bg-black border-yellow-400' : 'bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800'}`}>
+                <button
+                    onClick={() => setCurrentQuestionIdx(Math.max(0, currentQuestionIdx - 1))}
+                    disabled={currentQuestionIdx === 0}
+                    className="p-3 rounded-xl text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition"
                 >
-                    <AccessibilityToolbar config={a11y} onChange={setA11y} />
+                    <ChevronLeft size={28} />
+                </button>
 
-                    {/* CAMERA PREVIEW (PROCTORING UI) */}
-                    <div className={`fixed top-16 md:top-20 right-2 md:right-4 w-24 h-18 md:w-32 md:h-24 bg-black rounded-lg shadow-xl overflow-hidden z-30 border-2 group ${a11y.theme === 'high-contrast' ? 'border-yellow-400' : 'border-slate-800'}`}>
-                        <video
-                            ref={videoRef}
-                            autoPlay
-                            playsInline
-                            muted
-                            className={`w-full h-full object-cover opacity-80 ${!cameraActive && 'hidden'}`}
-                        />
-                        {!cameraActive && (
-                            <div className="w-full h-full flex items-center justify-center text-slate-500 bg-slate-900">
-                                <Video size={16} />
-                            </div>
-                        )}
-                        <div className="absolute top-1 left-1 bg-red-600 w-1.5 h-1.5 md:w-2 md:h-2 rounded-full animate-pulse"></div>
-                    </div>
+                {isLast ? (
+                    <button
+                        onClick={handleFinishExam}
+                        className={`px-8 py-3 rounded-xl font-bold shadow-lg active:scale-95 transition flex items-center gap-2 text-lg ${a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black' : 'bg-emerald-600 text-white shadow-emerald-200'}`}
+                    >
+                        Entregar <CheckCircle size={20} />
+                    </button>
+                ) : (
+                    <button
+                        onClick={() => setCurrentQuestionIdx(currentQuestionIdx + 1)}
+                        className={`px-8 py-3 rounded-xl font-bold shadow-lg active:scale-95 transition flex items-center gap-2 text-lg ${a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black' : 'bg-brand-primary text-white shadow-sky-200'}`}
+                    >
+                        Próxima <ChevronRight size={20} />
+                    </button>
+                )}
+            </div>
 
-                    {/* WARNING BANNER */}
-                    {violationCount > 0 && (
-                        <div className="fixed top-16 left-1/2 -translate-x-1/2 bg-red-500 text-white px-6 py-2 rounded-full shadow-lg z-40 font-bold text-sm flex items-center gap-2 animate-bounce">
-                            <AlertTriangle size={16} /> {violationCount} Infrações Detectadas
-                        </div>
-                    )}
-
-                    <div className={`h-14 flex justify-between items-center px-4 shadow-md flex-shrink-0 z-20 ${a11y.theme === 'high-contrast' ? 'bg-black text-yellow-400 border-b border-yellow-400' : 'bg-[#0f1d2e] text-white'}`}>
-                        <div className="text-sm font-bold truncate max-w-[150px] md:max-w-none">{studentData.name}</div>
-                        <div className="flex gap-2">
-                            <div className={`px-2 py-1 rounded font-mono text-[10px] md:text-xs border flex items-center gap-1 ${a11y.theme === 'high-contrast' ? 'border-yellow-400 text-yellow-400' : 'bg-slate-800 border-slate-700 text-emerald-400'}`}>
-                                <Wifi size={10} /> <span className="hidden sm:inline">{sessionMode === 'LIVE_REAL' ? 'Online' : 'Local'}</span>
-                            </div>
-                            {isKioskActive && <div className={`px-2 py-1 rounded font-mono text-[10px] md:text-xs border ${a11y.theme === 'high-contrast' ? 'border-white text-white' : 'bg-emerald-900 text-emerald-300 border-emerald-700'}`}>Kiosk</div>}
-                        </div>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-4 pb-24 scroll-smooth">
-                        <div className={`max-w-2xl mx-auto transition-all ${a11y.focusMode ? 'flex flex-col justify-center min-h-[60vh]' : ''}`}>
-                            <div className="w-full bg-slate-200 h-1.5 rounded-full mb-6 overflow-hidden">
-                                <div className="bg-brand-primary h-full transition-all duration-300" style={{ width: `${((currentQuestionIdx + 1) / actualItems.length) * 100}%` }}></div>
-                            </div>
-
-                            <div className={`p-6 rounded-2xl shadow-sm border mb-4 relative overflow-hidden transition-colors ${a11y.theme === 'high-contrast' ? 'bg-black border-yellow-400' : (a11y.theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200')}`}>
-                                <span className={`absolute top-0 right-0 text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider ${a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black' : 'bg-slate-100 text-slate-500'}`}>Questão {currentQuestionIdx + 1}</span>
-
-                                {/* MULTIMEDIA RENDERER */}
-                                {(item as any).multimedia && (item as any).multimedia.length > 0 && (
-                                    <div className="mb-4 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
-                                        {(item as any).multimedia.map((media: any, idx: number) => {
-                                            if (media.type === 'IMAGE') return <img key={idx} src={media.url} alt={media.description} className="w-full h-auto max-h-64 object-contain" />;
-                                            // ... other media types similar logic or generic ...
-                                            return null;
-                                        })}
-                                    </div>
-                                )}
-
-                                <div className="mb-6 mt-2">
-                                    <RichTextRenderer
-                                        content={item.statement}
-                                        className={`text-lg font-semibold leading-snug ${a11y.theme === 'high-contrast' ? 'text-yellow-400' : (a11y.theme === 'dark' ? 'text-white' : 'text-slate-800')}`}
-                                    />
-                                </div>
-
-                                <div className="space-y-3">
-                                    {item.alternatives?.map((alt: any) => {
-                                        const isSelected = answers[item.id] === alt.id;
-                                        const highContrastClass = isSelected ? 'bg-yellow-400 text-black border-4 border-yellow-400 font-bold' : 'bg-black text-yellow-400 border-2 border-yellow-400 hover:bg-yellow-900';
-                                        const defaultClass = isSelected ? 'border-brand-primary bg-brand-light/30 text-brand-dark shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-600 hover:bg-slate-100';
-                                        const darkClass = isSelected ? 'border-brand-primary bg-brand-primary/20 text-white' : 'border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700';
-
-                                        let btnClass = defaultClass;
-                                        if (a11y.theme === 'high-contrast') btnClass = highContrastClass;
-                                        else if (a11y.theme === 'dark') btnClass = darkClass;
-                                        else if (a11y.theme === 'sepia') btnClass = isSelected ? 'bg-[#e0d0a0] border-[#8a6a4b] text-[#4f3e1e]' : 'bg-[#f4e4bc] border-[#d8c8a0] hover:bg-[#e0d0a0]';
-
-
-                                        return (
-                                            <button
-                                                key={alt.id}
-                                                onClick={() => handleOptionSelect(item.id, alt.id)}
-                                                className={`w-full text-left p-4 rounded-xl border-2 transition-all active:scale-[0.98] ${btnClass}`}
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 text-sm font-bold ${isSelected ? 'border-current bg-current text-white' : 'border-current opacity-50'}`}>
-                                                        {!isSelected && alt.id.toUpperCase()}
-                                                    </div>
-                                                    <RichTextRenderer
-                                                        content={alt.text}
-                                                        className="font-medium"
-                                                    />
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            <SyncMonitor />
-                        </div>
-                    </div>
-
-                    <div className={`absolute bottom-0 left-0 right-0 border-t p-4 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20 safe-area-pb ${a11y.theme === 'high-contrast' ? 'bg-black border-yellow-400' : 'bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800'}`}>
-                        <button
-                            onClick={() => setCurrentQuestionIdx(Math.max(0, currentQuestionIdx - 1))}
-                            disabled={currentQuestionIdx === 0}
-                            className="p-3 rounded-xl text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition"
-                        >
-                            <ChevronLeft size={28} />
-                        </button>
-
-                        {isLast ? (
-                            <button
-                                onClick={handleFinishExam}
-                                className={`px-8 py-3 rounded-xl font-bold shadow-lg active:scale-95 transition flex items-center gap-2 text-lg ${a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black' : 'bg-emerald-600 text-white shadow-emerald-200'}`}
-                            >
-                                Entregar <CheckCircle size={20} />
-                            </button>
-                        ) : (
-                            <button
-                                onClick={() => setCurrentQuestionIdx(currentQuestionIdx + 1)}
-                                className={`px-8 py-3 rounded-xl font-bold shadow-lg active:scale-95 transition flex items-center gap-2 text-lg ${a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black' : 'bg-brand-primary text-white shadow-sky-200'}`}
-                            >
-                                Próxima <ChevronRight size={20} />
-                            </button>
-                        )}
-                    </div>
-
-                    {/* FOCUS MODE OVERLAY */}
-                    {a11y.focusMode && (
-                        <div className="fixed inset-0 pointer-events-none z-10 hidden md:block">
-                            <div className="absolute top-0 left-0 right-0 h-[20vh] bg-black/80 backdrop-blur-sm" />
-                            <div className="absolute bottom-0 left-0 right-0 h-[20vh] bg-black/80 backdrop-blur-sm" />
-                        </div>
-                    )}
+            {/* FOCUS MODE OVERLAY */}
+            {a11y.focusMode && (
+                <div className="fixed inset-0 pointer-events-none z-10 hidden md:block">
+                    <div className="absolute top-0 left-0 right-0 h-[20vh] bg-black/80 backdrop-blur-sm" />
+                    <div className="absolute bottom-0 left-0 right-0 h-[20vh] bg-black/80 backdrop-blur-sm" />
                 </div>
-                );
+            )}
+        </div>
+    );
 };
