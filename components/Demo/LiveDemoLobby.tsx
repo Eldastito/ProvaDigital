@@ -136,9 +136,8 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
             setActiveExamId(examId);
             setStep('WAITING_PROFESSOR');
 
-            // Iniciar Listeners
-            subscribeToClassStatus(classId);
-            subscribeToStudents(classId);
+            // Listeners agora são gerenciados pelo useEffect acima
+
 
         } catch (error: any) {
             console.error("Erro ao criar sessão:", error);
@@ -148,29 +147,100 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
         }
     };
 
-    // --- 2. REALTIME: ESCUTAR STATUS DA TURMA (SEU COMANDO) ---
-    const subscribeToClassStatus = (classId: string) => {
-        const channel = supabase
-            .channel('public:classes')
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'classes', filter: `id=eq.${classId}` }, (payload) => {
+    // --- 2. REALTIME: SUBSCRIPTIONS (Status Turma, Alunos, Alertas, Submissões) ---
+    const [submissions, setSubmissions] = useState<Set<string>>(new Set());
+    const [securityAlerts, setSecurityAlerts] = useState<Map<string, string>>(new Map());
+
+    useEffect(() => {
+        if (!activeClassId || !activeExamId) return;
+
+        // A. Canal de Broadcast (Alertas de Segurança do StudentApp)
+        const monitorChannel = supabase.channel(`exam_monitor:${activeExamId}`)
+            .on('broadcast', { event: 'ALERT' }, (payload) => {
+                console.log("🚨 Alerta Recebido no Lobby:", payload);
+                const { studentId, type } = payload.payload;
+
+                // Registra apenas o primeiro para exibir ícone (ou atualiza, conforme preferência)
+                setSecurityAlerts(prev => {
+                    const newMap = new Map(prev);
+                    if (!newMap.has(studentId)) {
+                        // Mapear tipos técnicos para textos amigáveis em PT-BR
+                        const labelMap: any = {
+                            'FOCUS_LOST': 'Minimizou/Saiu',
+                            'ALT_TAB': 'Atalho Proibido',
+                            'COPY_PASTE': 'Copiou/Colou',
+                            'MOUSE_LEAVE': 'Mouse Fora',
+                            'WINDOW_RESIZE': 'Redimensionou',
+                            'SCREEN_SHARE_ENDED': 'Parou Tela'
+                        };
+                        newMap.set(studentId, labelMap[type] || 'Atividade Suspeita');
+                    }
+                    return newMap;
+                });
+            })
+            .subscribe();
+
+        // B. Tabela de Resultados (Monitorar quem acabou)
+        const resultsChannel = supabase.channel(`results_monitor:${activeExamId}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'exam_results', filter: `exam_id=eq.${activeExamId}` }, (payload) => {
+                const newResult = payload.new;
+                setSubmissions(prev => {
+                    const newSet = new Set(prev);
+                    newSet.add(newResult.student_id);
+                    return newSet;
+                });
+            })
+            .subscribe();
+
+        // C. Tabela de Turmas (Status - Mantido)
+        const classChannel = supabase.channel(`class_status:${activeClassId}`)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'classes', filter: `id=eq.${activeClassId}` }, (payload) => {
                 const newStatus = payload.new.status;
                 if (newStatus === 'OPEN') {
                     setStep('LOBBY_ACTIVE');
                 } else if (newStatus === 'FINISHED') {
-                    calculateResults(classId, activeExamId!);
+                    calculateResults(activeClassId, activeExamId);
                 }
             })
             .subscribe();
-    };
 
-    // --- 3. REALTIME: ESCUTAR ALUNOS ---
-    const subscribeToStudents = (classId: string) => {
-        const channel = supabase
-            .channel('public:students')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'students', filter: `class_id=eq.${classId}` }, (payload) => {
+        // D. Tabela de Alunos (Entrada - Mantido)
+        const studentsChannel = supabase.channel(`students_monitor:${activeClassId}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'students', filter: `class_id=eq.${activeClassId}` }, (payload) => {
                 setJoinedStudents(prev => [payload.new, ...prev]);
             })
             .subscribe();
+
+        return () => {
+            supabase.removeChannel(monitorChannel);
+            supabase.removeChannel(resultsChannel);
+            supabase.removeChannel(classChannel);
+            supabase.removeChannel(studentsChannel);
+        };
+    }, [activeClassId, activeExamId]);
+
+    // --- 3. AUTO-FINISH LOGIC ---
+    useEffect(() => {
+        // Se temos alunos, e todos os alunos presentes já entregaram...
+        if (joinedStudents.length > 0 && submissions.size >= joinedStudents.length && step === 'LOBBY_ACTIVE') {
+            console.log("🏁 Todos terminaram! Encerrando prova automaticamente...");
+            handleAutoFinish();
+        }
+    }, [submissions.size, joinedStudents.length, step]);
+
+    const handleAutoFinish = async () => {
+        // Pequeno delay para garantir que o último insert foi processado e dar emoção
+        await new Promise(r => setTimeout(r, 2000));
+
+        // Atualiza status no banco para disparar o listen 'FINISHED' (que chama calculateResults)
+        // E também garante consistência para quem chegar atrasado
+        if (activeClassId) {
+            await supabase.from('classes').update({ status: 'FINISHED' }).eq('id', activeClassId);
+            // O listener acima vai pegar isso e chamar calculateResults, mas por segurança chamamos direto se o listener falhar no timing
+            // Mas idealmente confiamos no listener para sincronia. 
+            // Vamos forçar localmente para UX imediata se o listener demorar
+            calculateResults(activeClassId, activeExamId!);
+        }
     };
 
     // --- 4. CORREÇÃO AUTOMÁTICA (SERVER-SIDE SIMULATION) ---
@@ -467,8 +537,25 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
                                                     <div className="text-xs text-slate-400 font-mono">Mat: {student.registration_number || 'N/A'}</div>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                                                <CheckCircle size={14} /> ONLINE
+                                            <div className="flex items-center gap-2">
+                                                {/* ALERTA DE FRAUDE */}
+                                                {securityAlerts.has(student.id) && (
+                                                    <div className="flex items-center gap-1 text-amber-400 bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20 animate-pulse" title="Atividade suspeita detectada">
+                                                        <AlertTriangle size={14} />
+                                                        <span className="text-[10px] font-bold uppercase">{securityAlerts.get(student.id)}</span>
+                                                    </div>
+                                                )}
+
+                                                {/* STATUS: ENTREGUE ou ONLINE */}
+                                                {submissions.has(student.id) ? (
+                                                    <div className="flex items-center gap-2 text-brand-primary text-xs font-bold bg-brand-primary/10 px-3 py-1 rounded-full border border-brand-primary/20">
+                                                        <CheckCircle size={14} /> ENTREGUE
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                                                        <Zap size={14} /> ONLINE
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     ))
