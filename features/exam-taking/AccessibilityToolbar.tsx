@@ -18,16 +18,16 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
         return (
             <button
                 onClick={() => setIsOpen(true)}
-                className="fixed bottom-6 right-6 bg-brand-primary text-white p-4 rounded-full shadow-2xl hover:bg-brand-dark transition-all z-[9999] group animate-in slide-in-from-bottom-4"
+                className="fixed bottom-24 right-4 bg-brand-primary text-white p-3 rounded-full shadow-xl hover:bg-brand-dark transition-all z-[40] group animate-in slide-in-from-bottom-4 opacity-90 hover:opacity-100"
                 title="Opções de Acessibilidade"
             >
-                <Settings size={28} className="group-hover:rotate-90 transition-transform duration-500" />
+                <Settings size={24} className="group-hover:rotate-90 transition-transform duration-500" />
             </button>
         );
     }
 
     return (
-        <div className="fixed bottom-6 right-6 w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6 z-[9999] animate-in slide-in-from-bottom-4 fade-in">
+        <div className="fixed bottom-24 right-4 w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-6 z-[50] animate-in slide-in-from-bottom-4 fade-in">
             <div className="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
                 <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
                     <Settings size={18} className="text-brand-primary" />
