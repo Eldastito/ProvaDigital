@@ -739,10 +739,12 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                                             <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 text-sm font-bold ${isSelected ? 'border-current bg-current text-white' : 'border-current opacity-50'}`}>
                                                 {!isSelected && alt.id.toUpperCase()}
                                             </div>
-                                            <RichTextRenderer
-                                                content={alt.text}
-                                                className="font-medium"
-                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <RichTextRenderer
+                                                    content={alt.text}
+                                                    className="font-medium break-words"
+                                                />
+                                            </div>
                                         </div>
                                     </button>
                                 );
