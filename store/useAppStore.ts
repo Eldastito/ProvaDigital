@@ -974,7 +974,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
             console.error('❌ Error deleting exam:', e);
         }
     },
-    ,
+
     updateUser: async (user) => {
         set((state) => ({
             users: state.users.map(u => u.id === user.id ? user : u)
