@@ -338,6 +338,7 @@ export interface Exam {
   targetQuestionCount: number;
   status: ExamStatus;
   items: ExamItemConfig[];
+  items_config?: ExamItemConfig[]; // DB column alias
   classIds: string[];
   shuffleItems?: boolean; // Embaralhamento randômico anti-cola
   printConfig?: PrintConfig; // Phase 10: Print settings
