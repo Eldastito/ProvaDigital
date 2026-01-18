@@ -717,8 +717,9 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                         </div>
 
                         <div className="space-y-3">
-                            {item.alternatives?.map((alt: any) => {
+                            {item.alternatives?.map((alt: any, idx: number) => {
                                 const isSelected = answers[item.id] === alt.id;
+                                const letter = String.fromCharCode(65 + idx); // A, B, C...
                                 const highContrastClass = isSelected ? 'bg-yellow-400 text-black border-4 border-yellow-400 font-bold' : 'bg-black text-yellow-400 border-2 border-yellow-400 hover:bg-yellow-900';
                                 const defaultClass = isSelected ? 'border-brand-primary bg-brand-light/30 text-brand-dark shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-600 hover:bg-slate-100';
                                 const darkClass = isSelected ? 'border-brand-primary bg-brand-primary/20 text-white' : 'border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700';
@@ -735,14 +736,14 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                                         onClick={() => handleOptionSelect(item.id, alt.id)}
                                         className={`w-full text-left p-4 rounded-xl border-2 transition-all active:scale-[0.98] ${btnClass}`}
                                     >
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 text-sm font-bold ${isSelected ? 'border-current bg-current text-white' : 'border-current opacity-50'}`}>
-                                                {!isSelected && alt.id.toUpperCase()}
+                                        <div className="flex items-start gap-3">
+                                            <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 text-sm font-bold mt-1 ${isSelected ? 'border-current bg-current text-white' : 'border-current opacity-50'}`}>
+                                                {letter}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <RichTextRenderer
                                                     content={alt.text}
-                                                    className="font-medium break-words"
+                                                    className="font-medium break-words leading-relaxed"
                                                 />
                                             </div>
                                         </div>
