@@ -112,8 +112,11 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         }
     }, [examIdParam]);
 
+    const [loadError, setLoadError] = useState<string | null>(null);
+
     const loadRealExam = async (examId: string) => {
         setLoadingExam(true);
+        setLoadError(null);
         try {
             await state.fetchExamItems(examId);
             const exam = state.exams.find(e => e.id === examId);
@@ -122,10 +125,17 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                     const item = state.items.find(i => i.id === config.itemId);
                     return item ? { ...item, ...config } : null;
                 }).filter(Boolean);
+
+                if (items.length === 0) {
+                    setLoadError(`Prova encontrada, mas sem questões. (Config: ${exam.items_config?.length || 0})`);
+                }
                 setExamItems(items);
+            } else {
+                setLoadError("Prova não encontrada no cache local após busca.");
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error("Error loading exam items:", e);
+            setLoadError(e.message || JSON.stringify(e));
         } finally {
             setLoadingExam(false);
         }
