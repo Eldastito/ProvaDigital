@@ -8,7 +8,7 @@ import { useProctoring } from '../../hooks/useProctoring';
 import { saveSession, getLastSession, clearDb } from '../../services/offlineDb';
 import { StoredSession } from '../../types';
 
-import { useSafeAppStore } from '../../store/useAppStore';
+import { useSafeAppStore, useAppStore } from '../../store/useAppStore';
 import { RichTextRenderer } from '../RichTextRenderer';
 import { AccessibilityToolbar } from '../../features/exam-taking/AccessibilityToolbar';
 import { AccessibilityConfig, DEFAULT_ACCESSIBILITY_CONFIG } from '../../features/exam-taking/types';
