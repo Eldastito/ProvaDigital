@@ -155,6 +155,25 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         }
     }, [examItems, mockItems, loadingExam, examIdParam]);
 
+    // --- AUTO-RESUME LOGIC (Moved up to fix Hooks Rule) ---
+    useEffect(() => {
+        if (!studentData || !studentData.id || !studentData.eventId) return;
+
+        const checkSavedSession = async () => {
+            // Tenta recuperar sessão anterior
+            const saved = await getLastSession(studentData.id, studentData.eventId || 'demo');
+            if (saved && !saved.synced) {
+                console.log("Sessão encontrada:", saved);
+                setFoundSession(saved);
+                setShowResumeModal(true);
+            } else {
+                setStep('CONFIRM_IDENTITY');
+            }
+        };
+
+        checkSavedSession();
+    }, [studentData]);
+
     // UI Blocking for Loading
     if (loadingExam) {
         return (
@@ -235,24 +254,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         }
     };
 
-    // --- AUTO-RESUME LOGIC ---
-    useEffect(() => {
-        if (!studentData || !studentData.id || !studentData.eventId) return;
 
-        const checkSavedSession = async () => {
-            // Tenta recuperar sessão anterior
-            const saved = await getLastSession(studentData.id, studentData.eventId || 'demo');
-            if (saved && !saved.synced) {
-                console.log("Sessão encontrada:", saved);
-                setFoundSession(saved);
-                setShowResumeModal(true);
-            } else {
-                setStep('CONFIRM_IDENTITY');
-            }
-        };
-
-        checkSavedSession();
-    }, [studentData]);
 
     const handleResumeSession = () => {
         if (foundSession) {
