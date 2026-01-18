@@ -112,9 +112,23 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
                     title: 'Quiz Interativo - Ao Vivo',
                     subject: 'Conhecimentos Gerais',
                     status: 'PUBLICADA',
-                    items_config: [],
+                    items_config: [
+                        { itemId: 'q1', order: 1 },
+                        { itemId: 'q2', order: 2 },
+                        { itemId: 'q3', order: 3 }
+                    ],
                     class_ids: [classId]
                 });
+
+                // Also insert the ITEMS themselves if they don't exist
+                const mockItemsToInsert = [
+                    { id: 'q1', tenant_id: tenantId, owner_id: 'system', type: 'MULTIPLE_CHOICE', statement: 'Qual a capital do Brasil?', alternatives: [{ id: 'a', text: 'Brasília', isCorrect: true }, { id: 'b', text: 'Rio de Janeiro', isCorrect: false }], difficulty: 'FACIL', score: 1 },
+                    { id: 'q2', tenant_id: tenantId, owner_id: 'system', type: 'MULTIPLE_CHOICE', statement: 'Quanto é 2 + 2?', alternatives: [{ id: 'a', text: '4', isCorrect: true }, { id: 'b', text: '5', isCorrect: false }], difficulty: 'FACIL', score: 1 },
+                    { id: 'q3', tenant_id: tenantId, owner_id: 'system', type: 'MULTIPLE_CHOICE', statement: 'O sol é uma estrela?', alternatives: [{ id: 'a', text: 'Sim', isCorrect: true }, { id: 'b', text: 'Não', isCorrect: false }], difficulty: 'FACIL', score: 1 }
+                ];
+
+                await supabase.from('items').upsert(mockItemsToInsert); // upsert is safe
+
                 if (examError) throw examError;
             } else {
                 // Se já existe, apenas vincular a turma à prova (opcional no modelo atual mas boa prática)
