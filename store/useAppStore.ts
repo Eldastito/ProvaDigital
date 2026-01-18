@@ -2063,7 +2063,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
             console.log(`📥 Fetching ${missingIds.length} missing items for exam ${examId}`);
 
-            const { data: dbItems, error } = await supabase
+            const { data: dbItems, error: itemsError } = await supabase
                 .from('items')
                 .select('*')
                 .in('id', missingIds);
