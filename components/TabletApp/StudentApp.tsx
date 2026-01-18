@@ -97,12 +97,30 @@ export const StudentApp = ({ onBack }: StudentAppProps) => {
 
     const [shuffledItems, setShuffledItems] = useState<any[]>([]);
 
+    // Use separate effect to handle loading state properly
     useEffect(() => {
-        const source = examItems.length > 0 ? examItems : mockItems;
-        // SHUFFLE LOGIC (Fisher-Yates simple variant or just sort random)
-        const shuffled = [...source].sort(() => Math.random() - 0.5);
-        setShuffledItems(shuffled);
-    }, [examItems, mockItems]);
+        if (loadingExam) return; // Don't shuffle while loading
+
+        // Only fallback to mock if NO exam ID was provided and we are in demo mode
+        const shouldLoadMock = !examIdParam && examItems.length === 0;
+
+        if (examItems.length > 0) {
+            const shuffled = [...examItems].sort(() => Math.random() - 0.5);
+            setShuffledItems(shuffled);
+        } else if (shouldLoadMock) {
+            setShuffledItems(mockItems);
+        }
+    }, [examItems, mockItems, loadingExam, examIdParam]);
+
+    // UI Blocking for Loading
+    if (loadingExam) {
+        return (
+            <div className="fixed inset-0 bg-[#0f1d2e] flex flex-col items-center justify-center text-white p-8 text-center z-50">
+                <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-brand-primary border-r-transparent mb-4"></div>
+                <p>Carregando Prova...</p>
+            </div>
+        );
+    }
 
     // Use shuffled items for the exam
     const actualItems = shuffledItems;
@@ -446,6 +464,13 @@ export const StudentApp = ({ onBack }: StudentAppProps) => {
                         Aguarde o encerramento no telão para ver se você entrou no
                         <span className="text-yellow-500 font-bold ml-1">Podium</span>!
                     </p>
+
+                    <button
+                        onClick={() => window.location.href = '/'}
+                        className="mt-8 w-full py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold transition"
+                    >
+                        Sair / Encerrar
+                    </button>
                 </div>
             </div>
         );

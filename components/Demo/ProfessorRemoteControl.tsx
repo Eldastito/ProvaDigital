@@ -9,6 +9,15 @@ interface ProfessorRemoteControlProps {
 }
 
 export const ProfessorRemoteControl = ({ classId, onExit }: ProfessorRemoteControlProps) => {
+    const handleExit = () => {
+        if (confirm("Sair do controle?")) {
+            onExit();
+            // If onExit was just closing a modal, we might want to force a redirect if this is a standalone page
+            if (window.location.search.includes('role=PROFESSOR')) {
+                window.location.href = '/';
+            }
+        }
+    };
     const [status, setStatus] = useState('LOADING');
     const [studentsCount, setStudentsCount] = useState(0);
 
@@ -75,7 +84,7 @@ export const ProfessorRemoteControl = ({ classId, onExit }: ProfessorRemoteContr
                 )}
             </div>
 
-            <button onClick={onExit} className="mt-8 text-slate-500 underline text-sm">Sair do Controle</button>
+            <button onClick={handleExit} className="mt-8 text-slate-500 underline text-sm">Sair do Controle</button>
         </div>
     );
 };
