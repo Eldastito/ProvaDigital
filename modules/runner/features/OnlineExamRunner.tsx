@@ -82,6 +82,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
             if (!activeId) {
                 // New Attempt
                 activeId = await startExamAttempt({
+                    examId: exam.id,
                     examVersionId: exam.id,
                     studentId: studentId
                 });
