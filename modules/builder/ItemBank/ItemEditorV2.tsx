@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useAppStore } from '../../store/useAppStore';
-import { Item, ItemVersion, QuestionType, DifficultyLevel } from '../../types';
+import { useAppStore } from '../../../store/useAppStore';
+import { Item, ItemVersion, QuestionType, DifficultyLevel } from '../../../types';
 import { Save, History, ArrowLeft, AlertTriangle, Plus, Trash2, Video, Music, Image as ImageIcon } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { RichTextEditor } from '../RichTextEditor';
+import { RichTextEditor } from '../../../components/RichTextEditor';
 
 export const ItemEditorV2 = () => {
     const { id } = useParams<{ id: string }>();

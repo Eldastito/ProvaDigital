@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Save, AlertCircle } from 'lucide-react';
-import { Item, DifficultyLevel } from '../../types';
-import { RichTextEditor } from '../../components/RichTextEditor';
+import { Item, DifficultyLevel } from '../../../types';
+import { RichTextEditor } from '../../../components/RichTextEditor';
 
 interface ItemEditModalProps {
     item: Item;

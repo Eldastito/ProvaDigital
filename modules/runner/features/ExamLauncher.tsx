@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useAppStore } from '../../store/useAppStore';
+import { useAppStore } from '../../../store/useAppStore';
 import { useNavigate } from 'react-router-dom';
 import { Play, FileText, Clock, AlertTriangle, Accessibility } from 'lucide-react';
-import { ExamStatus } from '../../types';
+import { ExamStatus } from '../../../types';
 
 export const ExamLauncher = () => {
     const { exams, currentUser, getRecommendedVariant } = useAppStore();

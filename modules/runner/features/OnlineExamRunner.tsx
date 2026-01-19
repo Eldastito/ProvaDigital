@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useAppStore } from '../../store/useAppStore';
+import { useAppStore } from '../../../store/useAppStore';
 import { AccessibilityToolbar } from './AccessibilityToolbar';
 import { AccessibilityConfig, DEFAULT_ACCESSIBILITY_CONFIG } from './types';
 import { ChevronLeft, ChevronRight, CheckCircle, Clock, CloudUpload } from 'lucide-react';
-import { Exam, Item, StudentAnswer } from '../../types';
-import { useProctoring } from '../../hooks/useProctoring';
-import { RichTextRenderer } from '../../components/RichTextRenderer';
+import { Exam, Item, StudentAnswer } from '../../../types';
+import { useProctoring } from '../../../hooks/useProctoring';
+import { RichTextRenderer } from '../../../components/RichTextRenderer';
 
 interface OnlineExamRunnerProps {
     examId: string;

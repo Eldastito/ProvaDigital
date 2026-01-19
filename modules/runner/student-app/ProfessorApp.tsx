@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { Users, ArrowLeft, Monitor, UserCheck, QrCode, CheckCircle, Lock, UserPlus, XSquare, Layers, AlertTriangle, Unlock, Play, Smartphone, KeyRound, BarChart2 } from 'lucide-react';
-import { AppState } from '../../types';
-import { QRDataTransfer } from '../../services/qrCodecService';
-import { supabase } from '../../services/supabaseClient';
+import { AppState } from '../../../types';
+import { QRDataTransfer } from '../../../services/qrCodecService';
+import { supabase } from '../../../services/supabaseClient';
 
-import { useSafeAppStore } from '../../store/useAppStore';
+import { useSafeAppStore } from '../../../store/useAppStore';
+import { TabletLauncher } from './TabletLauncher';
 
 interface ProfessorAppProps {
     onBack: () => void;
@@ -46,7 +47,7 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
             // 1. Listen for students joining
             const channelStudents = supabase
                 .channel('public:students')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'students', filter: `class_id=eq.${liveClassId}` }, (payload) => {
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'students', filter: `class_id = eq.${liveClassId} ` }, (payload) => {
                     setLiveStudents(prev => [payload.new, ...prev]);
                 })
                 .subscribe();
@@ -102,7 +103,7 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
                 className: selectedClass.name,
                 students: classStudents.map(s => ({ id: s.id, name: s.name, reg: s.registrationNumber })),
                 examTitle: activeExam?.title || 'Aula Regular (Sem Prova)',
-                key: activeExam ? `key_${activeExam.id}` : 'no_exam_key'
+                key: activeExam ? `key_${activeExam.id} ` : 'no_exam_key'
             });
             setStudentStatuses(st);
         }
@@ -133,7 +134,7 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
             studentName: student.name,
             registrationNumber: student.reg,
             examKey: classData.key, // Chave para abrir a prova
-            eventId: `evt_${classData.classId}_${new Date().toISOString().split('T')[0]}` // Event ID para controlar sessão
+            eventId: `evt_${classData.classId}_${new Date().toISOString().split('T')[0]} ` // Event ID para controlar sessão
         };
 
         const chunks = QRDataTransfer.compressAndChunk(payload);
@@ -160,7 +161,7 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
 
     const handleFinalizeAttendance = () => {
         const { present, absent, surplus } = getStats();
-        if (!confirm(`Confirmar chamada?`)) return;
+        if (!confirm(`Confirmar chamada ? `)) return;
         setAttendanceLocked(true);
         const report = {
             type: 'ATTENDANCE_REPORT',
@@ -317,10 +318,10 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
                     </div>
                 </div>
                 <div className="flex gap-3">
-                    <button onClick={() => setView('DASHBOARD')} className={`px-4 py-2 rounded-lg font-bold text-sm transition ${view === 'DASHBOARD' ? 'bg-white text-purple-900' : 'bg-purple-900/50 hover:bg-purple-700'}`}>
+                    <button onClick={() => setView('DASHBOARD')} className={`px - 4 py - 2 rounded - lg font - bold text - sm transition ${view === 'DASHBOARD' ? 'bg-white text-purple-900' : 'bg-purple-900/50 hover:bg-purple-700'} `}>
                         Aplicação
                     </button>
-                    <button onClick={() => setView('ATTENDANCE')} className={`px-4 py-2 rounded-lg font-bold text-sm transition flex items-center gap-2 ${view === 'ATTENDANCE' ? 'bg-white text-purple-900' : 'bg-purple-900/50 hover:bg-purple-700'}`}>
+                    <button onClick={() => setView('ATTENDANCE')} className={`px - 4 py - 2 rounded - lg font - bold text - sm transition flex items - center gap - 2 ${view === 'ATTENDANCE' ? 'bg-white text-purple-900' : 'bg-purple-900/50 hover:bg-purple-700'} `}>
                         <UserCheck size={16} /> Chamada {attendanceLocked && <Lock size={12} />}
                     </button>
                 </div>
@@ -342,7 +343,7 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
                             {classData.students.map((s: any) => {
                                 const status = studentStatuses[s.id];
                                 return (
-                                    <div key={s.id} className={`p-4 rounded-xl border-2 flex flex-col gap-3 transition-all ${status === 'ACTIVE' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-white'}`}>
+                                    <div key={s.id} className={`p - 4 rounded - xl border - 2 flex flex - col gap - 3 transition - all ${status === 'ACTIVE' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-white'} `}>
                                         <div>
                                             <div className="font-bold text-slate-800">{s.name}</div>
                                             <div className="text-xs text-slate-500">{s.reg}</div>
@@ -387,9 +388,9 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
                                         const status = studentStatuses[s.id];
                                         const isPresent = status === 'ACTIVE' || status === 'FINISHED';
                                         return (
-                                            <div key={s.id} className={`p-4 rounded-xl border flex justify-between items-center transition-all ${isPresent ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200 opacity-70'}`}>
+                                            <div key={s.id} className={`p - 4 rounded - xl border flex justify - between items - center transition - all ${isPresent ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200 opacity-70'} `}>
                                                 <div>
-                                                    <div className={`font-bold ${!isPresent ? 'text-rose-800' : 'text-slate-800'}`}>{s.name}</div>
+                                                    <div className={`font - bold ${!isPresent ? 'text-rose-800' : 'text-slate-800'} `}>{s.name}</div>
                                                     <div className="text-xs text-slate-500">{s.reg}</div>
                                                 </div>
                                                 <div>

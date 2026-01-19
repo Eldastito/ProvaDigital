@@ -1,9 +1,10 @@
 
 import React, { useState } from 'react';
-import { QrCode, ArrowLeft, ShieldCheck, Users, GraduationCap, Scan, Search, School, User, Lock, ChevronRight, LogIn } from 'lucide-react';
-import { UserRole, AppState, School as SchoolType, User as UserType } from '../../types';
+import { QrCode, ArrowLeft, ShieldCheck, Users, GraduationCap, Scan, Search, School, User, Lock, ChevronRight, LogIn, Battery, Wifi, Settings, LogOut } from 'lucide-react';
+import { UserRole, School as SchoolType, User as UserType } from '../../../types';
 
-import { useSafeAppStore } from '../../store/useAppStore';
+import { useSafeAppStore } from '../../../store/useAppStore';
+import { AppState } from '../../../types';
 
 interface TabletLauncherProps {
     onSelectApp: (app: 'COORDINATOR' | 'PROFESSOR' | 'STUDENT', payload?: any) => void;

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAppStore } from '../../store/useAppStore';
+import { useAppStore } from '../../../store/useAppStore';
 import {
     CheckCircle2, XCircle, Brain, Target, ArrowLeft,
     Award, BookOpen, AlertCircle, RefreshCw, BarChart, Loader2, MessageCircle
 } from 'lucide-react';
-import { generatePedagogicalReport } from '../../services/geminiService';
-import { RichTextRenderer } from '../../components/RichTextRenderer';
+import { generatePedagogicalReport } from '../../../services/geminiService';
+import { RichTextRenderer } from '../../../components/RichTextRenderer';
 
 export const ResultFeedbackView = () => {
     const { examId } = useParams();

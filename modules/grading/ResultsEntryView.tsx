@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Save, CheckCircle, AlertCircle, Wand2, CheckSquare, Brain, Loader2, Shield, X } from 'lucide-react';
-import { AppState, Exam, ExamResult, StudentAnswer, QuestionType } from '../types';
-import { uuidv4 } from '../utils/helpers';
-import { gradeEssayAnswer, batchGradeAnswers } from '../services/geminiService';
+import { AppState, Exam, ExamResult, StudentAnswer, QuestionType } from '../../types';
+import { uuidv4 } from '../../utils/helpers';
+import { gradeEssayAnswer, batchGradeAnswers } from '../../services/geminiService';
 
 import { useNavigate, useParams } from 'react-router-dom';
-import { useSafeAppStore } from '../store/useAppStore';
+import { useSafeAppStore } from '../../store/useAppStore';
 
 export const ResultsEntryView = () => {
     const { id: examId } = useParams<{ id: string }>();
@@ -250,7 +250,7 @@ export const ResultsEntryView = () => {
                 // Let's rely on the import I will force next.
 
                 // Simulating dynamic access or direct call if imported
-                import('../services/auditService').then(({ auditService }) => {
+                import('../../services/auditService').then(({ auditService }) => {
                     auditService.log({
                         tenantId: state.currentUser?.tenantId || 'unknown',
                         actorId: state.currentUser?.id || 'unknown',

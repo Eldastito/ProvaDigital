@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { QrCode, ArrowLeft, Users, Server, FileText, CheckCircle, X, AlertTriangle, Layers, Scan, MapPin, User } from 'lucide-react';
-import { AppState, ExamEvent, EventStatus } from '../../types';
-import { encryptPackage, generateEventKey } from '../../services/cryptoService';
-import { QRDataTransfer } from '../../services/qrCodecService';
+import { AppState } from '../../../types';
+import { ExamEvent, EventStatus } from '../../../types'; // Keeping ExamEvent and EventStatus as they are used
+import { encryptPackage, generateEventKey } from '../../../services/cryptoService';
+import { QRDataTransfer } from '../../../services/qrCodecService';
 
-import { useSafeAppStore } from '../../store/useAppStore';
+import { useSafeAppStore } from '../../../store/useAppStore';
+import { TabletLauncher } from './TabletLauncher';
 
 interface CoordinatorAppProps {
     initialPayload?: any; // Contains schoolId, userId, userName

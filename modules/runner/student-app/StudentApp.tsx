@@ -1,27 +1,36 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Lock, CheckCircle, Play, Wifi, PenTool, Eraser, ChevronRight, ChevronLeft, ShieldCheck, Cloud, Video, AlertTriangle, Music, Trophy } from 'lucide-react';
-import { AppState, QuestionType } from '../../types';
-import { supabase } from '../../services/supabaseClient'; // Import Real Client
-import { uuidv4 } from '../../utils/helpers';
-import { useProctoring } from '../../hooks/useProctoring';
-import { saveSession, getLastSession, clearDb } from '../../services/offlineDb';
-import { StoredSession } from '../../types';
+import { AppState, QuestionType } from '../../../types';
+import { supabase } from '../../../services/supabaseClient'; // Import Real Client
+import { uuidv4 } from '../../../utils/helpers';
+import { useProctoring } from '../../../hooks/useProctoring';
+import { saveSession, getLastSession, clearDb } from '../../../services/offlineDb';
+import { StoredSession } from '../../../types';
 
-import { useSafeAppStore, useAppStore } from '../../store/useAppStore';
-import { RichTextRenderer } from '../RichTextRenderer';
-import { AccessibilityToolbar } from '../../features/exam-taking/AccessibilityToolbar';
-import { AccessibilityConfig, DEFAULT_ACCESSIBILITY_CONFIG } from '../../features/exam-taking/types';
+import { useSafeAppStore, useAppStore } from '../../../store/useAppStore';
+import { RichTextRenderer } from '../../../components/RichTextRenderer';
+import { AccessibilityToolbar } from '../features/AccessibilityToolbar';
+import { AccessibilityConfig, DEFAULT_ACCESSIBILITY_CONFIG } from '../features/types';
 
 interface StudentAppProps {
     onBack: () => void;
 }
 
 // --- ERROR BOUNDARY ---
-class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: Error | null }> {
-    state: { hasError: boolean, error: Error | null } = { hasError: false, error: null };
+interface ErrorBoundaryState {
+    hasError: boolean;
+    error: Error | null;
+}
 
-    constructor(props: { children: React.ReactNode }) {
+interface ErrorBoundaryProps {
+    children: React.ReactNode;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+    state: ErrorBoundaryState = { hasError: false, error: null };
+
+    constructor(props: ErrorBoundaryProps) {
         super(props);
     }
 
@@ -48,7 +57,8 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
                 </div>
             );
         }
-        return this.props.children;
+        // @ts-ignore
+        return (this.props as any).children;
     }
 }
 

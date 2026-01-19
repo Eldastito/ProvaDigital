@@ -2,16 +2,16 @@ import { RouteObject, Navigate } from 'react-router-dom';
 import { LoginPage } from './features/auth/LoginPage';
 import { BulkImportView } from './components/Admin/BulkImportView';
 import { DashboardView } from './components/DashboardView';
-import { ItemsListView } from './components/ItemsListView';
-import { ItemEditorView } from './components/ItemEditorView';
-import { ItemEditorV2 } from './components/ItemBank/ItemEditorV2';
+import { ItemsListView } from './components/ItemsListView'; // Stays in components? Checked.
+import { ItemEditorView } from './modules/builder/ItemEditorView';
+import { ItemEditorV2 } from './modules/builder/ItemBank/ItemEditorV2';
 import { ExamVariantsManager } from './components/ExamVariantsManager';
-import { ExamsListView } from './components/ExamsListView';
-import { ExamBuilderView } from './features/exam-builder/ExamBuilderView';
-import { AllocationView } from './components/AllocationView';
+import { ExamsListView } from './modules/grading/ExamsListView'; // Moved to Grading module
+import { ExamBuilderView } from './modules/builder/ExamBuilderView';
+import { AllocationView } from './modules/grading/AllocationView';
 import { ManagementView } from './features/school-management/ManagementView';
-import { PrintableExamView } from './components/PrintableExamView';
-import { ResultsEntryView } from './components/ResultsEntryView';
+import { PrintableExamView } from './modules/builder/PrintableExamView';
+import { ResultsEntryView } from './modules/grading/ResultsEntryView';
 import { StudentDashboardView } from './features/student-portal/StudentDashboardView';
 import { OwlTutorView } from './features/student-portal/OwlTutorView';
 import { StudentBattleView } from './features/student-portal/StudentBattleView';
@@ -31,18 +31,18 @@ import { ArcadeView } from './features/student-portal/ArcadeView';
 import { AvatarShopView } from './features/student-portal/AvatarShopView';
 import { GovernanceView } from './components/Admin/GovernanceView';
 import { AuditLogView } from './components/Admin/AuditLogView';
-import { TabletLauncher } from './components/TabletApp/TabletLauncher';
+import { TabletLauncher } from './modules/runner/student-app/TabletLauncher';
 import { LiveDemoLobby } from './components/Demo/LiveDemoLobby';
-import { ExamLauncher } from './features/exam-taking/ExamLauncher';
+import { ExamLauncher } from './modules/runner/features/ExamLauncher';
 import { DashboardLayout } from './components/DashboardLayout';
 import { AIDiagnosticView } from './components/Diagnostics/AIDiagnosticView';
-import { ResultFeedbackView } from './features/exam-taking/ResultFeedbackView';
-import { LiveExamMonitorView } from './features/exam-taking/LiveExamMonitorView';
-import { OnlineExamRunner } from './features/exam-taking/OnlineExamRunner';
+import { ResultFeedbackView } from './modules/runner/features/ResultFeedbackView';
+import { LiveExamMonitorView } from './modules/runner/features/LiveExamMonitorView';
+import { OnlineExamRunner } from './modules/runner/features/OnlineExamRunner';
 import { useAppStore } from './store/useAppStore';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { PerformanceAnalyticsDashboard } from './features/analytics/PerformanceAnalyticsDashboard';
-import { AIQuestionGeneratorView } from './features/exam-builder/AIQuestionGeneratorView';
+import { AIQuestionGeneratorView } from './modules/builder/AIQuestionGeneratorView';
 
 // Helper for Role-based Dashboard
 const ConditionalDashboard = () => {

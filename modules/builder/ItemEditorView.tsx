@@ -1,14 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { Brain, X, Trash2, Image as ImageIcon, Upload, GripVertical, BookOpen, Eye, CheckSquare, Save, Wand2, Loader2, Sparkles, Video, Music, Camera, Scan, Wifi, ShieldAlert, CheckCircle2, AlertCircle, BarChart3, Search, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { AppState, Item, DifficultyLevel, QuestionType, ItemOrigin, ItemLifecycleStatus, ItemGenerationBatch } from '../types';
-import { generateQuestionsFromText, improveItemStatement, generateDistractors, suggestBNCC, generateJustification, variateItem, adaptItemForAccessibility, extractItemFromImage, auditPedagogicalItem } from '../services/geminiService';
-import { uuidv4 } from '../utils/helpers';
-import { RichTextEditor } from './RichTextEditor';
-import { useSafeAppStore } from '../store/useAppStore';
-import { Badge } from './ui/Badge';
-import { BatchReviewPanel } from '../features/exam-taking/BatchReviewPanel';
-import { translateQuestionType, translateDifficultyLevel } from '../utils/translations';
+import { AppState, Item, DifficultyLevel, QuestionType, ItemOrigin, ItemLifecycleStatus, ItemGenerationBatch } from '../../types';
+import { generateQuestionsFromText, improveItemStatement, generateDistractors, suggestBNCC, generateJustification, variateItem, adaptItemForAccessibility, extractItemFromImage, auditPedagogicalItem } from '../../services/geminiService';
+import { uuidv4 } from '../../utils/helpers';
+import { RichTextEditor } from '../../components/RichTextEditor';
+import { useSafeAppStore } from '../../store/useAppStore';
+import { Badge } from '../../components/ui/Badge';
+import { BatchReviewPanel } from '../runner/features/BatchReviewPanel';
+import { translateQuestionType, translateDifficultyLevel } from '../../utils/translations';
 
 // Bibliotecas para leitura de documentos
 import * as pdfjsLib from 'pdfjs-dist';
@@ -196,7 +196,7 @@ export const ItemEditorView = () => {
         setIsVariating(true);
         try {
             const itemContext = JSON.stringify({ ...form, alternatives });
-            const result = await (await import('../services/geminiService')).variateItem(itemContext);
+            const result = await (await import('../../services/geminiService')).variateItem(itemContext);
             setForm(prev => ({ ...prev, statement: result.statement, bnccCode: result.bnccCode || prev.bnccCode }));
             setAlternatives(result.alternatives);
             alert("Questão variada e atualizada! Note que o enunciado e as alternativas mudaram para evitar colas.");
@@ -229,7 +229,7 @@ export const ItemEditorView = () => {
         setIsAdapting(true);
         try {
             const itemContext = JSON.stringify({ ...form, alternatives });
-            const result = await (await import('../services/geminiService')).adaptItemForAccessibility(itemContext, profile);
+            const result = await (await import('../../services/geminiService')).adaptItemForAccessibility(itemContext, profile);
             setForm(prev => ({
                 ...prev,
                 statement: result.statement,

@@ -5,7 +5,7 @@ import { supabase } from '../../services/supabaseClient';
 import { uuidv4 } from '../../utils/helpers';
 import { useAppStore } from '../../store/useAppStore';
 import { RichTextRenderer } from '../RichTextRenderer';
-import { StudentApp } from '../TabletApp/StudentApp';
+import { StudentApp } from '../../modules/runner/student-app/StudentApp';
 import { ProfessorRemoteControl } from './ProfessorRemoteControl';
 
 interface LiveDemoLobbyProps {
@@ -87,7 +87,23 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
             }
 
             const classId = uuidv4();
-            const examId = sessionConfig.selectedExamId || uuidv4();
+            let examId = sessionConfig.selectedExamId;
+
+            // Step 0: If no exam selected, try to find existing "Quiz Interativo - Ao Vivo" to reuse
+            if (!examId) {
+                const { data: existingExams } = await supabase
+                    .from('exams')
+                    .select('id')
+                    .eq('title', 'Quiz Interativo - Ao Vivo')
+                    .eq('status', 'PUBLICADA')
+                    .limit(1);
+
+                if (existingExams && existingExams.length > 0) {
+                    examId = existingExams[0].id;
+                } else {
+                    examId = uuidv4();
+                }
+            }
 
             // Usar examId existente ou criar mock se nenhum selecionado
             const { error: classError } = await supabase.from('classes').insert({
@@ -103,8 +119,16 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
             if (classError) throw classError;
 
 
-            if (!sessionConfig.selectedExamId) {
-                // Criar nova prova apenas se não selecionou uma existente
+            // Only create if we generated a new ID (meaning we didn't search/find one OR we didn't pick one)
+            // But wait, if we found one, examId is set.
+            // If we didn't find one, examId is set to new UUID.
+            // So we need to know if we intend to CREATE it.
+            // Logic: If sessionConfig.selectedExamId was empty AND we didn't find an existing one, create it.
+            // Actually, simplest check: Check if it exists in DB.
+            const { data: checkExam } = await supabase.from('exams').select('id').eq('id', examId).single();
+
+            if (!checkExam) {
+                // Criar nova prova apenas se não existe
                 const { error: examError } = await supabase.from('exams').insert({
                     id: examId,
                     tenant_id: tenantId,

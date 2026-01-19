@@ -1,14 +1,15 @@
+
 import React from 'react';
 import { Plus, MoreHorizontal, Clock, FileText, Printer, ClipboardCheck, Globe, School, Activity, ShieldCheck, Layers, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { AppState, ExamStatus } from '../types';
-import { Badge } from './ui/Badge';
+import { AppState, Exam, ExamStatus, QuestionType } from '../../types';
+import { Badge } from '../../components/ui/Badge';
 
-import { useAppStore } from '../store/useAppStore';
-import { AdvancedReviewPipeline } from '../features/exam-taking/AdvancedReviewPipeline';
+import { useSafeAppStore } from '../../store/useAppStore';
+import { AdvancedReviewPipeline } from '../runner/features/AdvancedReviewPipeline';
 
 export const ExamsListView = () => {
-    const state = useAppStore();
+    const state = useSafeAppStore();
     const { currentUser } = state;
     const navigate = useNavigate();
     const [auditExamId, setAuditExamId] = React.useState<string | null>(null);
@@ -52,12 +53,12 @@ export const ExamsListView = () => {
                     const isMySchool = exam.schoolId === userSchoolId;
 
                     return (
-                        <div key={exam.id} className={`bg-white p-6 rounded-xl border shadow-sm flex flex-col hover:shadow-md transition group ${isMySchool ? 'border-brand-secondary/30' : 'border-slate-200'}`}>
+                        <div key={exam.id} className={`bg - white p - 6 rounded - xl border shadow - sm flex flex - col hover: shadow - md transition group ${isMySchool ? 'border-brand-secondary/30' : 'border-slate-200'} `}>
                             <div className="flex justify-between items-start mb-4">
                                 <Badge color={exam.status === ExamStatus.ACTIVE ? 'green' : exam.status === ExamStatus.COMPLETED ? 'blue' : 'gray'}>
                                     {exam.status === ExamStatus.ACTIVE ? 'EM ANDAMENTO' : exam.status === ExamStatus.COMPLETED ? 'CONCLUÍDA' : 'RASCUNHO'}
                                 </Badge>
-                                <div className={`text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center gap-1 ${isMySchool ? 'bg-brand-light text-brand-primary' : 'bg-slate-100 text-slate-400'}`}>
+                                <div className={`text - [10px] font - bold px - 2 py - 1 rounded uppercase flex items - center gap - 1 ${isMySchool ? 'bg-brand-light text-brand-primary' : 'bg-slate-100 text-slate-400'} `}>
                                     {isMySchool ? <School size={10} /> : <Globe size={10} />}
                                     <span className="truncate max-w-[120px]" title={schoolName}>{isMySchool ? 'Minha Escola' : schoolName}</span>
                                 </div>
@@ -90,39 +91,43 @@ export const ExamsListView = () => {
                                             );
                                         })()}
                                         <button
-                                            onClick={() => navigate(`/print-exam/${exam.id}`)}
+                                            onClick={() => navigate(`/ print - exam / ${exam.id} `)}
                                             className="text-slate-500 font-medium text-sm hover:text-brand-primary flex items-center gap-1 transition"
                                             title="Imprimir / Visualizar"
                                         >
                                             <Printer size={18} />
                                         </button>
                                         <button
-                                            onClick={() => navigate(`/exams/${exam.id}/variants`)}
+                                            onClick={() => navigate(`/ exams / ${exam.id}/variants`)}
                                             className="text-amber-600 font-medium text-sm hover:text-amber-800 flex items-center gap-1 transition"
                                             title="Gerenciar Variantes (V2)"
                                         >
                                             <Layers size={18} />
-                                        </button>
+                                        </button >
                                         {/* Enable Monitor for ACTIVE exams */}
-                                        {exam.status === ExamStatus.ACTIVE && (
-                                            <button
-                                                onClick={() => navigate(`/monitor/${exam.id}`)}
-                                                className="text-brand-primary font-medium text-sm hover:text-brand-dark flex items-center gap-1 transition"
-                                                title="Monitorar em Tempo Real"
-                                            >
-                                                <Activity size={18} />
-                                            </button>
-                                        )}
+                                        {
+                                            exam.status === ExamStatus.ACTIVE && (
+                                                <button
+                                                    onClick={() => navigate(`/monitor/${exam.id}`)}
+                                                    className="text-brand-primary font-medium text-sm hover:text-brand-dark flex items-center gap-1 transition"
+                                                    title="Monitorar em Tempo Real"
+                                                >
+                                                    <Activity size={18} />
+                                                </button>
+                                            )
+                                        }
                                         {/* Enable Grading for ACTIVE and COMPLETED exams (and legacy PUBLISHED) */}
-                                        {(exam.status === ExamStatus.ACTIVE || exam.status === ExamStatus.COMPLETED || (exam.status as any) === 'PUBLISHED') && (
-                                            <button
-                                                onClick={() => navigate(`/results/${exam.id}`)}
-                                                className="text-brand-secondary font-medium text-sm hover:text-cyan-700 flex items-center gap-1 transition"
-                                                title="Lançar Notas / Corrigir"
-                                            >
-                                                <ClipboardCheck size={18} />
-                                            </button>
-                                        )}
+                                        {
+                                            (exam.status === ExamStatus.ACTIVE || exam.status === ExamStatus.COMPLETED || (exam.status as any) === 'PUBLISHED') && (
+                                                <button
+                                                    onClick={() => navigate(`/results/${exam.id}`)}
+                                                    className="text-brand-secondary font-medium text-sm hover:text-cyan-700 flex items-center gap-1 transition"
+                                                    title="Lançar Notas / Corrigir"
+                                                >
+                                                    <ClipboardCheck size={18} />
+                                                </button>
+                                            )
+                                        }
                                         <button
                                             onClick={async (e) => {
                                                 e.stopPropagation();
@@ -135,18 +140,20 @@ export const ExamsListView = () => {
                                         >
                                             <Trash2 size={18} />
                                         </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                                    </div >
+                                </div >
+                            </div >
+                        </div >
                     );
                 })}
-                {filteredExams.length === 0 && (
-                    <div className="col-span-3 py-12 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-                        <p className="text-slate-400 font-medium">Nenhuma prova encontrada nesta rede.</p>
-                    </div>
-                )}
-            </div>
-        </div>
+                {
+                    filteredExams.length === 0 && (
+                        <div className="col-span-3 py-12 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                            <p className="text-slate-400 font-medium">Nenhuma prova encontrada nesta rede.</p>
+                        </div>
+                    )
+                }
+            </div >
+        </div >
     );
 };

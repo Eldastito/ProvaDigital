@@ -1,13 +1,13 @@
 
 import React, { useState, useMemo } from 'react';
 import { Users, Download, Check } from 'lucide-react';
-import { AppState, ExamStatus, RegistrationStatus } from '../types';
-import { Badge } from './ui/Badge';
+import { AppState, Exam, SchoolClass, ExamStatus } from '../../types';
+import { Badge } from '../../components/ui/Badge';
 
-import { useAppStore } from '../store/useAppStore';
+import { useSafeAppStore } from '../../store/useAppStore';
 
 export const AllocationView = () => {
-    const state = useAppStore();
+    const state = useSafeAppStore();
     const { updateExamAllocation } = state;
     const [selectedExamId, setSelectedExamId] = useState<string>('');
     const { currentUser } = state;

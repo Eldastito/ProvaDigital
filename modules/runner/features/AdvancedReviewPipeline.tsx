@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Brain, Accessibility, Type, GitMerge, BarChart3, Save, CheckCircle2, Loader2, AlertTriangle, ChevronRight, FileText, Sparkles } from 'lucide-react';
-import { Item, Exam } from '../../types';
-import { reviewExamAdvanced } from '../../services/geminiService';
-import { useAppStore } from '../../store/useAppStore';
+import { AppState, Item, ItemLifecycleStatus, DifficultyLevel } from '../../../types';
+import { reviewExamAdvanced } from '../../../services/geminiService';
+import { useSafeAppStore } from '../../../store/useAppStore';
+import { Badge } from '../../../components/ui/Badge';
 
 interface ReviewStage {
     id: string;

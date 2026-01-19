@@ -1,11 +1,12 @@
 import React, { useEffect } from 'react';
 import { ArrowLeft, Printer } from 'lucide-react';
-import { AppState, Exam, QuestionType, PrintConfig } from '../types';
+import { AppState, Exam, QuestionType, PrintConfig } from '../../types';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useSafeAppStore } from '../store/useAppStore';
-import { ExamCoverGenerator } from './Print/ExamCoverGenerator';
-import { AnswerSheetGenerator } from './Print/AnswerSheetGenerator';
-import '../styles/print.css';
+import { useSafeAppStore } from '../../store/useAppStore';
+import { RichTextRenderer } from '../../components/RichTextRenderer';
+import { ExamCoverGenerator } from '../../components/Print/ExamCoverGenerator';
+import { AnswerSheetGenerator } from '../../components/Print/AnswerSheetGenerator';
+import '../../styles/print.css';
 
 export const PrintableExamView = () => {
   const { id: examId } = useParams<{ id: string }>();

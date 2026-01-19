@@ -4,9 +4,9 @@ import {
     ChevronLeft, Users, Activity, ShieldAlert, Wifi, Battery,
     MessageCircle, AlertCircle, CheckCircle2, Clock, Smartphone
 } from 'lucide-react';
-import { useSafeAppStore, AppStore } from '../../store/useAppStore';
-import { ExamStatus, RegistrationStatus } from '../../types';
-import { Badge } from '../../components/ui/Badge';
+import { useSafeAppStore, AppStore } from '../../../store/useAppStore';
+import { ExamStatus, RegistrationStatus } from '../../../types';
+import { Badge } from '../../../components/ui/Badge';
 
 export const LiveExamMonitorView = () => {
     const state = useSafeAppStore();
