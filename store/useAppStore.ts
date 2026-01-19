@@ -1459,24 +1459,37 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
             // 2. Broadcast to Live Monitor (Professor View)
             const attempt = get().examAttempts.find(a => a.id === dto.attemptId);
-            // Fallback: If attempt not in local state (e.g. tablet mode), we might not have it.
-            // But logSecurityEvent is called by component which might have examId.
-            // For now, rely on attempt.examId if available, or try to get it from context.
-            const currentExamId = attempt?.examId;
-            const currentUser = get().currentUser;
 
-            if (currentExamId && currentUser) {
+            // Fallback strategy for Exam ID
+            let currentExamId = attempt?.examId;
+            if (!currentExamId && attempt?.examVersionId) {
+                // In demo, versionId often equals examId, or we can try to guess
+                currentExamId = attempt.examVersionId;
+            }
+            // Last resort: check if there is an active exam in store (might overlap, but better than nothing for alerts)
+            if (!currentExamId) {
+                const exam = get().exams.find(e => e.status === 'ACTIVE');
+                if (exam) currentExamId = exam.id;
+            }
+
+            console.log(`📡 Broadcast Alert: Attempt=${dto.attemptId} Exam=${currentExamId} Type=${newEvent.eventType}`);
+
+            if (currentExamId) {
+                const currentUser = get().currentUser || { id: attempt?.studentId, name: 'Aluno' }; // Fallback user
+
                 supabase.channel(`exam_monitor:${currentExamId}`).send({
                     type: 'broadcast',
                     event: 'ALERT',
                     payload: {
-                        studentId: currentUser.id,
-                        studentName: currentUser.name,
+                        studentId: currentUser.id || attempt?.studentId,
+                        studentName: currentUser.name || 'Aluno',
                         type: newEvent.eventType,
                         severity: newEvent.severity,
                         timestamp: new Date().toISOString()
                     }
-                }).catch(err => console.error("Broadcast failed:", err)); // Non-blocking
+                }).catch(err => console.error("Broadcast failed:", err));
+            } else {
+                console.warn("⚠️ Broadcast skipped: No examId found for attempt", dto.attemptId);
             }
 
         } catch (e) {

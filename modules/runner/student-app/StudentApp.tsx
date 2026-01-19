@@ -229,11 +229,12 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     }, [studentData]);
 
     // UI Blocking for Loading
-    if (loadingExam) {
+    const isItemsEmpty = !examItems || examItems.length === 0;
+    if (loadingExam || (isItemsEmpty && !loadError)) {
         return (
             <div className="fixed inset-0 bg-[#0f1d2e] flex flex-col items-center justify-center text-white p-8 text-center z-50">
                 <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-brand-primary border-r-transparent mb-4"></div>
-                <p>Carregando Prova...</p>
+                <p>Carregando Questões...</p>
             </div>
         );
     }
