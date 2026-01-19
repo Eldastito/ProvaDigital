@@ -45,3 +45,5 @@ export const normalizeString = (str: string): string => {
     .toLowerCase()
     .trim();
 };
+
+export const getQrUrl = (data: string) => `https://api.qrserver.com/v1/create-qr-code/?size=400x400&color=000000&bgcolor=ffffff&data=${encodeURIComponent(data)}`;
