@@ -106,8 +106,20 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     const [a11y, setA11y] = useState<AccessibilityConfig>(DEFAULT_ACCESSIBILITY_CONFIG);
 
     // --- PROCTORING HOOK ---
+    const [proctoringActive, setProctoringActive] = useState(false);
+
+    // Delay proctoring start to prevent false positives during transition
+    useEffect(() => {
+        if (step === 'EXAM') {
+            const t = setTimeout(() => setProctoringActive(true), 3000);
+            return () => clearTimeout(t);
+        } else {
+            setProctoringActive(false);
+        }
+    }, [step]);
+
     const { videoRef, cameraActive, violationCount, securityLog } = useProctoring({
-        isActive: step === 'EXAM',
+        isActive: proctoringActive,
         studentId: studentData?.id || 'anon',
         onViolation: (reason) => {
             console.log("Violação detectada:", reason);
