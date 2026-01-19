@@ -53,12 +53,12 @@ export const ExamsListView = () => {
                     const isMySchool = exam.schoolId === userSchoolId;
 
                     return (
-                        <div key={exam.id} className={`bg - white p - 6 rounded - xl border shadow - sm flex flex - col hover: shadow - md transition group ${isMySchool ? 'border-brand-secondary/30' : 'border-slate-200'} `}>
+                        <div key={exam.id} className={`bg-white p-6 rounded-xl border shadow-sm flex flex-col hover:shadow-md transition group ${isMySchool ? 'border-brand-secondary/30' : 'border-slate-200'}`}>
                             <div className="flex justify-between items-start mb-4">
                                 <Badge color={exam.status === ExamStatus.ACTIVE ? 'green' : exam.status === ExamStatus.COMPLETED ? 'blue' : 'gray'}>
                                     {exam.status === ExamStatus.ACTIVE ? 'EM ANDAMENTO' : exam.status === ExamStatus.COMPLETED ? 'CONCLUÍDA' : 'RASCUNHO'}
                                 </Badge>
-                                <div className={`text - [10px] font - bold px - 2 py - 1 rounded uppercase flex items - center gap - 1 ${isMySchool ? 'bg-brand-light text-brand-primary' : 'bg-slate-100 text-slate-400'} `}>
+                                <div className={`text-[10px] font-bold px-2 py-1 rounded uppercase flex items-center gap-1 ${isMySchool ? 'bg-brand-light text-brand-primary' : 'bg-slate-100 text-slate-400'}`}>
                                     {isMySchool ? <School size={10} /> : <Globe size={10} />}
                                     <span className="truncate max-w-[120px]" title={schoolName}>{isMySchool ? 'Minha Escola' : schoolName}</span>
                                 </div>
@@ -91,14 +91,14 @@ export const ExamsListView = () => {
                                             );
                                         })()}
                                         <button
-                                            onClick={() => navigate(`/ print - exam / ${exam.id} `)}
+                                            onClick={() => navigate(`/print-exam/${exam.id}`)}
                                             className="text-slate-500 font-medium text-sm hover:text-brand-primary flex items-center gap-1 transition"
                                             title="Imprimir / Visualizar"
                                         >
                                             <Printer size={18} />
                                         </button>
                                         <button
-                                            onClick={() => navigate(`/ exams / ${exam.id}/variants`)}
+                                            onClick={() => navigate(`/exams/${exam.id}/variants`)}
                                             className="text-amber-600 font-medium text-sm hover:text-amber-800 flex items-center gap-1 transition"
                                             title="Gerenciar Variantes (V2)"
                                         >
