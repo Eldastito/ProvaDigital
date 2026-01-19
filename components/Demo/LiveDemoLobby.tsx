@@ -326,7 +326,7 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
         }
     }, [submissions.size, joinedStudents.length, step]);
 
-    const handleAutoFinish = async () => {
+    const handleFinishSession = async () => {
         // Pequeno delay para garantir que o último insert foi processado e dar emoção
         await new Promise(r => setTimeout(r, 2000));
 
@@ -660,6 +660,18 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
                                         <span className="text-slate-500 text-base">Aguardando Início...</span>
                                     )}
                                 </div>
+                                
+                                {/* MANUAL FINISH BUTTON */}
+                                <button 
+                                    onClick={() => {
+                                        if(confirm("Deseja realmente encerrar a prova para TODOS?")) {
+                                            handleFinishSession();
+                                        }
+                                    }}
+                                    className="mt-4 w-full py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition"
+                                >
+                                    <CheckCircle size={16} /> Encerrar Agora
+                                </button>
                             </div>
                                     <Zap size={24} /> EM ANDAMENTO
                                 </div>
