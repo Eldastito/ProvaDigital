@@ -110,8 +110,16 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         isActive: step === 'EXAM',
         studentId: studentData?.id || 'anon',
         onViolation: (reason) => {
-            // Visual feedback is handled by component state below, but we could add a toast here
             console.log("Violação detectada:", reason);
+            const store = useAppStore.getState();
+            if (studentData?.attemptId) {
+                store.logSecurityEvent({
+                    attemptId: studentData.attemptId,
+                    eventType: reason,
+                    severity: 'HIGH',
+                    eventData: { timestamp: new Date().toISOString() }
+                });
+            }
         }
     });
 
@@ -516,7 +524,22 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 </div>
 
                 <div className="flex flex-col w-full max-w-sm gap-3">
-                    <button onClick={() => setStep('EXAM')} className="w-full py-4 bg-brand-primary text-white font-bold rounded-xl text-lg hover:bg-brand-dark transition shadow-lg flex items-center justify-center gap-3">
+                    <button onClick={async () => {
+                        const store = useAppStore.getState();
+                        if (studentData && studentData.examId) {
+                            try {
+                                const aId = await store.startExamAttempt({
+                                    examId: studentData.examId,
+                                    examVersionId: 'v1',
+                                    studentId: studentData.id
+                                });
+                                setStudentData(prev => ({ ...prev, attemptId: aId }));
+                            } catch (e) {
+                                console.error("Failed to start attempt", e);
+                            }
+                        }
+                        setStep('EXAM');
+                    }} className="w-full py-4 bg-brand-primary text-white font-bold rounded-xl text-lg hover:bg-brand-dark transition shadow-lg flex items-center justify-center gap-3">
                         <Play size={20} fill="white" /> Iniciar Prova
                     </button>
                 </div>

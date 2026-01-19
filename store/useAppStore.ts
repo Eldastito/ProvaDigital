@@ -126,7 +126,7 @@ interface AppActions {
     deleteGenerationBatch: (batchId: string) => Promise<void>;
 
     // --- PHASE 3 ACTIONS ---
-    startExamAttempt: (attempt: { examVersionId: string; studentId: string }) => Promise<string>;
+    startExamAttempt: (attempt: { examId: string; examVersionId: string; studentId: string }) => Promise<string>;
     logSecurityEvent: (event: { attemptId: string; eventType: string; severity: string; eventData?: any }) => Promise<void>;
     submitExamAttempt: (attemptId: string, status: 'submitted' | 'timed_out') => Promise<void>;
     reopenExamAttempt: (attemptId: string) => Promise<void>;
