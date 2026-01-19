@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Smartphone, Users, QrCode, Wifi, Play, UserPlus, AlertTriangle, CheckCircle, Lock, Unlock, ShieldCheck, BarChart2, Trophy, Zap, Award, PieChart } from 'lucide-react';
+import { X, Smartphone, Users, QrCode, Wifi, Play, UserPlus, AlertTriangle, CheckCircle, Lock, Unlock, ShieldCheck, BarChart2, Trophy, Zap, Award, PieChart, Clock } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
 import { uuidv4 } from '../../utils/helpers';
 import { useAppStore } from '../../store/useAppStore';
@@ -58,6 +58,56 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
 
     // Results View Mode (Overview vs Question Detail)
     const [resultView, setResultView] = useState<'OVERVIEW' | string>('OVERVIEW'); // 'OVERVIEW' or 'q1', 'q2'...
+
+    // --- 5 MIN TOLERANCE FEATURE ---
+    const [toleranceEndTime, setToleranceEndTime] = useState<number | null>(null);
+    const [isEntryLocked, setIsEntryLocked] = useState(false);
+    const [timeLeftToLock, setTimeLeftToLock] = useState<string>('');
+
+    // Timer Effect: Start when first student joins
+    useEffect(() => {
+        if (joinedStudents.length > 0 && !toleranceEndTime && !isEntryLocked && step === 'LOBBY_ACTIVE') {
+            const fiveMins = Date.now() + 5 * 60 * 1000;
+            setToleranceEndTime(fiveMins);
+        }
+    }, [joinedStudents, toleranceEndTime, isEntryLocked, step]);
+
+    // Timer Effect: Count down and Lock
+    useEffect(() => {
+        if (!toleranceEndTime || isEntryLocked) return;
+
+        const interval = setInterval(() => {
+            const now = Date.now();
+            const diff = toleranceEndTime - now;
+
+            if (diff <= 0) {
+                setIsEntryLocked(true);
+                setTimeLeftToLock('ENTRADA ENCERRADA');
+                clearInterval(interval);
+
+                // TODO: Mark absent students here? 
+                // For now, visual lock is enough, final calculation handles "absent" by effective attendance (joinedStudents)
+            } else {
+                const mins = Math.floor(diff / 60000);
+                const secs = Math.floor((diff % 60000) / 1000);
+                setTimeLeftToLock(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [toleranceEndTime, isEntryLocked]);
+
+    // Auto-Close Logic: Check if all PRESENT students have submitted
+    useEffect(() => {
+        if (isEntryLocked && joinedStudents.length > 0) {
+            // Only if locked (nobody else coming)
+            const allSubmissionsReceived = joinedStudents.every(s => submissions.has(s.id));
+            if (allSubmissionsReceived) {
+                // All present students finished
+                handleFinishSession();
+            }
+        }
+    }, [isEntryLocked, joinedStudents, submissions]);
 
     // URLs
     const baseUrl = window.location.origin;
