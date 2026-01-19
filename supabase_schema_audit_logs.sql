@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     actor_id UUID NOT NULL, -- Quem fez (User ID)
     actor_email TEXT, -- Snapshot do email (caso user seja deletado)
     school_id UUID, -- Contexto da escola
-    tenant_id UUID NOT NULL, -- Contexto do Tenant
+    tenant_id TEXT NOT NULL, -- Contexto do Tenant (Changed to TEXT for 't1' support)
     action_type TEXT NOT NULL, -- LOGIN, UPDATE_GRADE, DELETE_USER, EXPORT_DATA
     target_resource TEXT NOT NULL, -- 'exam_submissions', 'users', 'settings'
     target_id TEXT, -- ID do objeto afetado
