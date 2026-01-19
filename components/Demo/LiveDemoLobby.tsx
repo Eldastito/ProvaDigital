@@ -299,7 +299,8 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
         const { data: results, error } = await supabase
             .from('exam_results')
             .select('*')
-            .eq('exam_id', examId);
+            .eq('exam_id', examId)
+            .eq('class_id', classId);
 
         if (error || !results) {
             console.error("Erro ao buscar resultados", error);

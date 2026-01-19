@@ -562,8 +562,18 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                     <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-700 mb-8">
                         <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Sua Pontuação</div>
                         <div className="text-6xl font-black text-white flex items-center justify-center gap-1">
-                            {score !== undefined ? score : '?'}
-                            <span className="text-2xl text-slate-500 font-bold">/{total || '?'}</span>
+                            {(() => {
+                                const hasKeys = (actualItems || []).some((i: any) => i.alternatives?.some((a: any) => a.isCorrect));
+                                if (!hasKeys && score === 0) {
+                                    return <span className="text-xl text-yellow-400 font-bold">Ver no Telão</span>;
+                                }
+                                return (
+                                    <>
+                                        {score !== undefined ? score : '?'}
+                                        <span className="text-2xl text-slate-500 font-bold">/{total || '?'}</span>
+                                    </>
+                                );
+                            })()}
                         </div>
                         <div className="mt-2 text-xs text-slate-500">Aguaring Results...</div>
                     </div>

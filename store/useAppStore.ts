@@ -1440,6 +1440,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         }));
 
         try {
+            // 1. Persist to DB
             const { error } = await supabase.from('exam_attempt_events').insert({
                 id: newEvent.id,
                 attempt_id: newEvent.attemptId,
@@ -1450,6 +1451,29 @@ export const useAppStore = create<AppStore>((set, get) => ({
             if (error) throw error;
 
             await supabase.rpc('increment_violation_count', { attempt_id_input: dto.attemptId });
+
+            // 2. Broadcast to Live Monitor (Professor View)
+            const attempt = get().examAttempts.find(a => a.id === dto.attemptId);
+            // Fallback: If attempt not in local state (e.g. tablet mode), we might not have it.
+            // But logSecurityEvent is called by component which might have examId.
+            // For now, rely on attempt.examId if available, or try to get it from context.
+            const currentExamId = attempt?.examId;
+            const currentUser = get().currentUser;
+
+            if (currentExamId && currentUser) {
+                supabase.channel(`exam_monitor:${currentExamId}`).send({
+                    type: 'broadcast',
+                    event: 'ALERT',
+                    payload: {
+                        studentId: currentUser.id,
+                        studentName: currentUser.name,
+                        type: newEvent.eventType,
+                        severity: newEvent.severity,
+                        timestamp: new Date().toISOString()
+                    }
+                }).catch(err => console.error("Broadcast failed:", err)); // Non-blocking
+            }
+
         } catch (e) {
             console.error("Error logging security event:", e);
         }
