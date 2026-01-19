@@ -198,6 +198,8 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     // --- AUTO-RESUME LOGIC (Moved up to fix Hooks Rule) ---
     useEffect(() => {
         if (!studentData || !studentData.id || !studentData.eventId) return;
+        // FIX: Don't run check if we are already in the exam or finishing it
+        if (step === 'EXAM' || step === 'COMPLETED' || step === 'SENDING') return;
 
         const checkSavedSession = async () => {
             // Tenta recuperar sessão anterior
