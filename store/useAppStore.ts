@@ -1356,6 +1356,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         const id = uuidv4();
         const newAttempt: ExamAttempt = {
             id,
+            examId: dto.examId,
             examVersionId: dto.examVersionId,
             studentId: dto.studentId,
             status: 'started',
