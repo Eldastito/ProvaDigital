@@ -648,8 +648,8 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
                                 <div className="text-3xl font-black text-emerald-400 mt-2 flex items-center justify-center gap-2">
                                     {isEntryLocked ? (
                                         <div className="flex flex-col items-center">
-                                           <span className="text-red-400 flex items-center gap-2"><Lock size={24} /> ENTRADA ENCERRADA</span>
-                                           <span className="text-xs text-slate-500 mt-1">Apenas finalizando quem já entrou</span>
+                                            <span className="text-red-400 flex items-center gap-2"><Lock size={24} /> ENTRADA ENCERRADA</span>
+                                            <span className="text-xs text-slate-500 mt-1">Apenas finalizando quem já entrou</span>
                                         </div>
                                     ) : toleranceEndTime ? (
                                         <div className="flex flex-col items-center">
@@ -660,11 +660,11 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
                                         <span className="text-slate-500 text-base">Aguardando Início...</span>
                                     )}
                                 </div>
-                                
+
                                 {/* MANUAL FINISH BUTTON */}
-                                <button 
+                                <button
                                     onClick={() => {
-                                        if(confirm("Deseja realmente encerrar a prova para TODOS?")) {
+                                        if (confirm("Deseja realmente encerrar a prova para TODOS?")) {
                                             handleFinishSession();
                                         }
                                     }}
@@ -673,72 +673,68 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
                                     <CheckCircle size={16} /> Encerrar Agora
                                 </button>
                             </div>
-                                    <Zap size={24} /> EM ANDAMENTO
-                                </div>
-                                <div className="text-xs text-slate-500 mt-3 font-medium">
-                                    O professor encerrará a sessão em breve.
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex-1 bg-slate-800/50 rounded-2xl border border-slate-700 overflow-hidden flex flex-col">
-                            <div className="p-4 border-b border-slate-700 bg-slate-800 flex justify-between items-center">
-                                <h3 className="font-bold text-white flex items-center gap-2"><Users size={18} className="text-brand-secondary" /> Lista de Chamada</h3>
-                                <div className="flex items-center gap-2 text-xs text-emerald-400">
-                                    <span className="relative flex h-2 w-2">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                                    </span>
-                                    Ao Vivo
-                                </div>
-                            </div>
-
-                            <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-                                {joinedStudents.length === 0 ? (
-                                    <div className="h-full flex flex-col items-center justify-center text-slate-600">
-                                        <UserPlus size={48} className="mb-2 opacity-20" />
-                                        <p>Aguardando alunos entrarem...</p>
-                                    </div>
-                                ) : (
-                                    joinedStudents.map((student, idx) => (
-                                        <div key={student.id || idx} className="bg-slate-700/50 p-3 rounded-xl flex items-center justify-between border border-slate-600 animate-in slide-in-from-left duration-300">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-gradient-to-br from-brand-primary to-blue-600 rounded-full flex items-center justify-center font-bold text-white shadow-lg">
-                                                    {student.name?.charAt(0) || '?'}
-                                                </div>
-                                                <div>
-                                                    <div className="font-bold text-white">{student.name}</div>
-                                                    <div className="text-xs text-slate-400 font-mono">Mat: {student.registration_number || 'N/A'}</div>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                {/* ALERTA DE FRAUDE */}
-                                                {securityAlerts.has(student.id) && (
-                                                    <div className="flex items-center gap-1 text-amber-400 bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20 animate-pulse" title="Atividade suspeita detectada">
-                                                        <AlertTriangle size={14} />
-                                                        <span className="text-[10px] font-bold uppercase">{securityAlerts.get(student.id)}</span>
-                                                    </div>
-                                                )}
-
-                                                {/* STATUS: ENTREGUE ou ONLINE */}
-                                                {submissions.has(student.id) ? (
-                                                    <div className="flex items-center gap-2 text-brand-primary text-xs font-bold bg-brand-primary/10 px-3 py-1 rounded-full border border-brand-primary/20">
-                                                        <CheckCircle size={14} /> ENTREGUE
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                                                        <Zap size={14} /> ONLINE
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
                         </div>
                     </div>
+
+                    <div className="flex-1 bg-slate-800/50 rounded-2xl border border-slate-700 overflow-hidden flex flex-col">
+                        <div className="p-4 border-b border-slate-700 bg-slate-800 flex justify-between items-center">
+                            <h3 className="font-bold text-white flex items-center gap-2"><Users size={18} className="text-brand-secondary" /> Lista de Chamada</h3>
+                            <div className="flex items-center gap-2 text-xs text-emerald-400">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                </span>
+                                Ao Vivo
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
+                            {joinedStudents.length === 0 ? (
+                                <div className="h-full flex flex-col items-center justify-center text-slate-600">
+                                    <UserPlus size={48} className="mb-2 opacity-20" />
+                                    <p>Aguardando alunos entrarem...</p>
+                                </div>
+                            ) : (
+                                joinedStudents.map((student, idx) => (
+                                    <div key={student.id || idx} className="bg-slate-700/50 p-3 rounded-xl flex items-center justify-between border border-slate-600 animate-in slide-in-from-left duration-300">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-gradient-to-br from-brand-primary to-blue-600 rounded-full flex items-center justify-center font-bold text-white shadow-lg">
+                                                {student.name?.charAt(0) || '?'}
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-white">{student.name}</div>
+                                                <div className="text-xs text-slate-400 font-mono">Mat: {student.registration_number || 'N/A'}</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {/* ALERTA DE FRAUDE */}
+                                            {securityAlerts.has(student.id) && (
+                                                <div className="flex items-center gap-1 text-amber-400 bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20 animate-pulse" title="Atividade suspeita detectada">
+                                                    <AlertTriangle size={14} />
+                                                    <span className="text-[10px] font-bold uppercase">{securityAlerts.get(student.id)}</span>
+                                                </div>
+                                            )}
+
+                                            {/* STATUS: ENTREGUE ou ONLINE */}
+                                            {submissions.has(student.id) ? (
+                                                <div className="flex items-center gap-2 text-brand-primary text-xs font-bold bg-brand-primary/10 px-3 py-1 rounded-full border border-brand-primary/20">
+                                                    <CheckCircle size={14} /> ENTREGUE
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                                                    <Zap size={14} /> ONLINE
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
                 </div >
-            )}
+    )
+}
 
 {/* FASE 4: RESULTADOS (DASHBOARD FINAL) */ }
 {
