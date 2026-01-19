@@ -43,7 +43,11 @@ export const ExamsListView = () => {
                     >
                         Fechar
                     </button>
-                    <AdvancedReviewPipeline versionId={auditExamId} />
+                    <AdvancedReviewPipeline
+                        examId={auditExamId}
+                        onCancel={() => setAuditExamId(null)}
+                        onComplete={() => setAuditExamId(null)}
+                    />
                 </div>
             )}
 

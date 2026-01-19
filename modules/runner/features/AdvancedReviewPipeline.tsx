@@ -4,6 +4,7 @@ import { AppState, Item, ItemLifecycleStatus, DifficultyLevel } from '../../../t
 import { reviewExamAdvanced } from '../../../services/geminiService';
 import { useSafeAppStore } from '../../../store/useAppStore';
 import { Badge } from '../../../components/ui/Badge';
+import { supabase } from '../../../services/supabaseClient';
 
 interface ReviewStage {
     id: string;
@@ -14,12 +15,14 @@ interface ReviewStage {
 }
 
 interface AdvancedReviewPipelineProps {
-    items: Item[];
-    onComplete: (polishedItems: Item[], reviewSummary: any) => void;
-    onCancel: () => void;
+    items?: Item[];
+    examId?: string;
+    onComplete?: (polishedItems: Item[], reviewSummary: any) => void;
+    onCancel?: () => void;
 }
 
-export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ items, onComplete, onCancel }) => {
+export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ items = [], examId, onComplete, onCancel }) => {
+
     const [stages, setStages] = useState<ReviewStage[]>([
         { id: 'structural', label: 'Validação Estrutural', icon: <ShieldCheck size={20} />, status: 'PENDING' },
         { id: 'pedagogical', label: 'Auditoria BNCC/SAEB', icon: <Brain size={20} />, status: 'PENDING' },
@@ -35,12 +38,75 @@ export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ 
     const [reviewResult, setReviewResult] = useState<any>(null);
     const [isFinished, setIsFinished] = useState(false);
 
+    const [localItems, setLocalItems] = useState<Item[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+
+    // Fetch items if examId is provided and no items passed
+    useEffect(() => {
+        const fetchItems = async () => {
+            if (examId && items.length === 0) {
+                setIsLoading(true);
+                try {
+                    // 1. Get Exam Config
+                    const { data: examData } = await supabase.from('exams').select('items_config').eq('id', examId).single();
+                    if (!examData || !examData.items_config) {
+                        console.error("Exam items not found");
+                        return;
+                    }
+
+                    // 2. Get Items Details
+                    const itemIds = examData.items_config.map((ic: any) => ic.itemId);
+                    if (itemIds.length > 0) {
+                        const { data: itemsData } = await supabase.from('items').select('*').in('id', itemIds);
+
+                        if (itemsData) {
+                            const mappedItems: Item[] = itemsData.map((i: any) => ({
+                                id: i.id,
+                                tenantId: i.tenant_id,
+                                ownerId: i.owner_id || '',
+                                subject: i.subject,
+                                knowledgeArea: i.knowledge_area || i.subject,
+                                statement: i.statement,
+                                type: i.type,
+                                difficulty: i.difficulty,
+                                alternatives: i.alternatives,
+                                correctAnswerJustification: i.correct_justification,
+                                bnccCode: i.bncc_code || '',
+                                origin: i.origin || 'MANUAL',
+                                score: i.score || 1.0,
+                                tags: i.tags || [],
+                                generationBatchId: i.generation_batch_id,
+                                lifecycleStatus: i.lifecycle_status,
+                                isAccessible: i.is_accessible,
+                                accessibilityInstructions: i.accessibility_instructions,
+                                multimedia: i.multimedia || [],
+                                usageCount: 0,
+                                createdAt: i.created_at
+                            }));
+                            setLocalItems(mappedItems);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error loading exam items for audit", e);
+                } finally {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        fetchItems();
+    }, [examId, items.length]);
+
+    const effectiveItems = items.length > 0 ? items : localItems;
+
     const startReview = async () => {
+        if (effectiveItems.length === 0 && !isLoading) return; // Wait for items
+
         // Marcamos as primeiras como em execução
         updateStageStatus('structural', 'RUNNING');
 
         try {
-            const result = await reviewExamAdvanced(items);
+            const result = await reviewExamAdvanced(effectiveItems);
             setReviewResult(result);
 
             // Mapping AI Result to Stages
@@ -111,8 +177,10 @@ export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ 
     };
 
     useEffect(() => {
-        startReview();
-    }, []);
+        if (effectiveItems.length > 0) {
+            startReview();
+        }
+    }, [effectiveItems]);
 
     return (
         <div className="flex flex-col h-full bg-slate-900 text-white overflow-hidden p-8 animate-in fade-in zoom-in-95 duration-500">
@@ -175,7 +243,7 @@ export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ 
                         </div>
                         <div>
                             <p className="text-xs text-slate-400">Total de Itens</p>
-                            <p className="font-bold">{items.length} Questões</p>
+                            <p className="font-bold">{effectiveItems.length} Questões</p>
                         </div>
                     </div>
 
@@ -188,7 +256,7 @@ export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ 
                         </button>
                         <button
                             disabled={!isFinished}
-                            onClick={() => onComplete(reviewResult?.polishedItems || items, reviewResult)}
+                            onClick={() => onComplete && onComplete(reviewResult?.polishedItems || effectiveItems, reviewResult)}
                             className={`px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition shadow-lg ${isFinished ? 'bg-brand-primary text-white hover:bg-brand-dark' : 'bg-slate-700 text-slate-500 cursor-not-allowed'
                                 }`}
                         >
