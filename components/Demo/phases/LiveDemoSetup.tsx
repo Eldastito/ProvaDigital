@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Play } from 'lucide-react';
 import { supabase } from '../../../services/supabaseClient';
 import { useAppStore } from '../../../store/useAppStore';
@@ -16,6 +16,11 @@ export const LiveDemoSetup = ({ onSessionCreated }: LiveDemoSetupProps) => {
         capacity: 50,
         selectedExamId: ''
     });
+
+    // Ensure exams are loaded
+    useEffect(() => {
+        state.loadRemoteData();
+    }, []);
 
     const handleCreateSession = async () => {
         if (!config.className || config.capacity < 1) return alert("Configure a turma.");
@@ -159,7 +164,7 @@ export const LiveDemoSetup = ({ onSessionCreated }: LiveDemoSetupProps) => {
                             className="w-full bg-slate-800 border-2 border-slate-700 rounded-xl px-4 py-3 text-white focus:border-brand-primary outline-none transition font-medium appearance-none"
                         >
                             <option value="">Usar Quiz Padrão (Conhecimentos Gerais)</option>
-                            {state.exams.filter(e => e.status === 'PUBLISHED' as any).map(exam => (
+                            {state.exams.filter(e => (e.status === 'PUBLISHED' as any) || (e.status === 'PUBLICADA' as any)).map(exam => (
                                 <option key={exam.id} value={exam.id}>{exam.title} ({exam.subject})</option>
                             ))}
                         </select>
