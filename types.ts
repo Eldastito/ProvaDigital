@@ -446,6 +446,7 @@ export interface ExamVersion {
 
 export interface ExamAttempt {
   id: string;
+  examId: string; // Added for easier lookup
   examVersionId: string;
   studentId: string;
   status: 'started' | 'submitted' | 'flagged' | 'timed_out';
