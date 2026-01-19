@@ -524,27 +524,24 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 </div>
 
                 <div className="flex flex-col w-full max-w-sm gap-3">
-                    <button onClick={async () => {
-                        try {
-                            const store = useAppStore.getState();
-                            if (studentData && studentData.examId) {
-                                try {
-                                    const aId = await store.startExamAttempt({
-                                        examId: studentData.examId,
-                                        examVersionId: 'v1',
-                                        studentId: studentData.id
-                                    });
-                                    setStudentData(prev => ({ ...prev, attemptId: aId }));
-                                } catch (e) {
-                                    console.error("Failed to start attempt (non-fatal):", e);
-                                    // Fallback: If attempt fails, just proceed. 
-                                    // Security logging might fail but exam can continue offline/demo mode.
-                                }
-                            }
-                        } catch (fatalError) {
-                            console.error("Critical error in start exam handler:", fatalError);
-                        } finally {
-                            setStep('EXAM');
+                    <button onClick={(e) => {
+                        e.preventDefault(); // Safety
+                        // 1. UNBLOCK UI IMMEDIATELY
+                        setStep('EXAM');
+
+                        // 2. Perform DB logic in background (Fire & Forget)
+                        const store = useAppStore.getState();
+                        if (studentData && studentData.examId) {
+                            store.startExamAttempt({
+                                examId: studentData.examId,
+                                examVersionId: 'v1',
+                                studentId: studentData.id
+                            }).then(aId => {
+                                console.log("Attempt started successfully:", aId);
+                                setStudentData(prev => ({ ...prev, attemptId: aId }));
+                            }).catch(err => {
+                                console.error("Background attempt start failed (non-fatal):", err);
+                            });
                         }
                     }} className="w-full py-4 bg-brand-primary text-white font-bold rounded-xl text-lg hover:bg-brand-dark transition shadow-lg flex items-center justify-center gap-3">
                         <Play size={20} fill="white" /> Iniciar Prova
