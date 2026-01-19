@@ -422,6 +422,54 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
         setLoading(false);
     };
 
+    // --- 5. REPORT GENERATION ---
+    const generateReport = () => {
+        if (!examStats || !topPerformers) return;
+
+        const date = new Date().toLocaleDateString('pt-BR');
+        const totalStudents = sessionConfig.capacity;
+        const present = joinedStudents.length;
+        const absent = Math.max(0, totalStudents - present);
+
+        let report = `# Relatório de Evento: ${sessionConfig.className}\n`;
+        report += `📅 Data: ${date}\n\n`;
+
+        report += `## 1. Engajamento\n`;
+        report += `- Total Previsto: ${totalStudents}\n`;
+        report += `- Presentes: ${present} (${Math.round(present / totalStudents * 100)}%)\n`;
+        report += `- Ausentes: ${absent}\n\n`;
+
+        report += `## 2. Pódio\n`;
+        topPerformers.forEach((s, i) => {
+            report += `${i + 1}º Lugar: ${s.name} - ${s.score} pontos\n`;
+        });
+        report += `\n`;
+
+        report += `## 3. Desempenho por Questão\n`;
+        selectedExamItems.forEach((item, i) => {
+            report += `- Q${i + 1}: ${examStats[item.id]}% de acertos\n`;
+        });
+
+        report += `\n## 4. Ocorrências de Segurança\n`;
+        // Aggregate security logs (mocked for demo if not persistent)
+        // In a real scenario we'd query exam_attempt_events
+        report += `- Total de Alertas: ${securityAlerts.size}\n`;
+        securityAlerts.forEach((val, key) => {
+            const studentName = joinedStudents.find(s => s.id === key)?.name || 'Desconhecido';
+            report += `- ${studentName}: ${val}\n`;
+        });
+
+        // Download logic
+        const blob = new Blob([report], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Relatorio_${sessionConfig.className.replace(/\s+/g, '_')}_${Date.now()}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    };
+
     const getQrUrl = (data: string) => `https://api.qrserver.com/v1/create-qr-code/?size=400x400&color=000000&bgcolor=ffffff&data=${encodeURIComponent(data)}`;
 
     const presentCount = joinedStudents.length;
@@ -597,7 +645,22 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
                             </div>
                             <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center">
                                 <div className="text-slate-400 text-xs uppercase font-bold mb-1">Status da Prova</div>
-                                <div className="text-3xl font-black text-emerald-400 mt-2 flex items-center gap-2">
+                                <div className="text-3xl font-black text-emerald-400 mt-2 flex items-center justify-center gap-2">
+                                    {isEntryLocked ? (
+                                        <div className="flex flex-col items-center">
+                                           <span className="text-red-400 flex items-center gap-2"><Lock size={24} /> ENTRADA ENCERRADA</span>
+                                           <span className="text-xs text-slate-500 mt-1">Apenas finalizando quem já entrou</span>
+                                        </div>
+                                    ) : toleranceEndTime ? (
+                                        <div className="flex flex-col items-center">
+                                            <span className="text-amber-400 flex items-center gap-2 animate-pulse"><Clock size={24} /> {timeLeftToLock}</span>
+                                            <span className="text-xs text-slate-500 mt-1">Tempo Restante para Entrada</span>
+                                        </div>
+                                    ) : (
+                                        <span className="text-slate-500 text-base">Aguardando Início...</span>
+                                    )}
+                                </div>
+                            </div>
                                     <Zap size={24} /> EM ANDAMENTO
                                 </div>
                                 <div className="text-xs text-slate-500 mt-3 font-medium">
@@ -662,136 +725,138 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
                             </div>
                         </div>
                     </div>
-                </div>
+                </div >
             )}
 
-            {/* FASE 4: RESULTADOS (DASHBOARD FINAL) */}
-            {step === 'RESULTS' && examStats && (
-                <div className="flex-1 bg-slate-900 p-8 flex flex-col items-center overflow-y-auto">
-                    <div className="max-w-6xl w-full animate-in zoom-in duration-500">
-                        {/* Navigation / Header */}
-                        <div className="flex justify-center mb-8 gap-4 flex-wrap">
-                            <button
-                                onClick={() => setResultView('OVERVIEW')}
-                                className={`px-6 py-2 rounded-full font-bold transition ${resultView === 'OVERVIEW' ? 'bg-brand-primary text-white shadow-lg' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
-                            >
-                                Visão Geral
-                            </button>
-                            {selectedExamItems.map((item, idx) => (
-                                <button
+{/* FASE 4: RESULTADOS (DASHBOARD FINAL) */ }
+{
+    step === 'RESULTS' && examStats && (
+        <div className="flex-1 bg-slate-900 p-8 flex flex-col items-center overflow-y-auto">
+            <div className="max-w-6xl w-full animate-in zoom-in duration-500">
+                {/* Navigation / Header */}
+                <div className="flex justify-center mb-8 gap-4 flex-wrap">
+                    <button
+                        onClick={() => setResultView('OVERVIEW')}
+                        className={`px-6 py-2 rounded-full font-bold transition ${resultView === 'OVERVIEW' ? 'bg-brand-primary text-white shadow-lg' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+                    >
+                        Visão Geral
+                    </button>
+                    {selectedExamItems.map((item, idx) => (
+                        <button
+                            key={item.id}
+                            onClick={() => setResultView(item.id)}
+                            className={`px-6 py-2 rounded-full font-bold transition ${resultView === item.id ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+                        >
+                            Q{idx + 1}
+                        </button>
+                    ))}
+                </div>
+
+                {resultView === 'OVERVIEW' ? (
+                    <>
+                        <div className="text-center mb-12">
+                            <h1 className="text-5xl font-black text-white mb-4 uppercase tracking-tight flex items-center justify-center gap-4">
+                                <Trophy size={48} className="text-yellow-400" /> Resultado da Turma
+                            </h1>
+                            <p className="text-slate-400 text-xl">Correção automática e processamento de dados concluídos.</p>
+                        </div>
+
+                        {/* Top Stats */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+                            <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center">
+                                <div className="text-slate-400 text-sm font-bold uppercase mb-2">Total de Provas</div>
+                                <div className="text-5xl font-black text-white">{examStats.total}</div>
+                            </div>
+                            {selectedExamItems.slice(0, 3).map((item, idx) => (
+                                <div
                                     key={item.id}
+                                    className="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center cursor-pointer hover:border-brand-primary transition"
                                     onClick={() => setResultView(item.id)}
-                                    className={`px-6 py-2 rounded-full font-bold transition ${resultView === item.id ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
                                 >
-                                    Q{idx + 1}
-                                </button>
+                                    <div className="text-slate-400 text-sm font-bold uppercase mb-2">Acerto Questão {idx + 1}</div>
+                                    <div className={`text-5xl font-black ${examStats[item.id] > 70 ? 'text-emerald-400' : 'text-amber-400'}`}>{examStats[item.id]}%</div>
+                                    <div className="text-[10px] text-slate-500 mt-2 truncate max-w-full">
+                                        <RichTextRenderer content={item.statement} className="truncate" />
+                                    </div>
+                                </div>
                             ))}
                         </div>
 
-                        {resultView === 'OVERVIEW' ? (
-                            <>
-                                <div className="text-center mb-12">
-                                    <h1 className="text-5xl font-black text-white mb-4 uppercase tracking-tight flex items-center justify-center gap-4">
-                                        <Trophy size={48} className="text-yellow-400" /> Resultado da Turma
-                                    </h1>
-                                    <p className="text-slate-400 text-xl">Correção automática e processamento de dados concluídos.</p>
-                                </div>
-
-                                {/* Top Stats */}
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-                                    <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center">
-                                        <div className="text-slate-400 text-sm font-bold uppercase mb-2">Total de Provas</div>
-                                        <div className="text-5xl font-black text-white">{examStats.total}</div>
-                                    </div>
-                                    {selectedExamItems.slice(0, 3).map((item, idx) => (
-                                        <div
-                                            key={item.id}
-                                            className="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center cursor-pointer hover:border-brand-primary transition"
-                                            onClick={() => setResultView(item.id)}
-                                        >
-                                            <div className="text-slate-400 text-sm font-bold uppercase mb-2">Acerto Questão {idx + 1}</div>
-                                            <div className={`text-5xl font-black ${examStats[item.id] > 70 ? 'text-emerald-400' : 'text-amber-400'}`}>{examStats[item.id]}%</div>
-                                            <div className="text-[10px] text-slate-500 mt-2 truncate max-w-full">
-                                                <RichTextRenderer content={item.statement} className="truncate" />
-                                            </div>
+                        {/* Podium */}
+                        <div className="flex flex-col items-center">
+                            <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-2"><Award className="text-yellow-400" /> Destaques da Sessão</h2>
+                            <div className="flex items-end gap-4 md:gap-8">
+                                {/* 2nd Place */}
+                                {topPerformers[1] && (
+                                    <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700 delay-200">
+                                        <div className="w-24 h-24 rounded-full bg-slate-200 border-4 border-slate-400 flex items-center justify-center text-3xl font-bold text-slate-600 mb-4 shadow-lg">
+                                            {topPerformers[1].name.charAt(0)}
                                         </div>
-                                    ))}
-                                </div>
-
-                                {/* Podium */}
-                                <div className="flex flex-col items-center">
-                                    <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-2"><Award className="text-yellow-400" /> Destaques da Sessão</h2>
-                                    <div className="flex items-end gap-4 md:gap-8">
-                                        {/* 2nd Place */}
-                                        {topPerformers[1] && (
-                                            <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700 delay-200">
-                                                <div className="w-24 h-24 rounded-full bg-slate-200 border-4 border-slate-400 flex items-center justify-center text-3xl font-bold text-slate-600 mb-4 shadow-lg">
-                                                    {topPerformers[1].name.charAt(0)}
-                                                </div>
-                                                <div className="h-40 w-32 bg-slate-700 rounded-t-lg border-t-4 border-slate-400 flex flex-col items-center justify-end p-4 shadow-xl">
-                                                    <span className="text-4xl font-black text-slate-400">2º</span>
-                                                </div>
-                                                <div className="mt-4 text-center">
-                                                    <div className="font-bold text-white text-lg">{topPerformers[1].name.split(' ')[0]}</div>
-                                                    <div className="text-emerald-400 font-bold">{topPerformers[1].score}/3</div>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* 1st Place */}
-                                        {topPerformers[0] && (
-                                            <div className="flex flex-col items-center z-10 animate-in slide-in-from-bottom-8 duration-700">
-                                                <div className="w-32 h-32 rounded-full bg-yellow-100 border-4 border-yellow-400 flex items-center justify-center text-4xl font-bold text-yellow-600 mb-4 shadow-xl relative">
-                                                    {topPerformers[0].name.charAt(0)}
-                                                    <Trophy className="absolute -top-6 text-yellow-400 drop-shadow-lg" size={48} fill="currentColor" />
-                                                </div>
-                                                <div className="h-56 w-40 bg-slate-700 rounded-t-lg border-t-4 border-yellow-400 flex flex-col items-center justify-end p-4 shadow-2xl">
-                                                    <span className="text-6xl font-black text-yellow-400">1º</span>
-                                                </div>
-                                                <div className="mt-4 text-center">
-                                                    <div className="font-bold text-white text-xl">{topPerformers[0].name.split(' ')[0]}</div>
-                                                    <div className="text-emerald-400 font-bold text-lg">{topPerformers[0].score}/3</div>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* 3rd Place */}
-                                        {topPerformers[2] && (
-                                            <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700 delay-500">
-                                                <div className="w-24 h-24 rounded-full bg-orange-100 border-4 border-orange-400 flex items-center justify-center text-3xl font-bold text-orange-600 mb-4 shadow-lg">
-                                                    {topPerformers[2].name.charAt(0)}
-                                                </div>
-                                                <div className="h-32 w-32 bg-slate-700 rounded-t-lg border-t-4 border-orange-400 flex flex-col items-center justify-end p-4 shadow-xl">
-                                                    <span className="text-4xl font-black text-orange-400">3º</span>
-                                                </div>
-                                                <div className="mt-4 text-center">
-                                                    <div className="font-bold text-white text-lg">{topPerformers[2].name.split(' ')[0]}</div>
-                                                    <div className="text-emerald-400 font-bold">{topPerformers[2].score}/3</div>
-                                                </div>
-                                            </div>
-                                        )}
+                                        <div className="h-40 w-32 bg-slate-700 rounded-t-lg border-t-4 border-slate-400 flex flex-col items-center justify-end p-4 shadow-xl">
+                                            <span className="text-4xl font-black text-slate-400">2º</span>
+                                        </div>
+                                        <div className="mt-4 text-center">
+                                            <div className="font-bold text-white text-lg">{topPerformers[1].name.split(' ')[0]}</div>
+                                            <div className="text-emerald-400 font-bold">{topPerformers[1].score}/3</div>
+                                        </div>
                                     </div>
-                                </div>
-                            </>
-                        ) : (
-                            <div className="animate-in fade-in">
-                                <div className="text-center mb-12">
-                                    <div className="inline-block p-4 rounded-full bg-slate-800 mb-4">
-                                        <PieChart size={40} className="text-brand-secondary" />
+                                )}
+
+                                {/* 1st Place */}
+                                {topPerformers[0] && (
+                                    <div className="flex flex-col items-center z-10 animate-in slide-in-from-bottom-8 duration-700">
+                                        <div className="w-32 h-32 rounded-full bg-yellow-100 border-4 border-yellow-400 flex items-center justify-center text-4xl font-bold text-yellow-600 mb-4 shadow-xl relative">
+                                            {topPerformers[0].name.charAt(0)}
+                                            <Trophy className="absolute -top-6 text-yellow-400 drop-shadow-lg" size={48} fill="currentColor" />
+                                        </div>
+                                        <div className="h-56 w-40 bg-slate-700 rounded-t-lg border-t-4 border-yellow-400 flex flex-col items-center justify-end p-4 shadow-2xl">
+                                            <span className="text-6xl font-black text-yellow-400">1º</span>
+                                        </div>
+                                        <div className="mt-4 text-center">
+                                            <div className="font-bold text-white text-xl">{topPerformers[0].name.split(' ')[0]}</div>
+                                            <div className="text-emerald-400 font-bold text-lg">{topPerformers[0].score}/3</div>
+                                        </div>
                                     </div>
-                                    <h2 className="text-4xl font-bold text-white">
-                                        Questão {selectedExamItems.findIndex(i => i.id === resultView) + 1}
-                                    </h2>
-                                    <div className="text-slate-400 mt-4 max-w-2xl mx-auto">
-                                        <RichTextRenderer content={selectedExamItems.find(i => i.id === resultView)?.statement || ''} />
+                                )}
+
+                                {/* 3rd Place */}
+                                {topPerformers[2] && (
+                                    <div className="flex flex-col items-center animate-in slide-in-from-bottom-8 duration-700 delay-500">
+                                        <div className="w-24 h-24 rounded-full bg-orange-100 border-4 border-orange-400 flex items-center justify-center text-3xl font-bold text-orange-600 mb-4 shadow-lg">
+                                            {topPerformers[2].name.charAt(0)}
+                                        </div>
+                                        <div className="h-32 w-32 bg-slate-700 rounded-t-lg border-t-4 border-orange-400 flex flex-col items-center justify-end p-4 shadow-xl">
+                                            <span className="text-4xl font-black text-orange-400">3º</span>
+                                        </div>
+                                        <div className="mt-4 text-center">
+                                            <div className="font-bold text-white text-lg">{topPerformers[2].name.split(' ')[0]}</div>
+                                            <div className="text-emerald-400 font-bold">{topPerformers[2].score}/3</div>
+                                        </div>
                                     </div>
-                                </div>
-                                {renderDistributionBar(resultView)}
+                                )}
                             </div>
-                        )}
+                        </div>
+                    </>
+                ) : (
+                    <div className="animate-in fade-in">
+                        <div className="text-center mb-12">
+                            <div className="inline-block p-4 rounded-full bg-slate-800 mb-4">
+                                <PieChart size={40} className="text-brand-secondary" />
+                            </div>
+                            <h2 className="text-4xl font-bold text-white">
+                                Questão {selectedExamItems.findIndex(i => i.id === resultView) + 1}
+                            </h2>
+                            <div className="text-slate-400 mt-4 max-w-2xl mx-auto">
+                                <RichTextRenderer content={selectedExamItems.find(i => i.id === resultView)?.statement || ''} />
+                            </div>
+                        </div>
+                        {renderDistributionBar(resultView)}
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
+    )
+}
+        </div >
     );
 };
