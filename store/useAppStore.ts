@@ -966,12 +966,21 @@ export const useAppStore = create<AppStore>((set, get) => ({
         }
     },
     deleteExam: async (examId) => {
+        const previousExams = get().exams;
         set((state) => ({ exams: state.exams.filter(e => e.id !== examId) }));
         try {
-            await supabase.from('exams').delete().eq('id', examId);
+            // Attempt to delete (RLS or FK might fail)
+            const { error } = await supabase.from('exams').delete().eq('id', examId);
+            if (error) {
+                console.error('❌ Error deleting exam:', error);
+                set({ exams: previousExams }); // Rollback
+                alert("Erro ao excluir prova: " + (error.message || 'Erro desconhecido'));
+                throw error;
+            }
             console.log('✅ Exam deleted:', examId);
-        } catch (e) {
+        } catch (e: any) {
             console.error('❌ Error deleting exam:', e);
+            set({ exams: previousExams }); // Rollback
         }
     },
 
