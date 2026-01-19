@@ -2,11 +2,11 @@
 -- This script ensures the table schema is 100% correct by dropping it first.
 
 -- 1. Drop dependencies
-DROP TRIGGER IF EXISTS trg_exam_result_audit ON exam_results;
-DROP FUNCTION IF EXISTS log_exam_result_audit();
+DROP TRIGGER IF EXISTS trg_exam_result_audit ON exam_results CASCADE;
+DROP FUNCTION IF EXISTS log_exam_result_audit() CASCADE;
 
 -- 2. Drop table (WARNING: Deletes existing logs, but this is Staging/Demo)
-DROP TABLE IF EXISTS audit_logs;
+DROP TABLE IF EXISTS audit_logs CASCADE;
 
 -- 3. Recreate Table (Explicit TEXT types)
 CREATE TABLE audit_logs (
