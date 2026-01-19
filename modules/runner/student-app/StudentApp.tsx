@@ -525,20 +525,27 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
 
                 <div className="flex flex-col w-full max-w-sm gap-3">
                     <button onClick={async () => {
-                        const store = useAppStore.getState();
-                        if (studentData && studentData.examId) {
-                            try {
-                                const aId = await store.startExamAttempt({
-                                    examId: studentData.examId,
-                                    examVersionId: 'v1',
-                                    studentId: studentData.id
-                                });
-                                setStudentData(prev => ({ ...prev, attemptId: aId }));
-                            } catch (e) {
-                                console.error("Failed to start attempt", e);
+                        try {
+                            const store = useAppStore.getState();
+                            if (studentData && studentData.examId) {
+                                try {
+                                    const aId = await store.startExamAttempt({
+                                        examId: studentData.examId,
+                                        examVersionId: 'v1',
+                                        studentId: studentData.id
+                                    });
+                                    setStudentData(prev => ({ ...prev, attemptId: aId }));
+                                } catch (e) {
+                                    console.error("Failed to start attempt (non-fatal):", e);
+                                    // Fallback: If attempt fails, just proceed. 
+                                    // Security logging might fail but exam can continue offline/demo mode.
+                                }
                             }
+                        } catch (fatalError) {
+                            console.error("Critical error in start exam handler:", fatalError);
+                        } finally {
+                            setStep('EXAM');
                         }
-                        setStep('EXAM');
                     }} className="w-full py-4 bg-brand-primary text-white font-bold rounded-xl text-lg hover:bg-brand-dark transition shadow-lg flex items-center justify-center gap-3">
                         <Play size={20} fill="white" /> Iniciar Prova
                     </button>

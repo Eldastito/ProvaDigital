@@ -1369,14 +1369,18 @@ export const useAppStore = create<AppStore>((set, get) => ({
         set((state) => ({ examAttempts: [newAttempt, ...state.examAttempts] }));
 
         try {
-            const { error } = await supabase.from('exam_attempts').insert({
+            // Explicitly map fields to match DB schema (examId is NOT in DB yet)
+            const payload = {
                 id: newAttempt.id,
                 exam_version_id: newAttempt.examVersionId,
                 student_id: newAttempt.studentId,
                 status: newAttempt.status,
                 started_at: newAttempt.startedAt,
                 metadata: newAttempt.metadata
-            });
+            };
+
+            const { error } = await supabase.from('exam_attempts').insert(payload);
+
             if (error) throw error;
         } catch (e) {
             console.error("Error starting attempt:", e);
