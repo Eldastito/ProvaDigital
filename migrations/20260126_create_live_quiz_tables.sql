@@ -80,7 +80,7 @@ INSERT INTO live_quiz_sessions (
     item_ids, status, created_at, session_code
 )
 SELECT 
-    id, 
+    id::uuid, 
     tenant_id, 
     creator_id, 
     title,
