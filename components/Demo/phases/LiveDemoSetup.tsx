@@ -28,60 +28,36 @@ export const LiveDemoSetup = ({ onSessionCreated }: LiveDemoSetupProps) => {
 
         try {
             const tenantId = 't1';
-            const creatorId = state.currentUser?.id || 'demo-creator';
+            const schoolId = 's1';
 
-            // 1. Determine which items to use
-            let itemIds: string[] = [];
-
+            // 1. Ensure exam items are loaded
             if (config.selectedExamId) {
-                // Load items from selected exam
                 await state.fetchExamItems(config.selectedExamId);
-                const selectedExam = state.exams.find(e => e.id === config.selectedExamId);
-                if (selectedExam?.items) {
-                    itemIds = selectedExam.items.map(item => item.itemId);
+            }
+
+            const classId = uuidv4();
+            let examId = config.selectedExamId;
+
+            // If no exam selected, use or create default "Quiz Interativo"
+            if (!examId) {
+                const { data: existingExams } = await supabase
+                    .from('exams')
+                    .select('id')
+                    .eq('title', 'Quiz Interativo - Ao Vivo')
+                    .eq('status', 'PUBLICADA')
+                    .limit(1);
+
+                if (existingExams && existingExams.length > 0) {
+                    examId = existingExams[0].id;
+                } else {
+                    examId = uuidv4();
                 }
             }
 
-            // If no items selected, use default quiz items
-            if (itemIds.length === 0) {
-                itemIds = ['q1', 'q2', 'q3'];
-
-                // Ensure mock items exist in database
-                const mockItemsToInsert = [
-                    { id: 'q1', tenant_id: tenantId, owner_id: 'system', type: 'MULTIPLE_CHOICE', statement: 'Qual a capital do Brasil?', alternatives: [{ id: 'a', text: 'Brasília', isCorrect: true }, { id: 'b', text: 'Rio de Janeiro', isCorrect: false }], difficulty: 'FACIL', score: 1, subject: 'Geografia' },
-                    { id: 'q2', tenant_id: tenantId, owner_id: 'system', type: 'MULTIPLE_CHOICE', statement: 'Quanto é 2 + 2?', alternatives: [{ id: 'a', text: '4', isCorrect: true }, { id: 'b', text: '5', isCorrect: false }], difficulty: 'FACIL', score: 1, subject: 'Matemática' },
-                    { id: 'q3', tenant_id: tenantId, owner_id: 'system', type: 'MULTIPLE_CHOICE', statement: 'O sol é uma estrela?', alternatives: [{ id: 'a', text: 'Sim', isCorrect: true }, { id: 'b', text: 'Não', isCorrect: false }], difficulty: 'FACIL', score: 1, subject: 'Ciências' }
-                ];
-                await supabase.from('items').upsert(mockItemsToInsert);
-            }
-
-            // 2. Generate session code (short, readable)
-            const sessionCode = Math.random().toString(36).substring(2, 10).toUpperCase();
-
-            // 3. Create LiveQuizSession
-            const newSession = {
-                id: uuidv4(),
-                tenantId,
-                creatorId,
-                title: 'Quiz Interativo - Ao Vivo',
-                className: config.className,
-                maxParticipants: config.capacity,
-                sessionCode,
-                itemIds,
-                shuffleQuestions: true,
-                status: 'WAITING' as const,
-                participants: [],
-                createdAt: new Date().toISOString(),
-                metadata: {}
-            };
-
-            await state.addLiveQuizSession(newSession);
-
-            // 4. Create class for backward compatibility with existing Live Demo logic
-            const classId = uuidv4();
+            // Create Class
             const { error: classError } = await supabase.from('classes').insert({
                 id: classId,
-                school_id: 's1',
+                school_id: schoolId,
                 name: config.className,
                 series: 'Demo Live',
                 shift: 'NOITE',
@@ -91,9 +67,45 @@ export const LiveDemoSetup = ({ onSessionCreated }: LiveDemoSetupProps) => {
 
             if (classError) throw classError;
 
-            // Pass session ID as examId for backward compatibility
-            // (LiveDemoLobby will be updated to use session instead)
-            onSessionCreated(classId, newSession.id);
+            // Check/Create Exam
+            const { data: checkExam } = await supabase.from('exams').select('id').eq('id', examId).single();
+
+            if (!checkExam) {
+                // Create Default Exam
+                const { error: examError } = await supabase.from('exams').insert({
+                    id: examId,
+                    tenant_id: tenantId,
+                    school_id: schoolId,
+                    title: 'Quiz Interativo - Ao Vivo',
+                    subject: 'Conhecimentos Gerais',
+                    status: 'PUBLICADA',
+                    items_config: [
+                        { itemId: 'q1', order: 1 },
+                        { itemId: 'q2', order: 2 },
+                        { itemId: 'q3', order: 3 }
+                    ],
+                    class_ids: [classId]
+                });
+
+                // Insert Mock Items
+                const mockItemsToInsert = [
+                    { id: 'q1', tenant_id: tenantId, owner_id: 'system', type: 'MULTIPLE_CHOICE', statement: 'Qual a capital do Brasil?', alternatives: [{ id: 'a', text: 'Brasília', isCorrect: true }, { id: 'b', text: 'Rio de Janeiro', isCorrect: false }], difficulty: 'FACIL', score: 1 },
+                    { id: 'q2', tenant_id: tenantId, owner_id: 'system', type: 'MULTIPLE_CHOICE', statement: 'Quanto é 2 + 2?', alternatives: [{ id: 'a', text: '4', isCorrect: true }, { id: 'b', text: '5', isCorrect: false }], difficulty: 'FACIL', score: 1 },
+                    { id: 'q3', tenant_id: tenantId, owner_id: 'system', type: 'MULTIPLE_CHOICE', statement: 'O sol é uma estrela?', alternatives: [{ id: 'a', text: 'Sim', isCorrect: true }, { id: 'b', text: 'Não', isCorrect: false }], difficulty: 'FACIL', score: 1 }
+                ];
+
+                await supabase.from('items').upsert(mockItemsToInsert); // safe upsert
+                if (examError) throw examError;
+            } else {
+                // Link class to existing exam
+                const { error: updateError } = await supabase.rpc('append_class_to_exam', {
+                    p_exam_id: examId,
+                    p_class_id: classId
+                });
+                if (updateError) console.warn("RPC failed, relying on direct ID linkage if applicable.");
+            }
+
+            onSessionCreated(classId, examId!);
 
         } catch (error: any) {
             console.error("Erro ao criar sessão:", error);
@@ -152,9 +164,12 @@ export const LiveDemoSetup = ({ onSessionCreated }: LiveDemoSetupProps) => {
                             className="w-full bg-slate-800 border-2 border-slate-700 rounded-xl px-4 py-3 text-white focus:border-brand-primary outline-none transition font-medium appearance-none"
                         >
                             <option value="">Usar Quiz Padrão (Conhecimentos Gerais)</option>
-                            {state.exams.filter(e => (e.status === 'PUBLISHED' as any) || (e.status === 'PUBLICADA' as any)).map(exam => (
-                                <option key={exam.id} value={exam.id}>{exam.title} ({exam.subject})</option>
-                            ))}
+                            {state.exams
+                                .filter(e => (e.status === 'PUBLISHED' as any) || (e.status === 'PUBLICADA' as any))
+                                .filter(e => !e.title.toLowerCase().includes('quiz interativo'))
+                                .map(exam => (
+                                    <option key={exam.id} value={exam.id}>{exam.title} ({exam.subject})</option>
+                                ))}
                         </select>
                     </div>
 
