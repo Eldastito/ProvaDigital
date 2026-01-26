@@ -86,8 +86,12 @@ SELECT
     title,
     COALESCE('Turma Demo - ' || subject, 'Turma Demo') as class_name,
     CASE 
-        WHEN items_config IS NOT NULL THEN items_config::text[]
-        ELSE '{}'::text[]
+        WHEN items_config IS NOT NULL AND jsonb_typeof(items_config) = 'array' THEN 
+            ARRAY(
+                SELECT (elem->>'itemId')::text 
+                FROM jsonb_array_elements(items_config) AS elem
+            )
+        ELSE ARRAY[]::text[]
     END as item_ids,
     CASE status::text
         WHEN 'ACTIVE' THEN 'ACTIVE'
