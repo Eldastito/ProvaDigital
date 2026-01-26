@@ -978,6 +978,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 throw error;
             }
             console.log('✅ Exam deleted:', examId);
+            alert('✅ Prova excluída com sucesso!');
         } catch (e: any) {
             console.error('❌ Error deleting exam:', e);
             set({ exams: previousExams }); // Rollback
