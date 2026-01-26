@@ -6,7 +6,8 @@ import {
     MentorshipRequest, MentorshipStatus, OwlTutorContext, ItemGenerationBatch,
     ItemLifecycleStatus, ExamVersion, ExamVariant, Tenant, School, SchoolClass,
     UserProfileExtended, ExamRegistration, RegistrationStatus,
-    ExamAttempt, ExamAttemptEvent, AuditLog, ArcadeGame, ExamVariantOverride
+    ExamAttempt, ExamAttemptEvent, AuditLog, ArcadeGame, ExamVariantOverride,
+    LiveQuizSession, LiveQuizParticipant, LiveQuizResult
 } from '../types';
 import { uuidv4 } from '../utils/helpers';
 import { INITIAL_TENANTS, INITIAL_SCHOOLS, INITIAL_CLASSES, INITIAL_USERS, INITIAL_ITEMS, INITIAL_STUDENTS, INITIAL_RESULTS, INITIAL_EXAMS, INITIAL_REGISTRATIONS, INITIAL_ANNOUNCEMENTS, INITIAL_MESSAGES, INITIAL_LESSON_PLANS, INITIAL_STUDY_PLANS, INITIAL_STUDENT_PROFILES, INITIAL_USER_PROFILES, INITIAL_SETTINGS, INITIAL_GAMIFIED_EVENTS } from '../utils/mockData';
@@ -71,6 +72,11 @@ interface AppActions {
     updateItemWithVersion: (itemId: string, updates: Partial<Item>, changeReason: string) => Promise<void>;
     addExam: (exam: Exam) => void;
     deleteExam: (examId: string) => Promise<void>; // Added
+    // Live Quiz Actions
+    addLiveQuizSession: (session: LiveQuizSession) => Promise<void>;
+    updateLiveQuizSession: (sessionId: string, updates: Partial<LiveQuizSession>) => Promise<void>;
+    deleteLiveQuizSession: (sessionId: string) => Promise<void>;
+    fetchLiveQuizSessions: () => Promise<void>;
     addSchool: (school: School) => Promise<void>;
     updateSchool: (school: School) => Promise<void>;
     deleteSchool: (schoolId: string) => Promise<void>; // Added
@@ -267,6 +273,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     students: USE_MOCK_DATA ? INITIAL_STUDENTS : [],
     items: USE_MOCK_DATA ? INITIAL_ITEMS : [],
     exams: USE_MOCK_DATA ? INITIAL_EXAMS : [],
+    liveQuizSessions: [], // Live quiz sessions (separate from formal exams)
     examVariants: [],
     variantOverrides: [],
     registrations: USE_MOCK_DATA ? INITIAL_REGISTRATIONS : [],
@@ -484,6 +491,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 console.warn("⚠️ Nenhum perfil encontrado no Supabase.");
                 set({ userProfiles: [] });
             }
+
+            //4.5 Carregar Live Quiz Sessions
+            await get().fetchLiveQuizSessions();
 
             // 5. Carregar Arcade Games
             await get().loadArcadeGames();
@@ -984,6 +994,139 @@ export const useAppStore = create<AppStore>((set, get) => ({
             set({ exams: previousExams }); // Rollback
         }
     },
+
+    // ===================================================
+    // LIVE QUIZ SESSION ACTIONS
+    // ===================================================
+    addLiveQuizSession: async (session: LiveQuizSession) => {
+        // Optimistic update
+        set((state) => ({ liveQuizSessions: [...state.liveQuizSessions, session] }));
+        try {
+            const { error } = await supabase.from('live_quiz_sessions').insert({
+                id: session.id,
+                tenant_id: session.tenantId,
+                creator_id: session.creatorId,
+                title: session.title,
+                class_name: session.className,
+                max_participants: session.maxParticipants,
+                session_code: session.sessionCode,
+                item_ids: session.itemIds,
+                shuffle_questions: session.shuffleQuestions,
+                status: session.status,
+                participants: session.participants,
+                metadata: session.metadata || {},
+                created_at: session.createdAt || new Date().toISOString()
+            });
+
+            if (error) {
+                console.error('❌ Error saving quiz session:', error);
+                set((state) => ({
+                    liveQuizSessions: state.liveQuizSessions.filter(s => s.id !== session.id)
+                }));
+                throw error;
+            }
+            console.log('✅ Live quiz session created:', session.id);
+        } catch (e: any) {
+            console.error('❌ Error creating live quiz session:', e);
+            set((state) => ({
+                liveQuizSessions: state.liveQuizSessions.filter(s => s.id !== session.id)
+            }));
+        }
+    },
+
+    updateLiveQuizSession: async (sessionId: string, updates: Partial<LiveQuizSession>) => {
+        const previousSessions = get().liveQuizSessions;
+        set((state) => ({
+            liveQuizSessions: state.liveQuizSessions.map(s =>
+                s.id === sessionId ? { ...s, ...updates } : s
+            )
+        }));
+
+        try {
+            const dbUpdates: any = {};
+            if (updates.status) dbUpdates.status = updates.status;
+            if (updates.startedAt) dbUpdates.started_at = updates.startedAt;
+            if (updates.finishedAt) dbUpdates.finished_at = updates.finishedAt;
+            if (updates.participants) dbUpdates.participants = updates.participants;
+            if (updates.metadata) dbUpdates.metadata = updates.metadata;
+
+            const { error } = await supabase
+                .from('live_quiz_sessions')
+                .update(dbUpdates)
+                .eq('id', sessionId);
+
+            if (error) {
+                console.error('❌ Error updating quiz session:', error);
+                set({ liveQuizSessions: previousSessions });
+                throw error;
+            }
+            console.log('✅ Live quiz session updated:', sessionId);
+        } catch (e: any) {
+            console.error('❌ Error updating live quiz session:', e);
+            set({ liveQuizSessions: previousSessions });
+        }
+    },
+
+    deleteLiveQuizSession: async (sessionId: string) => {
+        const previousSessions = get().liveQuizSessions;
+        set((state) => ({
+            liveQuizSessions: state.liveQuizSessions.filter(s => s.id !== sessionId)
+        }));
+
+        try {
+            const { error } = await supabase
+                .from('live_quiz_sessions')
+                .delete()
+                .eq('id', sessionId);
+
+            if (error) {
+                console.error('❌ Error deleting quiz session:', error);
+                set({ liveQuizSessions: previousSessions });
+                alert("Erro ao excluir quiz: " + (error.message || 'Erro desconhecido'));
+                throw error;
+            }
+            console.log('✅ Live quiz session deleted:', sessionId);
+            alert('✅ Quiz excluído com sucesso!');
+        } catch (e: any) {
+            console.error('❌ Error deleting quiz session:', e);
+            set({ liveQuizSessions: previousSessions });
+        }
+    },
+
+    fetchLiveQuizSessions: async () => {
+        try {
+            const { data, error } = await supabase
+                .from('live_quiz_sessions')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            const sessions: LiveQuizSession[] = (data || []).map((row: any) => ({
+                id: row.id,
+                tenantId: row.tenant_id,
+                creatorId: row.creator_id,
+                title: row.title || 'Quiz Interativo',
+                className: row.class_name,
+                maxParticipants: row.max_participants,
+                sessionCode: row.session_code,
+                itemIds: row.item_ids || [],
+                shuffleQuestions: row.shuffle_questions || true,
+                status: row.status,
+                startedAt: row.started_at,
+                finishedAt: row.finished_at,
+                participants: row.participants || [],
+                createdAt: row.created_at,
+                metadata: row.metadata || {}
+            }));
+
+            set({ liveQuizSessions: sessions });
+            console.log(`✅ Loaded ${sessions.length} live quiz sessions`);
+        } catch (e: any) {
+            console.error('❌ Error fetching live quiz sessions:', e);
+        }
+    },
+
 
     updateUser: async (user) => {
         set((state) => ({
@@ -2397,6 +2540,7 @@ export const useSafeAppStore = () => {
         ...store,
         items: store.items || [],
         exams: store.exams || [],
+        liveQuizSessions: store.liveQuizSessions || [],
         students: store.students || [],
         schools: store.schools || [],
         classes: store.classes || [],

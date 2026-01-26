@@ -347,6 +347,57 @@ export interface Exam {
   scheduledDate?: string;
 }
 
+// ============================================================================
+// LIVE QUIZ (Separate from Formal Exams)
+// ============================================================================
+
+export interface LiveQuizSession {
+  id: string;
+  tenantId: string;
+  creatorId: string;
+  title: string;
+  className: string;
+  maxParticipants: number;
+  sessionCode: string; // QR code
+
+  // Quiz Content
+  itemIds: string[]; // IDs of questions from items table
+  shuffleQuestions: boolean;
+
+  // Session State
+  status: 'WAITING' | 'ACTIVE' | 'FINISHED';
+  startedAt?: string;
+  finishedAt?: string;
+
+  // Participants
+  participants: LiveQuizParticipant[];
+
+  // Metadata
+  createdAt: string;
+  metadata?: Record<string, any>;
+}
+
+export interface LiveQuizParticipant {
+  name: string;
+  id?: string; // If logged in
+  score: number;
+  violations: number;
+  answers: Record<string, any>;
+  joinedAt?: string;
+}
+
+export interface LiveQuizResult {
+  id: string;
+  sessionId: string;
+  participantName: string;
+  participantId?: string;
+  score: number;
+  answers: Record<string, any>;
+  completedAt: string;
+  violations: any[];
+}
+
+
 export interface ExamVariant {
   id: string;
   examId: string;
@@ -756,6 +807,7 @@ export interface AppState {
   students: Student[];
   items: Item[];
   exams: Exam[];
+  liveQuizSessions: LiveQuizSession[]; // Separate from formal exams
   // examVariants and variantOverrides moved below to avoid duplication
   registrations: ExamRegistration[];
   results: ExamResult[];
