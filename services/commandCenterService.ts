@@ -5,7 +5,7 @@
  * Sprint 0 - Parte 2
  */
 
-import { supabase } from '../supabaseClient';
+import { supabase } from './supabaseClient';
 
 // Tipos
 export interface ExamSession {

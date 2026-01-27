@@ -5,7 +5,7 @@
  * Sprint 0 - Parte 1
  */
 
-import { supabase } from '../supabaseClient';
+import { supabase } from './supabaseClient';
 
 // Tipos
 export interface ScheduledExam {
