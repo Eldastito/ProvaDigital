@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Lock, CheckCircle, Play, Wifi, PenTool, Eraser, ChevronRight, ChevronLeft, ShieldCheck, Cloud, Video, AlertTriangle, Music, Trophy } from 'lucide-react';
+import { Lock, CheckCircle, Play, Wifi, PenTool, Eraser, ChevronRight, ChevronLeft, ShieldCheck, Cloud, Video, AlertTriangle, Music, Trophy, HelpCircle } from 'lucide-react';
 import { AppState, QuestionType } from '../../../types';
 import { supabase } from '../../../services/supabaseClient'; // Import Real Client
 import { uuidv4 } from '../../../utils/helpers';
@@ -14,6 +14,13 @@ import { RichTextRenderer } from '../../../components/RichTextRenderer';
 import { AccessibilityToolbar } from '../features/AccessibilityToolbar';
 import { AccessibilityConfig, DEFAULT_ACCESSIBILITY_CONFIG } from '../features/types';
 import { OfflineSubmissionFlow } from '../offline/OfflineSubmissionFlow';
+
+// === MESH NETWORK IMPORTS ===
+import { getMeshNetwork } from '../../../services/meshNetworkService';
+import { getTelemetryService } from '../../../services/telemetryService';
+import { getAlertingService, Alert } from '../../../services/alertingService';
+import { useNetworkStore, useNetworkSync } from '../../../services/stores/useNetworkStore';
+import { NetworkStatusInline } from './NetworkStatus';
 
 interface StudentAppProps {
     onBack: () => void;
@@ -107,6 +114,11 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     // --- ACCESSIBILITY STATE ---
     const [a11y, setA11y] = useState<AccessibilityConfig>(DEFAULT_ACCESSIBILITY_CONFIG);
 
+    // --- MESH NETWORK STATE ---
+    const [showAlertModal, setShowAlertModal] = useState(false);
+    const [currentAlert, setCurrentAlert] = useState<Alert | null>(null);
+    const [meshInitialized, setMeshInitialized] = useState(false);
+
     // --- PROCTORING HOOK ---
     const [proctoringActive, setProctoringActive] = useState(false);
 
@@ -144,6 +156,16 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
             if (isSessionActive) {
                 await logSecurityEvent(reason, 'HIGH', {
                     timestamp: new Date().toISOString()
+                });
+            }
+
+            // 🌐 Enviar via telemetria mesh
+            if (meshInitialized && studentData?.id) {
+                getTelemetryService().logViolation({
+                    studentId: studentData.id,
+                    eventType: reason,
+                    severity: 'MEDIUM',
+                    timestamp: Date.now()
                 });
             }
 
@@ -274,6 +296,25 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         }
     }, [step, isSessionActive]);
 
+    // 🌐 Cleanup mesh network ao desmontar
+    useEffect(() => {
+        return () => {
+            if (meshInitialized) {
+                console.log('🔌 Desconectando mesh network...');
+                getMeshNetwork().shutdown();
+                getTelemetryService().stop();
+                getAlertingService().stop();
+
+                // Limpar interval de sync
+                if ((window as any).__meshSyncInterval) {
+                    clearInterval((window as any).__meshSyncInterval);
+                }
+
+                console.log('✅ Mesh network desconectada');
+            }
+        };
+    }, [meshInitialized]);
+
     // UI Blocking for Loading
     const isItemsEmpty = !examItems || examItems.length === 0;
     if (loadingExam || (isItemsEmpty && !loadError)) {
@@ -299,6 +340,75 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     };
 
     // --- ACTIONS ---
+
+    // 🌐 Inicializar Mesh Network
+    const initializeMeshNetwork = async (
+        studentId: string,
+        studentName: string,
+        examId: string,
+        eventId: string
+    ) => {
+        try {
+            console.log('🌐 Inicializando mesh network...');
+
+            // 1. Conectar à mesh
+            await getMeshNetwork().initialize({
+                signalingServerUrl: 'http://192.168.43.1:8080',
+                roomId: eventId,
+                nodeId: studentId,
+                nodeType: 'STUDENT',
+                nodeName: studentName
+            });
+
+            // 2. Iniciar telemetria
+            await getTelemetryService().start({
+                studentId,
+                studentName,
+                examId,
+                eventId,
+                totalQuestions: actualItems.length || 0
+            });
+
+            // 3. Iniciar sistema de alertas
+            getAlertingService().initialize({
+                userId: studentId,
+                userName: studentName,
+                userType: 'STUDENT'
+            });
+
+            // 4. Configurar store
+            useNetworkStore.getState().setNodeConfig({
+                nodeId: studentId,
+                nodeName: studentName,
+                nodeType: 'STUDENT',
+                eventId
+            });
+
+            // 5. Configurar callback de alertas
+            getAlertingService().setOnAlertReceived((alert) => {
+                setCurrentAlert(alert);
+                setShowAlertModal(true);
+                console.log('📨 Alerta recebido:', alert.message);
+            });
+
+            // 6. Sincronizar com store
+            const { setupCallbacks, syncMesh } = useNetworkSync();
+            setupCallbacks();
+
+            // Sync inicial e periódico
+            syncMesh();
+            const syncInterval = setInterval(syncMesh, 5000);
+
+            // Salvar interval para cleanup
+            (window as any).__meshSyncInterval = syncInterval;
+
+            setMeshInitialized(true);
+            console.log('✅ Mesh network inicializada com sucesso!');
+        } catch (error) {
+            console.warn('⚠️ Falha ao inicializar mesh (modo offline):', error);
+            // Não bloquear execução, mesh é opcional
+        }
+    };
 
     const handleJoinClass = async () => {
         if (!inputName.trim()) return alert("Digite seu nome.");
@@ -334,6 +444,9 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 // ✨ Iniciar sessão multi-login
                 await startSession(studentId, inputName.trim());
 
+                // 🌐 Iniciar mesh network
+                await initializeMeshNetwork(studentId, inputName.trim(), examIdParam || 'demo-exam', classIdParam);
+
                 // INITIALIZE REALTIME EVENTS FOR BROADCASTING ALERTS
                 if (examIdParam) {
                     state.initializeExamEvents(examIdParam);
@@ -353,6 +466,9 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
 
                 // ✨ Iniciar sessão multi-login (modo local)
                 await startSession(localStudentId, inputName.trim());
+
+                // 🌐 Iniciar mesh network (modo local)
+                await initializeMeshNetwork(localStudentId, inputName.trim(), 'demo-exam', 'local');
             }
             setStep('CONFIRM_IDENTITY');
         } catch (e: any) {
@@ -413,6 +529,12 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
             if (questionIndex >= 0) {
                 await saveAnswerToSession(questionIndex + 1, optId);
             }
+        }
+
+        // 🌐 Atualizar telemetria mesh
+        if (meshInitialized) {
+            const count = Object.keys(newAnswers).filter(k => !k.includes('_text')).length;
+            getTelemetryService().updateAnsweredCount(count);
         }
 
         // --- OFFLINE PERSISTENCE (PHASE 2) - Legacy support ---
@@ -876,11 +998,12 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
 
             <div className={`h-14 flex justify-between items-center px-4 shadow-md flex-shrink-0 z-20 ${a11y.theme === 'high-contrast' ? 'bg-black text-yellow-400 border-b border-yellow-400' : 'bg-[#0f1d2e] text-white'}`}>
                 <div className="text-sm font-bold truncate max-w-[150px] md:max-w-none">{studentData.name}</div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                     <div className={`px-2 py-1 rounded font-mono text-[10px] md:text-xs border flex items-center gap-1 ${a11y.theme === 'high-contrast' ? 'border-yellow-400 text-yellow-400' : 'bg-slate-800 border-slate-700 text-emerald-400'}`}>
                         <Wifi size={10} /> <span className="hidden sm:inline">{sessionMode === 'LIVE_REAL' ? 'Online' : 'Local'}</span>
                     </div>
                     {isKioskActive && <div className={`px-2 py-1 rounded font-mono text-[10px] md:text-xs border ${a11y.theme === 'high-contrast' ? 'border-white text-white' : 'bg-emerald-900 text-emerald-300 border-emerald-700'}`}>Kiosk</div>}
+                    {meshInitialized && <NetworkStatusInline />}
                 </div>
             </div>
 
@@ -1047,6 +1170,49 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 <div className="fixed inset-0 pointer-events-none z-10 hidden md:block">
                     <div className="absolute top-0 left-0 right-0 h-[20vh] bg-black/80 backdrop-blur-sm" />
                     <div className="absolute bottom-0 left-0 right-0 h-[20vh] bg-black/80 backdrop-blur-sm" />
+                </div>
+            )}
+
+            {/* 🌐 BOTÃO PEDIR AJUDA */}
+            {meshInitialized && (
+                <button
+                    onClick={() => {
+                        getAlertingService().sendAlert({
+                            to: 'BROADCAST',
+                            type: 'HELP_REQUEST',
+                            message: `${studentData.name} precisa de ajuda na questão ${currentQuestionIdx + 1}`
+                        });
+                        alert('✅ Pedido de ajuda enviado ao professor!');
+                    }}
+                    className="fixed bottom-20 right-4 bg-yellow-500 text-white p-4 rounded-full shadow-lg hover:scale-110 transition-transform z-30"
+                    title="Pedir Ajuda"
+                >
+                    <HelpCircle size={24} />
+                </button>
+            )}
+
+            {/* 🌐 MODAL DE ALERTAS */}
+            {showAlertModal && currentAlert && (
+                <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95">
+                        <h3 className="text-2xl font-bold mb-4 text-slate-900 flex items-center gap-2">
+                            <AlertTriangle className="text-yellow-500" size={28} />
+                            Alerta do Professor
+                        </h3>
+                        <p className="text-gray-700 mb-6 text-lg leading-relaxed">
+                            {currentAlert.message}
+                        </p>
+                        <button
+                            onClick={() => {
+                                getAlertingService().markAsRead(currentAlert.id);
+                                setShowAlertModal(false);
+                                setCurrentAlert(null);
+                            }}
+                            className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition"
+                        >
+                            OK, Entendi
+                        </button>
+                    </div>
                 </div>
             )}
         </div>
