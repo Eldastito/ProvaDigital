@@ -43,6 +43,8 @@ import { useAppStore } from './store/useAppStore';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { PerformanceAnalyticsDashboard } from './features/analytics/PerformanceAnalyticsDashboard';
 import { AIQuestionGeneratorView } from './modules/builder/AIQuestionGeneratorView';
+import { ExamScheduler } from './modules/coordinator/ExamScheduler';
+import { CommandCenter } from './modules/coordinator/CommandCenter';
 
 // Helper for Role-based Dashboard
 const ConditionalDashboard = () => {
@@ -130,6 +132,10 @@ export const appRoutes: RouteObject[] = [
             { path: 'my-profile', element: <UserProfileView /> },
             { path: 'neuro-screening', element: <NeuroScreeningView /> },
             { path: 'gamified-events', element: <GamifiedEventsManager /> },
+
+            // Sprint 0: Coordinator Tools
+            { path: 'agendamento', element: <ExamScheduler /> },
+            { path: 'central-comando', element: <CommandCenter /> },
 
             // Student specific
             { path: 'aluno', element: <StudentDashboardView /> },

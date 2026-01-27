@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useLocation, useNavigate, Outlet, Navigate } from 'react-router-dom';
 import {
     LayoutDashboard, BookOpen, GraduationCap, Users, FileText,
-    LogOut, Menu, ChevronRight, Tablet, PieChart, MessageCircle, Bot, Target, UserCircle, Shield, Stethoscope, Map, Home, ChevronDown, Swords, Flame, Trophy, Cast, Calendar, Gamepad2, BarChart
+    LogOut, Menu, ChevronRight, Tablet, PieChart, MessageCircle, Bot, Target, UserCircle, Shield, Stethoscope, Map, Home, ChevronDown, Swords, Flame, Trophy, Cast, Calendar, Gamepad2, BarChart, Activity, CalendarCheck
 } from 'lucide-react';
 import { useSafeAppStore } from '../store/useAppStore';
 import { UserRole, TenantType } from '../types';
@@ -187,6 +187,10 @@ export const DashboardLayout = () => {
                             <NavItem icon={Gamepad2} label="Gestão Arcade Zone" active={path.includes('/admin/governanca')} onClick={() => navigate('/admin/governanca')} />
                             <NavItem icon={Tablet} label="App Tablet (Aplicação)" active={path.includes('/apps/tablet')} onClick={() => navigate('/apps/tablet')} />
                             <NavItem icon={Cast} label="Demo Live (Apresentação)" active={path.includes('/apps/demo')} onClick={() => navigate('/apps/demo')} />
+
+                            <div className="px-4 pt-4 pb-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Sprint 0: Coordenação</div>
+                            <NavItem icon={CalendarCheck} label="Agendamento de Provas" active={path === '/agendamento'} onClick={() => navigate('/agendamento')} />
+                            <NavItem icon={Activity} label="Central de Comando" active={path === '/central-comando'} onClick={() => navigate('/central-comando')} />
 
                             {canManageCapabilities && (
                                 <NavItem icon={Target} label="Governança Hierárquica" active={path === '/admin/capabilities'} onClick={() => navigate('/admin/capabilities')} />
