@@ -21,6 +21,8 @@ import { QrCode, X, CheckCircle, AlertTriangle, Users, Download } from 'lucide-r
 import { E2EEncryptionService, SignedPayload } from '../../../services/security/e2eEncryptionService';
 import { QRDataTransfer, QRChunk } from '../../../services/qrCodecService';
 import { QRCodeSVG } from 'qrcode.react';
+import { QRScannerService } from '../../../services/qrScannerService';
+
 
 interface QRScannerModalProps {
     examId: string;
@@ -52,7 +54,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const scanIntervalRef = useRef<number | null>(null);
+    const scannerRef = useRef<QRScannerService | null>(null);
 
     useEffect(() => {
         if (scanning) {
@@ -66,17 +68,30 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
 
     const startCamera = async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment' } // Câmera traseira
+            if (!videoRef.current) {
+                throw new Error('Elemento de vídeo não encontrado');
+            }
+
+            // Criar nova instância do scanner
+            scannerRef.current = new QRScannerService();
+
+            // Iniciar scanner com jsQR
+            await scannerRef.current.start({
+                videoElement: videoRef.current,
+                canvasElement: canvasRef.current || undefined,
+                useFrontCamera: false, // Câmera traseira
+                scanInterval: 100, // 10fps
+                showDebugOverlay: process.env.NODE_ENV === 'development',
+                onDetected: (qrData) => {
+                    console.log('📱 QR Code detectado automaticamente!');
+                    handleManualInput(qrData);
+                },
+                onError: (err) => {
+                    console.error('Erro no scanner:', err);
+                    setError(err.message);
+                }
             });
 
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-                videoRef.current.play();
-
-                // Inicia scan automático
-                scanIntervalRef.current = window.setInterval(scanQRCode, 500);
-            }
         } catch (err) {
             console.error('Erro ao acessar câmera:', err);
             setError('Não foi possível acessar a câmera. Verifique as permissões.');
@@ -85,34 +100,12 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
     };
 
     const stopCamera = () => {
-        if (videoRef.current?.srcObject) {
-            const stream = videoRef.current.srcObject as MediaStream;
-            stream.getTracks().forEach(track => track.stop());
-        }
-
-        if (scanIntervalRef.current) {
-            clearInterval(scanIntervalRef.current);
+        if (scannerRef.current) {
+            scannerRef.current.stop();
+            scannerRef.current = null;
         }
     };
 
-    const scanQRCode = () => {
-        if (!videoRef.current || !canvasRef.current) return;
-
-        const video = videoRef.current;
-        const canvas = canvasRef.current;
-        const context = canvas.getContext('2d');
-
-        if (!context || video.readyState !== video.HAVE_ENOUGH_DATA) return;
-
-        // Desenha frame atual no canvas
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        // Tenta detectar QR Code (usando jsQR ou similar)
-        // Por simplicidade, vou simular com um input manual
-        // Em produção, use biblioteca como jsQR
-    };
 
     const handleManualInput = async (qrData: string) => {
         try {

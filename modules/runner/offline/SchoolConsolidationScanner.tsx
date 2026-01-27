@@ -12,11 +12,13 @@
  * 5. Sincronizar com servidor ou gerar QR final
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { X, CheckCircle, AlertTriangle, Layers, Upload, QrCode } from 'lucide-react';
 import { E2EEncryptionService, SignedPayload } from '../../../services/security/e2eEncryptionService';
 import { QRDataTransfer } from '../../../services/qrCodecService';
 import { QRCodeSVG } from 'qrcode.react';
+import { QRScannerService } from '../../../services/qrScannerService';
+
 
 interface SchoolConsolidationScannerProps {
     schoolId: string;
@@ -42,6 +44,76 @@ export const SchoolConsolidationScanner: React.FC<SchoolConsolidationScannerProp
     const [classrooms, setClassrooms] = useState<ClassroomData[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [consolidated, setConsolidated] = useState(false);
+    const [scanning, setScanning] = useState(false);
+
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const scannerRef = useRef<QRScannerService | null>(null);
+
+    // Feedback sonoro/vibração quando detectar QR
+    const playSuccessSound = () => {
+        // Vibração (se disponível)
+        if ('vibrate' in navigator) {
+            navigator.vibrate(200);
+        }
+
+        // Som de beep (Web Audio API)
+        try {
+            const audioContext = new AudioContext();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.value = 800; // 800Hz
+            oscillator.type = 'sine';
+
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.2);
+        } catch (e) {
+            console.log('Áudio não disponível');
+        }
+    };
+
+    const startScanner = async () => {
+        try {
+            if (!videoRef.current) return;
+
+            scannerRef.current = new QRScannerService();
+
+            await scannerRef.current.start({
+                videoElement: videoRef.current,
+                useFrontCamera: false,
+                scanInterval: 100,
+                showDebugOverlay: process.env.NODE_ENV === 'development',
+                onDetected: (qrData) => {
+                    console.log('📱 QR Code de sala detectado!');
+                    playSuccessSound();
+                    handleManualInput(qrData);
+                },
+                onError: (err) => {
+                    setError(err.message);
+                }
+            });
+
+            setScanning(true);
+        } catch (err) {
+            setError('Erro ao iniciar câmera');
+            setScanning(false);
+        }
+    };
+
+    const stopScanner = () => {
+        if (scannerRef.current) {
+            scannerRef.current.stop();
+            scannerRef.current = null;
+        }
+        setScanning(false);
+    };
+
 
     const handleManualInput = async (qrData: string) => {
         try {
@@ -181,10 +253,46 @@ export const SchoolConsolidationScanner: React.FC<SchoolConsolidationScannerProp
 
                     {!consolidated && (
                         <>
+                            {/* Scanner Automático */}
+                            <div className="bg-slate-50 rounded-xl p-4 border-2 border-slate-200 mb-4">
+                                <h3 className="font-bold text-slate-900 mb-3 flex items-center gap-2">
+                                    <QrCode size={20} />
+                                    Scanner Automático
+                                </h3>
+
+                                <video
+                                    ref={videoRef}
+                                    className="w-full rounded-lg bg-black mb-3"
+                                    style={{ maxHeight: '300px' }}
+                                    autoPlay
+                                    playsInline
+                                    muted
+                                />
+
+                                <div className="flex gap-3">
+                                    {!scanning ? (
+                                        <button
+                                            onClick={startScanner}
+                                            className="flex-1 py-3 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition flex items-center justify-center gap-2"
+                                        >
+                                            <QrCode size={20} />
+                                            Iniciar Scanner
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={stopScanner}
+                                            className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition"
+                                        >
+                                            Parar Scanner
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
                             {/* Manual Input */}
                             <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
                                 <p className="text-sm text-blue-900 font-medium mb-2">
-                                    📱 Cole o QR Code da sala aqui (modo manual)
+                                    📱 Modo Manual (desenvolvimento/fallback)
                                 </p>
                                 <input
                                     type="text"
