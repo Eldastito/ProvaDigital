@@ -11,7 +11,8 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [react()],
     define: {
-      // Vite will automatically handle VITE_ variables via import.meta.env
+      // Fix for "global is not defined" error
+      global: 'globalThis',
     },
     resolve: {
       alias: {

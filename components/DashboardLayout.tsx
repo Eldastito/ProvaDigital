@@ -212,6 +212,10 @@ export const DashboardLayout = () => {
                             <NavItem icon={GraduationCap} label="Aplicação de Prova" active={path.includes('/online-exam')} onClick={() => navigate('/online-exam')} />
                             <NavItem icon={BarChart} label="Analytics" active={path === '/analytics'} onClick={() => navigate('/analytics')} />
                             <NavItem icon={GraduationCap} label="Planos de Ensino" active={path === '/study-plans'} onClick={() => navigate('/study-plans')} />
+
+                            <div className="px-4 pt-4 pb-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Sprint 0: Coordenação</div>
+                            <NavItem icon={CalendarCheck} label="Agendamento de Provas" active={path === '/agendamento'} onClick={() => navigate('/agendamento')} />
+                            <NavItem icon={Activity} label="Central de Comando" active={path === '/central-comando'} onClick={() => navigate('/central-comando')} />
                         </>
                     )}
                 </nav>
