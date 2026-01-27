@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { Users, ArrowLeft, Monitor, UserCheck, QrCode, CheckCircle, Lock, UserPlus, XSquare, Layers, AlertTriangle, Unlock, Play, Smartphone, KeyRound, BarChart2 } from 'lucide-react';
+import { Users, ArrowLeft, Monitor, UserCheck, QrCode, CheckCircle, Lock, UserPlus, XSquare, Layers, AlertTriangle, Unlock, Play, Smartphone, KeyRound, BarChart2, Scan } from 'lucide-react';
 import { AppState } from '../../../types';
 import { QRDataTransfer } from '../../../services/qrCodecService';
 import { supabase } from '../../../services/supabaseClient';
+import { QRScannerModal } from '../offline/QRScannerModal';
 
 import { useSafeAppStore } from '../../../store/useAppStore';
 import { TabletLauncher } from './TabletLauncher';
@@ -39,6 +40,7 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
     const [qrChunks, setQrChunks] = useState<string[]>([]);
     const [currentQrIndex, setCurrentQrIndex] = useState(0);
     const [attendanceQrChunks, setAttendanceQrChunks] = useState<string[]>([]);
+    const [showOfflineScanner, setShowOfflineScanner] = useState(false);
 
     useEffect(() => {
         if (isLiveController && liveClassId) {
@@ -333,6 +335,13 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="font-bold text-slate-800 text-xl flex items-center gap-2"><Users className="text-purple-600" /> Distribuição de Tablets</h3>
                             <div className="flex gap-2">
+                                <button
+                                    onClick={() => setShowOfflineScanner(true)}
+                                    className="px-4 py-2 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition flex items-center gap-2 shadow-md"
+                                >
+                                    <Scan size={16} />
+                                    Scanner Offline
+                                </button>
                                 <span className="text-xs font-bold text-slate-500 bg-white px-3 py-2 rounded border">
                                     Ativos: {stats.present} / {classData.students.length}
                                 </span>
@@ -447,6 +456,15 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
                     </div>
                 )}
             </main>
+
+            {/* QR Scanner Modal - Coleta Offline */}
+            {showOfflineScanner && classData && (
+                <QRScannerModal
+                    examId={classData.examId || 'exam-offline'}
+                    eventId={`evt_${classData.classId}_${new Date().toISOString().split('T')[0]}`}
+                    onClose={() => setShowOfflineScanner(false)}
+                />
+            )}
         </div>
     );
 };
