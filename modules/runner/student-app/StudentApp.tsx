@@ -5,6 +5,7 @@ import { AppState, QuestionType } from '../../../types';
 import { supabase } from '../../../services/supabaseClient'; // Import Real Client
 import { uuidv4 } from '../../../utils/helpers';
 import { useProctoring } from '../../../hooks/useProctoring';
+import { useStudentSession } from '../hooks/useStudentSession';
 import { saveSession, getLastSession, clearDb } from '../../../services/offlineDb';
 import { StoredSession } from '../../../types';
 
@@ -119,11 +120,34 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         }
     }, [step]);
 
+    // --- MULTI-LOGIN SESSION HOOK ---
+    const {
+        currentSession,
+        isSessionActive,
+        startSession,
+        saveAnswer: saveAnswerToSession,
+        logSecurityEvent,
+        finishSession,
+        logout
+    } = useStudentSession({
+        examId: examIdParam || 'demo-exam',
+        eventId: classIdParam || 'demo-event'
+    });
+
     const { videoRef, cameraActive, violationCount, securityLog } = useProctoring({
         isActive: proctoringActive,
-        studentId: studentData?.id || 'anon',
-        onViolation: (reason) => {
+        studentId: currentSession?.studentId || studentData?.id || 'anon',
+        onViolation: async (reason) => {
             console.log("Violação detectada:", reason);
+
+            // Log via multi-login session
+            if (isSessionActive) {
+                await logSecurityEvent(reason, 'HIGH', {
+                    timestamp: new Date().toISOString()
+                });
+            }
+
+            // Legacy log (manter por compatibilidade)
             const store = useAppStore.getState();
             if (studentData?.attemptId) {
                 store.logSecurityEvent({
@@ -229,6 +253,27 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         checkSavedSession();
     }, [studentData]);
 
+    // ✨ Auto-logout após completar prova (multi-login)
+    useEffect(() => {
+        if (step === 'COMPLETED' && isSessionActive) {
+            const timer = setTimeout(() => {
+                console.log('🚪 Fazendo logout automático...');
+                logout(); // Limpa RAM, mantém IndexedDB
+
+                // Reset para próximo aluno
+                setInputName('');
+                setCurrentQuestionIdx(0);
+                setAnswers({});
+                setStudentData(null);
+                setStep('LOGIN_FORM');
+
+                console.log('✅ Tablet pronto para próximo aluno');
+            }, 5000); // 5 segundos para ver resultado
+
+            return () => clearTimeout(timer);
+        }
+    }, [step, isSessionActive]);
+
     // UI Blocking for Loading
     const isItemsEmpty = !examItems || examItems.length === 0;
     if (loadingExam || (isItemsEmpty && !loadError)) {
@@ -286,20 +331,28 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                     examId: examIdParam
                 });
 
+                // ✨ Iniciar sessão multi-login
+                await startSession(studentId, inputName.trim());
+
                 // INITIALIZE REALTIME EVENTS FOR BROADCASTING ALERTS
                 if (examIdParam) {
                     state.initializeExamEvents(examIdParam);
                 }
             } else {
                 // Modo Local (Fallback)
+                const localStudentId = 'local_' + Date.now();
+
                 setStudentData({
-                    id: 'local_' + Date.now(),
+                    id: localStudentId,
                     name: inputName,
                     reg: '1234',
                     examTitle: 'Demo Local',
                     roleTitle: 'Visitante',
                     eventId: 'local'
                 });
+
+                // ✨ Iniciar sessão multi-login (modo local)
+                await startSession(localStudentId, inputName.trim());
             }
             setStep('CONFIRM_IDENTITY');
         } catch (e: any) {
@@ -350,11 +403,19 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         }
     };
 
-    const handleOptionSelect = (qId: string, optId: string) => {
+    const handleOptionSelect = async (qId: string, optId: string) => {
         const newAnswers = { ...answers, [qId]: optId };
         setAnswers(newAnswers);
 
-        // --- OFFLINE PERSISTENCE (PHASE 2) ---
+        // ✨ Salvar via multi-login session
+        if (isSessionActive && actualItems.length > 0) {
+            const questionIndex = actualItems.findIndex(q => q.id === qId);
+            if (questionIndex >= 0) {
+                await saveAnswerToSession(questionIndex + 1, optId);
+            }
+        }
+
+        // --- OFFLINE PERSISTENCE (PHASE 2) - Legacy support ---
         if (studentData) {
             saveSession({
                 sessionId: `${studentData.id}_${studentData.examId || 'demo'}`,
@@ -422,6 +483,14 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
             }));
 
             const formattedAnswers = gradingResult.answers;
+
+            // ✨ Finalizar sessão multi-login
+            if (isSessionActive) {
+                const completedSession = await finishSession();
+                console.log('🎓 Sessão multi-login finalizada:', completedSession.id);
+                console.log(`   Respostas: ${completedSession.encryptedAnswers.length}`);
+                console.log(`   Eventos: ${completedSession.securityEvents.length}`);
+            }
 
             // Tentativa ONLINE principal
             if (sessionMode === 'LIVE_REAL' && studentData) {
