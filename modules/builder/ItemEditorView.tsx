@@ -452,7 +452,13 @@ export const ItemEditorView = () => {
             alternatives: (form.type === QuestionType.REDACTION || form.type === QuestionType.ESSAY)
                 ? []
                 : alternatives.map((a, i) => ({ id: `alt-${i}`, text: a.text, isCorrect: a.isCorrect })),
-            correctAnswerJustification: form.correctAnswerJustification,
+
+            // CORREÇÃO AUTOMÁTICA: Integra keywords no formato do autoGradingService
+            correctAnswerJustification: form.correctAnswerJustification +
+                ((form as any).offlineKeywords?.required || (form as any).offlineKeywords?.optional
+                    ? `\n\nREQUIRED: ${(form as any).offlineKeywords?.required || ''}\nOPTIONAL: ${(form as any).offlineKeywords?.optional || ''}`
+                    : ''),
+
             difficulty: form.difficulty,
             score: 1.0,
             origin: ItemOrigin.MANUAL,
@@ -872,6 +878,81 @@ export const ItemEditorView = () => {
                                     Gerar Justificativa
                                 </button>
                             </div>
+
+                            {/* CRITÉRIOS DE CORREÇÃO AUTOMÁTICA OFFLINE (DISSERTATIVAS) */}
+                            {(form.type === QuestionType.ESSAY || form.type === QuestionType.REDACTION) && (
+                                <div className="mb-4 p-4 bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl space-y-3 animate-in slide-in-from-top-2">
+                                    <div className="flex items-start gap-2">
+                                        <Brain className="text-purple-600 flex-shrink-0 mt-0.5" size={18} />
+                                        <div className="flex-1">
+                                            <h4 className="text-sm font-bold text-purple-900 mb-1">⚡ Correção Automática Offline</h4>
+                                            <p className="text-xs text-purple-700 leading-relaxed">
+                                                Defina <span className="font-bold">palavras-chave</span> para permitir correção automática mesmo sem internet.
+                                                Ideal para provas offline em tablets!
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <div>
+                                            <label className="block text-xs font-bold text-purple-800 uppercase mb-1.5 flex items-center gap-1.5">
+                                                <CheckCircle2 size={12} className="text-purple-600" />
+                                                Palavras-chave OBRIGATÓRIAS (70% da nota)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                className="w-full border-2 border-purple-200 rounded-lg p-2.5 text-sm focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition"
+                                                placeholder="Ex: fotossíntese, clorofila, luz solar, glicose"
+                                                value={(form as any).offlineKeywords?.required || ''}
+                                                onChange={e => setForm({
+                                                    ...form,
+                                                    offlineKeywords: {
+                                                        ...(form as any).offlineKeywords,
+                                                        required: e.target.value
+                                                    }
+                                                })}
+                                            />
+                                            <p className="text-[10px] text-purple-600 mt-1 italic">
+                                                💡 Conceitos essenciais que devem aparecer na resposta. Separe por vírgula.
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-bold text-purple-800 uppercase mb-1.5 flex items-center gap-1.5">
+                                                <Sparkles size={12} className="text-purple-600" />
+                                                Palavras-chave OPCIONAIS (até +30% bônus)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                className="w-full border-2 border-purple-200 rounded-lg p-2.5 text-sm focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition"
+                                                placeholder="Ex: CO2, oxigênio, ATP, estômatos"
+                                                value={(form as any).offlineKeywords?.optional || ''}
+                                                onChange={e => setForm({
+                                                    ...form,
+                                                    offlineKeywords: {
+                                                        ...(form as any).offlineKeywords,
+                                                        optional: e.target.value
+                                                    }
+                                                })}
+                                            />
+                                            <p className="text-[10px] text-purple-600 mt-1 italic">
+                                                ⭐ Conceitos extras que dão pontos de bônus se mencionados.
+                                            </p>
+                                        </div>
+
+                                        <div className="pt-2 border-t border-purple-200">
+                                            <p className="text-xs text-purple-800 font-medium flex items-start gap-2">
+                                                <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+                                                <span>
+                                                    Deixe em branco para <strong>correção manual obrigatória</strong>.
+                                                    Com IA online habilitada, pode ser usada como backup.
+                                                </span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             <RichTextEditor
                                 value={form.correctAnswerJustification}
                                 onChange={(val) => setForm({ ...form, correctAnswerJustification: val })}

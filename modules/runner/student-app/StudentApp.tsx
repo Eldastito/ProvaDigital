@@ -12,6 +12,7 @@ import { useSafeAppStore, useAppStore } from '../../../store/useAppStore';
 import { RichTextRenderer } from '../../../components/RichTextRenderer';
 import { AccessibilityToolbar } from '../features/AccessibilityToolbar';
 import { AccessibilityConfig, DEFAULT_ACCESSIBILITY_CONFIG } from '../features/types';
+import { OfflineSubmissionFlow } from '../offline/OfflineSubmissionFlow';
 
 interface StudentAppProps {
     onBack: () => void;
@@ -79,7 +80,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     const sessionMode = classIdParam ? 'LIVE_REAL' : 'DEMO_LOCAL';
 
     const [studentData, setStudentData] = useState<any>(null);
-    const [step, setStep] = useState<'LOGIN_FORM' | 'CONFIRM_IDENTITY' | 'EXAM_COVER' | 'EXAM' | 'SENDING' | 'COMPLETED'>('LOGIN_FORM');
+    const [step, setStep] = useState<'LOGIN_FORM' | 'CONFIRM_IDENTITY' | 'EXAM_COVER' | 'EXAM' | 'SENDING' | 'OFFLINE_SUBMISSION' | 'COMPLETED'>('LOGIN_FORM');
     const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
 
     // Login State
@@ -373,27 +374,55 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         if (!confirm("Tem certeza que deseja entregar sua prova?")) return;
         setStep('SENDING');
 
-        // CALCULAR NOTA (LOCAL PRE-CALC FOR DEMO)
-        let localScore = 0;
-        const totalQuestions = actualItems.length;
-
-        actualItems.forEach(item => {
-            const selected = answers[item.id];
-            const correctAlt = item.alternatives.find((a: any) => a.isCorrect);
-            if (correctAlt && selected === correctAlt.id) {
-                localScore++;
-            }
-        });
-
-        // Atualizar estado para exibir na tela final
-        setStudentData((prev: any) => ({ ...prev, lastScore: localScore, lastTotal: totalQuestions }));
-
-        const formattedAnswers: any = Object.keys(answers).map(qId => ({
-            itemId: qId,
-            selectedAlternativeId: answers[qId]
-        }));
-
         try {
+            // Importar serviço de correção automática
+            const { AutoGradingService } = await import('../../../services/grading/autoGradingService');
+
+            // Montar respostas no formato StudentAnswer
+            const studentAnswers: any[] = actualItems.map(item => {
+                const selectedAlternativeId = answers[item.id];
+                const essayText = (item.type === 'ESSAY' || item.type === 'REDACTION')
+                    ? answers[item.id + '_text']
+                    : null;
+
+                return {
+                    itemId: item.id,
+                    selectedAlternativeId: selectedAlternativeId || null,
+                    text: essayText,
+                    isCorrect: false, // Will be set by grading service
+                    scoreObtained: 0
+                };
+            });
+
+            // Montar exam object simplificado para correção
+            const examForGrading = {
+                items: actualItems.map(item => ({
+                    itemId: item.id,
+                    score: item.score || 1.0
+                })),
+                maxScore: actualItems.reduce((sum, item) => sum + (item.score || 1.0), 0)
+            };
+
+            // CORREÇÃO AUTOMÁTICA OFFLINE-FIRST
+            console.log('🎓 Iniciando correção automática offline-first...');
+            const gradingResult = await AutoGradingService.gradeFullExam(
+                examForGrading as any,
+                studentAnswers,
+                'offline', // Modo offline
+                false // Sem conexão internet garantida
+            );
+
+            console.log('✅ Correção concluída:', gradingResult);
+
+            // Atualizar estado para exibir na tela final
+            setStudentData((prev: any) => ({
+                ...prev,
+                lastScore: gradingResult.totalScore,
+                lastTotal: gradingResult.maxScore
+            }));
+
+            const formattedAnswers = gradingResult.answers;
+
             // Tentativa ONLINE principal
             if (sessionMode === 'LIVE_REAL' && studentData) {
                 const { error } = await supabase.from('exam_results').insert({
@@ -401,8 +430,8 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                     exam_id: studentData.examId,
                     student_id: studentData.id,
                     answers: formattedAnswers,
-                    total_score: localScore, // Enviar nota calculada
-                    graded_at: new Date().toISOString(),
+                    total_score: gradingResult.totalScore,
+                    graded_at: gradingResult.gradedAt,
                     security_flags: securityLog.map(l => l.type)
                 });
 
@@ -413,21 +442,33 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
             setStep('COMPLETED');
 
         } catch (e) {
-            console.warn("Falha no envio online, salvando offline...", e);
+            console.warn("Falha no envio online ou modo offline detectado...", e);
 
-            // BACKUP OFFLINE (Robustez)
-            if (studentData) {
+            // MODO OFFLINE ou FALHA DE SYNC → Gerar QR Code
+            if (studentData && sessionMode !== 'LIVE_REAL') {
+                // Modo offline/demo: Exibir OfflineSubmissionFlow
+                console.log('📱 Modo offline: exibindo QR Code para coleta manual');
+                setStep('OFFLINE_SUBMISSION');
+            } else if (studentData) {
+                // Fallback: salvar localmente para sync posterior
+                const rawAnswers = Object.keys(answers).map(qId => ({
+                    itemId: qId,
+                    selectedAlternativeId: answers[qId],
+                    text: answers[qId + '_text'] || null
+                }));
+
                 await saveSession({
                     sessionId: uuidv4(),
                     studentId: studentData.id,
                     studentName: studentData.name,
                     eventId: studentData.eventId,
-                    encryptedData: JSON.stringify(formattedAnswers), // Em prod seria criptografado
+                    encryptedData: JSON.stringify(rawAnswers),
                     timestamp: new Date().toISOString(),
                     synced: false
                 });
+
                 alert("⚠️ Sem conexão com o servidor.\n\nSua prova foi salva com segurança no MEMÓRIA SEGURA deste tablet.\n\nAvise o professor para realizar a sincronização manual.");
-                setStep('COMPLETED');
+                setStep('OFFLINE_SUBMISSION'); // Mostrar QR mesmo com fallback
             } else {
                 alert("Erro crítico ao salvar prova.");
                 setStep('EXAM');
@@ -660,6 +701,29 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         );
     }
 
+    // OFFLINE SUBMISSION - QR Code Criptografado
+    if (step === 'OFFLINE_SUBMISSION' && studentData) {
+        return (
+            <OfflineSubmissionFlow
+                exam={actualExam as any}
+                answers={Object.entries(answers).map(([itemId, value]) => ({
+                    itemId,
+                    selectedAlternativeId: typeof value === 'string' && !itemId.includes('_text') ? value : null,
+                    text: answers[`${itemId}_text`] || null,
+                    isCorrect: false,
+                    scoreObtained: 0
+                }))}
+                studentData={{
+                    id: studentData.id,
+                    name: studentData.name,
+                    eventId: studentData.eventId || 'demo-event',
+                    examId: studentData.examId
+                }}
+                onComplete={() => setStep('COMPLETED')}
+            />
+        );
+    }
+
     if (showResumeModal) {
         return (
             <div className="fixed inset-0 bg-slate-900/90 flex flex-col items-center justify-center p-6 text-center z-50 animate-in fade-in">
@@ -812,6 +876,70 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                                     </button>
                                 );
                             })}
+
+                            {/* CAMPO DE TEXTO DISSERTATIVO (ESSAY / REDACTION) */}
+                            {(item.type === 'ESSAY' || item.type === 'REDACTION') && (
+                                <div className="mt-6 space-y-3">
+                                    <div className={`p-4 rounded-xl border-2 ${a11y.theme === 'high-contrast' ? 'bg-black border-yellow-400' : 'bg-white border-slate-200'}`}>
+                                        <label className={`block text-sm font-bold mb-2 ${a11y.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-700'}`}>
+                                            {item.type === 'REDACTION' ? '✍️ Sua Redação' : '📝 Sua Resposta'}
+                                        </label>
+
+                                        <textarea
+                                            value={answers[`${item.id}_text`] || ''}
+                                            onChange={e => {
+                                                setAnswers(prev => ({
+                                                    ...prev,
+                                                    [`${item.id}_text`]: e.target.value
+                                                }));
+                                            }}
+                                            placeholder={item.type === 'REDACTION'
+                                                ? 'Escreva sua redação aqui. Lembre-se de estruturar com introdução, desenvolvimento e conclusão...'
+                                                : 'Digite sua resposta aqui. Seja claro e objetivo...'
+                                            }
+                                            className={`w-full p-4 rounded-lg border-2 resize-none font-mono ${a11y.theme === 'high-contrast'
+                                                ? 'bg-black text-yellow-400 border-yellow-400 focus:border-yellow-300'
+                                                : a11y.theme === 'dark'
+                                                    ? 'bg-slate-800 text-white border-slate-600 focus:border-brand-primary'
+                                                    : 'bg-white text-slate-800 border-slate-300 focus:border-brand-primary'
+                                                } outline-none transition`}
+                                            rows={item.type === 'REDACTION' ? 20 : 10}
+                                            style={{
+                                                minHeight: item.minLines ? `${item.minLines * 1.5}rem` : undefined
+                                            }}
+                                        />
+
+                                        {/* CONTADOR DE LINHAS/PALAVRAS */}
+                                        {item.showWordCount && (
+                                            <div className={`mt-2 flex justify-between text-xs ${a11y.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-500'}`}>
+                                                <span>
+                                                    📏 {(answers[`${item.id}_text`] || '').split('\n').length} linhas
+                                                </span>
+                                                <span>
+                                                    📝 {(answers[`${item.id}_text`] || '').split(/\s+/).filter(w => w.length > 0).length} palavras
+                                                </span>
+                                                <span>
+                                                    🔤 {(answers[`${item.id}_text`] || '').length} caracteres
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        {/* VALIDAÇÃO MIN/MAX LINHAS */}
+                                        {item.minLines && (answers[`${item.id}_text`] || '').split('\n').length < item.minLines && (
+                                            <div className="mt-2 text-xs text-amber-600 font-medium flex items-center gap-1">
+                                                <AlertTriangle size={14} />
+                                                Mínimo de {item.minLines} linhas necessárias
+                                            </div>
+                                        )}
+                                        {item.maxLines && (answers[`${item.id}_text`] || '').split('\n').length > item.maxLines && (
+                                            <div className="mt-2 text-xs text-red-600 font-medium flex items-center gap-1">
+                                                <AlertTriangle size={14} />
+                                                Máximo de {item.maxLines} linhas excedido
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 

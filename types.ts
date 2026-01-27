@@ -446,6 +446,8 @@ export interface StudentAnswer {
   isCorrect: boolean;
   scoreObtained: number;
   essayFeedback?: string;
+  gradingMethod?: 'OFFLINE_OBJECTIVE' | 'OFFLINE_PATTERN' | 'ONLINE_AI' | 'MANUAL_REQUIRED' | 'NOT_ANSWERED';
+  needsHumanReview?: boolean; // Flag para correção manual posterior
 }
 
 export interface ExamResult {

@@ -214,27 +214,70 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         }
     };
 
-    const handleFinalize = (isTimeout = false) => {
-        // Map Local Answers to StudentAnswer format
-        const finalAnswers: StudentAnswer[] = examItems.map(item => {
-            const selectedAltId = answers[item.id];
-            const selectedAlt = item.alternatives.find(a => a.id === selectedAltId);
-            const isCorrect = selectedAlt?.isCorrect || false;
+    const handleFinalize = async (isTimeout = false) => {
+        try {
+            // Importar serviço de correção automática
+            const { AutoGradingService } = await import('../../../services/grading/autoGradingService');
 
-            return {
-                itemId: item.id,
-                selectedAlternativeId: selectedAltId || null,
-                isCorrect,
-                scoreObtained: isCorrect ? (item as any).score || 1 : 0
-            };
-        });
+            // Preparar respostas no formato StudentAnswer
+            const studentAnswers: StudentAnswer[] = examItems.map(item => {
+                const selectedAltId = answers[item.id];
+                const essayText = (item.type === 'ESSAY' || item.type === 'REDACTION')
+                    ? (answers as any)[`${item.id}_text`]
+                    : null;
 
-        if (attemptId) {
-            submitExamAttempt(attemptId, isTimeout ? 'timed_out' : 'submitted');
-            localStorage.removeItem(`exam_attempt_${examId}_${studentId}`); // Clear local session
+                return {
+                    itemId: item.id,
+                    selectedAlternativeId: selectedAltId || null,
+                    text: essayText,
+                    isCorrect: false, // Será definido pelo serviço
+                    scoreObtained: 0
+                };
+            });
+
+            // CORREÇÃO AUTOMÁTICA COM IA ONLINE HABILITADA
+            console.log('🎓 Iniciando correção automática online (IA Gemini habilitada para dissertativas)...');
+            const gradingResult = await AutoGradingService.gradeFullExam(
+                exam!,
+                studentAnswers,
+                'online', // Modo online - permite IA Gemini para dissertativas
+                true // Conexão disponível
+            );
+
+            console.log('✅ Correção concluída:', gradingResult);
+
+            if (attemptId) {
+                submitExamAttempt(attemptId, isTimeout ? 'timed_out' : 'submitted');
+                localStorage.removeItem(`exam_attempt_${examId}_${studentId}`); // Clear local session
+            }
+
+            // Retornar respostas corrigidas
+            onComplete(gradingResult.answers);
+        } catch (error) {
+            console.error('Erro na correção automática, usando fallback...', error);
+
+            // FALLBACK: Correção simples apenas para objetivas
+            const finalAnswers: StudentAnswer[] = examItems.map(item => {
+                const selectedAltId = answers[item.id];
+                const selectedAlt = item.alternatives.find(a => a.id === selectedAltId);
+                const isCorrect = selectedAlt?.isCorrect || false;
+
+                return {
+                    itemId: item.id,
+                    selectedAlternativeId: selectedAltId || null,
+                    isCorrect,
+                    scoreObtained: isCorrect ? (item as any).score || 1 : 0,
+                    gradingMethod: 'OFFLINE_OBJECTIVE' as any
+                };
+            });
+
+            if (attemptId) {
+                submitExamAttempt(attemptId, isTimeout ? 'timed_out' : 'submitted');
+                localStorage.removeItem(`exam_attempt_${examId}_${studentId}`);
+            }
+
+            onComplete(finalAnswers);
         }
-
-        onComplete(finalAnswers);
     };
 
     if (!exam) return <div className="p-8 text-center">Prova não encontrada.</div>;
