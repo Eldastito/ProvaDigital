@@ -158,6 +158,7 @@ interface AppActions {
 
     // --- PHASE 7: SCALABILITY ---
     fetchExamItems: (examId: string) => Promise<void>;
+    fetchNetworkExams: () => Promise<void>; // 🌐 Buscar provas públicas
 
     // --- PHASE 8: ENCRYPTION ---
     sealExam: (examId: string) => Promise<any>;
@@ -276,6 +277,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     students: USE_MOCK_DATA ? INITIAL_STUDENTS : [],
     items: USE_MOCK_DATA ? INITIAL_ITEMS : [],
     exams: USE_MOCK_DATA ? INITIAL_EXAMS : [],
+    networkExams: [], // 🌐 Inicializa vazio
     liveQuizSessions: [], // Live quiz sessions (separate from formal exams)
     examVariants: [],
     variantOverrides: [],
@@ -2414,6 +2416,26 @@ export const useAppStore = create<AppStore>((set, get) => ({
     },
 
     // --- PHASE 8: ENCRYPTION (PREMIUM) ---
+    // 🌐 BUSCAR PROVAS DA REDE
+    fetchNetworkExams: async () => {
+        try {
+            console.log('🌐 Fetching network exams...');
+            const { data, error } = await supabase
+                .from('exams')
+                .select('*')
+                .eq('status', 'PUBLICADA')
+                .limit(50);
+
+            if (data) {
+                const mappedExams = data.map((e: any) => ({ ...e, isNetwork: true }));
+                // @ts-ignore
+                set({ networkExams: mappedExams });
+            }
+        } catch (error) {
+            console.error('Network fetch error:', error);
+        }
+    },
+
     sealExam: async (examId: string) => {
         try {
             // 1. Fetch complete exam data

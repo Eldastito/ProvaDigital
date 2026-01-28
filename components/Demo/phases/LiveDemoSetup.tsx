@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play } from 'lucide-react';
+import { Play, Globe, Search } from 'lucide-react';
 import { supabase } from '../../../services/supabaseClient';
 import { useAppStore } from '../../../store/useAppStore';
 import { uuidv4 } from '../../../utils/helpers';
@@ -16,6 +16,36 @@ export const LiveDemoSetup = ({ onSessionCreated }: LiveDemoSetupProps) => {
         capacity: 50,
         selectedExamId: ''
     });
+    const [showNetworkExams, setShowNetworkExams] = useState(false);
+
+    // Fetch networked exams on toggle
+    useEffect(() => {
+        if (showNetworkExams && state.networkExams?.length === 0) {
+            state.fetchNetworkExams();
+        }
+    }, [showNetworkExams]);
+
+    // Combinar exames (Locais + Rede se ativado)
+    const availableExams = React.useMemo(() => {
+        const localExams = state.exams.filter(e =>
+            ((e.status === 'PUBLISHED' as any) || (e.status === 'PUBLICADA' as any) || e.status === 'ACTIVE') &&
+            !e.title.toLowerCase().includes('quiz interativo')
+        );
+
+        if (!showNetworkExams) return localExams;
+
+        // Merge evitando duplicatas localmente se já existirem
+        const network = state.networkExams || [];
+        const all = [...localExams];
+
+        network.forEach(netExam => {
+            if (!all.find(e => e.id === netExam.id)) {
+                all.push(netExam);
+            }
+        });
+
+        return all;
+    }, [state.exams, state.networkExams, showNetworkExams]);
 
     // Ensure exams are loaded
     useEffect(() => {
@@ -170,20 +200,29 @@ export const LiveDemoSetup = ({ onSessionCreated }: LiveDemoSetupProps) => {
                     </div>
 
                     <div className="mb-8">
-                        <label className="block text-slate-400 text-sm font-bold mb-2 uppercase tracking-wider">Selecionar Prova (Opcional)</label>
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="block text-slate-400 text-sm font-bold uppercase tracking-wider">Selecionar Prova (Opcional)</label>
+                            <button
+                                onClick={() => setShowNetworkExams(!showNetworkExams)}
+                                className={`text-xs flex items-center gap-1 px-2 py-1 rounded transition ${showNetworkExams ? 'bg-brand-primary text-white' : 'text-slate-500 hover:text-white'}`}
+                            >
+                                <Globe size={12} />
+                                {showNetworkExams ? 'Rede Conectada' : 'Buscar na Rede'}
+                            </button>
+                        </div>
                         <select
                             value={config.selectedExamId}
                             onChange={e => setConfig({ ...config, selectedExamId: e.target.value })}
                             className="w-full bg-slate-800 border-2 border-slate-700 rounded-xl px-4 py-3 text-white focus:border-brand-primary outline-none transition font-medium appearance-none"
                         >
                             <option value="">Selecione uma prova...</option>
-                            {state.exams
-                                .filter(e => ((e.status === 'PUBLISHED' as any) || (e.status === 'PUBLICADA' as any) || e.status === 'ACTIVE'))
-                                .filter(e => !e.title.toLowerCase().includes('quiz interativo'))
-                                .map(exam => (
-                                    <option key={exam.id} value={exam.id}>{exam.title} ({exam.subject})</option>
-                                ))}
+                            {availableExams.map(exam => (
+                                <option key={exam.id} value={exam.id}>
+                                    {(exam as any).isNetwork ? '🌐 ' : ''}{exam.title} ({exam.subject})
+                                </option>
+                            ))}
                         </select>
+                        {showNetworkExams && <p className="text-xs text-slate-500 mt-2 flex items-center gap-1"><Search size={10} /> Mostrando provas públicas de toda a rede.</p>}
                     </div>
 
                     <button

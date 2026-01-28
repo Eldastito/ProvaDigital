@@ -812,6 +812,7 @@ export interface AppState {
   students: Student[];
   items: Item[];
   exams: Exam[];
+  networkExams: Exam[]; // 🌐 Banco de Provas da Rede (Public)
   liveQuizSessions: LiveQuizSession[]; // Separate from formal exams
   // examVariants and variantOverrides moved below to avoid duplication
   registrations: ExamRegistration[];
