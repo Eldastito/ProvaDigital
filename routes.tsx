@@ -41,7 +41,7 @@ import { LiveExamMonitorView } from './modules/runner/features/LiveExamMonitorVi
 import { OnlineExamRunner } from './modules/runner/features/OnlineExamRunner';
 import { useAppStore } from './store/useAppStore';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { PerformanceAnalyticsDashboard } from './features/analytics/PerformanceAnalyticsDashboard';
+import { AnalyticsDashboard } from './modules/analytics/AnalyticsDashboard';
 import { AIQuestionGeneratorView } from './modules/builder/AIQuestionGeneratorView';
 import { ExamScheduler } from './modules/coordinator/ExamScheduler';
 import { CommandCenter } from './modules/coordinator/CommandCenter';
@@ -122,7 +122,7 @@ export const appRoutes: RouteObject[] = [
             },
             {
                 path: 'analytics',
-                element: <PerformanceAnalyticsDashboard />
+                element: <AnalyticsDashboard />
             },
             {
                 path: 'study-plans',
