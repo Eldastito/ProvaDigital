@@ -188,9 +188,15 @@ export const DashboardLayout = () => {
                             <NavItem icon={Tablet} label="App Tablet (Aplicação)" active={path.includes('/apps/tablet')} onClick={() => navigate('/apps/tablet')} />
                             <NavItem icon={Cast} label="Demo Live (Apresentação)" active={path.includes('/apps/demo')} onClick={() => navigate('/apps/demo')} />
 
-                            <div className="px-4 pt-4 pb-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Sprint 0: Coordenação</div>
-                            <NavItem icon={CalendarCheck} label="Agendamento de Provas" active={path === '/agendamento'} onClick={() => navigate('/agendamento')} />
-                            <NavItem icon={Activity} label="Central de Comando" active={path === '/central-comando'} onClick={() => navigate('/central-comando')} />
+                            {(canView('SCHEDULING') || canView('COMMAND_CENTER')) && (
+                                <div className="px-4 pt-4 pb-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Sprint 0: Coordenação</div>
+                            )}
+                            {canView('SCHEDULING') && (
+                                <NavItem icon={CalendarCheck} label="Agendamento de Provas" active={path === '/agendamento'} onClick={() => navigate('/agendamento')} />
+                            )}
+                            {canView('COMMAND_CENTER') && (
+                                <NavItem icon={Activity} label="Central de Comando" active={path === '/central-comando'} onClick={() => navigate('/central-comando')} />
+                            )}
 
                             {canManageCapabilities && (
                                 <NavItem icon={Target} label="Governança Hierárquica" active={path === '/admin/capabilities'} onClick={() => navigate('/admin/capabilities')} />
@@ -207,6 +213,15 @@ export const DashboardLayout = () => {
                         <>
                             <NavItem icon={PieChart} label="Minhas Turmas" active={path === '/dashboard'} onClick={() => navigate('/dashboard')} />
                             <NavItem icon={Calendar} label="Diário de Classe" active={path === '/class-diary'} onClick={() => navigate('/class-diary')} />
+
+                            {/* Sprint 0 Features for Professors */}
+                            {canView('SCHEDULING') && (
+                                <NavItem icon={CalendarCheck} label="Agendamento" active={path === '/agendamento'} onClick={() => navigate('/agendamento')} />
+                            )}
+                            {canView('COMMAND_CENTER') && (
+                                <NavItem icon={Activity} label="Painel de Controle" active={path === '/central-comando'} onClick={() => navigate('/central-comando')} />
+                            )}
+
                             <NavItem icon={FileText} label="Banco de Questões" active={path.includes('/items')} onClick={() => navigate('/items')} />
                             <NavItem icon={BookOpen} label="Minhas Provas" active={path.includes('/exams')} onClick={() => navigate('/exams')} />
                             <NavItem icon={GraduationCap} label="Aplicação de Prova" active={path.includes('/online-exam')} onClick={() => navigate('/online-exam')} />

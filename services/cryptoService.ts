@@ -102,6 +102,10 @@ export const cryptoService = {
      * Generates a persistent RSA-OAEP Key Pair (2048-bit) for User Identity.
      */
     generateIdentityKeyPair: async (): Promise<CryptoKeyPair> => {
+        if (!window.crypto || !window.crypto.subtle) {
+            console.error("Web Crypto API (window.crypto.subtle) is not available. Context may be insecure (http vs https).");
+            throw new Error("Ambiente inseguro: Criptografia indisponível. Use HTTPS ou Localhost.");
+        }
         return await window.crypto.subtle.generateKey(
             {
                 name: "RSA-OAEP",

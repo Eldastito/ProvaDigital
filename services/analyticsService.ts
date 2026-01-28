@@ -35,7 +35,7 @@ export interface GlobalStats {
     completionRate: number;
 }
 
-class AnalyticsService {
+export class AnalyticsService {
     /**
      * Buscar estatísticas globais
      */
@@ -118,6 +118,50 @@ class AnalyticsService {
             { topic: 'Revolução Francesa', errorRate: 42, questionCount: 10 },
             { topic: 'Geometria Plana', errorRate: 38, questionCount: 12 },
             { topic: 'Gramática - Sintaxe', errorRate: 35, questionCount: 18 },
+        ];
+    }
+    /**
+     * Obter estatísticas individuais do aluno (Mock)
+     */
+    getStudentStats(studentId: string) {
+        // Simulação baseada no ID para consistência visual
+        const pseudoRandom = (seed: string) => {
+            let val = 0;
+            for (let j = 0; j < seed.length; j++) val += seed.charCodeAt(j);
+            return val;
+        };
+
+        const seedValue = pseudoRandom(studentId);
+
+        return {
+            id: studentId,
+            idgScore: (seedValue % 50) / 10 + 4, // Gera notas entre 4.0 e 9.0
+            attendance: JSON.stringify({ present: 80, absent: 20 }),
+            lastAccess: new Date().toISOString()
+        };
+    }
+
+    /**
+     * Obter estatísticas da rede (Mock)
+     */
+    getNetworkStats() {
+        return {
+            avgIDG: 6.8,
+            totalStudents: 12500,
+            riskPercentage: 12,
+            connectivity: 98
+        };
+    }
+
+    /**
+     * Obter quebra por disciplina (Mock)
+     */
+    getSubjectBreakdown() {
+        return [
+            { label: 'Matemática', value: 6.5, color: '#3b82f6' },
+            { label: 'Português', value: 7.2, color: '#8b5cf6' },
+            { label: 'História', value: 7.8, color: '#f59e0b' },
+            { label: 'Ciências', value: 6.9, color: '#10b981' }
         ];
     }
 }

@@ -45,6 +45,7 @@ import { AnalyticsDashboard } from './modules/analytics/AnalyticsDashboard';
 import { AIQuestionGeneratorView } from './modules/builder/AIQuestionGeneratorView';
 import { ExamScheduler } from './modules/coordinator/ExamScheduler';
 import { CommandCenter } from './modules/coordinator/CommandCenter';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 // Helper for Role-based Dashboard
 const ConditionalDashboard = () => {
@@ -134,8 +135,20 @@ export const appRoutes: RouteObject[] = [
             { path: 'gamified-events', element: <GamifiedEventsManager /> },
 
             // Sprint 0: Coordinator Tools
-            { path: 'agendamento', element: <ExamScheduler /> },
-            { path: 'central-comando', element: <CommandCenter /> },
+            {
+                path: 'agendamento',
+                element: <ProtectedRoute resource="SCHEDULING" fallbackPath="/dashboard" />,
+                children: [
+                    { index: true, element: <ExamScheduler /> }
+                ]
+            },
+            {
+                path: 'central-comando',
+                element: <ProtectedRoute resource="COMMAND_CENTER" fallbackPath="/dashboard" />,
+                children: [
+                    { index: true, element: <CommandCenter /> }
+                ]
+            },
 
             // Student specific
             { path: 'aluno', element: <StudentDashboardView /> },

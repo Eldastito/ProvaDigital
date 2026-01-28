@@ -85,7 +85,9 @@ export type Resource =
   | 'AI_FEATURES'      // Geração, Correção
   | 'FINANCIAL'       // Apenas Super Admin
   | 'NEURO_SCREENING' // Triagem
-  | 'GAMIFIED_EVENTS'; // NOVO: Gestão de Eventos
+  | 'GAMIFIED_EVENTS' // NOVO: Gestão de Eventos
+  | 'SCHEDULING'      // Agendamento de Provas
+  | 'COMMAND_CENTER'; // Central de Comando
 
 export type Action = 'VIEW' | 'CREATE' | 'EDIT' | 'DELETE';
 

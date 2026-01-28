@@ -10,6 +10,7 @@ type ManagementTab = 'SCHOOLS' | 'CLASSES' | 'STUDENTS' | 'USERS' | 'COMMAND_CEN
 
 import { useSafeAppStore } from '../../store/useAppStore';
 import { translateUserRole } from '../../utils/translations';
+import { UserManagementTab } from '../../features/admin/users/UserManagementTab';
 
 export const ManagementView = () => {
     const state = useSafeAppStore();
@@ -262,7 +263,7 @@ export const ManagementView = () => {
             inep: '',
             resources: { funding: false, uniforms: false, textbooks: false, adminMaterials: false, extracurricular: false, internet: false, lab: false, accessibility: false, food: false, transportation: false, security: false, ac_cooling: false }
         });
-        setClassForm({ name: '', series: '', shift: 'MANHA', schoolId: userSchoolId || '' });
+        setClassForm({ name: '', series: '', shift: 'MANHA', schoolId: userSchoolId || '', room: '' });
         setStudentForm({ name: '', reg: '', classId: '' });
         setUserForm({ name: '', email: '', role: UserRole.PROFESSOR, schoolId: userSchoolId || '' });
     };
@@ -363,7 +364,7 @@ export const ManagementView = () => {
                         </button>
                     )}
                     {/* Hide Add button for Schools if Director (they can only edit) */}
-                    {activeTab !== 'COMMAND_CENTER' && activeTab !== 'SETTINGS' && activeTab !== 'BATCH_IMPORT' && activeTab !== 'HIERARCHY' && (isTenantAdmin || activeTab !== 'SCHOOLS') && (
+                    {activeTab !== 'COMMAND_CENTER' && activeTab !== 'SETTINGS' && activeTab !== 'BATCH_IMPORT' && activeTab !== 'HIERARCHY' && activeTab !== 'USERS' && (isTenantAdmin || activeTab !== 'SCHOOLS') && (
                         <button onClick={() => openModal()} className="flex-1 sm:flex-none justify-center btn-gradient px-3 md:px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm text-xs md:text-sm font-medium">
                             <Plus size={18} />
                             Adicionar <span className="sm:inline">{activeTab === 'SCHOOLS' ? 'Escola' : activeTab === 'CLASSES' ? 'Turma' : activeTab === 'STUDENTS' ? 'Aluno' : 'Usuário'}</span>
@@ -646,41 +647,11 @@ export const ManagementView = () => {
                 )}
 
                 {activeTab === 'USERS' && (
-                    <div className="divide-y divide-slate-100 pb-10">
-                        {visibleUsers.map(u => (
-                            <div key={u.id} className={`p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-slate-50 ${u.status === 'BLOCKED' ? 'opacity-50' : ''}`}>
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-xs md:text-sm font-bold ${u.status === 'BLOCKED' ? 'bg-red-100 text-red-500' : 'bg-slate-200 text-slate-600'}`}>{u.name.charAt(0)}</div>
-                                    <div>
-                                        <div className="font-bold text-slate-800 text-sm md:text-base flex flex-wrap items-center gap-2">
-                                            {u.name}
-                                            {u.status === 'BLOCKED' && <span className="text-[9px] bg-red-100 text-red-600 px-1 py-0.5 rounded border border-red-200 uppercase">Bloqueado</span>}
-                                        </div>
-                                        <div className="text-[10px] md:text-xs text-slate-500 truncate max-w-[200px] md:max-w-none">{u.email}</div>
-                                    </div>
-                                </div>
-                                <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-2">
-                                    <span className="text-[9px] md:text-xs font-bold bg-brand-light text-brand-primary px-2 py-1 rounded uppercase mr-0 sm:mr-4">{translateUserRole(u.role)}</span>
-
-                                    <div className="flex items-center gap-1 md:gap-2">
-                                        {/* Action Buttons */}
-                                        <button onClick={() => openModal(u, 'USER')} className="text-slate-400 hover:text-brand-primary hover:bg-brand-light p-2 md:p-1 rounded transition" title="Editar">
-                                            <Settings size={16} />
-                                        </button>
-                                        <button onClick={() => handleResetPassword(u.email)} className="text-slate-400 hover:text-yellow-600 hover:bg-yellow-50 p-2 md:p-1 rounded transition" title="Redefinir Senha">
-                                            <ShieldCheck size={16} />
-                                        </button>
-                                        <button onClick={() => handleToggleBlock(u)} className={`p-2 md:p-1 rounded transition ${u.status === 'BLOCKED' ? 'text-red-500 hover:bg-red-100' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`} title={u.status === 'BLOCKED' ? "Desbloquear" : "Bloquear"}>
-                                            <Users size={16} />
-                                        </button>
-                                        <button onClick={() => handleDelete(u.id, 'USER', u.name)} className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 md:p-1 rounded transition" title="Excluir">
-                                            <X size={16} />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                    <UserManagementTab
+                        currentUser={currentUser!}
+                        isTenantAdmin={isTenantAdmin}
+                        schools={state.schools}
+                    />
                 )}
 
                 {activeTab === 'TENANT_SETTINGS' && isTenantAdmin && (
