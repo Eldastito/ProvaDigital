@@ -444,6 +444,17 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                     examId: examIdParam
                 });
 
+                // 📱 Trigger Fullscreen for Mobile (Must happen on user interaction)
+                try {
+                    if (document.documentElement.requestFullscreen) {
+                        await document.documentElement.requestFullscreen();
+                    } else if ((document.documentElement as any).webkitRequestFullscreen) {
+                        await (document.documentElement as any).webkitRequestFullscreen(); // Safari
+                    }
+                } catch (err) {
+                    console.warn("Fullscreen blocked or not supported:", err);
+                }
+
                 // ✨ Iniciar sessão multi-login
                 await startSession(studentId, inputName.trim());
 
@@ -997,11 +1008,10 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
             </div>
 
             {/* WARNING BANNER */}
-            {violationCount > 0 && (
-                <div className="fixed top-16 left-1/2 -translate-x-1/2 bg-red-500 text-white px-6 py-2 rounded-full shadow-lg z-40 font-bold text-sm flex items-center gap-2 animate-bounce">
-                    <AlertTriangle size={16} /> {violationCount} Infrações Detectadas
-                </div>
-            )}
+            {/* WARNING BANNER - Auto Fade */}
+            <div className={`fixed top-20 left-1/2 -translate-x-1/2 bg-red-500/90 text-white px-6 py-2 rounded-full shadow-lg z-40 font-bold text-sm flex items-center gap-2 transition-opacity duration-1000 ${violationCount > 0 ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+                <AlertTriangle size={16} /> {violationCount} Infrações Detectadas
+            </div>
 
             <div className={`h-14 flex justify-between items-center px-4 shadow-md flex-shrink-0 z-20 ${a11y.theme === 'high-contrast' ? 'bg-black text-yellow-400 border-b border-yellow-400' : 'bg-[#0f1d2e] text-white'}`}>
                 <div className="text-sm font-bold truncate max-w-[150px] md:max-w-none">{studentData.name}</div>
