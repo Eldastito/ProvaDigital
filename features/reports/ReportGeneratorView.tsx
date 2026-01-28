@@ -65,7 +65,17 @@ export const ReportGeneratorView: React.FC = () => {
 
             if (format === 'PDF') {
                 const columns = ['Nome', 'Turma', 'Nota', 'Frequência']; // Mock columns
-                reportService.exportToPDF(selectedReportId, columns, previewData);
+
+                // Find school name if filtered
+                const schoolName = filters.schoolId
+                    ? schools.find(s => s.id === filters.schoolId)?.name
+                    : 'Rede Municipal de Ensino';
+
+                await reportService.exportToPDF(selectedReportId, columns, previewData, {
+                    orientation: 'p',
+                    schoolName: schoolName,
+                    // logoUrl: '...' // Optional: Add logic to fetch school logo later
+                });
             } else {
                 reportService.exportToCSV(`relatorio_${selectedReport}`, previewData);
             }
@@ -128,7 +138,11 @@ export const ReportGeneratorView: React.FC = () => {
                         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Escola</label>
-                                <select className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white">
+                                <select
+                                    className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white"
+                                    value={filters.schoolId || ''}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, schoolId: e.target.value }))}
+                                >
                                     <option value="">Todas as Escolas</option>
                                     {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                 </select>
@@ -137,7 +151,11 @@ export const ReportGeneratorView: React.FC = () => {
                             {(selectedReport === 'CLASS_REPORT' || selectedReport === 'STUDENT_BULLETIN') && (
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Turma</label>
-                                    <select className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white">
+                                    <select
+                                        className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white"
+                                        value={filters.classId || ''}
+                                        onChange={(e) => setFilters(prev => ({ ...prev, classId: e.target.value }))}
+                                    >
                                         <option value="">Selecione uma turma...</option>
                                         {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                     </select>
@@ -147,7 +165,11 @@ export const ReportGeneratorView: React.FC = () => {
                             {(selectedReport === 'EXAM_ANALYSIS' || selectedReport === 'STUDENT_BULLETIN') && (
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Prova / Avaliação</label>
-                                    <select className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white">
+                                    <select
+                                        className="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white"
+                                        value={filters.examId || ''}
+                                        onChange={(e) => setFilters(prev => ({ ...prev, examId: e.target.value }))}
+                                    >
                                         <option value="">Todas as Avaliações</option>
                                         {exams.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
                                     </select>
@@ -157,8 +179,18 @@ export const ReportGeneratorView: React.FC = () => {
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Período</label>
                                 <div className="grid grid-cols-2 gap-2">
-                                    <input type="date" className="w-full p-2 border border-slate-300 rounded-lg text-sm" />
-                                    <input type="date" className="w-full p-2 border border-slate-300 rounded-lg text-sm" />
+                                    <input
+                                        type="date"
+                                        className="w-full p-2 border border-slate-300 rounded-lg text-sm"
+                                        value={filters.startDate || ''}
+                                        onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                                    />
+                                    <input
+                                        type="date"
+                                        className="w-full p-2 border border-slate-300 rounded-lg text-sm"
+                                        value={filters.endDate || ''}
+                                        onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                                    />
                                 </div>
                             </div>
                         </div>

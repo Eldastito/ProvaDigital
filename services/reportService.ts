@@ -26,39 +26,79 @@ export class ReportService {
     /**
      * Generate PDF Report with standard header/footer
      */
-    static exportToPDF(title: string, columns: string[], rows: any[][], orientation: 'p' | 'l' = 'p') {
+    /**
+     * Generate PDF Report with standard header/footer and optional logo
+     */
+    static async exportToPDF(title: string, columns: string[], rows: any[][], options?: {
+        orientation?: 'p' | 'l';
+        schoolName?: string;
+        logoUrl?: string; // Base64 or URL
+    }) {
+        const orientation = options?.orientation || 'p';
         const doc = new jsPDF(orientation, 'mm', 'a4');
         const pageWidth = doc.internal.pageSize.width;
 
-        // --- Header ---
+        // --- Header Background ---
         doc.setFillColor(37, 99, 235); // Brand Primary (Blue)
-        doc.rect(0, 0, pageWidth, 20, 'F');
+        doc.rect(0, 0, pageWidth, 25, 'F'); // Increased height for logo space
 
+        // --- Logo Processing ---
+        let titleX = 14;
+        if (options?.logoUrl) {
+            try {
+                // Determine if it's Base64 or URL
+                let validImage = options.logoUrl;
+                // If URL, we would normally fetch it here. For simplicity in this env, we assume valid base64/url that jsPDF handles 
+                // OR we advise the caller to pass Base64.
+                // Assuming Base64 for stability or accessible URL.
+                doc.addImage(validImage, 'PNG', 14, 2, 21, 21); // x, y, w, h
+                titleX = 40; // Shift title to the right
+            } catch (e) {
+                console.warn("Falha ao carregar logo no PDF", e);
+            }
+        }
+
+        // --- Header Text ---
         doc.setTextColor(255, 255, 255);
+
+        // System Name (Top Left or shifted)
         doc.setFontSize(16);
         doc.setFont('helvetica', 'bold');
-        doc.text("ExamePad SaaS", 14, 13);
+        doc.text("ExamePad SaaS", titleX, 10);
 
+        // School Name (Subtitle)
+        if (options?.schoolName) {
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'normal');
+            doc.text(options.schoolName, titleX, 18);
+        }
+
+        // Report Type Label (Top Right)
         doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text("Relatório Oficial", pageWidth - 14, 13, { align: 'right' });
+        doc.setFont('helvetica', 'bold');
+        doc.text("Relatório Oficial", pageWidth - 14, 10, { align: 'right' });
 
-        // --- Report Title ---
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text("Confidencial", pageWidth - 14, 16, { align: 'right' });
+
+        // --- Report Title (Body) ---
         doc.setTextColor(33, 33, 33);
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
-        doc.text(title.toUpperCase(), 14, 35);
+        const reportTitleY = 40;
+        doc.text(title.toUpperCase(), 14, reportTitleY);
 
         doc.setFontSize(10);
         doc.setTextColor(100, 100, 100);
         doc.setFont('helvetica', 'normal');
-        doc.text(`Gerado em: ${new Date().toLocaleDateString()} às ${new Date().toLocaleTimeString()}`, 14, 42);
+        doc.text(`Gerado em: ${new Date().toLocaleDateString()} às ${new Date().toLocaleTimeString()}`, 14, reportTitleY + 7);
 
         // --- Table ---
         autoTable(doc, {
             head: [columns],
             body: rows,
-            startY: 50,
+            startY: reportTitleY + 15,
             theme: 'grid',
             headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold' },
             styles: { fontSize: 9, cellPadding: 3 },
