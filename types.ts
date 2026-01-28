@@ -87,7 +87,8 @@ export type Resource =
   | 'NEURO_SCREENING' // Triagem
   | 'GAMIFIED_EVENTS' // NOVO: Gestão de Eventos
   | 'SCHEDULING'      // Agendamento de Provas
-  | 'COMMAND_CENTER'; // Central de Comando
+  | 'COMMAND_CENTER'  // Central de Comando
+  | 'REPORTS';        // Relatórios e BI
 
 export type Action = 'VIEW' | 'CREATE' | 'EDIT' | 'DELETE';
 

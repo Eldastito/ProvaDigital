@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Clock, Search, AlertTriangle, FileText, Download } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
-import { ReportExportService } from '../../services/ReportExportService';
+import { reportService } from '../../services/reportService';
 import { translateActionType, translateResource } from '../../utils/translations';
 
 export const AuditLogView = () => {
@@ -19,7 +19,7 @@ export const AuditLogView = () => {
     const logs = auditLogs;
 
     const handleExport = () => {
-        ReportExportService.exportToCSV('audit_logs', filteredLogs);
+        reportService.exportToCSV('audit_logs', filteredLogs);
     };
 
     const filteredLogs = logs.filter(log =>

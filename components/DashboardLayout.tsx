@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { useLocation, useNavigate, Outlet, Navigate } from 'react-router-dom';
 import {
     LayoutDashboard, BookOpen, GraduationCap, Users, FileText,
-    LogOut, Menu, ChevronRight, Tablet, PieChart, MessageCircle, Bot, Target, UserCircle, Shield, Stethoscope, Map, Home, ChevronDown, Swords, Flame, Trophy, Cast, Calendar, Gamepad2, BarChart, Activity, CalendarCheck
+    LogOut, Menu, ChevronRight, Tablet, PieChart, MessageCircle,
+    Printer,
+    PenTool, Target, UserCircle, Shield, Stethoscope, Map, Home, ChevronDown, Swords, Flame, Trophy, Cast, Calendar, Gamepad2, BarChart, Activity, CalendarCheck
 } from 'lucide-react';
 import { useSafeAppStore } from '../store/useAppStore';
 import { UserRole, TenantType } from '../types';
@@ -183,6 +185,11 @@ export const DashboardLayout = () => {
                             <NavItem icon={BarChart} label="Analytics" active={path === '/analytics'} onClick={() => navigate('/analytics')} />
                             <NavItem icon={MessageCircle} label="Comunicação" active={path === '/communication'} onClick={() => navigate('/communication')} />
                             <NavItem icon={Users} label="Gestão de Rede" active={path.includes('/admin/gestao')} onClick={() => navigate('/admin/gestao')} />
+
+                            {canView('REPORTS') && (
+                                <NavItem icon={Printer} label="Relatórios & BI" active={path === '/adm-relatorios'} onClick={() => navigate('/adm-relatorios')} />
+                            )}
+
                             <NavItem icon={Stethoscope} label="Saúde Mental" active={path === '/neuro-screening'} onClick={() => navigate('/neuro-screening')} />
                             <NavItem icon={Gamepad2} label="Gestão Arcade Zone" active={path.includes('/admin/governanca')} onClick={() => navigate('/admin/governanca')} />
                             <NavItem icon={Tablet} label="App Tablet (Aplicação)" active={path.includes('/apps/tablet')} onClick={() => navigate('/apps/tablet')} />

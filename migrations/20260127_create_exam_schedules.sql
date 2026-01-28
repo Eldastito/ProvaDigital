@@ -35,22 +35,26 @@ CREATE INDEX IF NOT EXISTS idx_exam_schedules_exam_id ON exam_schedules(exam_id)
 ALTER TABLE exam_schedules ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Todos podem ler agendamentos (demo/dev)
+DROP POLICY IF EXISTS exam_schedules_select_policy ON exam_schedules;
 CREATE POLICY exam_schedules_select_policy ON exam_schedules
   FOR SELECT
   USING (true);
 
 -- Policy: Todos podem inserir agendamentos (demo/dev)
+DROP POLICY IF EXISTS exam_schedules_insert_policy ON exam_schedules;
 CREATE POLICY exam_schedules_insert_policy ON exam_schedules
   FOR INSERT
   WITH CHECK (true);
 
 -- Policy: Todos podem atualizar agendamentos (demo/dev)
+DROP POLICY IF EXISTS exam_schedules_update_policy ON exam_schedules;
 CREATE POLICY exam_schedules_update_policy ON exam_schedules
   FOR UPDATE
   USING (true)
   WITH CHECK (true);
 
 -- Policy: Todos podem deletar agendamentos (demo/dev)
+DROP POLICY IF EXISTS exam_schedules_delete_policy ON exam_schedules;
 CREATE POLICY exam_schedules_delete_policy ON exam_schedules
   FOR DELETE
   USING (true);

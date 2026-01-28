@@ -46,6 +46,7 @@ import { AIQuestionGeneratorView } from './modules/builder/AIQuestionGeneratorVi
 import { ExamScheduler } from './modules/coordinator/ExamScheduler';
 import { CommandCenter } from './modules/coordinator/CommandCenter';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { ReportGeneratorView } from './features/reports/ReportGeneratorView';
 
 // Helper for Role-based Dashboard
 const ConditionalDashboard = () => {
@@ -147,6 +148,13 @@ export const appRoutes: RouteObject[] = [
                 element: <ProtectedRoute resource="COMMAND_CENTER" fallbackPath="/dashboard" />,
                 children: [
                     { index: true, element: <CommandCenter /> }
+                ]
+            },
+            {
+                path: 'adm-relatorios',
+                element: <ProtectedRoute resource="REPORTS" fallbackPath="/dashboard" />,
+                children: [
+                    { index: true, element: <ReportGeneratorView /> }
                 ]
             },
 
