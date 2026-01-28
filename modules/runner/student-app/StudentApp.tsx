@@ -142,7 +142,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         finishSession,
         logout
     } = useStudentSession({
-        examId: examIdParam || 'demo-exam',
+        examId: examIdParam || '7e1dde1d-f4836a3f-1b31-4c43-8ba8-a0617d8a1f90', // Real exam from database
         eventId: classIdParam || 'demo-event'
     });
 
@@ -316,7 +316,10 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     }, [meshInitialized]);
 
     // UI Blocking for Loading
-    const isItemsEmpty = !examItems || examItems.length === 0;
+    // Confere se temos itens da prova OU se estamos usando mock (shuffledItems)
+    const hasItems = (examItems && examItems.length > 0) || (shuffledItems && shuffledItems.length > 0);
+    const isItemsEmpty = !hasItems;
+
     if (loadingExam || (isItemsEmpty && !loadError)) {
         return (
             <div className="fixed inset-0 bg-[#0f1d2e] flex flex-col items-center justify-center text-white p-8 text-center z-50">
@@ -445,7 +448,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 await startSession(studentId, inputName.trim());
 
                 // 🌐 Iniciar mesh network
-                await initializeMeshNetwork(studentId, inputName.trim(), examIdParam || 'demo-exam', classIdParam);
+                await initializeMeshNetwork(studentId, inputName.trim(), examIdParam || '7e1dde1d-f4836a3f-1b31-4c43-8ba8-a0617d8a1f90', classIdParam);
 
                 // INITIALIZE REALTIME EVENTS FOR BROADCASTING ALERTS
                 if (examIdParam) {
@@ -468,7 +471,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 await startSession(localStudentId, inputName.trim());
 
                 // 🌐 Iniciar mesh network (modo local)
-                await initializeMeshNetwork(localStudentId, inputName.trim(), 'demo-exam', 'local');
+                await initializeMeshNetwork(localStudentId, inputName.trim(), '7e1dde1d-f4836a3f-1b31-4c43-8ba8-a0617d8a1f90', 'local');
             }
             setStep('CONFIRM_IDENTITY');
         } catch (e: any) {
@@ -710,7 +713,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
 
     const containerStyle = {
         fontSize: `${a11y.fontSize}%`,
-        lineHeight: a11y.lineSpacing,
+        lineHeight: a11y.lineHeight || 1.5,
         letterSpacing: `${a11y.letterSpacing}em`
     };
 
@@ -896,7 +899,11 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     if (step === 'OFFLINE_SUBMISSION' && studentData) {
         return (
             <OfflineSubmissionFlow
-                exam={actualExam as any}
+                exam={{
+                    id: examIdParam || 'demo',
+                    title: studentData?.examTitle || 'Prova',
+                    items: actualItems
+                } as any}
                 answers={Object.entries(answers).map(([itemId, value]) => ({
                     itemId,
                     selectedAlternativeId: typeof value === 'string' && !itemId.includes('_text') ? value : null,

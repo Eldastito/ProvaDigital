@@ -9,7 +9,8 @@ interface LiveDemoWaitingProps {
 }
 
 export const LiveDemoWaiting = ({ classId, examId, securityPin }: LiveDemoWaitingProps) => {
-    const baseUrl = window.location.origin;
+    // Smart URL: Use env var for local network, or window.location.origin for production
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
     const professorUrl = `${baseUrl}/apps/demo?mode=mobile&role=PROFESSOR&classId=${classId}&examId=${examId}&action=CONTROL`;
 
     return (

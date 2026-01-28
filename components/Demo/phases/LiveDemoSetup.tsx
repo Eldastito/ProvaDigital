@@ -22,6 +22,19 @@ export const LiveDemoSetup = ({ onSessionCreated }: LiveDemoSetupProps) => {
         state.loadRemoteData();
     }, []);
 
+    // Auto-select first real exam when exams load
+    useEffect(() => {
+        if (state.exams.length > 0 && !config.selectedExamId) {
+            const firstRealExam = state.exams.find(e =>
+                ((e.status === 'PUBLISHED' as any) || (e.status === 'PUBLICADA' as any) || e.status === 'ACTIVE')
+                && !e.title.toLowerCase().includes('quiz interativo')
+            );
+            if (firstRealExam) {
+                setConfig(prev => ({ ...prev, selectedExamId: firstRealExam.id }));
+            }
+        }
+    }, [state.exams]);
+
     const handleCreateSession = async () => {
         if (!config.className || config.capacity < 1) return alert("Configure a turma.");
         setLoading(true);
@@ -163,9 +176,9 @@ export const LiveDemoSetup = ({ onSessionCreated }: LiveDemoSetupProps) => {
                             onChange={e => setConfig({ ...config, selectedExamId: e.target.value })}
                             className="w-full bg-slate-800 border-2 border-slate-700 rounded-xl px-4 py-3 text-white focus:border-brand-primary outline-none transition font-medium appearance-none"
                         >
-                            <option value="">Usar Quiz Padrão (Conhecimentos Gerais)</option>
+                            <option value="">Selecione uma prova...</option>
                             {state.exams
-                                .filter(e => (e.status === 'PUBLISHED' as any) || (e.status === 'PUBLICADA' as any))
+                                .filter(e => ((e.status === 'PUBLISHED' as any) || (e.status === 'PUBLICADA' as any) || e.status === 'ACTIVE'))
                                 .filter(e => !e.title.toLowerCase().includes('quiz interativo'))
                                 .map(exam => (
                                     <option key={exam.id} value={exam.id}>{exam.title} ({exam.subject})</option>

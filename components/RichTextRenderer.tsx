@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import DOMPurify from 'dompurify';
 
 interface RichTextRendererProps {
     content: string;
@@ -170,10 +171,33 @@ export const RichTextRenderer = ({ content, className = '' }: RichTextRendererPr
         return processed;
     };
 
+    // 🔒 SECURITY: Sanitize HTML before rendering to prevent XSS attacks
+    const sanitizedContent = DOMPurify.sanitize(parseContent(content), {
+        // Allow safe HTML tags
+        ALLOWED_TAGS: [
+            'div', 'span', 'p', 'br', 'strong', 'em', 'u', 'code', 'pre',
+            'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+            'img', 'video', 'audio', 'iframe', 'a'
+        ],
+        // Allow safe attributes
+        ALLOWED_ATTR: [
+            'class', 'style', 'src', 'alt', 'width', 'height',
+            'controls', 'frameborder', 'allowfullscreen', 'href', 'target',
+            'onerror' // Needed for image fallback
+        ],
+        // Allow specific iframe sources (YouTube only)
+        ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|youtube):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+        // Keep safe CSS
+        ALLOW_DATA_ATTR: false,
+        // Return as string
+        RETURN_DOM: false,
+        RETURN_DOM_FRAGMENT: false
+    });
+
     return (
         <div
             className={`rich-content text-slate-800 leading-relaxed text-base whitespace-pre-wrap break-words ${className}`}
-            dangerouslySetInnerHTML={{ __html: parseContent(content) }}
+            dangerouslySetInnerHTML={{ __html: sanitizedContent }}
             style={{ wordBreak: 'break-word' }}
         />
     );

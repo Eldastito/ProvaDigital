@@ -2288,9 +2288,28 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 }
             }
 
-            if (!exam.items_config) return;
+            // ROBUST ID EXTRACTION (Handles legacy arrays, new config objects, and item_ids column)
+            let itemIds: string[] = [];
 
-            const itemIds = exam.items_config.map((ic: any) => ic.itemId);
+            if (Array.isArray(exam.items_config)) {
+                if (exam.items_config.length > 0 && typeof exam.items_config[0] === 'string') {
+                    // Legacy: ["id1", "id2"]
+                    itemIds = exam.items_config;
+                } else if (exam.items_config.length > 0 && typeof exam.items_config[0] === 'object') {
+                    // Modern: [{itemId: "id1"}, {itemId: "id2"}]
+                    itemIds = exam.items_config.map((ic: any) => ic.itemId).filter(Boolean);
+                }
+            }
+
+            // Fallback to item_ids column if available and items_config failed
+            if (itemIds.length === 0 && Array.isArray(exam.item_ids)) {
+                itemIds = exam.item_ids;
+            }
+
+            if (itemIds.length === 0) {
+                console.warn("Nenhuma questão encontrada nesta prova (items_config e item_ids vazios).");
+                return;
+            }
 
             // Check which items we already have
             const state = get();

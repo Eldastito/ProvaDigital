@@ -307,7 +307,11 @@ export class SessionIsolationService {
         const tx = db.transaction(['studentSessions'], 'readwrite');
         const store = tx.objectStore('studentSessions');
 
-        await store.put(session);
+        return new Promise((resolve, reject) => {
+            const request = store.put(session);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
     }
 
     /**
@@ -341,12 +345,20 @@ export class SessionIsolationService {
         const tx = db.transaction(['studentSessions'], 'readwrite');
         const store = tx.objectStore('studentSessions');
 
-        const session = await store.get(sessionId);
+        const session = await new Promise<StudentSession>((resolve, reject) => {
+            const req = store.get(sessionId);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
 
         if (session) {
             session.uploadedToServer = true;
             session.uploadedAt = new Date().toISOString();
-            await store.put(session);
+            await new Promise<void>((resolve, reject) => {
+                const req = store.put(session);
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+            });
 
             console.log(`✅ Sessão ${sessionId} marcada como enviada`);
         }
@@ -368,7 +380,11 @@ export class SessionIsolationService {
         const store = tx.objectStore('studentSessions');
 
         for (const session of uploaded) {
-            await store.delete(session.id);
+            await new Promise<void>((resolve, reject) => {
+                const req = store.delete(session.id);
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+            });
         }
 
         console.log(`🗑️ ${uploaded.length} sessões enviadas removidas`);

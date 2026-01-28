@@ -9,7 +9,10 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "cypress": "cypress open",
+    "cypress:headless": "cypress run",
+    "test:e2e": "cypress run"
   },
   "dependencies": {
     "@capacitor/android": "^8.0.0",
@@ -21,6 +24,7 @@
     "@types/papaparse": "^5.5.2",
     "date-fns": "^4.1.0",
     "dexie": "^4.2.1",
+    "dompurify": "^3.3.1",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.0.0",
     "jspdf-autotable": "^5.0.7",
@@ -45,10 +49,13 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@testing-library/user-event": "^14.6.1",
+    "@types/cypress": "^0.1.6",
+    "@types/dompurify": "^3.0.5",
     "@types/node": "^22.14.0",
     "@types/qrcode.react": "^1.0.5",
     "@vitejs/plugin-react": "^5.0.0",
     "@vitest/ui": "^4.0.16",
+    "cypress": "^15.9.0",
     "dotenv": "^17.2.3",
     "jsdom": "^27.4.0",
     "typescript": "~5.8.2",
