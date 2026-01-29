@@ -6,6 +6,7 @@ import { supabase } from '../../../services/supabaseClient'; // Import Real Clie
 import { uuidv4 } from '../../../utils/helpers';
 import { useProctoring } from '../../../hooks/useProctoring';
 import { useStudentSession } from '../hooks/useStudentSession';
+import { useFullscreenSecurity } from '../hooks/useFullscreenSecurity';
 import { saveSession, getLastSession, clearDb } from '../../../services/offlineDb';
 import { StoredSession } from '../../../types';
 
@@ -275,43 +276,16 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         checkSavedSession();
     }, [studentData]);
 
+    // 🔒 Fullscreen Security Hook
+    const { enterKioskMode } = useFullscreenSecurity(step, cameraActive, isSessionActive);
+
     // ✨ Auto-logout após completar prova (multi-login)
     useEffect(() => {
         if (step === 'COMPLETED' && isSessionActive) {
-            const timer = setTimeout(async () => {
-                await finishSession();
-                window.location.href = '/';
-            }, 5000);
-            return () => clearTimeout(timer);
-        }
-    }, [step, isSessionActive]);
-
-    // 📱 Mobile Fix: Restore Fullscreen if Camera breaks it
-    useEffect(() => {
-        if (cameraActive && step === 'EXAM' && !document.fullscreenElement) {
-            // Small delay to ensure browser UI has settled
-            setTimeout(() => {
-                enterKioskMode();
-            }, 500);
-        }
-    }, [cameraActive, step]);
-
-    // Auto Reset (Modo Quiosque)
-    useEffect(() => {
-        if (step === 'RESULTS') {
             const timer = setTimeout(() => {
-                console.log('🚪 Fazendo logout automático...');
-                logout(); // Limpa RAM, mantém IndexedDB
-
-                // Reset para próximo aluno
-                setInputName('');
-                setCurrentQuestionIdx(0);
-                setAnswers({});
-                setStudentData(null);
-                setStep('LOGIN_FORM');
-
-                console.log('✅ Tablet pronto para próximo aluno');
-            }, 5000); // 5 segundos para ver resultado
+                console.log('🚪 Auto-logout (concluído)...');
+                logout();
+            }, 30000); // 30s para ver resultado
             return () => clearTimeout(timer);
         }
     }, [step, isSessionActive]);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Globe, Search } from 'lucide-react';
+
+import { Play, Globe, Search, CheckCircle, BookOpen, Sparkles } from 'lucide-react';
 import { supabase } from '../../../services/supabaseClient';
 import { useAppStore } from '../../../store/useAppStore';
 import { uuidv4 } from '../../../utils/helpers';
@@ -199,30 +200,69 @@ export const LiveDemoSetup = ({ onSessionCreated }: LiveDemoSetupProps) => {
                         />
                     </div>
 
-                    <div className="mb-8">
-                        <div className="flex justify-between items-center mb-2">
-                            <label className="block text-slate-400 text-sm font-bold uppercase tracking-wider">Selecionar Prova (Opcional)</label>
+                    <div className="mb-8 bg-slate-800/50 backdrop-blur-sm rounded-2xl p-1 border border-white/5">
+                        <div className="p-4 pb-2 flex justify-between items-center">
+                            <label className="block text-slate-400 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                                <BookOpen size={14} className="text-brand-primary" />
+                                Selecionar Prova
+                            </label>
                             <button
                                 onClick={() => setShowNetworkExams(!showNetworkExams)}
-                                className={`text-xs flex items-center gap-1 px-2 py-1 rounded transition ${showNetworkExams ? 'bg-brand-primary text-white' : 'text-slate-500 hover:text-white'}`}
+                                className={`text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all border ${showNetworkExams ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300 shadow-[0_0_10px_rgba(99,102,241,0.3)]' : 'border-slate-700 text-slate-500 hover:text-white hover:border-slate-500'}`}
                             >
                                 <Globe size={12} />
                                 {showNetworkExams ? 'Rede Conectada' : 'Buscar na Rede'}
                             </button>
                         </div>
-                        <select
-                            value={config.selectedExamId}
-                            onChange={e => setConfig({ ...config, selectedExamId: e.target.value })}
-                            className="w-full bg-slate-800 border-2 border-slate-700 rounded-xl px-4 py-3 text-white focus:border-brand-primary outline-none transition font-medium appearance-none"
-                        >
-                            <option value="">Selecione uma prova...</option>
-                            {availableExams.map(exam => (
-                                <option key={exam.id} value={exam.id}>
-                                    {(exam as any).isNetwork ? '🌐 ' : ''}{exam.title} ({exam.subject})
-                                </option>
-                            ))}
-                        </select>
-                        {showNetworkExams && <p className="text-xs text-slate-500 mt-2 flex items-center gap-1"><Search size={10} /> Mostrando provas públicas de toda a rede.</p>}
+
+                        <div className="space-y-1 max-h-[240px] overflow-y-auto p-2 custom-scrollbar">
+                            {availableExams.length === 0 ? (
+                                <div className="text-center py-8 text-slate-600 text-sm">
+                                    Nenhuma prova encontrada.
+                                </div>
+                            ) : availableExams.map(exam => {
+                                const isSelected = config.selectedExamId === exam.id;
+                                const isNetwork = (exam as any).isNetwork;
+
+                                return (
+                                    <div
+                                        key={exam.id}
+                                        onClick={() => setConfig({ ...config, selectedExamId: exam.id })}
+                                        className={`group relative p-3 rounded-xl cursor-pointer transition-all border flex items-center justify-between
+                                            ${isSelected
+                                                ? 'bg-brand-primary/10 border-brand-primary shadow-lg shadow-indigo-900/20'
+                                                : 'bg-slate-900/40 border-white/5 hover:bg-slate-800 hover:border-white/10'}
+                                        `}
+                                    >
+                                        <div className="flex-1 min-w-0 pr-4">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                {isNetwork && <span className="text-[10px] bg-sky-900/50 text-sky-300 px-1.5 rounded border border-sky-700/50 flex gap-1 items-center"><Globe size={8} /> REDE</span>}
+                                                <h4 className={`text-sm font-bold truncate transition-colors ${isSelected ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
+                                                    {exam.title}
+                                                </h4>
+                                            </div>
+                                            <p className="text-xs text-slate-500 flex items-center gap-2">
+                                                <span>{exam.subject || 'Geral'}</span>
+                                                <span className="w-1 h-1 rounded-full bg-slate-700"></span>
+                                                <span className="truncate opacity-70 text-[10px]">{exam.id.slice(0, 8)}...</span>
+                                            </p>
+                                        </div>
+
+                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${isSelected ? 'bg-brand-primary text-white scale-100' : 'bg-slate-800 text-slate-600 scale-90 group-hover:bg-slate-700'}`}>
+                                            {isSelected ? <CheckCircle size={14} /> : <div className="w-2 h-2 rounded-full bg-slate-600" />}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        {showNetworkExams && (
+                            <div className="px-4 py-2 text-center border-t border-white/5">
+                                <p className="text-[10px] text-slate-500 flex items-center justify-center gap-1.5">
+                                    <Sparkles size={10} className="text-amber-400" />
+                                    <span>Mostrando as 50 provas públicas mais recentes da rede.</span>
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     <button
