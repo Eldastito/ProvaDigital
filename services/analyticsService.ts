@@ -135,7 +135,17 @@ export class AnalyticsService {
 
         return {
             id: studentId,
-            idgScore: (seedValue % 50) / 10 + 4, // Gera notas entre 4.0 e 9.0
+            idgScore: (seedValue % 50) / 10 + 4, // 4.0 - 9.0
+            examAverage: (seedValue % 40) / 10 + 5, // 5.0 - 9.0
+            projectAverage: (seedValue % 30) / 10 + 6, // 6.0 - 9.0
+            bonusPoints: (seedValue % 100),
+            examsTaken: (seedValue % 20) + 1,
+            attendanceRate: 75 + (seedValue % 25),
+            riskLevel: (seedValue % 3) === 0 ? 'HIGH' : (seedValue % 3) === 1 ? 'MEDIUM' : 'LOW',
+            missingPointsForApproval: 10 - ((seedValue % 50) / 10 + 4),
+            strongestSubject: 'Matemática',
+            weakestSubject: 'História',
+            // attendance: JSON.stringify({ present: 80, absent: 20 }), // Legacy field removal if needed, or keep for compatibility
             attendance: JSON.stringify({ present: 80, absent: 20 }),
             lastAccess: new Date().toISOString()
         };

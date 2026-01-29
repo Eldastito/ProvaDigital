@@ -5,7 +5,7 @@ import { UserRole, ExamResult } from './types';
 import { useAppStore } from './store/useAppStore';
 import { appRoutes } from './routes';
 import { checkConnection, supabase } from './services/supabaseClient';
-import { LoginPage } from './features/auth/LoginPage';
+import { LoginPage } from './modules/auth/LoginPage';
 import { uuidv4 } from './utils/helpers';
 
 // Infrastructure

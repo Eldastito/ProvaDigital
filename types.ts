@@ -480,6 +480,23 @@ export interface ItemGenerationBatch {
   createdAt: string;
 }
 
+export interface CoverSection {
+  id: string;
+  title: string;
+  type: 'text' | 'distribution';
+  content?: string;
+  distribution?: {
+    groups: {
+      name: string;
+      items: {
+        subject: string;
+        range: string;
+        points: string;
+      }[];
+    }[];
+  };
+}
+
 export interface ExamVersion {
   id: string;
   examId: string;
@@ -493,6 +510,7 @@ export interface ExamVersion {
     title: string;
     instructions: string[];
     securityNotices: string[];
+    sections?: CoverSection[];
   };
   status: 'draft' | 'published' | 'archived';
   scheduledStart?: string;

@@ -78,7 +78,7 @@ export class TabletProvisioningService {
             }
 
             // 2. Configurar modo do tablet
-            await this.configureMo de(config.tabletId, config.mode);
+            await this.configureMode(config.tabletId, config.mode);
 
             // 3. Baixar dados do evento
             await this.downloadEventData(config);
@@ -138,7 +138,8 @@ export class TabletProvisioningService {
             const db = await this.openDatabase();
             const tx = db.transaction(['config'], 'readonly');
             const store = tx.objectStore('config');
-            const config = await store.get('currentEvent');
+            const request = store.get('currentEvent');
+            const config = await this.promisifyRequest(request);
 
             return config || null;
         } catch {
@@ -339,5 +340,15 @@ export class TabletProvisioningService {
             console.error(`❌ Erro no factory reset:`, error);
             throw error;
         }
+    }
+
+    /**
+     * Helper para converter IDBRequest em Promise
+     */
+    private static promisifyRequest<T>(request: IDBRequest<T>): Promise<T> {
+        return new Promise((resolve, reject) => {
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error || 'Erro desconhecido no IndexedDB');
+        });
     }
 }

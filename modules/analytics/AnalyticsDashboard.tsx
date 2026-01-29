@@ -16,9 +16,9 @@ import {
     DifficultyItem,
     GlobalStats
 } from '../../services/analyticsService';
-import { PerformanceChart } from '../../components/Analytics/PerformanceChart';
-import { AttendancePieChart } from '../../components/Analytics/AttendancePieChart';
-import { DifficultyTable } from '../../components/Analytics/DifficultyTable';
+import { PerformanceChart } from './components/PerformanceChart';
+import { AttendancePieChart } from './components/AttendancePieChart';
+import { DifficultyTable } from './components/DifficultyTable';
 import { MetricsCard } from '../../components/Metrics/MetricsCard';
 
 export const AnalyticsDashboard: React.FC = () => {

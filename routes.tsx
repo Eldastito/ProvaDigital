@@ -1,6 +1,6 @@
 import { RouteObject, Navigate } from 'react-router-dom';
-import { LoginPage } from './features/auth/LoginPage';
-import { BulkImportView } from './components/Admin/BulkImportView';
+import { LoginPage } from './modules/auth/LoginPage';
+import { BulkImportView } from './modules/admin/components/BulkImportView';
 import { DashboardView } from './components/DashboardView';
 import { ItemsListView } from './components/ItemsListView'; // Stays in components? Checked.
 import { ItemEditorView } from './modules/builder/ItemEditorView';
@@ -9,33 +9,33 @@ import { ExamVariantsManager } from './components/ExamVariantsManager';
 import { ExamsListView } from './modules/grading/ExamsListView'; // Moved to Grading module
 import { ExamBuilderView } from './modules/builder/ExamBuilderView';
 import { AllocationView } from './modules/grading/AllocationView';
-import { ManagementView } from './features/school-management/ManagementView';
+import { ManagementView } from './modules/school-management/ManagementView';
 import { PrintableExamView } from './modules/builder/PrintableExamView';
 import { ResultsEntryView } from './modules/grading/ResultsEntryView';
-import { StudentDashboardView } from './features/student-portal/StudentDashboardView';
-import { OwlTutorView } from './features/student-portal/OwlTutorView';
-import { StudentBattleView } from './features/student-portal/StudentBattleView';
-import { SurvivalView } from './features/student-portal/SurvivalView';
-import { SchoolDashboardView } from './features/analytics/SchoolDashboardView';
-import { CommunicationView } from './components/Communication/CommunicationView';
-import { StudyPlansView } from './components/Academic/StudyPlansView';
-import { UserProfileView } from './components/Profile/UserProfileView';
-import { CapabilitiesView } from './components/Admin/CapabilitiesView';
-import { NeuroScreeningView } from './components/NeuroScreening/NeuroScreeningView';
-import { GamifiedEventsManager } from './components/GamifiedEvents/GamifiedEventsManager';
-import { RiskDashboard } from './features/analytics/risk/RiskDashboard';
-import { ClassDiaryView } from './components/ClassDiary/ClassDiaryView';
-import { ProfessorDashboardView } from './components/Professor/ProfessorDashboardView';
-import { ParentsDashboardView } from './components/Parents/ParentsDashboardView';
-import { ArcadeView } from './features/student-portal/ArcadeView';
-import { AvatarShopView } from './features/student-portal/AvatarShopView';
-import { GovernanceView } from './components/Admin/GovernanceView';
-import { AuditLogView } from './components/Admin/AuditLogView';
+import { StudentDashboardView } from './modules/student-portal/StudentDashboardView';
+import { OwlTutorView } from './modules/student-portal/OwlTutorView';
+import { StudentBattleView } from './modules/student-portal/StudentBattleView';
+import { SurvivalView } from './modules/student-portal/SurvivalView';
+import { SchoolDashboardView } from './modules/analytics/SchoolDashboardView';
+import { CommunicationView } from './modules/communication/CommunicationView';
+import { StudyPlansView } from './modules/academic/StudyPlansView';
+import { UserProfileView } from './modules/profile/UserProfileView';
+import { CapabilitiesView } from './modules/admin/components/CapabilitiesView';
+import { NeuroScreeningView } from './modules/neuro-screening/NeuroScreeningView';
+import { GamifiedEventsManager } from './modules/gamification/GamifiedEventsManager';
+import { RiskDashboard } from './modules/analytics/risk/RiskDashboard';
+import { ClassDiaryView } from './modules/class-diary/ClassDiaryView';
+import { ProfessorDashboardView } from './modules/professor/ProfessorDashboardView';
+import { ParentsDashboardView } from './modules/parents/ParentsDashboardView';
+import { ArcadeView } from './modules/student-portal/ArcadeView';
+import { AvatarShopView } from './modules/student-portal/AvatarShopView';
+import { GovernanceView } from './modules/admin/components/GovernanceView';
+import { AuditLogView } from './modules/admin/components/AuditLogView';
 import { TabletLauncher } from './modules/runner/student-app/TabletLauncher';
-import { LiveDemoLobby } from './components/Demo/LiveDemoLobby';
+import { LiveDemoLobby } from './modules/demo/LiveDemoLobby';
 import { ExamLauncher } from './modules/runner/features/ExamLauncher';
 import { DashboardLayout } from './components/DashboardLayout';
-import { AIDiagnosticView } from './components/Diagnostics/AIDiagnosticView';
+import { AIDiagnosticView } from './modules/diagnostics/AIDiagnosticView';
 import { ResultFeedbackView } from './modules/runner/features/ResultFeedbackView';
 import { LiveExamMonitorView } from './modules/runner/features/LiveExamMonitorView';
 import { OnlineExamRunner } from './modules/runner/features/OnlineExamRunner';
@@ -46,7 +46,7 @@ import { AIQuestionGeneratorView } from './modules/builder/AIQuestionGeneratorVi
 import { ExamScheduler } from './modules/coordinator/ExamScheduler';
 import { CommandCenter } from './modules/coordinator/CommandCenter';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { ReportGeneratorView } from './features/reports/ReportGeneratorView';
+import { ReportGeneratorView } from './modules/reports/ReportGeneratorView';
 
 // Helper for Role-based Dashboard
 const ConditionalDashboard = () => {

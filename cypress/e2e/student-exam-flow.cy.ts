@@ -32,7 +32,7 @@ describe('Student Exam Flow - Happy Path', () => {
         cy.visit('/apps/demo');
 
         // Wait for demo page to load
-        cy.contains('Demonstração ao Vivo', { timeout: 10000 }).should('be.visible');
+        cy.contains('Modo Apresentação', { timeout: 10000 }).should('be.visible');
 
         // Start a new demo session
         cy.contains('button', /Iniciar Nova Demonstração/i).click();
@@ -63,6 +63,13 @@ describe('Student Exam Flow - Happy Path', () => {
             // STEP 3: Student Login Screen
             cy.contains('Conectar à Turma', { timeout: 10000 }).should('be.visible');
 
+            // Handle potential "Terms" modal if present
+            cy.get('body').then(($body) => {
+                if ($body.find('button:contains("Li e Aceito"), button:contains("Entendi")').length > 0) {
+                    cy.contains('button', /Li e Aceito|Entendi/i).click({ force: true });
+                }
+            });
+
             // Enter student name
             cy.get('input[placeholder*="João Silva"]').type(studentName, { force: true });
 
@@ -70,6 +77,8 @@ describe('Student Exam Flow - Happy Path', () => {
             cy.contains('button', /Entrar na Sala/i).click();
 
             // STEP 4: Confirm Identity
+            // Handle specific overlay if present
+            cy.wait(1000); // Wait for animations
             cy.contains(`Bem-vindo(a), ${studentName.split(' ')[0]}!`, { timeout: 10000 })
                 .should('be.visible');
 
@@ -123,12 +132,20 @@ describe('Student Exam Flow - Happy Path', () => {
         // USE REAL EXAM ID from previous test to avoid "Exam Not Found" error
         cy.visit(`/apps/demo?mode=mobile&role=STUDENT&classId=test-class&examId=${examId}`);
 
+        // Handle potential "Terms" modal if present
+        cy.get('body').then(($body) => {
+            if ($body.find('button:contains("Li e Aceito"), button:contains("Entendi")').length > 0) {
+                cy.contains('button', /Li e Aceito|Entendi/i).click({ force: true });
+            }
+        });
+
         // Join exam
         // Force type to handle overlays/animations or "Modo Seguro" modal
         cy.get('input[placeholder*="João Silva"]').type('Offline Test Student', { force: true });
         cy.contains('button', /Entrar na Sala/i).click({ force: true });
 
         // Wait for identity confirmation
+        cy.wait(1000);
         cy.contains(/Bem-vindo/i, { timeout: 10000 }).should('be.visible');
         cy.contains('button', /Iniciar Prova/i).click({ force: true });
 
