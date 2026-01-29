@@ -39,26 +39,40 @@ export const LiveDemoActiveDashboard = ({
 
     return (
         <div className="flex-1 flex flex-col lg:flex-row">
-            {/* LEFT: QR CODE ALUNOS */}
+            {/* LEFT: QR CODE ALUNOS (Ou STATUS FECHADO) */}
             <div className="lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center items-center text-center border-b lg:border-b-0 lg:border-r border-white/10 bg-gradient-to-br from-[#0f1d2e] to-[#1e293b]">
-                <div className="mb-8">
-                    <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-4 py-1 rounded-full text-sm font-bold animate-in slide-in-from-top-4 flex items-center gap-2 w-fit mx-auto">
-                        <Unlock size={14} /> SESSÃO LIBERADA PELO PROFESSOR
-                    </span>
-                    <h1 className="text-4xl md:text-5xl font-black text-white mt-4 leading-tight">
-                        Entre na Turma<br /><span className="text-brand-secondary">Agora!</span>
-                    </h1>
-                    <p className="text-lg text-slate-400 mt-4 max-w-md mx-auto">
-                        Aponte a câmera do seu celular para participar da experiência.
-                    </p>
-                </div>
+                {!isEntryLocked ? (
+                    <>
+                        <div className="mb-8">
+                            <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-4 py-1 rounded-full text-sm font-bold animate-in slide-in-from-top-4 flex items-center gap-2 w-fit mx-auto">
+                                <Unlock size={14} /> SESSÃO LIBERADA PELO PROFESSOR
+                            </span>
+                            <h1 className="text-4xl md:text-5xl font-black text-white mt-4 leading-tight">
+                                Entre na Turma<br /><span className="text-brand-secondary">Agora!</span>
+                            </h1>
+                            <p className="text-lg text-slate-400 mt-4 max-w-md mx-auto">
+                                Aponte a câmera do seu celular para participar da experiência.
+                            </p>
+                        </div>
 
-                <div className="bg-white p-4 rounded-3xl shadow-2xl shadow-brand-primary/20 relative group animate-in zoom-in duration-500">
-                    <img src={getQrUrl(studentUrl)} alt="QR Code Student" className="w-72 h-72 lg:w-96 lg:h-96 mix-blend-multiply" />
-                    <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-mono border border-slate-700 flex items-center gap-2 whitespace-nowrap">
-                        <Smartphone size={14} /> Acesso Aluno
+                        <div className="bg-white p-4 rounded-3xl shadow-2xl shadow-brand-primary/20 relative group animate-in zoom-in duration-500">
+                            <img src={getQrUrl(studentUrl)} alt="QR Code Student" className="w-72 h-72 lg:w-96 lg:h-96 mix-blend-multiply" />
+                            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-mono border border-slate-700 flex items-center gap-2 whitespace-nowrap">
+                                <Smartphone size={14} /> Acesso Aluno
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    <div className="flex flex-col items-center animate-in fade-in duration-500">
+                        <div className="w-32 h-32 bg-slate-800 rounded-full flex items-center justify-center mb-6 border-4 border-slate-700 shadow-xl">
+                            <Lock size={48} className="text-slate-500" />
+                        </div>
+                        <h2 className="text-3xl font-black text-white mb-2">Entrada Encerrada</h2>
+                        <p className="text-slate-400 max-w-sm">
+                            O período de entrada para esta sessão expirou. Foque no monitoramento dos alunos conectados.
+                        </p>
                     </div>
-                </div>
+                )}
             </div>
 
             {/* RIGHT: REALTIME DASHBOARD */}
@@ -91,6 +105,17 @@ export const LiveDemoActiveDashboard = ({
                                 <span className="text-slate-500 text-base">Aguardando Início...</span>
                             )}
                         </div>
+
+                        {/* TIMER GERAL DA PROVA (Ex: 60 min) */}
+                        {isEntryLocked && (
+                            <div className="mt-4 pt-4 border-t border-slate-700">
+                                <div className="text-xs font-bold text-slate-500 uppercase">Tempo Restante de Prova</div>
+                                <div className="text-2xl font-mono font-bold text-white mt-1">
+                                    {/* Mock countdown for demo feeling */}
+                                    45:00
+                                </div>
+                            </div>
+                        )}
 
                         {/* MANUAL FINISH BUTTON */}
                         <button

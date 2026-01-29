@@ -24,6 +24,10 @@ export const LiveDemoResults = ({ examStats, selectedExamItems, topPerformers, g
                 {Object.entries(dist).map(([key, count]: [string, any]) => {
                     const percentage = Math.round((count / total) * 100);
                     const item = selectedExamItems.find(i => i.id === itemId);
+                    // Find index for A/B/C Label
+                    const altIndex = item?.alternatives.findIndex((a: any) => a.id === key);
+                    const label = altIndex >= 0 ? String.fromCharCode(65 + altIndex) : '?';
+
                     const alt = item?.alternatives.find((a: any) => a.id === key);
                     const isCorrect = alt?.isCorrect;
 
@@ -31,7 +35,7 @@ export const LiveDemoResults = ({ examStats, selectedExamItems, topPerformers, g
                         <div key={key} className="relative">
                             <div className="flex justify-between text-sm mb-1 px-2">
                                 <span className={isCorrect ? "text-emerald-400 font-bold" : "text-slate-400"}>
-                                    {key.toUpperCase()}. {alt?.text}
+                                    {label}. {alt?.text || 'Alternativa desconhecida'}
                                 </span>
                                 <span className="text-white font-mono">{percentage}%</span>
                             </div>

@@ -154,6 +154,27 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         onViolation: async (reason) => {
             console.log("Violação detectada:", reason);
 
+            // 📢 CRITICAL FIX: Broadcast directly to Professor's Dashboard (Supabase)
+            // This ensures the Live Demo Dashboard receives the alert immediately
+            if (examIdParam && studentData?.id) {
+                const channel = supabase.channel(`exam_monitor:${examIdParam}`);
+                channel.subscribe(async (status) => {
+                    if (status === 'SUBSCRIBED') {
+                        await channel.send({
+                            type: 'broadcast',
+                            event: 'ALERT',
+                            payload: {
+                                studentId: studentData.id,
+                                type: reason,
+                                timestamp: new Date().toISOString()
+                            }
+                        });
+                        // Don't remove immediately to allow send to complete reliable
+                        setTimeout(() => supabase.removeChannel(channel), 1000);
+                    }
+                });
+            }
+
             // Log via multi-login session
             if (isSessionActive) {
                 await logSecurityEvent(reason, 'HIGH', {
@@ -215,6 +236,13 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                         const item = freshState.items.find(i => i.id === config.itemId);
                         return item ? { ...item, ...config } : null;
                     }).filter(Boolean);
+
+                    // 🕵️ DEBUG: Validate items content
+                    const invalidItems = items.filter((i: any) => !i.statement || i.statement.length < 5);
+                    if (invalidItems.length > 0) {
+                        console.warn("⚠️ ALERTA: Alguns itens parecem incompletos (sem enunciado):", invalidItems);
+                        // Force refetch if needed (future improvement)
+                    }
 
                     if (items.length === 0) {
                         setLoadError(`Prova carregada, mas questões não encontradas no cache. (Qtd: ${configSource.length})`);

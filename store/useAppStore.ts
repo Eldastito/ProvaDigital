@@ -2187,12 +2187,19 @@ export const useAppStore = create<AppStore>((set, get) => ({
     fetchExamItems: async (examId: string) => {
         try {
             // FETCH FULL EXAM DATA (Fix for "Prova não encontrada" error)
-            const { data: exam, error } = await supabase.from('exams').select('*').eq('id', examId).single();
+            // Use limit(1) instead of single() to avoid 406 (Accept header issues)
+            const { data: exams, error } = await supabase.from('exams').select('*').eq('id', examId).limit(1);
 
-            if (error || !exam) {
+            if (error) {
                 console.error("fetchExamItems failed:", error);
-                throw new Error("Prova não encontrada ou erro de conexão.");
+                throw error;
             }
+
+            if (!exams || exams.length === 0) {
+                throw new Error("Prova não encontrada (ID inválido).");
+            }
+
+            const exam = exams[0];
 
             // Upsert Exam into Local Store (Crucial for Mobile App)
             set(state => {
@@ -2313,9 +2320,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 return;
             }
 
-            // Check which items we already have
+            // Check which items we already have AND are valid (have statement AND statement is not just the ID)
             const state = get();
-            const loadedIds = new Set(state.items.map(i => i.id));
+            const loadedIds = new Set(
+                state.items
+                    .filter(i => i.id && i.statement && i.statement.length > 5 && i.statement !== i.id)
+                    .map(i => i.id)
+            );
             const missingIds = itemIds.filter((id: string) => !loadedIds.has(id));
 
             if (missingIds.length === 0) return; // All loaded
@@ -2368,6 +2379,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
             }
         } catch (e) {
             console.error("Error fetching exam items:", e);
+            throw e; // RETHROW TO ALLOW CALLER (StudentApp) TO HANDLE ERROR
         }
     },
 

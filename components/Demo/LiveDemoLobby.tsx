@@ -99,14 +99,65 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
         }
     }, [isEntryLocked, joinedStudents, submissions]);
 
-    // --- REALTIME SUBSCRIPTIONS ---
+    // --- PERSISTENCE LOGIC ---
+    useEffect(() => {
+        // Load state on mount
+        const savedState = localStorage.getItem('live_demo_session');
+        if (savedState) {
+            try {
+                const parsed = JSON.parse(savedState);
+                // Check if session is recent (< 24h)
+                const isRecent = (Date.now() - parsed.timestamp) < 24 * 60 * 60 * 1000;
+
+                if (isRecent && parsed.step !== 'RESULTS') {
+                    if (parsed.activeClassId) setActiveClassId(parsed.activeClassId);
+                    if (parsed.activeExamId) setActiveExamId(parsed.activeExamId);
+                    if (parsed.sessionConfig) setSessionConfig(parsed.sessionConfig);
+                    if (parsed.step) setStep(parsed.step);
+                } else {
+                    localStorage.removeItem('live_demo_session');
+                }
+            } catch (e) {
+                console.error("Erro ao restaurar sessão:", e);
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        // Save state on change
+        if (step !== 'SETUP' && step !== 'RESULTS') {
+            const stateToSave = {
+                activeClassId,
+                activeExamId,
+                sessionConfig,
+                step,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('live_demo_session', JSON.stringify(stateToSave));
+        } else if (step === 'RESULTS') {
+            localStorage.removeItem('live_demo_session');
+        }
+    }, [step, activeClassId, activeExamId, sessionConfig]);
+
+    // --- REALTIME & PRESENCE ---
+    const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+
     useEffect(() => {
         if (!activeClassId || !activeExamId) return;
 
-        const monitorChannel = supabase.channel(`exam_monitor:${activeExamId}`, { config: { broadcast: { self: false } } })
+        // Channel for Exam Events (Alerts & Presence)
+        const monitorChannel = supabase.channel(`exam_monitor:${activeExamId}`, {
+            config: {
+                presence: { key: 'professor' },
+                broadcast: { self: false }
+            }
+        });
+
+        monitorChannel
             .on('broadcast', { event: 'ALERT' }, (payload) => {
-                if (!payload.payload) return;
-                const { studentId, type } = payload.payload;
+                const { studentId, type } = payload.payload || payload; // Handle both structures
+                if (!studentId) return;
+
                 setSecurityAlerts(prev => {
                     const newMap = new Map(prev);
                     const labelMap: any = {
@@ -121,55 +172,59 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
                     const label = labelMap[type] || 'Atividade Suspeita';
                     newMap.set(studentId, label);
 
-                    // Add to Feed in background
-                    setSecurityEvents(prev => [{
-                        id: date.getTime().toString(),
+                    // Add to Feed
+                    setSecurityEvents(prevEvents => [{
+                        id: Date.now().toString(),
                         studentId,
-                        studentName: joinedStudents.find(s => s.id === studentId)?.name || 'Desconhecido',
+                        studentName: joinedStudents.find(s => s.id === studentId)?.name || 'Aluno',
                         type: label,
-                        time: date.toLocaleTimeString()
-                    }, ...prev].slice(0, 50)); // Keep last 50
+                        time: new Date().toLocaleTimeString()
+                    }, ...prevEvents].slice(0, 50));
 
                     return newMap;
                 });
             })
-            .subscribe();
+            .on('presence', { event: 'sync' }, () => {
+                const state = monitorChannel.presenceState();
+                const onlineIds = new Set<string>();
 
-        const resultsChannel = supabase.channel(`results_monitor:${activeExamId}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'exam_results', filter: `exam_id=eq.${activeExamId}` }, (payload) => {
-                const newResult = payload.new;
-                setSubmissions(prev => {
-                    const newSet = new Set(prev);
-                    newSet.add(newResult.student_id);
-                    return newSet;
+                Object.keys(state).forEach(key => {
+                    // Assuming student uses their ID as presence key or part of metadata
+                    // If key is mapped to studentId in StudentApp
+                    state[key].forEach((presence: any) => {
+                        if (presence.studentId) onlineIds.add(presence.studentId);
+                    });
                 });
+                setOnlineUsers(onlineIds);
             })
-            .subscribe();
+            .subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    // Professor doesn't need to track presence as "student", strictly speaking, 
+                    // but tracking as "professor" helps debugging
+                    await monitorChannel.track({ type: 'PROFESSOR', online_at: new Date().toISOString() });
+                }
+            });
 
-        const classChannel = supabase.channel(`class_status:${activeClassId}`)
+        // Database Changes (Results & Students)
+        const dbChannel = supabase.channel(`db_monitor:${activeExamId}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'exam_results', filter: `exam_id=eq.${activeExamId}` }, (payload) => {
+                setSubmissions(prev => new Set(prev).add(payload.new.student_id));
+            })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'students', filter: `class_id=eq.${activeClassId}` }, (payload) => {
+                setJoinedStudents(prev => [payload.new, ...prev]);
+            })
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'classes', filter: `id=eq.${activeClassId}` }, (payload) => {
-                const newStatus = payload.new.status;
-                if (newStatus === 'OPEN') {
-                    setStep('LOBBY_ACTIVE');
-                } else if (newStatus === 'FINISHED') {
+                if (payload.new.status === 'FINISHED') {
                     calculateResults(activeClassId, activeExamId);
                 }
             })
             .subscribe();
 
-        const studentsChannel = supabase.channel(`students_monitor:${activeClassId}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'students', filter: `class_id=eq.${activeClassId}` }, (payload) => {
-                setJoinedStudents(prev => [payload.new, ...prev]);
-            })
-            .subscribe();
-
         return () => {
             supabase.removeChannel(monitorChannel);
-            supabase.removeChannel(resultsChannel);
-            supabase.removeChannel(classChannel);
-            supabase.removeChannel(studentsChannel);
+            supabase.removeChannel(dbChannel);
         };
-    }, [activeClassId, activeExamId]);
+    }, [activeClassId, activeExamId, joinedStudents]); // Added joinedStudents dependency to resolve names correctly in alerts
 
 
     // --- HANDLERS ---
