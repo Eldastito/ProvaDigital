@@ -5,6 +5,7 @@ import { AppState, QuestionType } from '../../../types';
 import { supabase } from '../../../services/supabaseClient'; // Import Real Client
 import { uuidv4 } from '../../../utils/helpers';
 import { useProctoring } from '../../../hooks/useProctoring';
+import { StudentResultsView } from './StudentResultsView';
 import { useStudentSession } from '../hooks/useStudentSession';
 import { useFullscreenSecurity } from '../hooks/useFullscreenSecurity';
 import { saveSession, getLastSession, clearDb } from '../../../services/offlineDb';
@@ -164,7 +165,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
             if (meshInitialized && studentData?.id) {
                 getTelemetryService().logViolation({
                     studentId: studentData.id,
-                    eventType: reason,
+                    eventType: reason as any,
                     severity: 'MEDIUM',
                     timestamp: Date.now()
                 });
@@ -809,77 +810,16 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     if (step === 'COMPLETED') {
         const score = (studentData as any)?.lastScore;
         const total = (studentData as any)?.lastTotal;
-        const percentage = total ? Math.round((score / total) * 100) : 0;
 
         return (
-            <div className="fixed inset-0 bg-[#0f1d2e] flex flex-col items-center justify-center p-6 text-center animate-in zoom-in z-50 overflow-hidden font-sans">
-                {/* Confetti Effect */}
-                <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                    {[...Array(30)].map((_, i) => (
-                        <div key={i} className="absolute w-3 h-3 rounded-full opacity-0 animate-[confetti_4s_ease-out_infinite]"
-                            style={{
-                                left: `${Math.random() * 100}%`,
-                                top: `-20px`,
-                                animationDelay: `${Math.random() * 2}s`,
-                                backgroundColor: ['#FBBF24', '#34D399', '#60A5FA', '#F87171'][Math.floor(Math.random() * 4)]
-                            }}>
-                        </div>
-                    ))}
-                </div>
-                <style>{`
-                  @keyframes confetti {
-                      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-                      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
-                  }
-              `}</style>
-
-                <div className="relative z-10 bg-slate-800/80 backdrop-blur-md p-8 rounded-3xl border border-slate-700 shadow-2xl max-w-sm w-full">
-                    <div className="w-24 h-24 mx-auto bg-gradient-to-br from-yellow-400 to-amber-600 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-amber-500/20 animate-bounce">
-                        <Trophy size={48} className="text-white" />
-                    </div>
-
-                    <h1 className="text-3xl font-black text-white mb-2">Prova Finalizada!</h1>
-                    <p className="text-slate-400 mb-8">Parabéns, você completou o desafio.</p>
-
-                    <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-700 mb-8">
-                        <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Sua Pontuação</div>
-                        <div className="text-6xl font-black text-white flex items-center justify-center gap-1">
-                            {(() => {
-                                const hasKeys = (actualItems || []).some((i: any) => i.alternatives?.some((a: any) => a.isCorrect));
-                                if (!hasKeys && score === 0) {
-                                    return <span className="text-xl text-yellow-400 font-bold">Ver no Telão</span>;
-                                }
-                                return (
-                                    <>
-                                        {score !== undefined ? score : '?'}
-                                        <span className="text-2xl text-slate-500 font-bold">/{total || '?'}</span>
-                                    </>
-                                );
-                            })()}
-                        </div>
-                        <div className="mt-2 text-xs text-slate-500">Aguaring Results...</div>
-                    </div>
-
-                    <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-xl text-sm mb-4">
-                        <div className="flex items-center gap-2 text-emerald-400 font-bold mb-1">
-                            <CheckCircle size={16} /> Respostas Salvas
-                        </div>
-                        <p className="text-slate-400 text-xs">Seus dados foram sincronizados com o servidor do professor.</p>
-                    </div>
-
-                    <p className="text-slate-500 text-xs">
-                        Aguarde o encerramento no telão para ver se você entrou no
-                        <span className="text-yellow-500 font-bold ml-1">Podium</span>!
-                    </p>
-
-                    <button
-                        onClick={() => window.location.href = '/'}
-                        className="mt-8 w-full py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold transition"
-                    >
-                        Sair / Encerrar
-                    </button>
-                </div>
-            </div>
+            <StudentResultsView
+                studentName={studentData?.name || 'Aluno'}
+                score={score !== undefined ? score : 0}
+                total={total || actualItems.length || 10}
+                items={actualItems || []}
+                answers={answers}
+                onExit={() => window.location.href = '/'}
+            />
         );
     }
 

@@ -15,6 +15,7 @@ interface LiveDemoActiveDashboardProps {
     onManualFinish: () => void;
     submissions: Set<string>;
     securityAlerts: Map<string, string>;
+    securityEvents: any[];
 }
 
 export const LiveDemoActiveDashboard = ({
@@ -29,7 +30,8 @@ export const LiveDemoActiveDashboard = ({
     toleranceEndTime,
     onManualFinish,
     submissions,
-    securityAlerts
+    securityAlerts,
+    securityEvents
 }: LiveDemoActiveDashboardProps) => {
 
     const baseUrl = window.location.origin;
@@ -104,57 +106,86 @@ export const LiveDemoActiveDashboard = ({
                     </div>
                 </div>
 
-                <div className="flex-1 bg-slate-800/50 rounded-2xl border border-slate-700 overflow-hidden flex flex-col">
-                    <div className="p-4 border-b border-slate-700 bg-slate-800 flex justify-between items-center">
-                        <h3 className="font-bold text-white flex items-center gap-2"><Users size={18} className="text-brand-secondary" /> Lista de Chamada</h3>
-                        <div className="flex items-center gap-2 text-xs text-emerald-400">
-                            <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                            </span>
-                            Ao Vivo
+                <div className="flex-1 flex flex-col gap-4 overflow-hidden">
+                    {/* SECURITY FEED */}
+                    <div className="h-1/3 bg-slate-800/50 rounded-2xl border border-slate-700 overflow-hidden flex flex-col">
+                        <div className="p-3 border-b border-slate-700 bg-slate-800 flex justify-between items-center">
+                            <h3 className="font-bold text-white flex items-center gap-2 text-sm">
+                                <Zap size={16} className="text-yellow-400" /> Feed de Segurança
+                            </h3>
+                            <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Tempo Real</span>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar bg-slate-900/30">
+                            {securityEvents.length === 0 ? (
+                                <div className="h-full flex flex-col items-center justify-center text-slate-600 text-xs text-center">
+                                    <CheckCircle size={24} className="mb-2 opacity-20 text-emerald-500" />
+                                    <p>Nenhum incidente registrado.</p>
+                                </div>
+                            ) : (
+                                securityEvents.map((event) => (
+                                    <div key={event.id} className="bg-red-500/10 border-l-4 border-red-500 p-2 rounded-r flex items-start justify-between animate-in slide-in-from-left-2 fade-in duration-300">
+                                        <div className="flex flex-col">
+                                            <span className="text-red-400 font-bold text-xs">{event.type}</span>
+                                            <span className="text-slate-300 text-xs">{event.studentName}</span>
+                                        </div>
+                                        <span className="text-[10px] text-slate-500 font-mono mt-1">{event.time}</span>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-                        {joinedStudents.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center text-slate-600">
-                                <UserPlus size={48} className="mb-2 opacity-20" />
-                                <p>Aguardando alunos entrarem...</p>
+                    {/* STUDENT LIST */}
+                    <div className="flex-1 bg-slate-800/50 rounded-2xl border border-slate-700 overflow-hidden flex flex-col">
+                        <div className="p-3 border-b border-slate-700 bg-slate-800 flex justify-between items-center">
+                            <h3 className="font-bold text-white flex items-center gap-2 text-sm"><Users size={16} className="text-brand-secondary" /> Lista de Chamada</h3>
+                            <div className="flex items-center gap-2 text-[10px] text-emerald-400">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                </span>
+                                Ao Vivo
                             </div>
-                        ) : (
-                            joinedStudents.map((student) => (
-                                <div key={student.id} className="flex items-center justify-between bg-slate-700/50 p-3 rounded-xl border border-slate-600 animate-in slide-in-from-right-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center font-bold text-xs text-slate-300">
-                                            {student.name.charAt(0)}
-                                        </div>
-                                        <div>
-                                            <div className="font-bold text-white text-sm">{student.name}</div>
-                                            <div className="text-xs text-slate-400">ID: {student.ra || '---'}</div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        {/* Security Status Badge */}
-                                        {securityAlerts.has(student.id) ? (
-                                            <span className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded border border-red-500/50 flex items-center gap-1" title={securityAlerts.get(student.id)}>
-                                                ⚠️ <span className="hidden md:inline">{securityAlerts.get(student.id)}</span>
-                                            </span>
-                                        ) : (
-                                            <span className="text-xs bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded border border-emerald-500/20">
-                                                Online
-                                            </span>
-                                        )}
-                                        {/* Completion Status */}
-                                        {submissions.has(student.id) && (
-                                            <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded border border-blue-500/50 flex items-center gap-1">
-                                                <CheckCircle size={10} /> Entregue
-                                            </span>
-                                        )}
-                                    </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+                            {joinedStudents.length === 0 ? (
+                                <div className="h-full flex flex-col items-center justify-center text-slate-600">
+                                    <UserPlus size={32} className="mb-2 opacity-20" />
+                                    <p className="text-xs">Aguardando alunos...</p>
                                 </div>
-                            ))
-                        )}
+                            ) : (
+                                joinedStudents.map((student) => (
+                                    <div key={student.id} className="flex items-center justify-between bg-slate-700/50 p-2 rounded-lg border border-slate-600 animate-in slide-in-from-right-4 transition-all hover:bg-slate-700">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center font-bold text-xs text-slate-300 relative">
+                                                {student.name.charAt(0)}
+                                                {submissions.has(student.id) && (
+                                                    <div className="absolute -bottom-1 -right-1 bg-blue-500 rounded-full p-0.5 border-2 border-slate-700">
+                                                        <CheckCircle size={8} className="text-white" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-white text-xs truncate max-w-[120px]">{student.name}</div>
+                                                <div className="text-[10px] text-slate-400">ID: {student.ra || '---'}</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {securityAlerts.has(student.id) ? (
+                                                <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/50 flex items-center gap-1" title={securityAlerts.get(student.id)}>
+                                                    ⚠️ <span className="hidden md:inline truncate max-w-[80px]">{securityAlerts.get(student.id)}</span>
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">
+                                                    Online
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

@@ -61,6 +61,7 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
     const [timeLeftToLock, setTimeLeftToLock] = useState<string>('');
     const [submissions, setSubmissions] = useState<Set<string>>(new Set());
     const [securityAlerts, setSecurityAlerts] = useState<Map<string, string>>(new Map());
+    const [securityEvents, setSecurityEvents] = useState<any[]>([]);
 
     // --- 5 MIN TIMER Logic ---
     useEffect(() => {
@@ -117,7 +118,18 @@ export const LiveDemoLobby = ({ onClose }: LiveDemoLobbyProps) => {
                         'SCREEN_SHARE_ENDED': 'Parou Tela',
                         'FULLSCREEN_EXIT': 'Saiu Tela Cheia'
                     };
-                    newMap.set(studentId, labelMap[type] || 'Atividade Suspeita');
+                    const label = labelMap[type] || 'Atividade Suspeita';
+                    newMap.set(studentId, label);
+
+                    // Add to Feed in background
+                    setSecurityEvents(prev => [{
+                        id: date.getTime().toString(),
+                        studentId,
+                        studentName: joinedStudents.find(s => s.id === studentId)?.name || 'Desconhecido',
+                        type: label,
+                        time: date.toLocaleTimeString()
+                    }, ...prev].slice(0, 50)); // Keep last 50
+
                     return newMap;
                 });
             })
@@ -359,6 +371,7 @@ ${incidentText}
                     onManualFinish={handleFinishSession}
                     submissions={submissions}
                     securityAlerts={securityAlerts}
+                    securityEvents={securityEvents}
                 />
             )}
 
