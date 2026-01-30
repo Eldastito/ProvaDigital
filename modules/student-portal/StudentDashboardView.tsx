@@ -17,6 +17,8 @@ import { EventRulesModal } from './components/dashboard/EventRulesModal';
 import { RankingModal } from './components/dashboard/RankingModal';
 import { CorrectionModal } from './components/dashboard/CorrectionModal';
 import { TrendingUp } from 'lucide-react';
+import { SkillsHeatmapWidget } from './components/dashboard/SkillsHeatmapWidget';
+import { RecommendationsWidget } from './components/dashboard/RecommendationsWidget';
 
 export const StudentDashboardView = () => {
     const {
@@ -85,6 +87,9 @@ export const StudentDashboardView = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="space-y-6">
+                    {/* NEW: AI Recommendations Widget */}
+                    <RecommendationsWidget results={recentResults} items={state.items} />
+
                     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                         <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><TrendingUp size={18} /> Evolução de Notas</h3>
                         <EvolutionChart data={chartData} />
@@ -97,6 +102,9 @@ export const StudentDashboardView = () => {
                 </div>
 
                 <div className="lg:col-span-2 space-y-6">
+                    {/* NEW: Skills Heatmap Widget */}
+                    <SkillsHeatmapWidget results={recentResults} items={state.items} />
+
                     <GradesHistory
                         results={recentResults}
                         exams={state.exams}
