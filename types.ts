@@ -677,12 +677,25 @@ export interface LessonPlan {
   date: string;
 }
 
+export interface StudyTask {
+  id: string;
+  title?: string;
+  description: string;
+  type?: 'VIDEO' | 'EXERCISE' | 'READING';
+  contentUrl?: string;
+  estimatedMinutes?: number;
+  completed: boolean;
+  rewardSafe?: number; // OwlCoins
+}
+
 export interface StudyPlan {
   id: string;
   studentId: string;
   generatedBy: string;
   title: string;
-  tasks: { id: string, description: string, completed: boolean }[];
+  tasks: StudyTask[];
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+  relatedExamId?: string;
   createdAt: string;
 }
 

@@ -375,6 +375,42 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                 localStorage.removeItem(`exam_attempt_${examId}_${studentId}`); // Clear local session
             }
 
+            // 3. Salvar Resultado (Mock ou Real)
+            /* 
+               Aqui normalmente chamaríamos uma action do store para salvar no DB.
+               Para o demo, vamos apenas atualizar o estado local se necessário.
+            */
+
+            // --- AUTOMATED RECOVERY CYCLE (CLOSING THE LOOP) ---
+            try {
+                const { StudyPlanGenerator } = await import('../../../services/ai/studyPlanGenerator');
+
+                // Construct a temporary ExamResult for the generator
+                const tempResult: any = {
+                    id: attemptId || 'temp_result',
+                    examId: examId || '',
+                    studentId: studentId || 'guest',
+                    totalScore: gradingResult.totalScore,
+                    answers: gradingResult.answers,
+                    gradedAt: new Date().toISOString()
+                };
+
+                const studyPlan = StudyPlanGenerator.generate(tempResult, exam);
+
+                if (studyPlan) {
+                    // Salvar no Store (usando getState para acessar a action recém-criada)
+                    // @ts-ignore - Action injetada dinamicamente
+                    useAppStore.getState().addStudyPlan(studyPlan);
+
+                    // Notificar usuário (Gamificação)
+                    const totalReward = studyPlan.tasks.reduce((acc, t) => acc + (t.rewardSafe || 0), 0);
+                    alert(`⚠️ Atenção: Detectamos algumas dificuldades.\n\n📚 Um Plano de Recuperação Personalizado foi gerado para você!\n\nComplete as tarefas para ganhar +${totalReward} OwlCoins! 🦉`);
+                }
+            } catch (recoveryError) {
+                console.error("Erro no ciclo de recuperação:", recoveryError);
+            }
+            // ---------------------------------------------------
+
             // Retornar respostas corrigidas
             onComplete(gradingResult.answers);
         } catch (error) {

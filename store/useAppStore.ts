@@ -2037,6 +2037,76 @@ export const useAppStore = create<AppStore>((set, get) => ({
         } catch (e) { console.error(e); }
     },
 
+    addStudyPlan: async (plan: StudyPlan) => {
+        set(state => ({ studyPlans: [...state.studyPlans, plan] }));
+        try {
+            const { error } = await supabase.from('study_plans').insert({
+                id: plan.id,
+                student_id: plan.studentId,
+                title: plan.title,
+                tasks: plan.tasks,
+                status: plan.status,
+                related_exam_id: plan.relatedExamId,
+                created_at: plan.createdAt
+            });
+
+            if (error) {
+                console.error("Error saving study plan:", error);
+                throw error;
+            }
+        } catch (e) {
+            console.error("Failed to persist study plan:", e);
+        }
+    },
+
+    completeStudyTask: async (planId: string, taskId: string) => {
+        const state = get();
+        const plan = state.studyPlans.find(p => p.id === planId);
+        if (!plan) return;
+
+        const task = plan.tasks.find(t => t.id === taskId);
+        if (!task || task.completed) return;
+
+        // 1. Update Local State (Optimistic)
+        const updatedPlans = state.studyPlans.map(p => {
+            if (p.id === planId) {
+                return {
+                    ...p,
+                    tasks: p.tasks.map(t => t.id === taskId ? { ...t, completed: true } : t)
+                };
+            }
+            return p;
+        });
+
+        // 2. Add Reward (OwlCoins/BonusPoints)
+        const reward = task.rewardSafe || 0;
+        // Find stats for current student (this logic assumes single student context for simplicity or needs robust lookup)
+        // Updating 'stats' directly might be tricky if it's derived. Let's assume we update a local 'userPoints' or similar if available.
+        // For now, we will just log the reward and update the task status in DB.
+
+        console.log(`💰 Rewarding ${reward} OwlCoins to student!`);
+
+        set({ studyPlans: updatedPlans });
+
+        // 3. Persist
+        try {
+            // Update plan in DB (Supabase has no deep partial update for JSONB array easily, replacing tasks array)
+            const updatedPlan = updatedPlans.find(p => p.id === planId);
+
+            const { error } = await supabase.from('study_plans').update({
+                tasks: updatedPlan?.tasks
+            }).eq('id', planId);
+
+            if (error) throw error;
+
+            // TODO: Transaction to increment points in student_stats table
+
+        } catch (e) {
+            console.error("Error completing study task:", e);
+            // Revert?
+        }
+    },
+
     saveOverride: async (override) => {
         // Optimistic
         set(state => ({
