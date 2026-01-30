@@ -421,10 +421,19 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 }));
                 // Mescla com mocks, usando Map para garantir que DB sobrescreva estado local/parcial
                 set(state => {
-                    const itemMap = new Map(state.items.map(i => [i.id, i]));
-                    formattedItems.forEach(item => {
-                        itemMap.set(item.id, item);
+                    // Start with DB items
+                    const itemMap = new Map(formattedItems.map(i => [i.id, i]));
+
+                    // Inject Premium Demo Items (if not present)
+                    const demoItems = INITIAL_ITEMS.filter(i =>
+                        i.id.startsWith('sim_') || i.tags?.some(t => t.startsWith('TRI_'))
+                    );
+                    demoItems.forEach(item => {
+                        if (!itemMap.has(item.id)) {
+                            itemMap.set(item.id, item);
+                        }
                     });
+
                     return { items: Array.from(itemMap.values()) };
                 });
             }
@@ -451,7 +460,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 }));
                 set(state => {
                     const existingIds = new Set(state.exams.map(x => x.id));
-                    const newExams = formattedExams.filter((x: any) => !existingIds.has(x.id));
+
+                    // Inject Premium Demo Exams
+                    const demoExams = INITIAL_EXAMS.filter(e =>
+                        e.id === 'e_adapt_1' || e.id === 'e_sim_1'
+                    );
+                    const allNewExams = [...formattedExams, ...demoExams];
+
+                    const newExams = allNewExams.filter((x: any) => !existingIds.has(x.id));
                     return { exams: [...state.exams, ...newExams] };
                 });
             }
