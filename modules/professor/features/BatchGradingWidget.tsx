@@ -59,6 +59,14 @@ export const BatchGradingWidget: React.FC<BatchGradingWidgetProps> = ({ clusters
                                 </span>
                                 <span>Confiança: {Math.round(cluster.confidence * 100)}%</span>
                             </div>
+
+                            {/* PLAGIARISM ALERT */}
+                            {cluster.isPlagiarismSuspect && (
+                                <div className="mt-2 flex items-center gap-1 text-[10px] uppercase font-bold text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100">
+                                    <AlertTriangle size={12} />
+                                    Suspeita de Cópia ({Math.round((cluster.avgSimilarity || 0) * 100)}%)
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>
@@ -72,6 +80,16 @@ export const BatchGradingWidget: React.FC<BatchGradingWidgetProps> = ({ clusters
                     <p className="text-slate-600 mt-2 bg-slate-50 p-4 rounded-lg border border-slate-200 italic">
                         "{selectedCluster.summary}"
                     </p>
+
+                    {selectedCluster.isPlagiarismSuspect && (
+                        <div className="mt-2 text-sm text-red-700 bg-red-50 p-3 rounded-lg border border-red-200 flex items-start gap-2">
+                            <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+                            <div>
+                                <strong>Alta Similaridade Detectada ({Math.round((selectedCluster.avgSimilarity || 0) * 100)}%)</strong>
+                                <p>As respostas deste grupo são matematicamente quase idênticas. Verifique se houve cópia.</p>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 mb-6">

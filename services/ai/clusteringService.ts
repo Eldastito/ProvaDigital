@@ -113,13 +113,34 @@ export const ClusteringService = {
                 // (Termos com maior TF-IDF médio no cluster)
                 const clusterLabel = `Grupo ${clusters.length + 1}: "${representativeText}"`;
 
+                // Calculate Average Internal Similarity
+                let sumSim = 0;
+                let pairCount = 0;
+
+                if (currentClusterIndices.length > 1) {
+                    for (let x = 0; x < currentClusterIndices.length; x++) {
+                        for (let y = x + 1; y < currentClusterIndices.length; y++) {
+                            sumSim += cosineSimilarity(
+                                vectors[currentClusterIndices[x]],
+                                vectors[currentClusterIndices[y]]
+                            );
+                            pairCount++;
+                        }
+                    }
+                }
+
+                const avgSim = pairCount > 0 ? sumSim / pairCount : 1.0;
+                const isSuspect = pairCount > 0 && avgSim > 0.90; // > 90% similarity indicates copy-paste
+
                 clusters.push({
                     id: uuidv4(),
                     label: clusterLabel,
                     summary: `Agrupamento de ${currentClusterIndices.length} respostas similares.`,
                     answerIds: clusterAnswers.map(a => a.itemId), // Note: Should satisfy AnswerCluster type
                     confidence: 0.85,
-                    suggestedGrade: 0 // Sem IA generativa, não sugerimos nota, apenas agrupamos
+                    suggestedGrade: 0,
+                    avgSimilarity: avgSim,
+                    isPlagiarismSuspect: isSuspect
                 });
             }
         }

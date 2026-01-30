@@ -707,6 +707,9 @@ export interface AnswerCluster {
   suggestedGrade?: number;
   confidence: number;
   gradeReasoning?: string;
+  // New fields for Plagiarism Detection
+  avgSimilarity?: number;
+  isPlagiarismSuspect?: boolean;
 }
 
 export interface StudentProfile {
