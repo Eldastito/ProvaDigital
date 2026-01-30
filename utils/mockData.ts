@@ -102,6 +102,22 @@ export const INITIAL_EXAMS: Exam[] = [
     id: 'e3', tenantId: 't1', schoolId: 's1', creatorId: 'u1',
     title: 'Trabalho de Pesquisa: Guerra Fria', subject: 'História', model: ExamModel.SOMATIVO, durationMinutes: 0, targetQuestionCount: 1,
     status: ExamStatus.PUBLISHED, items: [], classIds: ['c1'], createdAt: new Date().toISOString(), scheduledDate: new Date().toISOString().split('T')[0], maxScore: 10.0
+  },
+  // PROVA ADAPTATIVA (TRI)
+  {
+    id: 'e_adapt_1', tenantId: 't1', schoolId: 's1', creatorId: 'u1',
+    title: 'Avaliação Adaptativa Premium (Matemática)', subject: 'Matemática', model: ExamModel.ADAPTADO,
+    durationMinutes: 45, targetQuestionCount: 5,
+    status: ExamStatus.PUBLISHED, items: [],
+    classIds: ['c1'], createdAt: new Date().toISOString(), scheduledDate: new Date().toISOString().split('T')[0], maxScore: 10.0
+  },
+  // PROVA DE SIMULAÇÃO
+  {
+    id: 'e_sim_1', tenantId: 't1', schoolId: 's1', creatorId: 'u1',
+    title: 'Lab. Virtual de Física', subject: 'Física', model: ExamModel.SOMATIVO,
+    durationMinutes: 30, targetQuestionCount: 1,
+    status: ExamStatus.PUBLISHED, items: [{ itemId: 'sim_1', order: 1 }],
+    classIds: ['c1'], createdAt: new Date().toISOString(), scheduledDate: new Date().toISOString().split('T')[0], maxScore: 10.0
   }
 ];
 

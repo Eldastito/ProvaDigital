@@ -139,7 +139,7 @@ interface AppActions {
     logSecurityEvent: (event: { attemptId: string; eventType: string; severity: string; eventData?: any }) => Promise<void>;
     submitExamAttempt: (attemptId: string, status: 'submitted' | 'timed_out') => Promise<void>;
     reopenExamAttempt: (attemptId: string) => Promise<void>;
-    saveExamProgress: (attemptId: string, answers: Record<string, string>) => Promise<void>;
+    saveExamProgress: (attemptId: string, answers: Record<string, string>, metadata?: any) => Promise<void>;
 
     // --- PHASE 4 ACTIONS ---
     calculateAndSaveResult: (attemptId: string, answers: any[]) => Promise<void>;
@@ -1546,20 +1546,20 @@ export const useAppStore = create<AppStore>((set, get) => ({
         return id;
     },
 
-    saveExamProgress: async (attemptId: string, answers: Record<string, string>) => {
+    saveExamProgress: async (attemptId: string, answers: Record<string, string>, metadata?: any) => {
         const state = get();
 
         // Optimistic local update
         set((state) => ({
             examAttempts: state.examAttempts.map(a =>
                 a.id === attemptId
-                    ? { ...a, metadata: { ...a.metadata, savedAnswers: answers }, lastPingAt: new Date().toISOString() }
+                    ? { ...a, metadata: { ...a.metadata, savedAnswers: answers, ...metadata }, lastPingAt: new Date().toISOString() }
                     : a
             )
         }));
 
         try {
-            let metadataToSave: any = { savedAnswers: answers };
+            let metadataToSave: any = { savedAnswers: answers, ...metadata };
 
             // --- PHASE 8: ENCRYPTION (PREMIUM) ---
             if (state.examEncryptionKey) {

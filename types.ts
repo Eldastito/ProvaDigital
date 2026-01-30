@@ -51,7 +51,8 @@ export enum QuestionType {
   MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
   TRUE_FALSE = 'TRUE_FALSE',
   ESSAY = 'ESSAY', // Questão Discursiva
-  REDACTION = 'REDACTION' // Redação
+  REDACTION = 'REDACTION', // Redação
+  SIMULATION = 'SIMULATION' // Simulação Interativa (Iframe/Canvas)
 }
 
 export enum DifficultyLevel {
@@ -273,10 +274,16 @@ export interface Item {
   isAccessible?: boolean; // Se a questão foi adaptada para PCD/Neuro
   accessibilityInstructions?: string; // Orientações p/ ledor/transcritor
   multimedia?: {
-    type: 'IMAGE' | 'VIDEO' | 'AUDIO';
+    type: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'SIMULATION';
     url: string;
     description?: string; // Alt text p/ acessibilidade
   }[];
+  simulationConfig?: {
+    url: string;
+    allowFullScreen?: boolean;
+    communicationType?: 'POST_MESSAGE' | 'NONE';
+    parameters?: Record<string, any>;
+  };
   generationBatchId?: string;
   lifecycleStatus?: ItemLifecycleStatus;
   currentVersionId?: string; // Phase V2: Link to official version head

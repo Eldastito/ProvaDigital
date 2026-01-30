@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
 import { AccessibilityToolbar } from './AccessibilityToolbar';
+import { SimulationRenderer } from './SimulationRenderer';
 import { AccessibilityConfig, DEFAULT_ACCESSIBILITY_CONFIG } from './types';
 import { ChevronLeft, ChevronRight, CheckCircle, Clock, CloudUpload } from 'lucide-react';
 import { Exam, Item, StudentAnswer } from '../../../types';
@@ -23,19 +24,30 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
 
     // --- EXAM DATA ---
     const exam = state.exams.find(e => e.id === examId);
-    const examItems = useMemo(() => {
+
+    const isAdaptive = exam?.model === 'ADAPTADO';
+    const [adaptivePath, setAdaptivePath] = useState<Item[]>([]);
+    const [currentTheta, setCurrentTheta] = useState<number>(0);
+    const [adaptiveFinished, setAdaptiveFinished] = useState(false);
+
+    // For adaptive, this is the POOL. For linear, this is the exam.
+    const itemPool = useMemo(() => state.items, [state.items]);
+
+    // The items to DISPLAY (Linear: all fixed items; Adaptive: items selected so far)
+    const activeExamItems = useMemo(() => {
         if (!exam) return [];
-        // Map ItemConfigs to Real Items
+        if (isAdaptive) return adaptivePath;
+
+        // Classic Fixed Exam Logic
         return exam.items.map(config => {
             const item = state.items.find(i => i.id === config.itemId);
             return item ? { ...item, ...config } : null;
         }).filter(Boolean) as Item[];
-    }, [exam, state.items]);
+    }, [exam, state.items, isAdaptive, adaptivePath]);
 
     // --- SESSION STATE ---
     const { startExamAttempt, logSecurityEvent, submitExamAttempt, initializeExamEvents, leaveExamChannel, saveExamProgress, examAttempts } = state;
     const [attemptId, setAttemptId] = useState<string | null>(() => {
-        // Try to recover from localStorage immediately for hydration
         return localStorage.getItem(`exam_attempt_${examId}_${studentId}`);
     });
 
@@ -62,7 +74,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         if (!examId || !studentId || !exam) return;
 
         const initSession = async () => {
-            // 1. Ensure items are loaded
+            // 1. Ensure items are loaded (The whole pool for adaptive)
             await state.fetchExamItems(examId);
 
             // 2. Check for existing active attempt (Server State -> LocalStorage)
@@ -88,6 +100,18 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                 });
                 setAttemptId(activeId);
                 localStorage.setItem(`exam_attempt_${exam.id}_${studentId}`, activeId);
+
+                // ADAPTIVE START: Pick first item if empty
+                if (isAdaptive) {
+                    const { CATEngine } = await import('../../../services/grading/catEngine');
+                    // Pick best item for Theta=0 (Average student)
+                    const firstItem = CATEngine.selectNextItem(0, itemPool, []);
+                    if (firstItem) {
+                        setAdaptivePath([firstItem]);
+                        // Save initial path to metadata (TODO: Persist in DB)
+                    }
+                }
+
             } else {
                 setAttemptId(activeId);
                 // Resume logic: Load answers and sync timer
@@ -96,6 +120,17 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                     // Restore Answers
                     if (attempt.metadata?.savedAnswers) {
                         setAnswers(attempt.metadata.savedAnswers);
+                    }
+
+                    // Restore Adaptive State
+                    if (isAdaptive && attempt.metadata?.adaptivePath) {
+                        setAdaptivePath(attempt.metadata.adaptivePath);
+                        setCurrentTheta(attempt.metadata.currentTheta || 0);
+                    } else if (isAdaptive && adaptivePath.length === 0) {
+                        // Fallback if metadata missing but resume needed (Should not happen in prod)
+                        const { CATEngine } = await import('../../../services/grading/catEngine');
+                        const firstItem = CATEngine.selectNextItem(0, itemPool, []);
+                        if (firstItem) setAdaptivePath([firstItem]);
                     }
 
                     // Restore Timer
@@ -122,7 +157,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         return () => {
             leaveExamChannel();
         };
-    }, [exam, studentId, examId, isRestored]); // Run once until restored
+    }, [exam, studentId, examId, isRestored, isAdaptive, itemPool]);
 
     // Timer Tick
     useEffect(() => {
@@ -214,13 +249,95 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         }
     };
 
+    // --- ADAPTIVE NAVIGATION LOGIC ---
+    const handleNextAdaptive = async () => {
+        // 1. Check if answer is correct (Local Grading for quick Phi update)
+        // In a real secure scenario, this should be server-side, but for Client-Side Adaptive:
+        const currentItem = activeExamItems[currentQuestionIndex];
+        const selectedAltId = answers[currentItem.id];
+
+        if (!selectedAltId) {
+            alert("Por favor, selecione uma resposta para continuar.");
+            return;
+        }
+
+        // Dynamically import Engine
+        const { CATEngine } = await import('../../../services/grading/catEngine');
+
+        // 2. Prepare History for Theta Estimation
+        const history = activeExamItems.map(item => {
+            const ansId = answers[item.id];
+            if (!ansId) return null; // Should not happen for past items
+            const isCorrect = item.alternatives.find(a => a.id === ansId)?.isCorrect || false;
+
+            return {
+                itemId: item.id,
+                isCorrect,
+                discrimination: item.triParams?.discrimination || 1,
+                difficulty: item.triParams?.difficulty || 0,
+                guessing: item.triParams?.guessing || 0.2
+            };
+        }).filter(Boolean) as any[]; // TODO: Import ItemResponse type
+
+        // 3. Estimate New Theta
+        const newTheta = CATEngine.estimateTheta(history, currentTheta);
+        setCurrentTheta(newTheta);
+        console.log(`🧠 [CAT] Novo Theta Estimado: ${newTheta.toFixed(3)}`);
+
+        // 4. STOPPING RULES
+        // Rule A: Max Items (e.g. 45 or exam config)
+        const maxItems = exam?.targetQuestionCount || 30;
+        if (activeExamItems.length >= maxItems) {
+            // Adaptive Finished
+            setAdaptiveFinished(true);
+            handleFinalize(false);
+            return;
+        }
+
+        // Rule B: Standard Error Low Enough (Precision Reached)
+        const see = CATEngine.calculateStandardError(newTheta, history);
+        if (see < 0.3 && activeExamItems.length > 10) { // Minimum 10 items
+            console.log(`🎯 [CAT] Precisão alcançada (SEE: ${see.toFixed(2)}). Finalizando.`);
+            setAdaptiveFinished(true);
+            handleFinalize(false);
+            return;
+        }
+
+        // 5. Select Next Item
+        const usedIds = activeExamItems.map(i => i.id);
+        const nextItem = CATEngine.selectNextItem(newTheta, itemPool, usedIds);
+
+        if (!nextItem) {
+            console.log("⚠️ [CAT] Banco de itens esgotado para este nível.");
+            setAdaptiveFinished(true);
+            handleFinalize(false);
+            return;
+        }
+
+        // 6. Update Path & UI
+        const newPath = [...adaptivePath, nextItem];
+        setAdaptivePath(newPath);
+
+        // Persist Adaptive State in Metadata
+        if (attemptId) {
+            await saveExamProgress(attemptId, answers, {
+                adaptivePath: newPath,
+                currentTheta: newTheta
+            });
+        }
+
+        // Move to next
+        setCurrentQuestionIndex(prev => prev + 1);
+    };
+
+
     const handleFinalize = async (isTimeout = false) => {
         try {
             // Importar serviço de correção automática
             const { AutoGradingService } = await import('../../../services/grading/autoGradingService');
 
             // Preparar respostas no formato StudentAnswer
-            const studentAnswers: StudentAnswer[] = examItems.map(item => {
+            const studentAnswers: StudentAnswer[] = activeExamItems.map(item => {
                 const selectedAltId = answers[item.id];
                 const essayText = (item.type === 'ESSAY' || item.type === 'REDACTION')
                     ? (answers as any)[`${item.id}_text`]
@@ -247,7 +364,14 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
             console.log('✅ Correção concluída:', gradingResult);
 
             if (attemptId) {
-                submitExamAttempt(attemptId, isTimeout ? 'timed_out' : 'submitted');
+                const status = isTimeout ? 'timed_out' : 'submitted';
+                // Save final theta in metadata if adaptive
+                const finalMeta = isAdaptive ? {
+                    finalTheta: currentTheta,
+                    adaptiveTraj: activeExamItems.map(i => i.id)
+                } : undefined;
+
+                submitExamAttempt(attemptId, status); // TODO: Pass finalMeta to submit if supported
                 localStorage.removeItem(`exam_attempt_${examId}_${studentId}`); // Clear local session
             }
 
@@ -257,16 +381,19 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
             console.error('Erro na correção automática, usando fallback...', error);
 
             // FALLBACK: Correção simples apenas para objetivas
-            const finalAnswers: StudentAnswer[] = examItems.map(item => {
+            const finalAnswers: StudentAnswer[] = activeExamItems.map(item => {
                 const selectedAltId = answers[item.id];
                 const selectedAlt = item.alternatives.find(a => a.id === selectedAltId);
                 const isCorrect = selectedAlt?.isCorrect || false;
+
+                // Adaptive Score: Could use Theta, but for fallback use classic sum
+                const score = isAdaptive ? (isCorrect ? 1 : 0) : ((item as any).score || 1);
 
                 return {
                     itemId: item.id,
                     selectedAlternativeId: selectedAltId || null,
                     isCorrect,
-                    scoreObtained: isCorrect ? (item as any).score || 1 : 0,
+                    scoreObtained: isCorrect ? score : 0,
                     gradingMethod: 'OFFLINE_OBJECTIVE' as any
                 };
             });
@@ -316,8 +443,19 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         );
     }
 
-    const currentItem = examItems[currentQuestionIndex];
-    const isLastQuestion = currentQuestionIndex === examItems.length - 1;
+    // Adaptive: Wait for first item selection
+    if (isAdaptive && activeExamItems.length === 0) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-slate-50">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mb-4" />
+                <h3 className="text-xl font-bold text-slate-800">Calibrando Motor Adaptativo...</h3>
+                <p className="text-slate-500">Ajustando nível inicial.</p>
+            </div>
+        );
+    }
+
+    const currentItem = activeExamItems[currentQuestionIndex];
+    const isLastQuestion = currentQuestionIndex === activeExamItems.length - 1;
 
     // --- LOADING / EMPTY STATE GUARDS ---
     if (state.items.length === 0) {
@@ -330,7 +468,8 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         );
     }
 
-    if (examItems.length === 0) {
+    // Classic empty check
+    if (!isAdaptive && activeExamItems.length === 0) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-slate-50">
                 <h3 className="text-xl font-bold text-slate-800">Erro: Esta prova não possui questões cadastradas ou os itens não foram encontrados.</h3>
@@ -356,7 +495,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
 
     const containerStyle = {
         fontSize: `${a11y.fontSize}%`,
-        lineHeight: a11y.lineSpacing
+        lineHeight: a11y.lineHeight
     };
 
     const handlePreventClipboard = (e: React.ClipboardEvent) => {
@@ -381,7 +520,13 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
             <header className={`px-6 py-4 flex justify-between items-center border-b ${a11y.theme === 'high-contrast' ? 'border-yellow-400' : 'border-slate-200 dark:border-slate-700'}`}>
                 <div>
                     <h1 className="text-xl font-bold">{exam.title}</h1>
-                    {!a11y.focusMode && <p className="text-sm opacity-70">Questão {currentQuestionIndex + 1} de {examItems.length}</p>}
+                    {!a11y.focusMode && (
+                        <p className="text-sm opacity-70">
+                            Questão {currentQuestionIndex + 1}
+                            {isAdaptive ? '' : ` de ${activeExamItems.length}`}
+                            {isAdaptive && <span className="ml-2 text-[10px] bg-blue-100 text-blue-700 px-1 rounded border border-blue-200">ADAPTATIVO</span>}
+                        </p>
+                    )}
                 </div>
 
                 {/* TIMER & CONTROLS */}
@@ -412,39 +557,60 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                         />
                     </div>
 
-                    {/* Alternatives */}
-                    <div className="space-y-4">
-                        {currentItem.alternatives.map((alt) => {
-                            const isSelected = answers[currentItem.id] === alt.id;
-                            let btnClass = "";
+                    {/* Simulation Item Type */}
+                    {currentItem.type === 'SIMULATION' ? ( // Using literal string as Type might not be fully updated in import
+                        <div className="mb-6">
+                            {/* Dynamically import or used directly if imported */}
+                            <SimulationRenderer
+                                item={currentItem}
+                                onInteraction={(data) => {
+                                    // Save simulation state/result as answer
+                                    // For now, we stringify the payload. 
+                                    // Ideally, we'd have a specific answer field for this.
+                                    handleAnswer(currentItem.id, JSON.stringify(data));
+                                }}
+                            />
+                            <div className="mt-4 p-4 bg-blue-50 dark:bg-slate-800 rounded-lg border border-blue-100 dark:border-blue-900">
+                                <p className="text-sm text-blue-800 dark:text-blue-300">
+                                    <strong>Instrução:</strong> Realize a atividade acima. Sua interação será salva automaticamente.
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        /* Standard Alternatives */
+                        <div className="space-y-4">
+                            {currentItem.alternatives.map((alt) => {
+                                const isSelected = answers[currentItem.id] === alt.id;
+                                let btnClass = "";
 
-                            if (a11y.theme === 'high-contrast') {
-                                btnClass = isSelected
-                                    ? "bg-yellow-400 text-black border-4 border-yellow-400 font-bold"
-                                    : "bg-black text-yellow-400 border-2 border-yellow-400 hover:bg-yellow-900";
-                            } else {
-                                btnClass = isSelected
-                                    ? "bg-brand-primary text-white shadow-lg transform scale-[1.01]"
-                                    : "bg-white/50 dark:bg-slate-800 border border-current/10 hover:bg-black/5 dark:hover:bg-white/5";
-                            }
+                                if (a11y.theme === 'high-contrast') {
+                                    btnClass = isSelected
+                                        ? "bg-yellow-400 text-black border-4 border-yellow-400 font-bold"
+                                        : "bg-black text-yellow-400 border-2 border-yellow-400 hover:bg-yellow-900";
+                                } else {
+                                    btnClass = isSelected
+                                        ? "bg-brand-primary text-white shadow-lg transform scale-[1.01]"
+                                        : "bg-white/50 dark:bg-slate-800 border border-current/10 hover:bg-black/5 dark:hover:bg-white/5";
+                                }
 
-                            return (
-                                <button
-                                    key={alt.id}
-                                    onClick={() => handleAnswer(currentItem.id, alt.id)}
-                                    className={`w-full p-6 rounded-xl text-left transition-all flex items-center gap-4 text-lg ${btnClass}`}
-                                >
-                                    <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-current' : 'border-current/50'}`}>
-                                        {isSelected && <div className="w-4 h-4 rounded-full bg-current" />}
-                                    </div>
-                                    <RichTextRenderer
-                                        content={alt.text}
-                                        className="font-medium"
-                                    />
-                                </button>
-                            );
-                        })}
-                    </div>
+                                return (
+                                    <button
+                                        key={alt.id}
+                                        onClick={() => handleAnswer(currentItem.id, alt.id)}
+                                        className={`w-full p-6 rounded-xl text-left transition-all flex items-center gap-4 text-lg ${btnClass}`}
+                                    >
+                                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-current' : 'border-current/50'}`}>
+                                            {isSelected && <div className="w-4 h-4 rounded-full bg-current" />}
+                                        </div>
+                                        <RichTextRenderer
+                                            content={alt.text}
+                                            className="font-medium"
+                                        />
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
 
                 </div>
 
@@ -466,15 +632,27 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                     </button>
 
                     {isLastQuestion ? (
-                        <button
-                            onClick={handleFinalize}
-                            className={`px-12 py-4 rounded-xl font-bold flex items-center gap-2 shadow-xl ${a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black hover:bg-white' : 'bg-emerald-600 text-white hover:bg-emerald-500'}`}
-                        >
-                            <CheckCircle /> Finalizar Prova
-                        </button>
+                        isAdaptive ? (
+                            // ADAPTIVE NEXT (No "Finish" until engine decides)
+                            <button
+                                onClick={handleNextAdaptive}
+                                className={`px-12 py-4 rounded-xl font-bold flex items-center gap-2 shadow-lg ${a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black hover:bg-white' : 'bg-indigo-600 text-white hover:bg-indigo-500'}`}
+                            >
+                                Próxima <ChevronRight />
+                            </button>
+                        ) : (
+                            // STANDARD FINISH
+                            <button
+                                onClick={() => handleFinalize(false)}
+                                className={`px-12 py-4 rounded-xl font-bold flex items-center gap-2 shadow-xl ${a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black hover:bg-white' : 'bg-emerald-600 text-white hover:bg-emerald-500'}`}
+                            >
+                                <CheckCircle /> Finalizar Prova
+                            </button>
+                        )
                     ) : (
+                        // STANDARD NEXT
                         <button
-                            onClick={() => setCurrentQuestionIndex(Math.min(examItems.length - 1, currentQuestionIndex + 1))}
+                            onClick={() => setCurrentQuestionIndex(Math.min(activeExamItems.length - 1, currentQuestionIndex + 1))}
                             className={`px-12 py-4 rounded-xl font-bold flex items-center gap-2 shadow-lg ${a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black hover:bg-white' : 'bg-brand-primary text-white hover:bg-blue-600'}`}
                         >
                             Próxima <ChevronRight />
