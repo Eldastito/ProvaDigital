@@ -11,9 +11,45 @@ export interface AnswerCluster {
     gradeReasoning?: string;
 }
 
+// --- TF-IDF & CLUSTERING UTILS ---
+
 /**
- * Serviço de Clusterização de Respostas (Mock de IA).
- * Em produção, isso chamaria uma API Python (ex: scikit-learn/BERT) ou Gemini API.
+ * Tokeniza e limpa o texto (removes stopwords simples e pontuação)
+ */
+const tokenize = (text: string): string[] => {
+    if (!text) return [];
+    return text
+        .toLowerCase()
+        .replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "")
+        .split(/\s+/)
+        .filter(w => w.length > 2); // Ignora palavras muito curtas
+};
+
+/**
+ * Calcula a similaridade de cosseno entre dois vetores
+ */
+const cosineSimilarity = (vecA: number[], vecB: number[]): number => {
+    let dotProduct = 0;
+    let magnitudeA = 0;
+    let magnitudeB = 0;
+
+    for (let i = 0; i < vecA.length; i++) {
+        dotProduct += vecA[i] * vecB[i];
+        magnitudeA += vecA[i] * vecA[i];
+        magnitudeB += vecB[i] * vecB[i];
+    }
+
+    magnitudeA = Math.sqrt(magnitudeA);
+    magnitudeB = Math.sqrt(magnitudeB);
+
+    if (magnitudeA === 0 || magnitudeB === 0) return 0;
+    return dotProduct / (magnitudeA * magnitudeB);
+};
+
+
+/**
+ * Serviço de Clusterização de Respostas (TF-IDF Real).
+ * Executa agrupamento baseado em similaridade de texto no navegador.
  */
 export const ClusteringService = {
 
@@ -21,83 +57,73 @@ export const ClusteringService = {
      * Agrupa respostas dissertativas semelhantes.
      */
     clusterAnswers: async (answers: StudentAnswer[]): Promise<AnswerCluster[]> => {
-        // Simulating API Latency
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Filtrar apenas respostas com texto válido
+        const validAnswers = answers.filter(a => a.text && a.text.trim().length > 0);
 
+        if (validAnswers.length === 0) return [];
+
+        // 1. Construir Vocabulário (Corpus)
+        const docs = validAnswers.map(a => tokenize(a.text!));
+        const vocabulary = Array.from(new Set(docs.flat())).sort();
+
+        if (vocabulary.length < 5) return []; // Corpus muito pequeno
+
+        // 2. Calcular vetores TF-IDF
+        const vectors: number[][] = docs.map(doc => {
+            return vocabulary.map(term => {
+                // TF: Term Frequency
+                const tf = doc.filter(t => t === term).length / doc.length;
+
+                // IDF: Inverse Document Frequency
+                const docsWithTerm = docs.filter(d => d.includes(term)).length;
+                const idf = Math.log(docs.length / (1 + docsWithTerm));
+
+                return tf * idf;
+            });
+        });
+
+        // 3. Clusterização Simples (Threshold-based)
+        // Agrupa vetores que têm similaridade > 0.6
         const clusters: AnswerCluster[] = [];
-        const answersToProcess = [...answers];
+        const processedIndices = new Set<number>();
 
-        // MOCK LOGIC: Agrupar por palavras-chave simples
-        // Cenário: Pergunta sobre "Função das Mitocôndrias"
+        for (let i = 0; i < vectors.length; i++) {
+            if (processedIndices.has(i)) continue;
 
-        // Cluster 1: Resposta Correta (Energia/ATP)
-        const correctIds = answersToProcess
-            .filter(a => a.text && (a.text.toLowerCase().includes('energia') || a.text.toLowerCase().includes('atp')))
-            .map(a => a.itemId); // Note: StudentAnswer usually tracks itemId, we need a unique answer ID or studentId mapping.
-        // For this mock, assuming one answer per student per item.
+            const currentClusterIndices = [i];
+            processedIndices.add(i);
 
-        if (correctIds.length > 0) {
-            clusters.push({
-                id: uuidv4(),
-                label: 'Resposta Correta: Produção de Energia',
-                summary: 'Alunos que mencionaram "energia" ou "ATP" corretamente.',
-                answerIds: correctIds, // In real app, this would be answer instances IDs
-                suggestedGrade: 10,
-                confidence: 0.92,
-                gradeReasoning: 'Contém as palavras-chave essenciais definidoras da função.'
-            });
-        }
+            for (let j = i + 1; j < vectors.length; j++) {
+                if (processedIndices.has(j)) continue;
 
-        // Cluster 2: Resposta Parcial (Respiração)
-        const partialIds = answersToProcess
-            .filter(a => a.text && a.text.toLowerCase().includes('respiração') && !a.text.toLowerCase().includes('atp'))
-            .map(a => a.itemId);
-
-        if (partialIds.length > 0) {
-            clusters.push({
-                id: uuidv4(),
-                label: 'Resposta Parcial: Respiração Celular',
-                summary: 'Mencionaram o processo, mas não o produto final (ATP).',
-                answerIds: partialIds,
-                suggestedGrade: 7.5,
-                confidence: 0.78,
-                gradeReasoning: 'Conceito correto, mas incompleto.'
-            });
-        }
-
-        // Cluster 3: Conceito Errado (Fotossíntese)
-        const wrongIds = answersToProcess
-            .filter(a => a.text && a.text.toLowerCase().includes('fotossíntese'))
-            .map(a => a.itemId);
-
-        if (wrongIds.length > 0) {
-            clusters.push({
-                id: uuidv4(),
-                label: 'Conceito Errado: Confusão com Cloroplastos',
-                summary: 'Alunos confundiram mitocôndria com cloroplasto.',
-                answerIds: wrongIds,
-                suggestedGrade: 2,
-                confidence: 0.95,
-                gradeReasoning: 'Erro conceitual grave.'
-            });
-        }
-
-        // Fallback: Outros
-        // ...
-
-        // Se não tiver dados suficientes para o mock funcionar (ex: textos aleatórios), retorna um cluster genérico
-        if (clusters.length === 0) {
-            return [
-                {
-                    id: uuidv4(),
-                    label: 'Respostas Genéricas',
-                    summary: 'Grupo de respostas variadas sem padrão claro identificado.',
-                    answerIds: answers.map(a => a.itemId),
-                    confidence: 0.5
+                const similarity = cosineSimilarity(vectors[i], vectors[j]);
+                if (similarity > 0.5) { // Threshold de similaridade
+                    currentClusterIndices.push(j);
+                    processedIndices.add(j);
                 }
-            ];
+            }
+
+            // Criar cluster se tiver pelo menos 1 item (agora permitimos grupos unitários ou >1)
+            // Para "Batch Grading", idealmente queremos grupos > 1, mas vamos retornar todos.
+            if (currentClusterIndices.length >= 1) {
+                const clusterAnswers = currentClusterIndices.map(idx => validAnswers[idx]);
+                const representativeText = clusterAnswers[0].text?.substring(0, 50) + "...";
+
+                // Tenta extrair palavras-chave do cluster para o Label
+                // (Termos com maior TF-IDF médio no cluster)
+                const clusterLabel = `Grupo ${clusters.length + 1}: "${representativeText}"`;
+
+                clusters.push({
+                    id: uuidv4(),
+                    label: clusterLabel,
+                    summary: `Agrupamento de ${currentClusterIndices.length} respostas similares.`,
+                    answerIds: clusterAnswers.map(a => a.itemId), // Note: Should satisfy AnswerCluster type
+                    confidence: 0.85,
+                    suggestedGrade: 0 // Sem IA generativa, não sugerimos nota, apenas agrupamos
+                });
+            }
         }
 
-        return clusters;
+        return clusters.sort((a, b) => b.answerIds.length - a.answerIds.length);
     }
 };

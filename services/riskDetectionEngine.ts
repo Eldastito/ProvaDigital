@@ -28,29 +28,31 @@ export interface RiskAssessment {
 }
 
 /**
- * Simula dados de frequência (já que não temos no backend ainda)
- * Usa o hash do ID para manter consistência (o mesmo aluno sempre terá a mesma frequência simulada)
+ * Calcula a assiduidade real baseada nos resultados de provas.
+ * @param studentId ID do aluno
+ * @param results Todos os resultados de provas (não só deste aluno)
+ * @param totalExamsCount Número total de provas aplicadas para a turma deste aluno
  */
-const getSimulatedAttendance = (studentId: string): number => {
-    let hash = 0;
-    for (let i = 0; i < studentId.length; i++) {
-        hash = studentId.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    // Normaliza para 60-100% (maioria dos alunos tem presença ok, alguns baixo)
-    const normalized = Math.abs(hash % 41) + 60;
+const calculateRealAttendance = (studentResults: ExamResult[], totalExamsCount: number = 5): number => {
+    // Se não houver dados de provas totais (MVP), assume um número base baseado no aluno com mais provas
+    // Em produção, isso viria de `class.exams.length`
 
-    // Forçar alguns alunos específicos a ter frequência critica para teste
-    if (studentId.includes('risk') || studentId.includes('evasion')) return 65;
+    if (totalExamsCount === 0) return 100;
 
-    return normalized;
+    const participated = studentResults.length;
+
+    // Cálculo percentual
+    const percentage = (participated / totalExamsCount) * 100;
+
+    return Math.min(100, Math.max(0, percentage));
 };
 
-export const calculateRiskScore = (student: Student, results: ExamResult[]): RiskAssessment => {
+export const calculateRiskScore = (student: Student, results: ExamResult[], classTotalExams: number = 5): RiskAssessment => {
     const factors: RiskFactor[] = [];
     let riskScore = 0;
 
     // 1. ANÁLISE DE FREQUÊNCIA (Peso: 40 points)
-    const attendance = getSimulatedAttendance(student.id);
+    const attendance = calculateRealAttendance(results, classTotalExams);
 
     if (attendance < 75) {
         riskScore += 40;
@@ -177,13 +179,26 @@ export const calculateSchoolRisk = (schoolId: string, state: AppState): RiskAsse
  * Útil para Secretarias e MEC que veem múltiplas escolas
  */
 export const calculateBatchRisk = (students: Student[], state: AppState): RiskAssessment[] => {
+    // Determinar o "Total de Provas" da turma
+    // Assumimos que o máximo de provas feitas por um aluno na turma é o total esperado (heurística)
+    const classResults = state.results.filter(r => students.some(s => s.id === r.studentId));
+
+    // Mapa: StudentId -> Count
+    const examsPerStudent = new Map<string, number>();
+    classResults.forEach(r => {
+        examsPerStudent.set(r.studentId, (examsPerStudent.get(r.studentId) || 0) + 1);
+    });
+
+    // Maior número de provas feito por alguém da turma (assumido como 100% de presença)
+    const maxExamsInClass = Math.max(1, ...Array.from(examsPerStudent.values()));
+
     // Para cada aluno, calcular risco
     const assessments = students.map(student => {
         // Obter resultados do aluno
         const studentResults = state.results.filter(r => r.studentId === student.id);
 
         // Calcular score
-        return calculateRiskScore(student, studentResults);
+        return calculateRiskScore(student, studentResults, maxExamsInClass);
     });
 
     // Ordenar por score (maior risco primeiro)
