@@ -5,6 +5,7 @@ import { FileText, Users, BookOpen, TrendingUp, Plus, Calendar, Award, BarChart3
 import { NotificationBell } from '../notifications/NotificationBell';
 import { ExamStatus, Exam } from '../../types';
 import { ExamDetailsModal } from './ExamDetailsModal';
+import { InterventionDashboard } from './features/InterventionDashboard';
 
 export const ProfessorDashboardView = () => {
     const { currentUser, classes, exams, students, items } = useAppStore();
@@ -263,18 +264,8 @@ export const ProfessorDashboardView = () => {
                 </div>
             </div>
 
-            {/* Desempenho Geral */}
-            <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200">
-                <h2 className="text-xl font-black text-brand-dark flex items-center gap-2 mb-4">
-                    <TrendingUp size={24} className="text-emerald-500" />
-                    Desempenho Geral das Turmas
-                </h2>
-                <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-8 text-center">
-                    <BarChart3 size={64} className="mx-auto text-slate-300 mb-4" />
-                    <p className="text-slate-600 font-medium">Analytics detalhado em desenvolvimento</p>
-                    <p className="text-sm text-slate-500 mt-2">Em breve você terá acesso a gráficos e métricas de desempenho</p>
-                </div>
-            </div>
+            {/* Painel de Intervenção Pedagógica (NEW) */}
+            <InterventionDashboard />
 
             {/* MODAL */}
             {selectedExam && (
