@@ -24,6 +24,7 @@ export interface RiskAssessment {
     interventions?: any[]; // Added to match AlertService expectation
     generatedAt: string;
     simulatedAttendance: number; // Porcentagem de presença (0-100)
+    evasionProbability: 'BAIXA' | 'MEDIA' | 'ALTA' | 'CRITICA';
 }
 
 /**
@@ -132,6 +133,19 @@ export const calculateRiskScore = (student: Student, results: ExamResult[]): Ris
     if (riskScore >= 50) riskLevel = RiskLevel.HIGH;
     else if (riskScore >= 20) riskLevel = RiskLevel.MEDIUM;
 
+    // CÁLCULO DE PROBABILIDADE DE EVASÃO
+    // Baseado em: Baixa Frequência (> peso) + Queda de Notas
+    let evasionProb: RiskAssessment['evasionProbability'] = 'BAIXA';
+
+    // Se frequência < 75% OU (Risco Alto E Queda Abrupta)
+    if (attendance < 75 || (riskLevel === RiskLevel.HIGH && factors.some(f => f.name === 'Queda Abrupta'))) {
+        evasionProb = 'CRITICA';
+    } else if (attendance < 85 || riskLevel === RiskLevel.HIGH) {
+        evasionProb = 'ALTA';
+    } else if (riskLevel === RiskLevel.MEDIUM) {
+        evasionProb = 'MEDIA';
+    }
+
     return {
         studentId: student.id,
         studentName: student.name,
@@ -141,6 +155,7 @@ export const calculateRiskScore = (student: Student, results: ExamResult[]): Ris
         riskLevel,
         factors,
         simulatedAttendance: attendance,
+        evasionProbability: evasionProb,
         generatedAt: new Date().toISOString()
     };
 };

@@ -455,7 +455,15 @@ const StudentRiskCard: React.FC<{
                         <div className="flex items-center gap-4 text-sm text-slate-600">
                             <span>Turma: {studentClass?.name || 'N/A'}</span>
                             <span>Score: {assessment.riskScore}/100</span>
-                            <span>{assessment.factors.length} fatores identificados</span>
+
+                            {/* EVASION BADGE */}
+                            <span className={`ml-2 px-2 py-0.5 text-[10px] uppercase font-bold tracking-wide rounded border ${assessment.evasionProbability === 'CRITICA' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                                    assessment.evasionProbability === 'ALTA' ? 'bg-red-100 text-red-700 border-red-200' :
+                                        assessment.evasionProbability === 'MEDIA' ? 'bg-orange-100 text-orange-700 border-orange-200' :
+                                            'bg-slate-100 text-slate-500 border-slate-200'
+                                }`}>
+                                EVASÃO: {assessment.evasionProbability}
+                            </span>
                         </div>
                     </div>
 
