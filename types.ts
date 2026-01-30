@@ -699,6 +699,16 @@ export interface StudyPlan {
   createdAt: string;
 }
 
+export interface AnswerCluster {
+  id: string;
+  label: string;
+  summary: string;
+  answerIds: string[];
+  suggestedGrade?: number;
+  confidence: number;
+  gradeReasoning?: string;
+}
+
 export interface StudentProfile {
   studentId: string;
   learningChannel: string;
