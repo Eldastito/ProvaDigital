@@ -6,11 +6,11 @@ import { ExamQuestionSelector } from './components/ExamQuestionSelector';
 import { ExamReview } from './components/ExamReview';
 import { BatchReviewPanel } from '../runner/features/BatchReviewPanel';
 import { AdvancedReviewPipeline } from '../runner/features/AdvancedReviewPipeline';
-import { extractTextFromPDF } from '../../../utils/pdfExtractor';
-import { generateQuestionsFromText } from '../../../services/geminiService';
+import { extractTextFromPDF } from '../../utils/pdfExtractor';
+import { generateQuestionsFromText } from '../../services/geminiService';
 import { Loader2, FileText, Upload } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
-import { Item, QuestionType, DifficultyLevel, ItemOrigin } from '../../../types';
+import { Item, QuestionType, DifficultyLevel, ItemOrigin } from '../../types';
 
 export const ExamBuilderView = () => {
     const {
@@ -133,6 +133,7 @@ export const ExamBuilderView = () => {
                         coverConfig={coverConfig} setCoverConfig={setCoverConfig}
                         builderMode={builderMode} setBuilderMode={setBuilderMode}
                         handleSmartGenerate={handleSmartGenerate} setStep={setStep}
+                    />
                 )}
 
                 {/* IMPORT PDF BUTTON (Visible in Step 1) */}
@@ -153,6 +154,7 @@ export const ExamBuilderView = () => {
                             Importar Conteúdo
                         </button>
                     </div>
+                )}
 
                 {/* IMPORT MODAL */}
                 {importModalOpen && (
