@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, Brain, Save, Trash2, Loader2, Image as ImageIcon, CheckCircle2, ArrowRight } from 'lucide-react';
 import { QuestionType, DifficultyLevel, Item, ItemOrigin, ItemLifecycleStatus } from '../../types';
-import { generateQuestionsFromText, generateEssayQuestion, generateVisualSuggestion, GeneratedEssay, VisualSuggestion } from '../../services/geminiService';
+import { generateQuestionsFromText, generateEssayQuestion, generateVisualSuggestion, auditPedagogicalItem, GeneratedEssay, VisualSuggestion } from '../../services/geminiService';
 import { useSafeAppStore } from '../../store/useAppStore';
 import { uuidv4 } from '../../utils/helpers';
 import { useNavigate } from 'react-router-dom';
@@ -28,6 +28,8 @@ export const AIQuestionGeneratorView = () => {
     const [batchId, setBatchId] = useState<string | null>(null);
     const [generatedItems, setGeneratedItems] = useState<any[]>([]);
     const [visualSuggestions, setVisualSuggestions] = useState<Record<number, VisualSuggestion>>({});
+    const [auditResults, setAuditResults] = useState<Record<number, any>>({});
+    const [auditing, setAuditing] = useState(false);
 
     // Persistence Logic
     useEffect(() => {
@@ -41,6 +43,7 @@ export const AIQuestionGeneratorView = () => {
                 setBatchId(draft.batchId);
                 setGeneratedItems(draft.generatedItems);
                 setVisualSuggestions(draft.visualSuggestions || {});
+                setAuditResults(draft.auditResults || {});
                 setStep(draft.step);
             } catch (e) { console.error("Error restoring AI draft", e); }
         }
@@ -55,22 +58,28 @@ export const AIQuestionGeneratorView = () => {
             batchId,
             generatedItems,
             visualSuggestions,
+            auditResults,
             step,
             updatedAt: Date.now()
         };
         localStorage.setItem(key, JSON.stringify(draft));
-    }, [config, context, batchId, generatedItems, visualSuggestions, step, state.currentUser?.id]);
+    }, [config, context, batchId, generatedItems, visualSuggestions, auditResults, step, state.currentUser?.id]);
 
     const handleGenerate = async () => {
         setLoading(true);
         const newBatchId = uuidv4();
         setBatchId(newBatchId);
+        setAuditResults({}); // Reset audits
+
         try {
+            let res: any[] = [];
+
             if (config.type === QuestionType.REDACTION) {
-                const res = await generateEssayQuestion(config.subject, config.topic);
-                setGeneratedItems([res]);
+                const essay = await generateEssayQuestion(config.subject, config.topic);
+                res = [essay];
+                setGeneratedItems(res);
             } else {
-                const res = await generateQuestionsFromText(
+                res = await generateQuestionsFromText(
                     context || `Crie questões sobre ${config.topic} para o ${config.grade} de ${config.subject}. Alinhado à BNCC ${config.bnccCode}`,
                     config.count,
                     config.type,
@@ -80,12 +89,28 @@ export const AIQuestionGeneratorView = () => {
                 setGeneratedItems(res);
 
                 if (config.withVisual && res.length > 0) {
-                    // Generate visual suggestion for the first question as a sample
-                    const vis = await generateVisualSuggestion(res[0].statement);
-                    setVisualSuggestions({ 0: vis });
+                    generateVisualSuggestion(res[0].statement).then(vis => {
+                        setVisualSuggestions(prev => ({ ...prev, 0: vis }));
+                    });
                 }
             }
             setStep(2);
+
+            // --- AUTOMATED AUDIT FACTORY ---
+            if (config.type !== QuestionType.REDACTION) {
+                setAuditing(true);
+                // Trigger audits in parallel
+                res.forEach(async (item, idx) => {
+                    try {
+                        const audit = await auditPedagogicalItem(JSON.stringify(item));
+                        setAuditResults(prev => ({ ...prev, [idx]: audit }));
+                    } catch (err) {
+                        console.error("Audit failed for item", idx, err);
+                    }
+                });
+                setAuditing(false);
+            }
+
         } catch (e) {
             alert("Erro na geração: " + e);
         } finally {
@@ -114,7 +139,8 @@ export const AIQuestionGeneratorView = () => {
                     lifecycleStatus: ItemLifecycleStatus.DRAFT,
                     generationBatchId: batchId || undefined,
                     createdAt: new Date().toISOString(),
-                    knowledgeArea: 'Linguagens'
+                    knowledgeArea: 'Linguagens',
+                    usageCount: 0
                 };
             } else {
                 return {
@@ -134,7 +160,8 @@ export const AIQuestionGeneratorView = () => {
                     lifecycleStatus: ItemLifecycleStatus.DRAFT,
                     generationBatchId: batchId || undefined,
                     createdAt: new Date().toISOString(),
-                    knowledgeArea: 'Geral'
+                    knowledgeArea: 'Geral',
+                    usageCount: 0
                 };
             }
         });
@@ -306,7 +333,14 @@ export const AIQuestionGeneratorView = () => {
                     <div className="flex justify-between items-center">
                         <div>
                             <span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-black rounded-full uppercase tracking-wider">Preview da Geração</span>
-                            <h2 className="text-2xl font-bold text-slate-900 mt-2">Revisão dos Itens Gerados</h2>
+                            <div className="flex items-center gap-3">
+                                <h2 className="text-2xl font-bold text-slate-900 mt-2">Fábrica de Itens (Revisão)</h2>
+                                {auditing && (
+                                    <span className="flex items-center gap-2 text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full animate-pulse border border-amber-200 mt-2">
+                                        <Loader2 size={12} className="animate-spin" /> Auditando Qualidade INEP...
+                                    </span>
+                                )}
+                            </div>
                         </div>
                         <div className="flex gap-4">
                             <button
@@ -369,6 +403,67 @@ export const AIQuestionGeneratorView = () => {
                                                     </div>
                                                 ))}
                                             </div>
+
+                                            {/* AUDIT REPORT CARD */}
+                                            {auditResults[idx] && (
+                                                <div className="mt-6 border-2 border-slate-100 rounded-3xl overflow-hidden">
+                                                    <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                                                        <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                                            <CheckCircle2 size={14} className={auditResults[idx].score > 80 ? "text-emerald-500" : "text-amber-500"} />
+                                                            Relatório de Qualidade INEP
+                                                        </h5>
+                                                        <div className={`px-3 py-1 rounded-full text-xs font-black ${auditResults[idx].score > 80 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                            IQI: {auditResults[idx].score}/100
+                                                        </div>
+                                                    </div>
+                                                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                        <div>
+                                                            <p className="text-xs font-bold text-slate-400 uppercase mb-2">Veredito BNCC</p>
+                                                            <p className="text-sm font-semibold text-slate-700">{auditResults[idx].bnccVerdict}</p>
+
+                                                            <div className="flex flex-wrap gap-2 mt-4">
+                                                                <div>
+                                                                    <p className="text-xs font-bold text-slate-400 uppercase mb-1">Taxonomia de Bloom</p>
+                                                                    <span className="px-2 py-1 bg-purple-50 text-purple-700 text-[10px] font-bold rounded-md uppercase border border-purple-100">
+                                                                        {auditResults[idx].bloomLevel}
+                                                                    </span>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-xs font-bold text-slate-400 uppercase mb-1">Eixo Cognitivo (ENEM)</p>
+                                                                    <span className="px-2 py-1 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-md uppercase border border-blue-100">
+                                                                        {auditResults[idx].cognitiveAxis || 'N/A'}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="space-y-3">
+                                                            {auditResults[idx].pros && auditResults[idx].pros.length > 0 && (
+                                                                <div>
+                                                                    <span className="text-[10px] font-black text-emerald-600 uppercase mb-1 block">Positivos</span>
+                                                                    <ul className="list-disc list-inside text-xs text-slate-600">
+                                                                        {auditResults[idx].pros.slice(0, 2).map((p: string, i: number) => <li key={i}>{p}</li>)}
+                                                                    </ul>
+                                                                </div>
+                                                            )}
+                                                            {auditResults[idx].improvements && auditResults[idx].improvements.length > 0 && (
+                                                                <div>
+                                                                    <span className="text-[10px] font-black text-rose-500 uppercase mb-1 block">Atenção</span>
+                                                                    <ul className="list-disc list-inside text-xs text-slate-600">
+                                                                        {auditResults[idx].improvements.slice(0, 2).map((p: string, i: number) => <li key={i}>{p}</li>)}
+                                                                    </ul>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    {auditResults[idx].score < 100 && (
+                                                        <div className="bg-orange-50/50 p-3 flex justify-center border-t border-orange-100">
+                                                            <button className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1">
+                                                                <Sparkles size={12} /> Aplicar Melhorias Sugeridas (IA)
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
 
                                             <div className="mt-8 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                                                 <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">

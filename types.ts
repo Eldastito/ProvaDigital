@@ -61,6 +61,23 @@ export enum DifficultyLevel {
   HARD = 'DIFICIL'
 }
 
+export enum BloomTaxonomy {
+  REMEMBER = 'LEMBRAR',
+  UNDERSTAND = 'ENTENDER',
+  APPLY = 'APLICAR',
+  ANALYZE = 'ANALISAR',
+  EVALUATE = 'AVALIAR',
+  CREATE = 'CRIAR'
+}
+
+export enum CognitiveAxis {
+  DOMINAR_LINGUAGENS = 'DOMINAR_LINGUAGENS',
+  COMPREENDER_FENOMENOS = 'COMPREENDER_FENOMENOS',
+  ENFRENTAR_SITUACOES = 'ENFRENTAR_SITUACOES',
+  CONSTRUIR_ARGUMENTACAO = 'CONSTRUIR_ARGUMENTACAO',
+  ELABORAR_PROPOSTAS = 'ELABORAR_PROPOSTAS'
+}
+
 export enum ItemOrigin {
   MANUAL = 'MANUAL',
   IA = 'IA'
@@ -268,7 +285,8 @@ export interface Item {
     difficulty: number; // b parameter
     discrimination: number; // a parameter
     guessing: number; // c parameter
-    bloomTaxonomy?: string;
+    bloomTaxonomy?: BloomTaxonomy;
+    cognitiveAxis?: CognitiveAxis;
   };
   usageCount: number;
   isAccessible?: boolean; // Se a questão foi adaptada para PCD/Neuro
@@ -802,6 +820,35 @@ export interface SessionStudent {
   registrationNumber: string;
   status: 'DISCONNECTED' | 'CONNECTED' | 'FINISHED';
   encryptedAnswers?: EncryptedPackage;
+}
+
+// --- VOCATIONAL COMPASS (NEW) ---
+export interface CareerRecommendation {
+  id: string;
+  title: string;
+  matchScore: number; // 0-100
+  description: string;
+  salaryRange: string;
+  requiredSkills: string[];
+  whyThisFits: string; // "Combinou sua lógica matemática com sua empatia..."
+  educationalPath: string[]; // "Faculdade de X -> Pós em Y"
+}
+
+export interface IkigaiData {
+  love: string[]; // O que você ama
+  goodAt: string[]; // O que você é bom (Skills)
+  paidFor: string[]; // Pelo que você pode ser pago
+  needs: string[]; // O que o mundo precisa
+}
+
+export interface VocationalProfile {
+  studentId: string;
+  generatedAt: string;
+  discArchetype: string; // ex: "Influenciador Criativo"
+  dominantIntelligences: string[]; // Gardner (Logico-matematica, etc)
+  careerMatches: CareerRecommendation[];
+  ikigai: IkigaiData;
+  purposeStatement: string; // "Seu propósito é usar a tecnologia para curar pessoas..."
 }
 
 export enum RiskLevel {

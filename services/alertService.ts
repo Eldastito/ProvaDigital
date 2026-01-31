@@ -411,12 +411,24 @@ export const processSchoolRiskAlerts = async (
 
             // Cria notificação para coordenadores
             // TODO: Buscar coordenadores da escola
+            let title = `⚠️ Alerta de Risco ${assessment.riskLevel}`;
+            let message = `${assessment.studentName} precisa de atenção. Score: ${assessment.riskScore}/100`;
+
+            // Lógica Específica de Evasão
+            if (assessment.evasionProbability === 'CRITICA' || assessment.evasionProbability === 'ALTA') {
+                title = `🚨 ALERTA DE EVASÃO: ${assessment.studentName}`;
+                message = `Risco de Evasão ${assessment.evasionProbability}. Assiduidade: ${assessment.simulatedAttendance}%. Intervenção Imediata Necessária!`;
+
+                // Simulação de envio de SMS/Email
+                console.log(`[MOCK EMAIL/SMS] Enviando alerta de Evasão para Pais e Direção: ${assessment.studentName}`);
+            }
+
             await createNotification({
                 userId: 'coordinator-mock', // Substituir por IDs reais
                 type: 'RISK_ALERT',
-                title: `⚠️ Alerta de Risco ${assessment.riskLevel}`,
-                message: `${assessment.studentName} precisa de atenção. Score: ${assessment.riskScore}/100`,
-                data: { alertId: alert.id, studentId: assessment.studentId }
+                title: title,
+                message: message,
+                data: { alertId: alert.id, studentId: assessment.studentId, evasion: assessment.evasionProbability }
             });
 
             notifications++;

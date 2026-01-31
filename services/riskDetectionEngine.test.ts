@@ -21,6 +21,7 @@ describe('Risk Detection Engine', () => {
             expect(assessment.riskLevel).toBe(RiskLevel.HIGH);
             expect(assessment.riskScore).toBeGreaterThanOrEqual(40);
             expect(assessment.factors.length).toBeGreaterThan(0);
+            expect(assessment.evasionProbability).toBe('CRITICA');
             expect(assessment.factors[0].name).toContain('Frequência');
         });
 

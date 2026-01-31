@@ -3,7 +3,7 @@ import { useLocation, useNavigate, Outlet, Navigate } from 'react-router-dom';
 import {
     LayoutDashboard, BookOpen, GraduationCap, Users, FileText,
     LogOut, Menu, ChevronRight, Tablet, PieChart, MessageCircle,
-    Printer,
+    Printer, Compass,
     PenTool, Target, UserCircle, Shield, Stethoscope, Map, Home, ChevronDown, Swords, Flame, Trophy, Cast, Calendar, Gamepad2, BarChart, Activity, CalendarCheck
 } from 'lucide-react';
 import { useSafeAppStore } from '../store/useAppStore';
@@ -165,6 +165,7 @@ export const DashboardLayout = () => {
                             <NavItem icon={LayoutDashboard} label="Meu Desempenho" active={path === '/aluno'} onClick={() => navigate('/aluno')} />
                             <NavItem icon={Target} label="Plano de Estudos" active={path === '/study-plans'} onClick={() => navigate('/study-plans')} />
                             <NavItem icon={Gamepad2} label="Games Arcade" active={path === '/aluno/arcade'} onClick={() => navigate('/aluno/arcade')} />
+                            <NavItem icon={Compass} label="Bússola do Futuro" active={path === '/aluno/bussola'} onClick={() => navigate('/aluno/bussola')} />
                             <NavItem icon={Trophy} label="Loja de Avatares" active={path === '/aluno/loja'} onClick={() => navigate('/aluno/loja')} />
                         </>
                     )}

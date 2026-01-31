@@ -29,6 +29,7 @@ import { ProfessorDashboardView } from './modules/professor/ProfessorDashboardVi
 import { ParentsDashboardView } from './modules/parents/ParentsDashboardView';
 import { ArcadeView } from './modules/student-portal/ArcadeView';
 import { AvatarShopView } from './modules/student-portal/AvatarShopView';
+import { VocationalCompassView } from './modules/student-portal/VocationalCompassView';
 import { GovernanceView } from './modules/admin/components/GovernanceView';
 import { AuditLogView } from './modules/admin/components/AuditLogView';
 import { TabletLauncher } from './modules/runner/student-app/TabletLauncher';
@@ -163,6 +164,7 @@ export const appRoutes: RouteObject[] = [
             { path: 'aluno/tutor', element: <OwlTutorView /> },
             { path: 'aluno/loja', element: <AvatarShopView /> },
             { path: 'aluno/arcade', element: <ArcadeView /> },
+            { path: 'aluno/bussola', element: <VocationalCompassView /> },
             { path: 'battle-arena', element: <StudentBattleView /> },
             { path: 'survival-mode', element: <SurvivalView /> },
 

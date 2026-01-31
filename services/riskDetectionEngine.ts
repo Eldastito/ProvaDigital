@@ -139,12 +139,16 @@ export const calculateRiskScore = (student: Student, results: ExamResult[], clas
     // Baseado em: Baixa Frequência (> peso) + Queda de Notas
     let evasionProb: RiskAssessment['evasionProbability'] = 'BAIXA';
 
-    // Se frequência < 75% OU (Risco Alto E Queda Abrupta)
-    if (attendance < 75 || (riskLevel === RiskLevel.HIGH && factors.some(f => f.name === 'Queda Abrupta'))) {
+    // Se frequência < 75% (Reprovação por falta) -> CRITICA
+    if (attendance < 75) {
         evasionProb = 'CRITICA';
-    } else if (attendance < 85 || riskLevel === RiskLevel.HIGH) {
+    }
+    // Se frequência < 85% E Notas Vermelhas -> ALTA
+    else if (attendance < 85 && avgScore < 6.0) {
         evasionProb = 'ALTA';
-    } else if (riskLevel === RiskLevel.MEDIUM) {
+    }
+    // Se Risco Alto (por nota ou queda) -> MEDIA
+    else if (riskLevel === RiskLevel.HIGH) {
         evasionProb = 'MEDIA';
     }
 
