@@ -183,26 +183,34 @@ export const calculateSchoolRisk = (schoolId: string, state: AppState): RiskAsse
  * Útil para Secretarias e MEC que veem múltiplas escolas
  */
 export const calculateBatchRisk = (students: Student[], state: AppState): RiskAssessment[] => {
-    // Determinar o "Total de Provas" da turma
-    // Assumimos que o máximo de provas feitas por um aluno na turma é o total esperado (heurística)
-    const classResults = state.results.filter(r => students.some(s => s.id === r.studentId));
+    // 1. Mapear o total de provas por turma (Real)
+    // Isso substitui a heurística anterior de "maxExamsInClass"
+    const classExamCounts = new Map<string, number>();
 
-    // Mapa: StudentId -> Count
-    const examsPerStudent = new Map<string, number>();
-    classResults.forEach(r => {
-        examsPerStudent.set(r.studentId, (examsPerStudent.get(r.studentId) || 0) + 1);
+    // Obter IDs das turmas dos alunos verificados
+    const uniqueClassIds = Array.from(new Set(students.map(s => s.classId)));
+
+    uniqueClassIds.forEach(classId => {
+        // Conta provas ativas/concluídas/publicadas vinculadas a esta turma
+        const examCount = state.exams.filter(e =>
+            e.classIds.includes(classId) &&
+            e.status !== 'DRAFT' // Ignora rascunhos
+        ).length;
+
+        // Fallback para 1 para evitar divisão por zero se não houver provas
+        classExamCounts.set(classId, Math.max(1, examCount));
     });
-
-    // Maior número de provas feito por alguém da turma (assumido como 100% de presença)
-    const maxExamsInClass = Math.max(1, ...Array.from(examsPerStudent.values()));
 
     // Para cada aluno, calcular risco
     const assessments = students.map(student => {
         // Obter resultados do aluno
         const studentResults = state.results.filter(r => r.studentId === student.id);
 
+        // Obter total de provas da turma desse aluno
+        const totalClassExams = classExamCounts.get(student.classId) || 5; // Fallback seguro (MVP default)
+
         // Calcular score
-        return calculateRiskScore(student, studentResults, maxExamsInClass);
+        return calculateRiskScore(student, studentResults, totalClassExams);
     });
 
     // Ordenar por score (maior risco primeiro)

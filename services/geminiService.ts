@@ -22,6 +22,7 @@ const PROMPTS = {
 - 1 GABARITO(Resposta correta): Incontestável.
            - 4 DISTRATORES(Respostas incorretas): Devem ser plausíveis para quem não domina a habilidade(erros construtivos).NÃO USE "pegadinhas" ou absurdos óbvios.
            - HOMOGENEIDADE: Mesmo comprimento, estrutura gramatical e campo semântico.
+           - OBJETIVIDADE: Se o comando pedir para identificar um termo, classificação ou objeto (ex: "Qual é o verbo..."), as alternativas devem conter APENAS o alvo (ex: "Correr"), SEM frases completas ou repetições desnecessárias.
         
         DIRETRIZES BNCC & TRI:
 - Defina a Competência e Habilidade BNCC exata(ex: EF05MA03).
@@ -491,65 +492,80 @@ async function callGeminiAPI<T>(
     // DEBUG: Log the start of the key to verify correct injection (Safely)
     console.log(`[GeminiService] Usando chave: ${apiKey.substring(0, 7)}...`);
 
-    try {
-        const ai = new GoogleGenAI({
-            apiKey
-        });
+    let attempt = 0;
+    const maxRetries = 3;
+    const baseDelay = 1000;
 
-        const config: any = {};
-        if (responseSchema) {
-            config.responseMimeType = "application/json";
-            config.responseSchema = responseSchema;
-        }
+    while (attempt < maxRetries) {
+        try {
+            const ai = new GoogleGenAI({
+                apiKey
+            });
 
-        // NOVO SDK: contents deve ser um array de objetos
-        const formattedContents = typeof contents === 'string'
-            ? [{ role: 'user', parts: [{ text: contents }] }]
-            : contents;
-
-        const response = await ai.models.generateContent({
-            model: DEFAULT_MODEL,
-            contents: formattedContents,
-            config: config
-        });
-
-        // Extrair texto de forma resiliente
-        let text = "";
-        if (typeof response.text === 'string') {
-            text = response.text;
-        } else if (typeof (response as any).text === 'function') {
-            text = (response as any).text();
-        } else if (response.candidates && response.candidates[0]?.content?.parts?.[0]?.text) {
-            text = response.candidates[0].content.parts[0].text;
-        }
-
-        if (!text) {
-            console.error("[GeminiService] Falha ao extrair texto da resposta:", response);
-            throw new Error("Não foi possível extrair o texto da resposta da IA.");
-        }
-
-        if (responseSchema) {
-            // Sanitize Markdown code blocks if present
-            if (text.startsWith('```json')) {
-                text = text.replace(/^```json\n/, '').replace(/\n```$/, '');
-            } else if (text.startsWith('```')) {
-                text = text.replace(/^```\n/, '').replace(/\n```$/, '');
+            const config: any = {};
+            if (responseSchema) {
+                config.responseMimeType = "application/json";
+                config.responseSchema = responseSchema;
             }
-            return JSON.parse(text) as T;
+
+            // NOVO SDK: contents deve ser um array de objetos
+            const formattedContents = typeof contents === 'string'
+                ? [{ role: 'user', parts: [{ text: contents }] }]
+                : contents;
+
+            const response = await ai.models.generateContent({
+                model: DEFAULT_MODEL,
+                contents: formattedContents,
+                config: config
+            });
+
+            // Extrair texto de forma resiliente
+            let text = "";
+            if (typeof response.text === 'string') {
+                text = response.text;
+            } else if (typeof (response as any).text === 'function') {
+                text = (response as any).text();
+            } else if (response.candidates && response.candidates[0]?.content?.parts?.[0]?.text) {
+                text = response.candidates[0].content.parts[0].text;
+            }
+
+            if (!text) {
+                console.error("[GeminiService] Falha ao extrair texto da resposta:", response);
+                throw new Error("Não foi possível extrair o texto da resposta da IA.");
+            }
+
+            if (responseSchema) {
+                // Sanitize Markdown code blocks if present
+                if (text.startsWith('```json')) {
+                    text = text.replace(/^```json\n/, '').replace(/\n```$/, '');
+                } else if (text.startsWith('```')) {
+                    text = text.replace(/^```\n/, '').replace(/\n```$/, '');
+                }
+                return JSON.parse(text) as T;
+            }
+
+            return text as unknown as T;
+
+        } catch (error: any) {
+            console.error(`[GeminiService] Tentativa ${attempt + 1}/${maxRetries} falhou:`, error.message);
+
+            const isRetryable = error.message?.includes('429') || error.message?.includes('503') || error.message?.includes('Overloaded');
+
+            if (isRetryable && attempt < maxRetries - 1) {
+                const delay = baseDelay * Math.pow(2, attempt);
+                console.log(`[GeminiService] Aguardando ${delay}ms antes de tentar novamente...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                attempt++;
+                continue;
+            }
+
+            // Se não for retryable ou acabou as tentativas, loga e retorna fallback
+            (globalThis as any).LAST_GEMINI_ERROR = error.message || "Erro desconhecido na API do Gemini";
+            return fallbackValue;
         }
-
-        return text as unknown as T;
-
-    } catch (error: any) {
-        console.error("[GeminiService] API Error:", error);
-        // If it's a critical error (like safety or API key), we might want to know
-        const errorMessage = error.message || "Erro desconhecido na API do Gemini";
-
-        // Em vez de apenas o fallback, vamos logar o erro de forma que o Diagnóstico capture
-        (globalThis as any).LAST_GEMINI_ERROR = errorMessage;
-
-        return fallbackValue;
     }
+
+    return fallbackValue;
 }
 
 export const listAvailableModels = async (): Promise<any[]> => {

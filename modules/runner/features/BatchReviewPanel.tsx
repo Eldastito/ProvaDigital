@@ -214,6 +214,45 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
                                     </h4>
                                     <div className="text-sm text-slate-600 leading-relaxed italic" dangerouslySetInnerHTML={{ __html: item.correctAnswerJustification }} />
                                 </div>
+
+                                {/* DALL-E Integration */}
+                                <div className="mt-4 flex justify-end">
+                                    {item.imageUrl ? (
+                                        <div className="relative group/image">
+                                            <img src={item.imageUrl} alt="Generated" className="h-48 rounded-lg shadow-sm border border-slate-200" />
+                                            <button
+                                                onClick={() => handleSaveEdit({ ...item, imageUrl: undefined })}
+                                                className="absolute top-2 right-2 p-1 bg-white/90 rounded-full text-rose-500 opacity-0 group-hover/image:opacity-100 transition-opacity"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={async () => {
+                                                const prompt = confirm("Deseja gerar uma imagem para esta questão usando DALL-E 3? A OpenAI cobrará por esta operação.")
+                                                    ? (item.multimedia?.[0]?.description || `Uma ilustração pedagógica para a seguinte questão: ${item.statement}`)
+                                                    : null;
+
+                                                if (prompt) {
+                                                    try {
+                                                        // Import dynamically to avoid top-level issues if service fails
+                                                        const { generateDalleImage } = await import('../../../services/openaiService');
+                                                        const result = await generateDalleImage(prompt);
+                                                        if (result) {
+                                                            handleSaveEdit({ ...item, imageUrl: result.url });
+                                                        }
+                                                    } catch (e) {
+                                                        alert("Erro ao gerar imagem: " + e);
+                                                    }
+                                                }
+                                            }}
+                                            className="text-xs bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg font-bold flex items-center gap-2 hover:bg-indigo-100 transition border border-indigo-200"
+                                        >
+                                            <Sparkles size={14} /> Gerar Imagem (DALL-E)
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         ))}
 
