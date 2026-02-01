@@ -2406,44 +2406,43 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
             // alert(`DEBUG: Buscando ${missingIds.length} questões do DB...`);
 
-            console.log(`📥 Fetching ${missingIds.length} missing items for exam ${examId}`);
+            console.log(`📥 Fetching exam content securely via RPC for exam ${examId}`);
 
+            // SECURE FETCH (Via RPC - "Higienizado")
             const { data: dbItems, error: itemsError } = await supabase
-                .from('items')
-                .select('*')
-                .in('id', missingIds);
+                .rpc('get_secure_exam_content', { p_exam_id: examId });
 
             if (itemsError) {
-                alert("DEBUG: Erro Supabase: " + itemsError.message);
+                console.error("Secure Fetch Error:", itemsError);
+                throw itemsError;
             }
 
             if (dbItems && dbItems.length > 0) {
-                // alert(`DEBUG: Achou ${dbItems.length} questões!`);
-                // Format items (reuse logic from loadRemoteData - simplified here)
+                // Format items (RPC returns sanitized structure, we map to internal Item type)
                 const formattedItems: Item[] = dbItems.map((i: any) => ({
                     id: i.id,
-                    tenantId: i.tenant_id,
-                    ownerId: i.owner_id || '',
+                    tenantId: 'secure', // RPC doesn't return tenant for privacy
+                    ownerId: 'system',
                     subject: i.subject,
-                    knowledgeArea: i.knowledge_area || i.subject,
+                    knowledgeArea: i.subject,
                     statement: i.statement,
                     type: i.type,
                     difficulty: i.difficulty,
-                    alternatives: i.alternatives,
-                    correctAnswerJustification: i.correct_justification,
-                    bnccCode: i.bncc_code || '',
-                    origin: i.origin || ItemOrigin.MANUAL,
-                    score: i.score || 1.0,
-                    tags: i.tags || [],
-                    triParams: i.tri_params,
-                    generationBatchId: i.generation_batch_id,
-                    lifecycleStatus: i.lifecycle_status,
-                    isAccessible: i.is_accessible,
-                    accessibilityInstructions: i.accessibility_instructions,
+                    alternatives: i.alternatives, // Now sanitized (no isCorrect)
+                    correctAnswerJustification: '', // Hidden
+                    bnccCode: '', // Hidden
+                    origin: ItemOrigin.MANUAL,
+                    score: 1.0,
+                    tags: [],
+                    triParams: null, // HIDDEN (Security)
+                    generationBatchId: null,
+                    lifecycleStatus: 'APPROVED',
+                    isAccessible: false,
+                    accessibilityInstructions: '',
                     multimedia: i.multimedia || [],
-                    currentVersionId: i.current_version_id,
-                    usageCount: i.usage_count || 0,
-                    createdAt: i.created_at || new Date().toISOString()
+                    currentVersionId: null,
+                    usageCount: 0,
+                    createdAt: new Date().toISOString()
                 }));
 
                 set(state => ({

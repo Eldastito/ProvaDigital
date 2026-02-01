@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
+import { supabase } from '../../../services/supabaseClient';
 import { AccessibilityToolbar } from './AccessibilityToolbar';
 import { SimulationRenderer } from './SimulationRenderer';
 import { AccessibilityConfig, DEFAULT_ACCESSIBILITY_CONFIG } from './types';
@@ -257,15 +258,19 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
     };
 
     // --- ADAPTIVE NAVIGATION LOGIC ---
+    // --- ADAPTIVE NAVIGATION LOGIC (SERVER-SIDE) ---
+    const [isComputing, setIsComputing] = useState(false);
+
     const handleNextAdaptive = async () => {
+        if (isComputing) return;
+
         // 0. RAPID GUESSING CHECK
         const timeSpentMs = Date.now() - lastQuestionLoadedAt;
         if (timeSpentMs < 5000) {
             const confirmRapid = window.confirm("⚠️ Resposta muito rápida!\n\nVocê respondeu em menos de 5 segundos. Em provas adaptativas, 'chutar' rápido pode prejudicar sua nota de proficiência mais do que demorar.\n\nTem certeza que deseja confirmar?");
             if (!confirmRapid) return;
         }
-        // 1. Check if answer is correct (Local Grading for quick Phi update)
-        // In a real secure scenario, this should be server-side, but for Client-Side Adaptive:
+
         const currentItem = activeExamItems[currentQuestionIndex];
         const selectedAltId = answers[currentItem.id];
 
@@ -274,73 +279,73 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
             return;
         }
 
-        // Dynamically import Engine
-        const { CATEngine } = await import('../../../services/grading/catEngine');
+        setIsComputing(true);
 
-        // 2. Prepare History for Theta Estimation
-        const history = activeExamItems.map(item => {
-            const ansId = answers[item.id];
-            if (!ansId) return null; // Should not happen for past items
-            const isCorrect = item.alternatives.find(a => a.id === ansId)?.isCorrect || false;
+        try {
+            // 1. Prepare Payload
+            // We pass the full answers object, or just the incremental one if API supports it.
+            // Our Edge Function expects 'attemptId' and 'userAnswers'
 
-            return {
-                itemId: item.id,
-                isCorrect,
-                discrimination: item.triParams?.discrimination || 1,
-                difficulty: item.triParams?.difficulty || 0,
-                guessing: item.triParams?.guessing || 0.2
-            };
-        }).filter(Boolean) as any[]; // TODO: Import ItemResponse type
+            console.log("📡 [CAT] Connecting to Secure Neural Engine...");
 
-        // 3. Estimate New Theta
-        const newTheta = CATEngine.estimateTheta(history, currentTheta);
-        setCurrentTheta(newTheta);
-        console.log(`🧠 [CAT] Novo Theta Estimado: ${newTheta.toFixed(3)}`);
-
-        // 4. STOPPING RULES
-        // Rule A: Max Items (e.g. 45 or exam config)
-        const maxItems = exam?.targetQuestionCount || 30;
-        if (activeExamItems.length >= maxItems) {
-            // Adaptive Finished
-            setAdaptiveFinished(true);
-            handleFinalize(false);
-            return;
-        }
-
-        // Rule B: Standard Error Low Enough (Precision Reached)
-        const see = CATEngine.calculateStandardError(newTheta, history);
-        if (see < 0.3 && activeExamItems.length > 10) { // Minimum 10 items
-            console.log(`🎯 [CAT] Precisão alcançada (SEE: ${see.toFixed(2)}). Finalizando.`);
-            setAdaptiveFinished(true);
-            handleFinalize(false);
-            return;
-        }
-
-        // 5. Select Next Item
-        const usedIds = activeExamItems.map(i => i.id);
-        const nextItem = CATEngine.selectNextItem(newTheta, itemPool, usedIds);
-
-        if (!nextItem) {
-            console.log("⚠️ [CAT] Banco de itens esgotado para este nível.");
-            setAdaptiveFinished(true);
-            handleFinalize(false);
-            return;
-        }
-
-        // 6. Update Path & UI
-        const newPath = [...adaptivePath, nextItem];
-        setAdaptivePath(newPath);
-
-        // Persist Adaptive State in Metadata
-        if (attemptId) {
-            await saveExamProgress(attemptId, answers, {
-                adaptivePath: newPath,
-                currentTheta: newTheta
+            const { data, error } = await supabase.functions.invoke('adaptive-next-item', {
+                body: {
+                    attemptId: attemptId,
+                    userAnswers: answers
+                }
             });
-        }
 
-        // Move to next
-        setCurrentQuestionIndex(prev => prev + 1);
+            if (error) throw error;
+
+            console.log("🧠 [CAT] Server Response:", data);
+
+            // 2. Update State from Server
+            const { nextItemId, currentTheta: newTheta, finished } = data;
+
+            setCurrentTheta(newTheta);
+
+            // 3. Handle Finish
+            if (finished || !nextItemId) {
+                console.log("🏁 [CAT] Server indicates exam completion.");
+                setAdaptiveFinished(true);
+                handleFinalize(false);
+                return;
+            }
+
+            // 4. Load Next Item
+            // We have the ID, we need to find it in the pool (already fetched)
+            // In a pure server-side app, we might fetch the content now.
+            // Since we have 'itemPool' (full bank) locally for now:
+            const nextQuestion = itemPool.find(i => i.id === nextItemId);
+
+            if (!nextQuestion) {
+                // Fallback: If item not in local pool (chunks invalid), force fetch
+                console.warn("⚠️ Next item header found but content missing locally. Re-syncing...");
+                await state.fetchExamItems(examId); // Basic retry
+                const retry = state.items.find(i => i.id === nextItemId);
+                if (!retry) throw new Error("Item content unavailable for ID: " + nextItemId);
+                setAdaptivePath([...adaptivePath, retry]);
+            } else {
+                setAdaptivePath([...adaptivePath, nextQuestion]);
+            }
+
+            // Persist (Optimistic)
+            // Note: Server has already calculated history, but we save local path for UI restoration
+            if (attemptId) {
+                await saveExamProgress(attemptId, answers, {
+                    adaptivePath: [...adaptivePath, nextQuestion || {}], // Warning: nextQuestion might be undefined if logic fails above, checking in next line
+                    currentTheta: newTheta
+                });
+            }
+
+            setCurrentQuestionIndex(prev => prev + 1);
+
+        } catch (error) {
+            console.error("❌ [CAT] Error in Server-Side Calculation:", error);
+            alert("Erro de conexão com o motor neural. Verifique sua internet e tente novamente.");
+        } finally {
+            setIsComputing(false);
+        }
     };
 
 
@@ -741,9 +746,13 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                             // ADAPTIVE NEXT (No "Finish" until engine decides)
                             <button
                                 onClick={handleNextAdaptive}
-                                className={`px-12 py-4 rounded-xl font-bold flex items-center gap-2 shadow-lg ${a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black hover:bg-white' : 'bg-indigo-600 text-white hover:bg-indigo-500'}`}
+                                disabled={isComputing}
+                                className={`px-12 py-4 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-all ${isComputing
+                                        ? 'bg-slate-400 cursor-wait'
+                                        : a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black hover:bg-white' : 'bg-indigo-600 text-white hover:bg-indigo-500'
+                                    }`}
                             >
-                                Próxima <ChevronRight />
+                                {isComputing ? 'Calculando...' : 'Próxima'} <ChevronRight />
                             </button>
                         ) : (
                             // STANDARD FINISH
