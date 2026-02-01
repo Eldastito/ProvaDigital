@@ -8,6 +8,7 @@ import { StatementEditor } from './components/editor/StatementEditor';
 import { AlternativesEditor } from './components/editor/AlternativesEditor';
 import { AnswerKeyEditor } from './components/editor/AnswerKeyEditor';
 import { AIGenerationPanel } from './components/editor/AIGenerationPanel';
+import { TRIParamsEditor } from './components/editor/TRIParamsEditor';
 import { BatchReviewPanel } from '../runner/features/BatchReviewPanel';
 
 export const ItemEditorView = () => {
@@ -98,6 +99,8 @@ export const ItemEditorView = () => {
                             handleSuggestBNCC={handleSuggestBNCC}
                             isBNCCLoading={isBNCCLoading}
                         />
+
+                        <TRIParamsEditor form={form} setForm={setForm} />
                     </div>
                 ) : (
                     // AI Mode

@@ -29,6 +29,8 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
     const [adaptivePath, setAdaptivePath] = useState<Item[]>([]);
     const [currentTheta, setCurrentTheta] = useState<number>(0);
     const [adaptiveFinished, setAdaptiveFinished] = useState(false);
+    const [showAdaptiveIntro, setShowAdaptiveIntro] = useState(isAdaptive); // Show intro if adaptive
+    const [lastQuestionLoadedAt, setLastQuestionLoadedAt] = useState(Date.now());
 
     // For adaptive, this is the POOL. For linear, this is the exam.
     const itemPool = useMemo(() => state.items, [state.items]);
@@ -159,6 +161,11 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         };
     }, [exam, studentId, examId, isRestored, isAdaptive, itemPool]);
 
+    // Update timer on question change
+    useEffect(() => {
+        setLastQuestionLoadedAt(Date.now());
+    }, [currentQuestionIndex]);
+
     // Timer Tick
     useEffect(() => {
         if (!isRestored || timeLeft <= 0) return;
@@ -251,6 +258,12 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
 
     // --- ADAPTIVE NAVIGATION LOGIC ---
     const handleNextAdaptive = async () => {
+        // 0. RAPID GUESSING CHECK
+        const timeSpentMs = Date.now() - lastQuestionLoadedAt;
+        if (timeSpentMs < 5000) {
+            const confirmRapid = window.confirm("⚠️ Resposta muito rápida!\n\nVocê respondeu em menos de 5 segundos. Em provas adaptativas, 'chutar' rápido pode prejudicar sua nota de proficiência mais do que demorar.\n\nTem certeza que deseja confirmar?");
+            if (!confirmRapid) return;
+        }
         // 1. Check if answer is correct (Local Grading for quick Phi update)
         // In a real secure scenario, this should be server-side, but for Client-Side Adaptive:
         const currentItem = activeExamItems[currentQuestionIndex];
@@ -444,6 +457,59 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
     };
 
     if (!exam) return <div className="p-8 text-center">Prova não encontrada.</div>;
+
+    if (!exam) return <div className="p-8 text-center">Prova não encontrada.</div>;
+
+    // --- ADAPTIVE INTRO MODAL ---
+    if (isAdaptive && showAdaptiveIntro && !isRestored) {
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-95 text-white p-4">
+                <div className="max-w-2xl w-full bg-gray-800 rounded-2xl p-8 shadow-2xl border border-blue-500/30 ring-1 ring-blue-500/20">
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className="p-3 bg-blue-600 rounded-lg">
+                            <CloudUpload size={32} className="text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold text-white">Prova Adaptativa Inteligente</h2>
+                            <p className="text-blue-300">Leia com atenção antes de começar</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6 text-gray-300 leading-relaxed mb-8">
+                        <p>
+                            Esta avaliação utiliza <strong>Inteligência Artificial (TRI)</strong> para medir sua proficiência real, não apenas o número de acertos.
+                        </p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                                <h4 className="font-bold text-white mb-2 flex items-center gap-2">🚫 Não é possível voltar</h4>
+                                <p className="text-sm">Sua resposta define a próxima pergunta. Uma vez confirmada, não há como alterar.</p>
+                            </div>
+                            <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                                <h4 className="font-bold text-white mb-2 flex items-center gap-2">⏱️ Tempo vs. Precisão</h4>
+                                <p className="text-sm">Chutar rápido demais (menos de 5s) pode ser interpretado como falta de conhecimento. Pense antes de responder.</p>
+                            </div>
+                            <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                                <h4 className="font-bold text-white mb-2 flex items-center gap-2">📈 Dificuldade Dinâmica</h4>
+                                <p className="text-sm">Se acertar, fica mais difícil. Se errar, fica mais fácil. Isso é normal e esperado.</p>
+                            </div>
+                            <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                                <h4 className="font-bold text-white mb-2 flex items-center gap-2">🎯 Foco na Qualidade</h4>
+                                <p className="text-sm">A prova pode acabar antes se o sistema já tiver certeza da sua nota. Não se assuste.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={() => setShowAdaptiveIntro(false)}
+                        className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-xl font-bold text-lg shadow-lg hover:shadow-blue-500/25 transition-all transform hover:scale-[1.01]"
+                    >
+                        Entendi, começar prova
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     // --- SECURITY GATE UI ---
     if (!securityCheckPassed && !isRestored) {
@@ -659,13 +725,16 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                     <div className="flex items-center gap-1" title="Sincronizado com a nuvem"><CloudUpload size={12} /> Cloud Sync</div>
                 </div>
                 <div className="flex gap-4">
-                    <button
-                        onClick={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
-                        disabled={currentQuestionIndex === 0}
-                        className="px-8 py-4 rounded-xl font-bold flex items-center gap-2 disabled:opacity-30 hover:bg-current/10 transition"
-                    >
-                        <ChevronLeft /> Anterior
-                    </button>
+                    {/* BACK BUTTON: Disabled in Adaptive Mode (Rule: No backtracking) */}
+                    {!isAdaptive && (
+                        <button
+                            onClick={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
+                            disabled={currentQuestionIndex === 0}
+                            className="px-8 py-4 rounded-xl font-bold flex items-center gap-2 disabled:opacity-30 hover:bg-current/10 transition"
+                        >
+                            <ChevronLeft /> Anterior
+                        </button>
+                    )}
 
                     {isLastQuestion ? (
                         isAdaptive ? (
@@ -695,15 +764,17 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                         </button>
                     )}
                 </div>
-            </footer>
+            </footer >
 
             {/* FOCUS MODE OVERLAY (Ruler) */}
-            {a11y.focusMode && (
-                <div className="fixed inset-0 pointer-events-none z-10 hidden md:block">
-                    <div className="absolute top-0 left-0 right-0 h-[40vh] bg-black/80 backdrop-blur-sm" />
-                    <div className="absolute bottom-0 left-0 right-0 h-[40vh] bg-black/80 backdrop-blur-sm" />
-                </div>
-            )}
-        </div>
+            {
+                a11y.focusMode && (
+                    <div className="fixed inset-0 pointer-events-none z-10 hidden md:block">
+                        <div className="absolute top-0 left-0 right-0 h-[40vh] bg-black/80 backdrop-blur-sm" />
+                        <div className="absolute bottom-0 left-0 right-0 h-[40vh] bg-black/80 backdrop-blur-sm" />
+                    </div>
+                )
+            }
+        </div >
     );
 };

@@ -1315,21 +1315,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
             console.error("Error saving lesson plan:", e);
         }
     },
-    addStudyPlan: async (plan) => {
-        set((state) => ({ studyPlans: [...state.studyPlans, plan] }));
-        try {
-            await supabase.from('study_plans').insert({
-                id: plan.id,
-                student_id: plan.studentId,
-                title: plan.title,
-                generated_by: plan.generatedBy,
-                created_at: plan.createdAt,
-                tasks: plan.tasks
-            });
-        } catch (e) {
-            console.error("Error saving study plan:", e);
-        }
-    },
     updateStudyPlan: async (plan) => {
         set((state) => ({
             studyPlans: state.studyPlans.map(p => p.id === plan.id ? plan : p)
@@ -1563,9 +1548,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     },
 
     saveExamProgress: async (attemptId: string, answers: Record<string, string>, metadata?: any) => {
-        const state = get();
-
-        // Optimistic local update
+        // 1. Optimistic local update (Merge metadata)
         set((state) => ({
             examAttempts: state.examAttempts.map(a =>
                 a.id === attemptId
@@ -1574,18 +1557,22 @@ export const useAppStore = create<AppStore>((set, get) => ({
             )
         }));
 
-        try {
-            let metadataToSave: any = { savedAnswers: answers, ...metadata };
+        const state = get();
+        const updatedAttempt = state.examAttempts.find(a => a.id === attemptId);
 
+        // Safety check: if attempt not found locally, we fall back to the args, but warn.
+        //Ideally we should have it locally if we are running the exam.
+        let metadataToSave: any = updatedAttempt?.metadata || { savedAnswers: answers, ...metadata };
+
+        try {
             // --- PHASE 8: ENCRYPTION (PREMIUM) ---
             if (state.examEncryptionKey) {
                 const { cryptoService } = await import('../services/cryptoService');
-                // We encrypt the entire answers object as a single blob for efficiency
-                // In a granular system, we might encrypt each answer individually.
                 const encryptedPayload = await cryptoService.encryptAnswer(answers, state.examEncryptionKey);
 
                 metadataToSave = {
-                    savedAnswers: null, // Wipe plain text from DB payload
+                    ...metadataToSave, // Keep other metadata (adaptivePath, etc)
+                    savedAnswers: null, // Wipe plain text
                     encryptedAnswers: encryptedPayload,
                     isEncrypted: true,
                     encryptionMethod: 'AES-256-GCM'
