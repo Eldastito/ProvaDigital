@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { QuestionType, DifficultyLevel, AssessmentType, VocationalProfile, BloomTaxonomy, CognitiveAxis } from "../types";
 
 // --- Configuration ---
-const DEFAULT_MODEL = 'gemini-2.5-flash';
+const DEFAULT_MODEL = 'gemini-1.5-flash';
 
 // --- Prompts ---
 const PROMPTS = {
@@ -485,8 +485,8 @@ async function callGeminiAPI<T>(
     const apiKey = getApiKey();
 
     if (!apiKey) {
-        console.warn("[GeminiService] API Key missing. Returning fallback data (offline mode).");
-        return fallbackValue;
+        console.error("[GeminiService] API Key missing. Aborting generation.");
+        throw new Error("Chave da API Gemini não configurada (VITE_GEMINI_API_KEY). Verifique seu arquivo .env ou as variáveis de ambiente.");
     }
 
     // DEBUG: Log the start of the key to verify correct injection (Safely)
@@ -531,7 +531,7 @@ async function callGeminiAPI<T>(
 
             if (!text) {
                 console.error("[GeminiService] Falha ao extrair texto da resposta:", response);
-                throw new Error("Não foi possível extrair o texto da resposta da IA.");
+                throw new Error("A IA retornou uma resposta vazia. Tente novamente.");
             }
 
             if (responseSchema) {
@@ -541,7 +541,12 @@ async function callGeminiAPI<T>(
                 } else if (text.startsWith('```')) {
                     text = text.replace(/^```\n/, '').replace(/\n```$/, '');
                 }
-                return JSON.parse(text) as T;
+                try {
+                    return JSON.parse(text) as T;
+                } catch (jsonError) {
+                    console.error("JSON Parse Error:", jsonError, "Raw Text:", text);
+                    throw new Error("A IA gerou um formato inválido. Tente simplificar o pedido.");
+                }
             }
 
             return text as unknown as T;
@@ -559,13 +564,12 @@ async function callGeminiAPI<T>(
                 continue;
             }
 
-            // Se não for retryable ou acabou as tentativas, loga e retorna fallback
-            (globalThis as any).LAST_GEMINI_ERROR = error.message || "Erro desconhecido na API do Gemini";
-            return fallbackValue;
+            // CRITICAL: Throw real error to UI instead of Mock
+            throw new Error(`Erro na IA: ${error.message || 'Falha desconhecida'}`);
         }
     }
 
-    return fallbackValue;
+    throw new Error("Falha na geração após múltiplas tentativas.");
 }
 
 export const listAvailableModels = async (): Promise<any[]> => {
