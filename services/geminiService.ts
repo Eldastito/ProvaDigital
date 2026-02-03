@@ -8,37 +8,38 @@ const DEFAULT_MODEL = 'gemini-2.5-flash';
 // --- Prompts ---
 const PROMPTS = {
     GENERATE_QUESTIONS: (qty: number, subject: string, type: QuestionType, difficulty: string, context: string) => `
-        Você é um Especialista em Elaboração de Itens para Avaliações de Larga Escala(INEP/ SAEB / ENEM), com profundo conhecimento da BNCC e Teoria de Resposta ao Item (TRI).
+        Você é um Especialista em Elaboração de Itens para Avaliações de Larga Escala (INEP/SAEB/ENEM), com profundo conhecimento da BNCC e Teoria de Resposta ao Item (TRI).
 
-        OBJETIVO: Construir um banco de itens de ALTA PRECISÃO PEDAGÓGICA, seguindo rigorosamente as fases de elaboração técnica.
-        
+        OBJETIVO: Construir um banco de **${qty} ITENS** de ALTA PRECISÃO PEDAGÓGICA, seguindo rigorosamente as fases de elaboração técnica.
+
         TEXTO DE CONTEXTO:
-"${context.substring(0, 15000)}"
+        "${context.substring(0, 15000)}"
         
-        ESTRUTURA OBRIGATÓRIA DO ITEM(Modelo INEP):
-1. TEXTO - BASE(Suporte): Deve ser motivador e necessário para a resolução.Se usar imagem, descreva - a(Acessibilidade).
-        2. ENUNCIADO(Comando): Deve ser uma oração incompleta ou pergunta direta, clara e livre de ambiguidades.O comando deve exigir a mobilização da habilidade cognitiva, NÃO apenas memorização.
+        ESTRUTURA OBRIGATÓRIA DE CADA ITEM (Modelo INEP):
+        1. TEXTO-BASE (Suporte): Deve ser motivador e necessário para a resolução. Se usar imagem, descreva-a (Acessibilidade).
+        2. ENUNCIADO (Comando): Deve ser uma oração incompleta ou pergunta direta, clara e livre de ambiguidades. O comando deve exigir a mobilização da habilidade cognitiva, NÃO apenas memorização.
         3. ALTERNATIVAS:
-- 1 GABARITO(Resposta correta): Incontestável.
-           - 4 DISTRATORES(Respostas incorretas): Devem ser plausíveis para quem não domina a habilidade(erros construtivos).NÃO USE "pegadinhas" ou absurdos óbvios.
+           - 1 GABARITO (Resposta correta): Incontestável.
+           - 4 DISTRATORES (Respostas incorretas): Devem ser plausíveis para quem não domina a habilidade (erros construtivos). NÃO USE "pegadinhas" ou absurdos óbvios.
            - HOMOGENEIDADE: Mesmo comprimento, estrutura gramatical e campo semântico.
            - OBJETIVIDADE: Se o comando pedir para identificar um termo, classificação ou objeto (ex: "Qual é o verbo..."), as alternativas devem conter APENAS o alvo (ex: "Correr"), SEM frases completas ou repetições desnecessárias.
         
         DIRETRIZES BNCC & TRI:
-- Defina a Competência e Habilidade BNCC exata(ex: EF05MA03).
+        - Defina a Competência e Habilidade BNCC exata (ex: EF05MA03).
         - Estime os Parâmetros da TRI:
-- Dificuldade(b): -3(Muito Fácil) a + 3(Muito Difícil).
-           - Discriminação(a): Capacidade de diferenciar alunos proficientes(Ideal > 1.0).
-           - Acerto Casual(c): Probabilidade de chute(Ideal < 0.20).
-        - Classifique na Taxonomia de Bloom Revisada(Lembrar, Entender, Aplicar, Analisar, Avaliar, Criar).
+           - Dificuldade (b): -3 (Muito Fácil) a +3 (Muito Difícil).
+           - Discriminação (a): Capacidade de diferenciar alunos proficientes (Ideal > 1.0).
+           - Acerto Casual (c): Probabilidade de chute (Ideal < 0.20).
+        - Classifique na Taxonomia de Bloom Revisada (Lembrar, Entender, Aplicar, Analisar, Avaliar, Criar).
         - Classifique o Eixo Cognitivo (ENEM): DOMINAR_LINGUAGENS, COMPREENDER_FENOMENOS, ENFRENTAR_SITUACOES, CONSTRUIR_ARGUMENTACAO, ELABORAR_PROPOSTAS.
 
-    ESPECIFICAÇÕES:
-- Matéria: ${subject}
-- Tipo: ${type} (Se MULTIPLE_CHOICE, siga risca os distratores.Se OPEN, defina grade de correção).
-- Dificuldade Alvo: ${difficulty}
+        ESPECIFICAÇÕES:
+        - Quantidade: ${qty} questões (OBRIGATÓRIO)
+        - Matéria: ${subject}
+        - Tipo: ${type} (Se MULTIPLE_CHOICE, siga risca os distratores. Se OPEN, defina grade de correção).
+        - Dificuldade Alvo: ${difficulty}
         
-        Retorne a resposta estritamente em JSON conforme o schema.O campo 'justification' deve explicar o gabarito E o erro de cada distrator.
+        Retorne a resposta estritamente em JSON (Array de objetos) conforme o schema. O campo 'justification' deve explicar o gabarito E o erro de cada distrator.
     `,
     GRADE_ESSAY: (question: string, expected: string, answer: string, score: number) => `
         Você é um professor corretor experiente.Avalie a resposta do aluno para uma questão discursiva.
