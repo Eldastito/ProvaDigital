@@ -33,25 +33,31 @@ export const AIQuestionGeneratorView = () => {
 
     // Persistence Logic
     useEffect(() => {
-        const key = `ai_generator_draft_${state.currentUser?.id}`;
+        // Use a stable key to avoid race conditions with User ID loading
+        const key = 'ai_generator_current_draft';
         const saved = localStorage.getItem(key);
         if (saved) {
             try {
                 const draft = JSON.parse(saved);
-                setConfig(draft.config);
-                setContext(draft.context);
-                setBatchId(draft.batchId);
-                setGeneratedItems(draft.generatedItems);
-                setVisualSuggestions(draft.visualSuggestions || {});
-                setAuditResults(draft.auditResults || {});
-                setStep(draft.step);
+                // Validate if draft is not too old (e.g. 24h)
+                if (Date.now() - (draft.updatedAt || 0) < 24 * 60 * 60 * 1000) {
+                    console.log("Restoring draft...", draft);
+                    setConfig(draft.config);
+                    setContext(draft.context);
+                    setBatchId(draft.batchId);
+                    setGeneratedItems(draft.generatedItems);
+                    setVisualSuggestions(draft.visualSuggestions || {});
+                    setAuditResults(draft.auditResults || {});
+                    setStep(draft.step);
+                }
             } catch (e) { console.error("Error restoring AI draft", e); }
         }
-    }, [state.currentUser?.id]);
+    }, []); // Run once on mount
 
     useEffect(() => {
         if (!config.topic && generatedItems.length === 0) return;
-        const key = `ai_generator_draft_${state.currentUser?.id}`;
+
+        const key = 'ai_generator_current_draft';
         const draft = {
             config,
             context,
@@ -63,7 +69,7 @@ export const AIQuestionGeneratorView = () => {
             updatedAt: Date.now()
         };
         localStorage.setItem(key, JSON.stringify(draft));
-    }, [config, context, batchId, generatedItems, visualSuggestions, auditResults, step, state.currentUser?.id]);
+    }, [config, context, batchId, generatedItems, visualSuggestions, auditResults, step]);
 
     const handleGenerate = async () => {
         setLoading(true);
@@ -167,7 +173,7 @@ export const AIQuestionGeneratorView = () => {
         });
 
         await state.addItems(newItems);
-        localStorage.removeItem(`ai_generator_draft_${state.currentUser?.id}`);
+        localStorage.removeItem('ai_generator_current_draft');
         alert(`${newItems.length} itens salvos no banco!`);
         navigate('/items');
     };
