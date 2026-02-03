@@ -92,7 +92,10 @@ export const ExamBuilderView = () => {
                 tags: ['Gerado por IA', 'Contexto PDF'],
                 usageCount: 0,
                 createdAt: new Date().toISOString(),
-                triParams: q.triParams // Ensure this is mapped if returned
+                triParams: {
+                    ...q.triParams,
+                    bloomTaxonomy: q.triParams?.bloomTaxonomy as any
+                }
             }));
 
             // Add to exam - using state.addItem or updateExam if available
@@ -258,7 +261,7 @@ export const ExamBuilderView = () => {
                     <ExamReview
                         config={config} gradingConfig={gradingConfig} setGradingConfig={setGradingConfig}
                         selectedItems={selectedItems} onSave={handleSave} onSeal={state.sealExam}
-                        onStepChange={setStep} navigate={navigate}
+                        onStepChange={setStep} navigate={navigate} onRemoveItem={toggleItem}
                     />
                 )}
             </div>

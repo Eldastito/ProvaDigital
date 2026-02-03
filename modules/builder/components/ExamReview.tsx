@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Info, Save, ShieldCheck, Loader2 } from 'lucide-react';
+import { Check, Info, Save, ShieldCheck, Loader2, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Item } from '../../../types';
 
 interface ExamReviewProps {
@@ -18,10 +18,11 @@ interface ExamReviewProps {
     onSeal: (id: string) => Promise<void>;
     onStepChange: (step: number) => void;
     navigate: (path: string) => void;
+    onRemoveItem?: (item: Item) => void;
 }
 
 export const ExamReview = ({
-    config, gradingConfig, setGradingConfig, selectedItems, onSave, onSeal, onStepChange, navigate
+    config, gradingConfig, setGradingConfig, selectedItems, onSave, onSeal, onStepChange, navigate, onRemoveItem
 }: ExamReviewProps) => {
 
     const [isSaving, setIsSaving] = React.useState(false);
@@ -93,6 +94,54 @@ export const ExamReview = ({
                                 </span>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                {/* Question List Review */}
+                <div className="mt-12 border-t pt-8">
+                    <div className="flex justify-between items-center mb-6">
+                        <h4 className="font-bold text-slate-900 text-sm uppercase tracking-wide flex items-center gap-2">
+                            <Info size={18} className="text-brand-primary" />
+                            Verificar Itens Selecionados ({selectedItems.length})
+                        </h4>
+                    </div>
+
+                    <div className="space-y-3">
+                        {selectedItems.map((item, idx) => (
+                            <div key={item.id} className="group bg-white border border-slate-200 rounded-xl p-4 hover:border-brand-primary transition-all relative">
+                                <div className="flex justify-between items-start gap-4">
+                                    <div className="flex gap-3 min-w-0">
+                                        <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">
+                                            {idx + 1}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="text-sm text-slate-800 font-medium line-clamp-2">{item.statement}</p>
+                                            <div className="flex gap-3 mt-1">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{item.subject}</span>
+                                                <span className={`text-[10px] font-bold uppercase tracking-wider ${item.difficulty === 'FACIL' ? 'text-emerald-600' : item.difficulty === 'DIFICIL' ? 'text-rose-600' : 'text-amber-600'}`}>
+                                                    {item.difficulty}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={() => onRemoveItem?.(item)}
+                                        className="text-slate-300 hover:text-rose-500 transition-colors p-1"
+                                        title="Remover questão"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+
+                        {selectedItems.length === 0 && (
+                            <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                                <p className="text-slate-400 text-sm font-medium">Nenhuma questão selecionada.</p>
+                                <button onClick={() => onStepChange(2)} className="text-brand-primary font-bold text-sm mt-2 hover:underline">Voltar para seleção</button>
+                            </div>
+                        )}
                     </div>
                 </div>
 

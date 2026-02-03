@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Brain, Search, FileUp, Plus, Tablet, ChevronLeft, ArrowRight, ShieldCheck, ChevronRight, Loader2, Sparkles, Check } from 'lucide-react';
+import { Brain, Search, FileUp, Plus, Tablet, ChevronLeft, ArrowRight, ShieldCheck, ChevronRight, Loader2, Sparkles, Check, Trash2 } from 'lucide-react';
 import { Item, ItemLifecycleStatus, ItemOrigin, DifficultyLevel } from '../../../types';
 import { Badge } from '../../../components/ui/Badge';
 import { translateDifficultyLevel } from '../../../utils/translations';
@@ -188,7 +188,15 @@ export const ExamQuestionSelector = ({
 
                 <div className="flex-1 overflow-y-auto p-2 space-y-2">
                     {displayItems.map(item => (
-                        <div key={item.id} className={`p-3 border rounded-lg cursor-pointer group transition-all hover:shadow-sm ${selectedItems.find(s => s.id === item.id) ? 'border-brand-primary bg-brand-light/20' : 'border-slate-200 bg-white hover:border-brand-primary text-slate-400'}`} onClick={() => toggleItem(item)}>
+                        <div key={item.id} className={`p-3 border rounded-lg cursor-pointer group transition-all hover:shadow-sm relative ${selectedItems.find(s => s.id === item.id) ? 'border-brand-primary bg-brand-light/20' : 'border-slate-200 bg-white hover:border-brand-primary text-slate-400'}`} onClick={() => toggleItem(item)}>
+                            {selectedItems.find(s => s.id === item.id) && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); toggleItem(item); }}
+                                    className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <Trash2 size={12} />
+                                </button>
+                            )}
                             <div className="flex justify-between items-start mb-1">
                                 <span className="text-xs font-bold uppercase">{item.subject}</span>
                                 <div className="flex gap-2">
@@ -228,6 +236,22 @@ export const ExamQuestionSelector = ({
                                         <div className="w-8 h-8 rounded-full bg-brand-light text-brand-primary flex items-center justify-center font-bold text-xs">{previewIndex + 1}</div>
                                         <span className="text-xs font-bold text-slate-500 uppercase">Questão {previewIndex + 1} de {selectedItems.length}</span>
                                     </div>
+                                    <button
+                                        onClick={() => {
+                                            const itemToRemove = currentPreviewItem;
+                                            if (itemToRemove) {
+                                                toggleItem(itemToRemove);
+                                                if (previewIndex >= selectedItems.length - 1 && previewIndex > 0) {
+                                                    setPreviewIndex(previewIndex - 1);
+                                                }
+                                            }
+                                        }}
+                                        className="text-rose-500 hover:bg-rose-50 p-2 rounded-lg transition-colors flex items-center gap-1 text-[10px] font-bold"
+                                        title="Remover desta prova"
+                                    >
+                                        <Trash2 size={16} />
+                                        REMOVER
+                                    </button>
                                 </div>
                                 <div className="flex-1 overflow-y-auto p-5 bg-[#f8fafc]">
                                     {currentPreviewItem && (
