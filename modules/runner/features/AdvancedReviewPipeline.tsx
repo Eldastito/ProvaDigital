@@ -225,6 +225,11 @@ export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ 
                                             stage.status === 'RUNNING' ? 'Analisando...' :
                                                 stage.status === 'COMPLETED' ? 'Sucesso' : 'Erro'}
                                     </p>
+                                    {stage.status === 'ERROR' && reviewResult?.stages?.[stage.id]?.feedback && (
+                                        <p className="text-[10px] text-rose-300 mt-2 bg-rose-500/10 p-1 rounded border border-rose-500/20 max-w-[200px]">
+                                            {reviewResult.stages[stage.id].feedback}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
 

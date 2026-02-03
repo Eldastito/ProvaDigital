@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { QuestionType, DifficultyLevel, AssessmentType, VocationalProfile, BloomTaxonomy, CognitiveAxis } from "../types";
 
 // --- Configuration ---
-const DEFAULT_MODEL = 'gemini-2.5-flash';
+const DEFAULT_MODEL = 'gemini-1.5-flash';
 
 // --- Prompts ---
 const PROMPTS = {
@@ -575,11 +575,13 @@ async function callGeminiAPI<T>(
             }
 
             // CRITICAL: Throw real error to UI instead of Mock
+            console.error(`[GeminiService] Erro crítico após retentativas:`, error);
             throw new Error(`Erro na IA: ${error.message || 'Falha desconhecida'}`);
         }
     }
 
-    throw new Error("Falha na geração após múltiplas tentativas.");
+    console.warn(`[GeminiService] Excedido número de tentativas. Retornando fallback.`);
+    return fallbackValue;
 }
 
 export const listAvailableModels = async (): Promise<any[]> => {
