@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { QuestionType, DifficultyLevel, AssessmentType, VocationalProfile, BloomTaxonomy, CognitiveAxis } from "../types";
 
 // --- Configuration ---
-const DEFAULT_MODEL = 'gemini-pro';
+const DEFAULT_MODEL = 'gemini-2.5-flash';
 
 // --- Prompts ---
 const PROMPTS = {
