@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { QuestionType, DifficultyLevel, AssessmentType, VocationalProfile, BloomTaxonomy, CognitiveAxis } from "../types";
 
 // --- Configuration ---
-const DEFAULT_MODEL = 'gemini-2.5-flash';
+const DEFAULT_MODEL = 'gemini-1.5-flash'; // Stable name. Use 'gemini-1.5-flash-latest' if 404 persists.
 
 // --- Prompts ---
 const PROMPTS = {
@@ -39,7 +39,9 @@ const PROMPTS = {
         - Tipo: ${type} (Se MULTIPLE_CHOICE, siga risca os distratores. Se OPEN, defina grade de correção).
         - Dificuldade Alvo: ${difficulty}
         
-        Retorne a resposta estritamente em JSON (Array de objetos) conforme o schema. O campo 'justification' deve explicar o gabarito E o erro de cada distrator.
+        IMPORTANTE: Você deve retornar EXATAMENTE ${qty} questões no array 'questions'. Não retorne apenas uma.
+        
+        Retorne a resposta estritamente no formato de um OBJETO JSON contendo a chave 'questions' (que é um ARRAY de objetos), contendo exatamente ${qty} elementos, conforme o schema. O campo 'justification' deve explicar o gabarito E o erro de cada distrator.
     `,
     GRADE_ESSAY: (question: string, expected: string, answer: string, score: number) => `
         Você é um professor corretor experiente.Avalie a resposta do aluno para uma questão discursiva.
@@ -509,6 +511,10 @@ async function callGeminiAPI<T>(
                 config.responseSchema = responseSchema;
             }
 
+            // Otimização para geração de itens
+            config.temperature = 0.7; // Mais criatividade/diversidade
+            config.maxOutputTokens = 8192; // Garantir que não corte o JSON longo
+
             // NOVO SDK: contents deve ser um array de objetos
             const formattedContents = typeof contents === 'string'
                 ? [{ role: 'user', parts: [{ text: contents }] }]
@@ -555,7 +561,10 @@ async function callGeminiAPI<T>(
         } catch (error: any) {
             console.error(`[GeminiService] Tentativa ${attempt + 1}/${maxRetries} falhou:`, error.message);
 
-            const isRetryable = error.message?.includes('429') || error.message?.includes('503') || error.message?.includes('Overloaded');
+            const isRetryable = error.message?.includes('429') ||
+                error.message?.includes('503') ||
+                error.message?.includes('Overloaded') ||
+                error.message?.includes('fetch'); // Adiciona erros de rede/CORS temporários
 
             if (isRetryable && attempt < maxRetries - 1) {
                 const delay = baseDelay * Math.pow(2, attempt);
@@ -609,40 +618,50 @@ export const generateQuestionsFromText = async (
     const prompt = PROMPTS.GENERATE_QUESTIONS(quantity, subject, type, difficulty, contextText);
 
     const schema = {
-        type: Type.ARRAY,
-        items: {
-            type: Type.OBJECT,
-            properties: {
-                statement: { type: Type.STRING, description: "O enunciado completo da questão" },
-                alternatives: {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            text: { type: Type.STRING },
-                            isCorrect: { type: Type.BOOLEAN }
-                        }
-                    }
-                },
-                justification: { type: Type.STRING, description: "Justificativa pedagógica detalhada do gabarito e distratores" },
-                difficulty: { type: Type.STRING, enum: ["FACIL", "MEDIO", "DIFICIL"] },
-                bnccCode: { type: Type.STRING, description: "Código BNCC (ex: EF01MA01)" },
-                triParams: {
+        type: Type.OBJECT,
+        properties: {
+            questions: {
+                type: Type.ARRAY,
+                items: {
                     type: Type.OBJECT,
                     properties: {
-                        difficulty: { type: Type.NUMBER },
-                        discrimination: { type: Type.NUMBER },
-                        guessing: { type: Type.NUMBER },
-                        bloomTaxonomy: { type: Type.STRING, enum: ["LEMBRAR", "ENTENDER", "APLICAR", "ANALISAR", "AVALIAR", "CRIAR"] },
-                        cognitiveAxis: { type: Type.STRING, enum: ["DOMINAR_LINGUAGENS", "COMPREENDER_FENOMENOS", "ENFRENTAR_SITUACOES", "CONSTRUIR_ARGUMENTACAO", "ELABORAR_PROPOSTAS"] }
-                    }
+                        statement: { type: Type.STRING, description: "O enunciado completo da questão" },
+                        alternatives: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    text: { type: Type.STRING },
+                                    isCorrect: { type: Type.BOOLEAN }
+                                }
+                            }
+                        },
+                        justification: { type: Type.STRING, description: "Justificativa pedagógica detalhada do gabarito e distrator" },
+                        difficulty: { type: Type.STRING, enum: ["FACIL", "MEDIO", "DIFICIL"] },
+                        bnccCode: { type: Type.STRING, description: "Código BNCC (ex: EF01MA01)" },
+                        triParams: {
+                            type: Type.OBJECT,
+                            properties: {
+                                difficulty: { type: Type.NUMBER },
+                                discrimination: { type: Type.NUMBER },
+                                guessing: { type: Type.NUMBER },
+                                bloomTaxonomy: { type: Type.STRING, enum: ["LEMBRAR", "ENTENDER", "APLICAR", "ANALISAR", "AVALIAR", "CRIAR"] },
+                                cognitiveAxis: { type: Type.STRING, enum: ["DOMINAR_LINGUAGENS", "COMPREENDER_FENOMENOS", "ENFRENTAR_SITUACOES", "CONSTRUIR_ARGUMENTACAO", "ELABORAR_PROPOSTAS"] }
+                            }
+                        }
+                    },
+                    required: ["statement", "alternatives", "justification", "difficulty"]
                 }
-            },
-            required: ["statement", "alternatives", "justification", "difficulty"]
-        }
+            }
+        },
+        required: ["questions"]
     };
 
-    return callGeminiAPI<GeneratedQuestion[]>(prompt, schema, mockGenerate(quantity, type, difficulty));
+    interface SchemaResponse { questions: GeneratedQuestion[] }
+    const res = await callGeminiAPI<SchemaResponse>(prompt, schema, { questions: mockGenerate(quantity, type, difficulty) });
+
+    // Ensure we return an array
+    return Array.isArray(res.questions) ? res.questions : [res as any];
 };
 
 export const gradeEssayAnswer = async (
