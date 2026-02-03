@@ -6,6 +6,7 @@ import { RichTextRenderer } from '../../../components/RichTextRenderer';
 import { Badge } from '../../../components/ui/Badge';
 import { ItemEditModal } from './ItemEditModal';
 import { translateDifficultyLevel } from '../../../utils/translations';
+import DOMPurify from 'dompurify';
 
 interface BatchReviewPanelProps {
     batchId: string;
@@ -194,7 +195,7 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
                                 </div>
 
                                 <p className="text-lg text-slate-800 font-medium leading-relaxed mb-6 italic border-l-4 border-slate-100 pl-4">
-                                    <div dangerouslySetInnerHTML={{ __html: item.statement }} />
+                                    <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.statement) }} />
                                 </p>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
@@ -203,7 +204,7 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
                                             <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${alt.isCorrect ? 'bg-emerald-500 text-white' : 'bg-slate-300 text-white'}`}>
                                                 {String.fromCharCode(65 + idx)}
                                             </div>
-                                            <div dangerouslySetInnerHTML={{ __html: alt.text }} />
+                                            <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(alt.text) }} />
                                         </div>
                                     ))}
                                 </div>
@@ -212,7 +213,7 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
                                     <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
                                         <AlertCircle size={12} /> Justificativa Pedagógica
                                     </h4>
-                                    <div className="text-sm text-slate-600 leading-relaxed italic" dangerouslySetInnerHTML={{ __html: item.correctAnswerJustification }} />
+                                    <div className="text-sm text-slate-600 leading-relaxed italic" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.correctAnswerJustification || '') }} />
                                 </div>
 
                                 {/* DALL-E Integration */}
