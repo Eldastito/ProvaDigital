@@ -2523,17 +2523,25 @@ export const useAppStore = create<AppStore>((set, get) => ({
     sealExam: async (examId: string) => {
         try {
             // 1. Fetch complete exam data
-            const { data: exam } = await supabase.from('exams').select('items_config, items(*)').eq('id', examId).single();
+            // Removed items(*) as it might fail if relationship not defined, and we use hybrid fetch anyway
+            const { data: exam, error: fetchErr } = await supabase.from('exams').select('items_config').eq('id', examId).single();
+            if (fetchErr) throw fetchErr;
 
-            // Fix: Hybrid fetch
-            let items = exam?.items;
-            if ((!items || items.length === 0) && exam?.items_config) {
-                const itemIds = exam.items_config.map((ic: any) => ic.itemId);
-                const { data: fetchedItems } = await supabase.from('items').select('*').in('id', itemIds);
-                items = fetchedItems;
+            // Hybrid fetch (Get items from items_config if not pre-joined)
+            let items: any[] = [];
+            if (exam?.items_config) {
+                const itemIds = Array.isArray(exam.items_config)
+                    ? exam.items_config.map((ic: any) => typeof ic === 'string' ? ic : ic.itemId)
+                    : [];
+
+                if (itemIds.length > 0) {
+                    const { data: fetchedItems, error: itemsErr } = await supabase.from('items').select('*').in('id', itemIds);
+                    if (itemsErr) throw itemsErr;
+                    items = fetchedItems || [];
+                }
             }
 
-            if (!items || items.length === 0) throw new Error("Items not found");
+            if (!items || items.length === 0) throw new Error("Questões não encontradas para criptografia.");
 
             // 2. Generate Key
             const { cryptoService } = await import('../services/cryptoService');
@@ -2543,8 +2551,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
             // 3. Encrypt Blob
             const payload = await cryptoService.encryptData(items, sessionKey);
 
-            // 4. PKI: Wrap Key for Allocated Students
-            const { data: allocations } = await supabase.from('exam_allocations').select('student_id').eq('exam_id', examId);
+            // 4. PKI: Wrap Key for Allocated Students (Corrected table name to exam_registrations)
+            const { data: allocations, error: allocErr } = await supabase.from('exam_registrations').select('student_id').eq('exam_id', examId);
+            if (allocErr) console.warn("Erro ao buscar alocações (Ignorado):", allocErr);
 
             if (allocations && allocations.length > 0) {
                 const studentIds = allocations.map(a => a.student_id);
@@ -2583,7 +2592,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
             // 6. Save Sealed Exam Blob
             const { error: updateError } = await supabase.from('exams').update({
                 description: `[SECURE_PAYLOAD]${JSON.stringify(payload)}`,
-                status: 'published'
+                status: ExamStatus.PUBLISHED // Corrected to enum
             }).eq('id', examId);
             if (updateError) throw updateError;
 

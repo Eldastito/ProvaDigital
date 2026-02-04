@@ -202,38 +202,40 @@ Critérios:
 }
 `,
     REVIEW_EXAM: (itemsJson: string) => `
-        Você é um Auditor Sênior de Avaliações Educacionais em Larga Escala. 
-        Sua tarefa é realizar uma REVISÃO GERAL(8 Estágios) em uma prova completa.
-        
-        ITENS DA PROVA(JSON):
-        ${itemsJson}
-        
-        ESTÁGIOS DE AUDITORIA:
-1. ESTRUTURAL: Verifique duplicação de temas, contradições entre questões e clareza técnica.
-        2. BNCC / SAEB: Valide se a distribuição de habilidades está equilibrada.
-        3. ACESSIBILIDADE: Identifique barreiras para PCD / Neurodivergentes(TEA / TDAH / VISUAL).
-        4. TEXTUAIS: Melhore a fluidez, gramática e elimine ambiguidades(Polimento).
-        5. ANTI - COLA: Sugira variações para itens críticos.
-        6. TRI: Reequilibre os parâmetros de dificuldade(b), discriminação(a) e acerto casual(c).
+    Você é um Auditor Sênior de Avaliações Educacionais em Larga Escala. 
+    Sua tarefa é realizar uma REVISÃO GERAL (6 Estágios) em uma prova completa.
+    
+    ITENS DA PROVA(JSON):
+    ${itemsJson}
+    
+    ESTÁGIOS DE AUDITORIA:
+    1. ESTRUTURAL: Verifique duplicação de temas, contradições entre questões e clareza técnica.
+    2. PEDAGOGICO: Valide se a distribuição de habilidades e BNCC está equilibrada.
+    3. ACESSIBILIDADE: Identifique barreiras para PCD / Neurodivergentes(TEA / TDAH / VISUAL).
+    4. TEXTUAL: Melhore a fluidez, gramática e elimine ambiguidades (Polimento).
+    5. ANTICHEAT: Sugira variações para itens críticos.
+    6. TRI: Analise o equilíbrio dos parâmetros de dificuldade(b), discriminação(a) e acerto casual(c).
 
     RETORNO:
-- Relatório de cada estágio.
-        - Versão "Polida" dos itens(se houver melhoria textual).
-        - Sugestões de variantes.
+    - Relatório de cada estágio (status e feedback).
+    - Versão "Polida" dos itens (se houver melhoria textual significativa).
+    - Sugestões de variantes para itens frágeis.
         
-        Retorne em JSON:
-{
-    "stages": {
-        "structural": { "status": "OK" | "WARN", "feedback": "..." },
-        "pedagogical": { "status": "OK" | "WARN", "feedback": "..." },
-        "accessibility": { "status": "OK" | "WARN", "feedback": "..." },
-        "antiCheat": { "status": "OK" | "WARN", "feedback": "..." }
-    },
-    "overallScore": number,
+    Retorne OBRIGATORIAMENTE em JSON puro neste formato:
+    {
+        "stages": {
+            "structural": { "status": "OK" | "WARN", "feedback": "texto" },
+            "pedagogical": { "status": "OK" | "WARN", "feedback": "texto" },
+            "accessibility": { "status": "OK" | "WARN", "feedback": "texto" },
+            "textual": { "status": "OK" | "WARN", "feedback": "texto" },
+            "anticheat": { "status": "OK" | "WARN", "feedback": "texto" },
+            "tri": { "status": "OK" | "WARN", "feedback": "texto" }
+        },
+        "overallScore": number,
         "polishedItems": any[],
-            "variantsSuggested": any[]
-}
-`,
+        "variantsSuggested": any[]
+    }
+    `,
     GENERATE_SYLLABUS: (subject: string, grade: string, topic: string) => `
         Atue como Coordenador Pedagógico alinhado à BNCC(Brasil).
         Crie um Plano de Aula(Syllabus) estruturado para:
@@ -1057,13 +1059,17 @@ export const reviewExamAdvanced = async (items: any[]): Promise<any> => {
                     structural: { type: Type.OBJECT, properties: { status: { type: Type.STRING }, feedback: { type: Type.STRING } } },
                     pedagogical: { type: Type.OBJECT, properties: { status: { type: Type.STRING }, feedback: { type: Type.STRING } } },
                     accessibility: { type: Type.OBJECT, properties: { status: { type: Type.STRING }, feedback: { type: Type.STRING } } },
-                    antiCheat: { type: Type.OBJECT, properties: { status: { type: Type.STRING }, feedback: { type: Type.STRING } } }
-                }
+                    textual: { type: Type.OBJECT, properties: { status: { type: Type.STRING }, feedback: { type: Type.STRING } } },
+                    anticheat: { type: Type.OBJECT, properties: { status: { type: Type.STRING }, feedback: { type: Type.STRING } } },
+                    tri: { type: Type.OBJECT, properties: { status: { type: Type.STRING }, feedback: { type: Type.STRING } } }
+                },
+                required: ["structural", "pedagogical", "accessibility", "textual", "anticheat", "tri"]
             },
             overallScore: { type: Type.NUMBER },
             polishedItems: { type: Type.ARRAY, items: { type: Type.OBJECT } },
             variantsSuggested: { type: Type.ARRAY, items: { type: Type.OBJECT } }
-        }
+        },
+        required: ["stages", "overallScore"]
     };
 
     const fallback = {
@@ -1071,7 +1077,9 @@ export const reviewExamAdvanced = async (items: any[]): Promise<any> => {
             structural: { status: "OK", feedback: "Simulação offline: Estrutura parece consistente." },
             pedagogical: { status: "OK", feedback: "Simulação offline: Alinhamento BNCC ok." },
             accessibility: { status: "OK", feedback: "Simulação offline: Sem barreiras detectadas." },
-            antiCheat: { status: "OK", feedback: "Simulação offline: Baixo risco de cola." }
+            textual: { status: "OK", feedback: "Simulação offline: Texto revisado." },
+            anticheat: { status: "OK", feedback: "Simulação offline: Baixo risco de cola." },
+            tri: { status: "OK", feedback: "Simulação offline: Parâmetros equilibrados." }
         },
         overallScore: 90,
         polishedItems: items,

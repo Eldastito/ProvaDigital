@@ -40,6 +40,7 @@ export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ 
 
     const [localItems, setLocalItems] = useState<Item[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [errorStage, setErrorStage] = useState<{ id: string; message: string } | null>(null);
 
     // Fetch items if examId is provided and no items passed
     useEffect(() => {
@@ -108,6 +109,7 @@ export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ 
         try {
             const result = await reviewExamAdvanced(effectiveItems);
             setReviewResult(result);
+            setErrorStage(null);
 
             // Mapping AI Result to Stages
             // We still animate sequentially for UX, but the RESULT IS REAL.
@@ -130,30 +132,29 @@ export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ 
             setCurrentStageIndex(2);
             updateStageStatus('accessibility', 'RUNNING');
             await new Promise(r => setTimeout(r, 500));
-            // Review returns "OK" or "WARN" usually. Map WARN to ERROR for visibility if rigorous, or just COMPLETED if acceptable.
-            // Let's use ERROR for 'WARN' to highlight it as an "Alert" state in UI (Yellow/Red)
-            const accessStatus = result.stages?.accessibility?.status === 'OK' ? 'COMPLETED' : 'ERROR';
+            const accessStatus = (result.stages?.accessibility?.status === 'OK' || result.stages?.accessibility?.status === 'SUCCESS') ? 'COMPLETED' : 'ERROR';
             updateStageStatus('accessibility', accessStatus);
 
             // 4. Textual (Polishing)
             setCurrentStageIndex(3);
             updateStageStatus('textual', 'RUNNING');
-            // Check if polishedItems differs from original
             await new Promise(r => setTimeout(r, 500));
-            updateStageStatus('textual', 'COMPLETED');
+            const textualStatus = result.stages?.textual?.status === 'OK' ? 'COMPLETED' : 'ERROR';
+            updateStageStatus('textual', textualStatus);
 
             // 5. Anti-Cheat
             setCurrentStageIndex(4);
             updateStageStatus('anticheat', 'RUNNING');
             await new Promise(r => setTimeout(r, 500));
-            const cheatStatus = result.stages?.antiCheat?.status === 'OK' ? 'COMPLETED' : 'ERROR';
+            const cheatStatus = result.stages?.anticheat?.status === 'OK' ? 'COMPLETED' : 'ERROR';
             updateStageStatus('anticheat', cheatStatus);
 
             // 6. TRI (Simulation)
             setCurrentStageIndex(5);
             updateStageStatus('tri', 'RUNNING');
             await new Promise(r => setTimeout(r, 500));
-            updateStageStatus('tri', 'COMPLETED');
+            const triStatus = result.stages?.tri?.status === 'OK' ? 'COMPLETED' : 'ERROR';
+            updateStageStatus('tri', triStatus);
 
             // 7. Snapshot
             setCurrentStageIndex(6);
@@ -166,9 +167,13 @@ export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ 
             updateStageStatus('approval', 'COMPLETED');
 
             setIsFinished(true);
-        } catch (e) {
+        } catch (e: any) {
             console.error("Review failed", e);
-            updateStageStatus(stages[currentStageIndex].id, 'ERROR');
+            const stageId = stages[currentStageIndex]?.id || 'structural';
+            updateStageStatus(stageId, 'ERROR');
+            setErrorStage({ id: stageId, message: e.message || "Erro desconhecido na IA" });
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -225,10 +230,18 @@ export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ 
                                             stage.status === 'RUNNING' ? 'Analisando...' :
                                                 stage.status === 'COMPLETED' ? 'Sucesso' : 'Erro'}
                                     </p>
-                                    {stage.status === 'ERROR' && reviewResult?.stages?.[stage.id]?.feedback && (
-                                        <p className="text-[10px] text-rose-300 mt-2 bg-rose-500/10 p-1 rounded border border-rose-500/20 max-w-[200px]">
-                                            {reviewResult.stages[stage.id].feedback}
-                                        </p>
+                                    {stage.status === 'ERROR' && (
+                                        <div className="mt-2 p-1.5 bg-rose-500/10 rounded border border-rose-500/20 max-w-[280px]">
+                                            <p className="text-[10px] text-rose-300 break-words">
+                                                {reviewResult?.stages?.[stage.id]?.feedback || (errorStage?.id === stage.id ? errorStage.message : "Inconsistência detectada pela IA.")}
+                                            </p>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); startReview(); }}
+                                                className="mt-2 px-2 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-[9px] text-rose-200 rounded transition flex items-center gap-1"
+                                            >
+                                                Tentar Novamente
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
                             </div>
