@@ -454,11 +454,62 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         }
     };
 
+    // --- FINAL LOGIC & HELPERS BEFORE RENDER ---
+    const isLastQuestion = currentQuestionIndex === activeExamItems.length - 1;
+    const currentItem = activeExamItems[currentQuestionIndex];
+
+    const getThemeClasses = () => {
+        if (a11y.theme === 'high-contrast') return 'theme-high-contrast font-bold';
+        if (a11y.theme === 'dark') return 'bg-slate-900 text-white';
+        if (a11y.theme === 'sepia') return 'theme-sepia';
+        return 'bg-slate-50 text-slate-900';
+    };
+
+    const getFontClass = () => {
+        if (a11y.fontType === 'dyslexic') return 'font-dyslexic';
+        if (a11y.fontType === 'serif') return 'font-serif';
+        return 'font-sans';
+    };
+
+    const containerStyle = {
+        '--runner-font-scale': `${a11y.fontSize}%`,
+        lineHeight: a11y.lineHeight
+    } as React.CSSProperties;
+
+    const handlePreventClipboard = (e: React.ClipboardEvent) => {
+        e.preventDefault();
+        alert('Ação bloqueada por segurança.');
+    };
+
+    // --- ACCESSIBILITY LOGIC (TTS) hook must be before any return ---
+    useEffect(() => {
+        if (!a11y.textToSpeech) {
+            window.speechSynthesis.cancel();
+            return;
+        }
+
+        const speak = (text: string) => {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'pt-BR';
+            utterance.rate = a11y.readingSpeed || 1.0;
+            window.speechSynthesis.speak(utterance);
+        };
+
+        if (currentItem) {
+            const cleanText = (html: string) => {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                return doc.body.textContent || "";
+            };
+            const textToRead = `Questão ${currentQuestionIndex + 1}. ${cleanText(currentItem.statement)}. Opções: ` +
+                currentItem.alternatives.map((a, i) => `Opção ${String.fromCharCode(65 + i)}: ${cleanText(a.text)}`).join('. ');
+            speak(textToRead);
+        }
+    }, [currentQuestionIndex, a11y.textToSpeech, a11y.readingSpeed, currentItem]);
+
+    // --- GUARDS / RENDER MODALS ---
     if (!exam) return <div className="p-8 text-center">Prova não encontrada.</div>;
 
-    if (!exam) return <div className="p-8 text-center">Prova não encontrada.</div>;
-
-    // --- ADAPTIVE INTRO MODAL ---
     if (isAdaptive && showAdaptiveIntro && !isRestored) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-95 text-white p-4">
@@ -509,7 +560,6 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         );
     }
 
-    // --- SECURITY GATE UI ---
     if (!securityCheckPassed && !isRestored) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-95 text-white p-4">
@@ -532,7 +582,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                             📸 Permitir e Iniciar Prova
                         </button>
                         <button
-                            onClick={handleSecurityCheck} // Will trigger deny flow if they cancel the browser prompt
+                            onClick={handleSecurityCheck}
                             className="text-xs text-gray-500 hover:text-gray-300 underline mt-2"
                         >
                             Prefiro não compartilhar (Assumir riscos)
@@ -543,7 +593,6 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         );
     }
 
-    // Adaptive: Wait for first item selection
     if (isAdaptive && activeExamItems.length === 0) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-slate-50">
@@ -554,10 +603,6 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         );
     }
 
-    const currentItem = activeExamItems[currentQuestionIndex];
-    const isLastQuestion = currentQuestionIndex === activeExamItems.length - 1;
-
-    // --- LOADING / EMPTY STATE GUARDS ---
     if (state.items.length === 0) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-slate-50">
@@ -568,7 +613,6 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         );
     }
 
-    // Classic empty check
     if (!isAdaptive && activeExamItems.length === 0) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-slate-50">
@@ -586,56 +630,6 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
             </div>
         );
     }
-    // --- ACCESSIBILITY LOGIC (TTS) ---
-    useEffect(() => {
-        if (!a11y.textToSpeech) {
-            window.speechSynthesis.cancel();
-            return;
-        }
-
-        const speak = (text: string) => {
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'pt-BR';
-            utterance.rate = a11y.readingSpeed || 1.0;
-            window.speechSynthesis.speak(utterance);
-        };
-
-        const currentItem = activeExamItems[currentQuestionIndex];
-        if (currentItem) {
-            const cleanText = (html: string) => {
-                const doc = new DOMParser().parseFromString(html, 'text/html');
-                return doc.body.textContent || "";
-            };
-            const textToRead = `Questão ${currentQuestionIndex + 1}. ${cleanText(currentItem.statement)}. Opções: ` +
-                currentItem.alternatives.map((a, i) => `Opção ${String.fromCharCode(65 + i)}: ${cleanText(a.text)}`).join('. ');
-            speak(textToRead);
-        }
-    }, [currentQuestionIndex, a11y.textToSpeech, a11y.readingSpeed, activeExamItems]);
-
-    // --- HELPERS ---
-    const getThemeClasses = () => {
-        if (a11y.theme === 'high-contrast') return 'theme-high-contrast font-bold';
-        if (a11y.theme === 'dark') return 'bg-slate-900 text-white';
-        if (a11y.theme === 'sepia') return 'theme-sepia';
-        return 'bg-slate-50 text-slate-900';
-    };
-
-    const getFontClass = () => {
-        if (a11y.fontType === 'dyslexic') return 'font-dyslexic';
-        if (a11y.fontType === 'serif') return 'font-serif';
-        return 'font-sans';
-    };
-
-    const containerStyle = {
-        '--runner-font-scale': `${a11y.fontSize}%`,
-        lineHeight: a11y.lineHeight
-    } as React.CSSProperties;
-
-    const handlePreventClipboard = (e: React.ClipboardEvent) => {
-        e.preventDefault();
-        alert('Ação bloqueada por segurança.');
-    };
 
     return (
         <div
