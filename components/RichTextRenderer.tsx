@@ -98,7 +98,7 @@ export const RichTextRenderer = ({ content, className = '' }: RichTextRendererPr
                 .replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;");
-            return pushPlaceholder(`<code class="bg-slate-100 text-rose-600 px-1.5 py-0.5 rounded font-mono text-sm border border-slate-200 inline-block align-middle">${escaped}</code>`);
+            return pushPlaceholder(`<code class="bg-slate-100 dark:bg-slate-800 text-rose-600 dark:text-rose-400 px-1.5 py-0.5 rounded font-mono text-sm border border-slate-200 dark:border-slate-700 inline-block align-middle">${escaped}</code>`);
         });
 
         // 3. Extract Math Blocks ($$ ... $$)
@@ -147,7 +147,7 @@ export const RichTextRenderer = ({ content, className = '' }: RichTextRendererPr
 
         // Tamanho
         processed = processed.replace(/\[big\]([\s\S]*?)\[\/big\]/g, '<span class="text-xl align-middle">$1</span>');
-        processed = processed.replace(/\[small\]([\s\S]*?)\[\/small\]/g, '<span class="text-xs text-slate-500 align-middle">$1</span>');
+        processed = processed.replace(/\[small\]([\s\S]*?)\[\/small\]/g, '<span class="text-xs opacity-70 align-middle">$1</span>');
 
         // Estilo Extra
         processed = processed.replace(/\[red\]([\s\S]*?)\[\/red\]/g, '<span class="text-rose-600 font-bold">$1</span>');
@@ -196,7 +196,7 @@ export const RichTextRenderer = ({ content, className = '' }: RichTextRendererPr
 
     return (
         <div
-            className={`rich-content text-slate-800 leading-relaxed text-base whitespace-pre-wrap break-words ${className}`}
+            className={`rich-content leading-relaxed text-base whitespace-pre-wrap break-words ${className}`}
             dangerouslySetInnerHTML={{ __html: sanitizedContent }}
             style={{ wordBreak: 'break-word' }}
         />
