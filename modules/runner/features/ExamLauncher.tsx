@@ -34,12 +34,12 @@ export const ExamLauncher = () => {
         try {
             const variantId = await getRecommendedVariant(currentUser.id, exam.id);
             const url = variantId
-                ? `/online-exam/${exam.id}?variantId=${variantId}`
-                : `/online-exam/${exam.id}`;
+                ? `/online-exam/run/${exam.id}?variantId=${variantId}`
+                : `/online-exam/run/${exam.id}`;
             navigate(url);
         } catch (e) {
             console.error("Error finding recommended variant:", e);
-            navigate(`/online-exam/${exam.id}`);
+            navigate(`/online-exam/run/${exam.id}`);
         }
     };
 
