@@ -1066,8 +1066,46 @@ export const reviewExamAdvanced = async (items: any[]): Promise<any> => {
                 required: ["structural", "pedagogical", "accessibility", "textual", "anticheat", "tri"]
             },
             overallScore: { type: Type.NUMBER },
-            polishedItems: { type: Type.ARRAY, items: { type: Type.OBJECT } },
-            variantsSuggested: { type: Type.ARRAY, items: { type: Type.OBJECT } }
+            polishedItems: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        id: { type: Type.STRING },
+                        statement: { type: Type.STRING },
+                        alternatives: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    text: { type: Type.STRING },
+                                    isCorrect: { type: Type.BOOLEAN }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            variantsSuggested: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        originalItemId: { type: Type.STRING },
+                        newStatement: { type: Type.STRING },
+                        newAlternatives: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    text: { type: Type.STRING },
+                                    isCorrect: { type: Type.BOOLEAN }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         },
         required: ["stages", "overallScore"]
     };
