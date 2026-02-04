@@ -13,7 +13,7 @@ if (!apiKey) {
 const ai = new GoogleGenAI({ apiKey });
 
 // Testing BOTH models to see which one works
-const modelsToTest = ['gemini-1.5-flash', 'gemini-1.5-flash-001', 'gemini-pro', 'gemini-1.0-pro'];
+const modelsToTest = ['gemini-2.5-flash', 'gemini-3-flash-preview'];
 
 async function test() {
     console.log("🚀 Testing Models...");

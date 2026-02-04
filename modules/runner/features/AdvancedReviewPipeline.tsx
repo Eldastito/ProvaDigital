@@ -42,6 +42,14 @@ export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ 
     const [isLoading, setIsLoading] = useState(false);
     const [errorStage, setErrorStage] = useState<{ id: string; message: string } | null>(null);
 
+    // Correções automáticas
+    const [correctionsAvailable, setCorrectionsAvailable] = useState(false);
+    const [correctionsPreview, setCorrectionsPreview] = useState<{
+        polished: number;
+        variants: number;
+        removed: number;
+    }>({ polished: 0, variants: 0, removed: 0 });
+
     // Fetch items if examId is provided and no items passed
     useEffect(() => {
         const fetchItems = async () => {
@@ -111,6 +119,25 @@ export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ 
             setReviewResult(result);
             setErrorStage(null);
 
+            // Calcular correções disponíveis
+            if (result.polishedItems || result.variantsSuggested || result.itemsToRemove) {
+                const polishedCount = result.polishedItems?.filter((item: any) => {
+                    const original = effectiveItems.find(i => i.id === item.id);
+                    return original && (
+                        item.statement !== original.statement ||
+                        JSON.stringify(item.alternatives) !== JSON.stringify(original.alternatives)
+                    );
+                }).length || 0;
+
+                setCorrectionsPreview({
+                    polished: polishedCount,
+                    variants: result.variantsSuggested?.length || 0,
+                    removed: result.itemsToRemove?.length || 0
+                });
+
+                setCorrectionsAvailable(polishedCount > 0 || result.variantsSuggested?.length > 0 || result.itemsToRemove?.length > 0);
+            }
+
             // Mapping AI Result to Stages
             // We still animate sequentially for UX, but the RESULT IS REAL.
 
@@ -179,6 +206,44 @@ export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ 
 
     const updateStageStatus = (id: string, status: ReviewStage['status']) => {
         setStages(prev => prev.map(s => s.id === id ? { ...s, status } : s));
+    };
+
+    const applyCorrections = () => {
+        if (!reviewResult) return;
+
+        let correctedItems = [...effectiveItems];
+
+        // 1. Aplicar polishedItems (substituir versões melhoradas)
+        if (reviewResult.polishedItems) {
+            correctedItems = correctedItems.map(item => {
+                const polished = reviewResult.polishedItems.find((p: any) => p.id === item.id);
+                return polished ? { ...item, ...polished } : item;
+            });
+        }
+
+        // 2. Remover duplicatas
+        if (reviewResult.itemsToRemove && reviewResult.itemsToRemove.length > 0) {
+            correctedItems = correctedItems.filter(item =>
+                !reviewResult.itemsToRemove.includes(item.id)
+            );
+        }
+
+        // 3. Adicionar variantes sugeridas
+        if (reviewResult.variantsSuggested && reviewResult.variantsSuggested.length > 0) {
+            const newVariants = reviewResult.variantsSuggested.map((v: any) => {
+                const original = effectiveItems.find(i => i.id === v.originalItemId);
+                return {
+                    ...original,
+                    id: `variant-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    statement: v.newStatement,
+                    alternatives: v.newAlternatives,
+                    origin: 'AI_VARIANT' as any
+                };
+            });
+            correctedItems = [...correctedItems, ...newVariants];
+        }
+
+        onComplete && onComplete(correctedItems, reviewResult);
     };
 
     useEffect(() => {
@@ -255,14 +320,28 @@ export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ 
 
                 {/* Footer Actions */}
                 <div className="mt-12 flex justify-between items-center p-6 bg-slate-800/80 rounded-2xl border border-slate-700 backdrop-blur-md">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-slate-400">
-                            <FileText size={20} />
+                    <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-slate-400">
+                                <FileText size={20} />
+                            </div>
+                            <div>
+                                <p className="text-xs text-slate-400">Total de Itens</p>
+                                <p className="font-bold">{effectiveItems.length} Questões</p>
+                            </div>
                         </div>
-                        <div>
-                            <p className="text-xs text-slate-400">Total de Itens</p>
-                            <p className="font-bold">{effectiveItems.length} Questões</p>
-                        </div>
+
+                        {correctionsAvailable && (
+                            <div className="flex items-center gap-3 px-4 py-2 bg-brand-primary/10 rounded-xl border border-brand-primary/30">
+                                <Sparkles size={20} className="text-brand-primary" />
+                                <div>
+                                    <p className="text-xs text-brand-primary font-bold">Correções Disponíveis</p>
+                                    <p className="text-[10px] text-slate-400">
+                                        {correctionsPreview.polished} melhoradas • {correctionsPreview.variants} variantes • {correctionsPreview.removed} removidas
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex gap-4">
@@ -272,13 +351,24 @@ export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ 
                         >
                             Cancelar
                         </button>
+
+                        {correctionsAvailable && isFinished && (
+                            <button
+                                onClick={applyCorrections}
+                                className="px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition shadow-lg bg-brand-primary text-white hover:bg-brand-dark"
+                            >
+                                <Sparkles size={18} />
+                                Aplicar Correções
+                            </button>
+                        )}
+
                         <button
                             disabled={!isFinished}
-                            onClick={() => onComplete && onComplete(reviewResult?.polishedItems || effectiveItems, reviewResult)}
-                            className={`px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition shadow-lg ${isFinished ? 'bg-brand-primary text-white hover:bg-brand-dark' : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                            onClick={() => onComplete && onComplete(effectiveItems, reviewResult)}
+                            className={`px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition shadow-lg ${isFinished ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-slate-700 text-slate-500 cursor-not-allowed'
                                 }`}
                         >
-                            {isFinished ? 'Concluir Revisão' : 'Processando...'} <ChevronRight size={18} />
+                            {isFinished ? 'Manter Original' : 'Processando...'} <ChevronRight size={18} />
                         </button>
                     </div>
                 </div>

@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { QuestionType, DifficultyLevel, AssessmentType, VocationalProfile, BloomTaxonomy, CognitiveAxis } from "../types";
 
 // --- Configuration ---
-const DEFAULT_MODEL = 'gemini-1.5-flash';
+const DEFAULT_MODEL = 'gemini-2.5-flash';
 
 // --- Prompts ---
 const PROMPTS = {
@@ -203,23 +203,46 @@ Critérios:
 `,
     REVIEW_EXAM: (itemsJson: string) => `
     Você é um Auditor Sênior de Avaliações Educacionais em Larga Escala. 
-    Sua tarefa é realizar uma REVISÃO GERAL (6 Estágios) em uma prova completa.
+    Sua tarefa é realizar uma REVISÃO GERAL (6 Estágios) em uma prova completa E GERAR VERSÕES CORRIGIDAS dos itens problemáticos.
     
     ITENS DA PROVA(JSON):
     ${itemsJson}
     
     ESTÁGIOS DE AUDITORIA:
     1. ESTRUTURAL: Verifique duplicação de temas, contradições entre questões e clareza técnica.
+       - Se encontrar duplicatas EXATAS (mesmo enunciado e valores), identifique o ID para remoção
+       - Se encontrar questões muito similares, gere variantes com valores/contextos diferentes
+    
     2. PEDAGOGICO: Valide se a distribuição de habilidades e BNCC está equilibrada.
-    3. ACESSIBILIDADE: Identifique barreiras para PCD / Neurodivergentes(TEA / TDAH / VISUAL).
+    
+    3. ACESSIBILIDADE: Identifique barreiras para PCD/Neurodivergentes(TEA/TDAH/VISUAL).
+       - Para CADA item, avalie se pode ser marcado como 'isAccessible: true'
+       - Se não houver barreiras significativas, marque como acessível
+       - Se houver barreiras, forneça 'accessibilityInstructions' com adaptações
+    
     4. TEXTUAL: Melhore a fluidez, gramática e elimine ambiguidades (Polimento).
+       - GERE VERSÕES MELHORADAS de TODOS os enunciados que precisam de correção
+       - Mantenha o sentido original, apenas melhore a clareza
+    
     5. ANTICHEAT: Sugira variações para itens críticos.
+       - Para itens com alto risco de cola (muito similares), GERE VARIANTES completas
+       - Variantes devem ter mesma dificuldade mas contextos/valores diferentes
+    
     6. TRI: Analise o equilíbrio dos parâmetros de dificuldade(b), discriminação(a) e acerto casual(c).
 
-    RETORNO:
-    - Relatório de cada estágio (status e feedback).
-    - Versão "Polida" dos itens (se houver melhoria textual significativa).
-    - Sugestões de variantes para itens frágeis.
+    RETORNO OBRIGATÓRIO:
+    - Relatório de cada estágio (status: "OK" ou "WARN", feedback)
+    - **polishedItems**: ARRAY com TODOS os itens da prova
+      - Mantenha o mesmo 'id' do item original
+      - Se o item precisa de melhorias textuais, atualize 'statement' e/ou 'alternatives'
+      - Se não precisa melhorias, retorne o item original sem alterações
+      - Adicione/atualize 'isAccessible' (true/false) para TODOS os itens
+      - Adicione 'accessibilityInstructions' quando isAccessible for true ou houver adaptações
+    - **variantsSuggested**: ARRAY com variantes para itens problemáticos (anti-cola)
+      - Inclua 'originalItemId', 'newStatement', 'newAlternatives'
+      - Gere variantes apenas para itens com risco de cola
+    - **itemsToRemove**: ARRAY com IDs de itens duplicados EXATOS que devem ser removidos
+      - Inclua apenas duplicatas exatas, não itens similares
         
     Retorne OBRIGATORIAMENTE em JSON puro neste formato:
     {
@@ -232,8 +255,9 @@ Critérios:
             "tri": { "status": "OK" | "WARN", "feedback": "texto" }
         },
         "overallScore": number,
-        "polishedItems": any[],
-        "variantsSuggested": any[]
+        "polishedItems": [...],
+        "variantsSuggested": [...],
+        "itemsToRemove": [...]
     }
     `,
     GENERATE_SYLLABUS: (subject: string, grade: string, topic: string) => `
@@ -830,7 +854,7 @@ export async function extractItemFromImage(base64Image: string): Promise<Generat
         ];
 
         const response = await ai.models.generateContent({
-            model: "gemini-1.5-flash",
+            model: "gemini-2.5-flash",
             contents: contents,
             config: { responseMimeType: "application/json" }
         });
@@ -1111,9 +1135,13 @@ export const reviewExamAdvanced = async (items: any[]): Promise<any> => {
                     },
                     required: ["originalItemId", "newStatement", "newAlternatives"]
                 }
+            },
+            itemsToRemove: {
+                type: "array",
+                items: { type: "string" }
             }
         },
-        required: ["stages", "overallScore", "polishedItems", "variantsSuggested"]
+        required: ["stages", "overallScore", "polishedItems", "variantsSuggested", "itemsToRemove"]
     };
 
     const fallback = {
@@ -1127,7 +1155,8 @@ export const reviewExamAdvanced = async (items: any[]): Promise<any> => {
         },
         overallScore: 90,
         polishedItems: items,
-        variantsSuggested: []
+        variantsSuggested: [],
+        itemsToRemove: []
     };
 
     return callGeminiAPI<any>(prompt, schema, fallback);
