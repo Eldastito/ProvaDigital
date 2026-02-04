@@ -473,7 +473,8 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
 
     const containerStyle = {
         '--runner-font-scale': `${a11y.fontSize}%`,
-        lineHeight: a11y.lineHeight
+        lineHeight: a11y.lineHeight,
+        letterSpacing: `${a11y.letterSpacing}px`
     } as React.CSSProperties;
 
     const handlePreventClipboard = (e: React.ClipboardEvent) => {
@@ -633,16 +634,24 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
 
     return (
         <div
-            className={`min-h-screen transition-colors duration-300 ${getThemeClasses()} ${getFontClass()} runner-container flex flex-col select-none`}
+            className={`min-h-screen transition-colors duration-300 ${getThemeClasses()} ${getFontClass()} runner-container flex flex-col select-none relative`}
             style={containerStyle}
             onCopy={handlePreventClipboard}
             onPaste={handlePreventClipboard}
             onCut={handlePreventClipboard}
             onContextMenu={(e) => e.preventDefault()}
+            onMouseMove={(e) => {
+                if (!a11y.focusMode) return;
+                const root = e.currentTarget;
+                root.style.setProperty('--mouse-x', `${e.clientX}px`);
+                root.style.setProperty('--mouse-y', `${e.clientY}px`);
+            }}
         >
 
             {/* TOOLBAR (Floating) */}
-            <AccessibilityToolbar config={a11y} onChange={setA11y} />
+            <div className="no-zoom">
+                <AccessibilityToolbar config={a11y} onChange={setA11y} />
+            </div>
 
             {/* HEADER */}
             <header className={`px-6 py-4 flex justify-between items-center border-b ${a11y.theme === 'high-contrast' ? 'border-yellow-400' : 'border-slate-200 dark:border-slate-700'}`}>
@@ -660,8 +669,11 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                 {/* TIMER & CONTROLS */}
                 <div className="flex items-center gap-4">
                     {!a11y.hideTimer && (
-                        <div className={`flex items-center gap-2 font-mono text-lg font-bold px-3 py-1 rounded ${a11y.theme === 'high-contrast' ? 'border border-yellow-400' : 'bg-slate-200 dark:bg-slate-800'}`}>
-                            <Clock size={20} />
+                        <div className={`flex items-center gap-2 font-mono text-xl font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${timeLeft < 300
+                                ? 'timer-critical'
+                                : (a11y.theme === 'high-contrast' ? 'border-2 border-yellow-400' : 'bg-white/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700')
+                            }`}>
+                            <Clock size={22} className={timeLeft < 300 ? 'text-red-600' : 'text-brand-primary'} />
                             {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
                         </div>
                     )}
@@ -681,7 +693,11 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                     <DrawingCanvas
                         isActive={a11y.penMode !== 'none'}
                         mode={a11y.penMode}
-                        color={a11y.penColor}
+                        config={{
+                            penColor: a11y.penColor,
+                            markerColor: a11y.markerColor,
+                            strokeSize: a11y.strokeSize
+                        }}
                         questionId={currentItem?.id || 'default'}
                     />
 
@@ -831,18 +847,21 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                 </div>
             </footer >
 
-            {/* FOCUS MODE OVERLAY (Ruler) */}
-            {
-                a11y.focusMode && (
-                    <div className="fixed inset-0 pointer-events-none z-10 hidden md:block">
-                        {/* More transparent and leave a wider gap to ensure statement is visible */}
-                        <div className="absolute top-0 left-0 right-0 h-[35vh] bg-black/60 backdrop-blur-[2px]" />
-                        <div className="absolute bottom-0 left-0 right-0 h-[45vh] bg-black/60 backdrop-blur-[2px]" />
-                        <div className="absolute top-[35vh] left-0 right-0 h-1 bg-brand-primary/30" />
-                        <div className="absolute bottom-[45vh] left-0 right-0 h-1 bg-brand-primary/30" />
-                    </div>
-                )
-            }
+            {/* READING RULER (Focus Mode) - Follows mouse position */}
+            {a11y.focusMode && (
+                <div
+                    className="fixed inset-0 pointer-events-none z-40 hidden md:block"
+                    style={{
+                        background: `radial-gradient(circle 200px at var(--mouse-x, 50%) var(--mouse-y, 50%), transparent 0%, rgba(0,0,0,0.4) 80%)`
+                    }}
+                >
+                    {/* Horizontal Guide Bar */}
+                    <div
+                        className="absolute left-0 right-0 h-12 border-y-2 border-brand-primary/40 bg-brand-primary/5"
+                        style={{ top: 'calc(var(--mouse-y, 50%) - 24px)' }}
+                    />
+                </div>
+            )}
         </div >
     );
 };

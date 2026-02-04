@@ -61,6 +61,30 @@
   font-size: var(--runner-font-scale, 100%);
 }
 
+/* Evitar que o zoom afete a barra de opções */
+.no-zoom {
+  font-size: 16px !important;
+}
+
+/* Timer Crítico */
+.timer-critical {
+  color: #ef4444 !important;
+  /* text-red-500 */
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: .7;
+  }
+}
+
 /* Scale Tailwind classes relative to parent if needed, 
    but parent font-size: % already scales em and rem if we adjust html font-size
    Instead we will use a more surgical approach in the component.

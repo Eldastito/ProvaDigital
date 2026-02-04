@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Type, ZoomIn, ZoomOut, Eye, EyeOff, Sun, Moon, Volume2, Move, X, Clock, FileText, Eraser, MousePointer2 } from 'lucide-react';
+import { Settings, Type, ZoomIn, ZoomOut, Eye, EyeOff, Sun, Moon, Volume2, Move, X, Clock, FileText, Eraser, MousePointer2, PenTool, Highlighter, Palette } from 'lucide-react';
 import { AccessibilityConfig, FontType, ThemeType } from './types';
 
 interface AccessibilityToolbarProps {
@@ -184,39 +184,80 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                 {/* 6. Ferramentas de Estudo */}
                 <div className="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-4">
                     <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
-                        <Move size={14} /> Ferramentas de Estudo
+                        <PenTool size={14} /> Ferramentas de Desenho
                     </label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-4 gap-2">
                         <button
                             onClick={() => update('penMode', config.penMode === 'pen' ? 'none' : 'pen')}
-                            className={`p-2 text-xs rounded border flex flex-col items-center gap-1 ${config.penMode === 'pen' ? 'bg-blue-100 text-blue-700 border-blue-500' : 'bg-white border-slate-200'}`}
+                            className={`p-2 text-xs rounded border flex flex-col items-center gap-1 ${config.penMode === 'pen' ? 'bg-blue-100 text-blue-700 border-blue-500' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
+                            title="Caneta"
                         >
-                            <Move size={16} /> Caneta
+                            <PenTool size={16} />
+                            <span className="text-[10px]">Caneta</span>
+                        </button>
+                        <button
+                            onClick={() => update('penMode', config.penMode === 'highlighter' ? 'none' : 'highlighter')}
+                            className={`p-2 text-xs rounded border flex flex-col items-center gap-1 ${config.penMode === 'highlighter' ? 'bg-yellow-100 text-yellow-700 border-yellow-500' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
+                            title="Marca-texto"
+                        >
+                            <Highlighter size={16} />
+                            <span className="text-[10px]">Marca-t</span>
                         </button>
                         <button
                             onClick={() => update('penMode', config.penMode === 'eraser' ? 'none' : 'eraser')}
-                            className={`p-2 text-xs rounded border flex flex-col items-center gap-1 ${config.penMode === 'eraser' ? 'bg-pink-100 text-pink-700 border-pink-500' : 'bg-white border-slate-200'}`}
+                            className={`p-2 text-xs rounded border flex flex-col items-center gap-1 ${config.penMode === 'eraser' ? 'bg-pink-100 text-pink-700 border-pink-500' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
+                            title="Borracha"
                         >
-                            <EyeOff size={16} /> Borracha
+                            <Eraser size={16} />
+                            <span className="text-[10px]">Borrar</span>
                         </button>
                         <button
                             onClick={() => update('showScratchpad', !config.showScratchpad)}
-                            className={`p-2 text-xs rounded border flex flex-col items-center gap-1 ${config.showScratchpad ? 'bg-amber-100 text-amber-700 border-amber-500' : 'bg-white border-slate-200'}`}
+                            className={`p-2 text-xs rounded border flex flex-col items-center gap-1 ${config.showScratchpad ? 'bg-amber-100 text-amber-700 border-amber-500' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
+                            title="Rascunho"
                         >
-                            <FileText size={16} /> Rascunho
+                            <FileText size={16} />
+                            <span className="text-[10px]">Bloco</span>
                         </button>
                     </div>
 
-                    {config.penMode === 'pen' && (
-                        <div className="flex justify-between items-center bg-slate-50 p-2 rounded-lg">
-                            {['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#000000'].map(color => (
-                                <button
-                                    key={color}
-                                    onClick={() => update('penColor', color)}
-                                    className={`w-6 h-6 rounded-full border-2 ${config.penColor === color ? 'border-brand-primary scale-110' : 'border-transparent'}`}
-                                    style={{ backgroundColor: color }}
-                                />
-                            ))}
+                    {/* Controles de Cor Dinâmicos */}
+                    {(config.penMode === 'pen' || config.penMode === 'highlighter') && (
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                                <Palette size={10} /> Cor {config.penMode === 'pen' ? 'da Caneta' : 'do Marca-texto'}
+                            </label>
+                            <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-2 rounded-lg">
+                                {(config.penMode === 'pen'
+                                    ? ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#000000']
+                                    : ['#fef08a', '#bbf7d0', '#bfdbfe', '#fbcfe8', '#cbd5e1']
+                                ).map(color => (
+                                    <button
+                                        key={color}
+                                        onClick={() => update(config.penMode === 'pen' ? 'penColor' : 'markerColor', color)}
+                                        className={`w-7 h-7 rounded-full border-2 transition-transform ${(config.penMode === 'pen' ? config.penColor : config.markerColor) === color
+                                            ? 'border-brand-primary scale-110 shadow-sm'
+                                            : 'border-white dark:border-slate-700 hover:scale-105'
+                                            }`}
+                                        style={{ backgroundColor: color }}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Espessura do traço */}
+                    {config.penMode !== 'none' && config.penMode !== 'eraser' && (
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase">Espessura</label>
+                            <input
+                                type="range"
+                                min="1"
+                                max="10"
+                                value={config.strokeSize}
+                                onChange={(e) => update('strokeSize', parseInt(e.target.value))}
+                                className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                            />
                         </div>
                     )}
                 </div>

@@ -1,13 +1,17 @@
 import React, { useRef, useEffect, useState } from 'react';
 
 interface DrawingCanvasProps {
-    mode: 'none' | 'pen' | 'eraser';
-    color: string;
+    mode: 'none' | 'pen' | 'highlighter' | 'eraser';
+    config: {
+        penColor: string;
+        markerColor: string;
+        strokeSize: number;
+    };
     isActive: boolean;
     questionId: string;
 }
 
-export const DrawingCanvas = ({ mode, color, isActive, questionId }: DrawingCanvasProps) => {
+export const DrawingCanvas = ({ mode, config, isActive, questionId }: DrawingCanvasProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const contextRef = useRef<CanvasRenderingContext2D | null>(null);
@@ -26,8 +30,6 @@ export const DrawingCanvas = ({ mode, color, isActive, questionId }: DrawingCanv
             context.scale(window.devicePixelRatio, window.devicePixelRatio);
             context.lineCap = 'round';
             context.lineJoin = 'round';
-            context.lineWidth = mode === 'eraser' ? 20 : 3;
-            context.strokeStyle = mode === 'eraser' ? '#ffffff' : color;
             contextRef.current = context;
         }
 
@@ -44,15 +46,15 @@ export const DrawingCanvas = ({ mode, color, isActive, questionId }: DrawingCanv
 
     useEffect(() => {
         if (contextRef.current) {
-            contextRef.current.strokeStyle = mode === 'eraser' ? '#ffffff' : color;
-            contextRef.current.lineWidth = mode === 'eraser' ? 20 : 3;
-            contextRef.current.globalCompositeOperation = mode === 'eraser' ? 'destination-out' : 'source-over';
+            const isEraser = mode === 'eraser';
+            const isMarker = mode === 'highlighter';
 
-            // If eraser, we need a transparent background to actually "erase" 
-            // to what's beneath. But since this is an overlay, 
-            // destination-out is exactly what we want.
+            contextRef.current.strokeStyle = isEraser ? '#ffffff' : (isMarker ? config.markerColor : config.penColor);
+            contextRef.current.lineWidth = isEraser ? 20 : (isMarker ? 20 : config.strokeSize);
+            contextRef.current.globalCompositeOperation = isEraser ? 'destination-out' : 'source-over';
+            contextRef.current.globalAlpha = isMarker ? 0.4 : 1.0;
         }
-    }, [mode, color]);
+    }, [mode, config]);
 
     const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
         if (mode === 'none' || !isActive) return;

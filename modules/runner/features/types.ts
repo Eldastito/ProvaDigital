@@ -11,8 +11,10 @@ export interface AccessibilityConfig {
     hideTimer: boolean;
     textToSpeech: boolean;
     readingSpeed: number; // 0.8 to 2.0
-    penMode: 'none' | 'pen' | 'eraser';
+    penMode: 'none' | 'pen' | 'highlighter' | 'eraser';
     penColor: string;
+    markerColor: string;
+    strokeSize: number;
     showScratchpad: boolean;
 }
 
@@ -28,5 +30,7 @@ export const DEFAULT_ACCESSIBILITY_CONFIG: AccessibilityConfig = {
     readingSpeed: 1.0,
     penMode: 'none',
     penColor: '#3b82f6', // blue-500
+    markerColor: '#fde047', // yellow-300
+    strokeSize: 3,
     showScratchpad: false
 };
