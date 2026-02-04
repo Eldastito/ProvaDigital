@@ -749,8 +749,8 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                                 }}
                             />
                             <div className={`mt-4 p-4 rounded-lg border ${a11y.theme === 'high-contrast'
-                                    ? 'bg-black border-yellow-400'
-                                    : 'bg-blue-50 dark:bg-slate-800 border-blue-100 dark:border-blue-900'
+                                ? 'bg-black border-yellow-400'
+                                : 'bg-blue-50 dark:bg-slate-800 border-blue-100 dark:border-blue-900'
                                 }`}>
                                 <p className={`text-sm ${a11y.theme === 'high-contrast' ? 'text-yellow-400' : 'text-blue-800 dark:text-blue-300'}`}>
                                     <strong>Instrução:</strong> Realize a atividade acima. Sua interação será salva automaticamente.
@@ -768,10 +768,15 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                                     btnClass = isSelected
                                         ? "bg-yellow-400 text-black border-4 border-yellow-400 font-black shadow-[0_0_15px_rgba(250,204,21,0.4)]"
                                         : "bg-black text-yellow-400 border-2 border-yellow-400 hover:bg-yellow-900/40";
-                                } else {
+                                } else if (a11y.theme === 'dark') {
                                     btnClass = isSelected
                                         ? "bg-brand-primary text-white shadow-lg transform scale-[1.01]"
-                                        : "bg-white/70 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-700";
+                                        : "bg-slate-800/80 border border-slate-700 hover:bg-slate-700";
+                                } else {
+                                    // Light and Sepia: Restore original subtle look
+                                    btnClass = isSelected
+                                        ? "bg-brand-primary text-white shadow-lg transform scale-[1.01]"
+                                        : "bg-white/50 border border-current/10 hover:bg-black/5";
                                 }
 
                                 return (
@@ -780,9 +785,9 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                                             onClick={() => handleAnswer(currentItem.id, alt.id)}
                                             className={`w-full text-left p-6 rounded-2xl transition-all duration-300 flex items-center gap-4 ${btnClass} ${strikedOptions[currentItem.id]?.includes(alt.id) ? 'strikethrough' : ''}`}
                                         >
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 font-black shrink-0 transition-colors ${isSelected
-                                                ? (a11y.theme === 'high-contrast' ? 'bg-black text-yellow-400 border-black' : 'bg-white text-brand-primary border-white')
-                                                : (a11y.theme === 'high-contrast' ? 'border-yellow-400 text-yellow-400' : 'border-current/20')
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 shrink-0 transition-colors ${isSelected
+                                                    ? (a11y.theme === 'high-contrast' ? 'bg-black text-yellow-400 border-black font-black' : 'bg-white text-brand-primary border-white font-bold')
+                                                    : (a11y.theme === 'high-contrast' ? 'border-yellow-400 text-yellow-400 font-black' : 'border-current/20 font-bold')
                                                 }`}>
                                                 {String.fromCharCode(65 + currentItem.alternatives.indexOf(alt))}
                                             </div>

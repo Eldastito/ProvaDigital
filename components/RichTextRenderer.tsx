@@ -196,7 +196,7 @@ export const RichTextRenderer = ({ content, className = '' }: RichTextRendererPr
 
     return (
         <div
-            className={`rich-content leading-relaxed text-base whitespace-pre-wrap break-words ${className}`}
+            className={`rich-content text-slate-800 dark:text-inherit leading-relaxed text-base whitespace-pre-wrap break-words ${className}`}
             dangerouslySetInnerHTML={{ __html: sanitizedContent }}
             style={{ wordBreak: 'break-word' }}
         />
