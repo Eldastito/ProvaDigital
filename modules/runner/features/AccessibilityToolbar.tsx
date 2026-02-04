@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Type, ZoomIn, ZoomOut, Eye, EyeOff, Sun, Moon, Volume2, Move, X } from 'lucide-react';
+import { Settings, Type, ZoomIn, ZoomOut, Eye, EyeOff, Sun, Moon, Volume2, Move, X, Clock, FileText, Eraser, MousePointer2 } from 'lucide-react';
 import { AccessibilityConfig, FontType, ThemeType } from './types';
 
 interface AccessibilityToolbarProps {
@@ -156,14 +156,14 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
 
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <EyeOff size={16} className="text-slate-500" />
-                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Ocultar Cronômetro</span>
+                            <Clock size={16} className="text-slate-500" />
+                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Exibir Cronômetro</span>
                         </div>
                         <button
                             onClick={() => update('hideTimer', !config.hideTimer)}
-                            className={`w-12 h-6 rounded-full transition-colors relative ${config.hideTimer ? 'bg-brand-primary' : 'bg-slate-300'}`}
+                            className={`w-12 h-6 rounded-full transition-colors relative ${!config.hideTimer ? 'bg-brand-primary' : 'bg-slate-300'}`}
                         >
-                            <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${config.hideTimer ? 'left-7' : 'left-1'}`} />
+                            <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${!config.hideTimer ? 'left-7' : 'left-1'}`} />
                         </button>
                     </div>
 
@@ -179,6 +179,46 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                             <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${config.textToSpeech ? 'left-7' : 'left-1'}`} />
                         </button>
                     </div>
+                </div>
+
+                {/* 6. Ferramentas de Estudo */}
+                <div className="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-4">
+                    <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+                        <Move size={14} /> Ferramentas de Estudo
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                        <button
+                            onClick={() => update('penMode', config.penMode === 'pen' ? 'none' : 'pen')}
+                            className={`p-2 text-xs rounded border flex flex-col items-center gap-1 ${config.penMode === 'pen' ? 'bg-blue-100 text-blue-700 border-blue-500' : 'bg-white border-slate-200'}`}
+                        >
+                            <Move size={16} /> Caneta
+                        </button>
+                        <button
+                            onClick={() => update('penMode', config.penMode === 'eraser' ? 'none' : 'eraser')}
+                            className={`p-2 text-xs rounded border flex flex-col items-center gap-1 ${config.penMode === 'eraser' ? 'bg-pink-100 text-pink-700 border-pink-500' : 'bg-white border-slate-200'}`}
+                        >
+                            <EyeOff size={16} /> Borracha
+                        </button>
+                        <button
+                            onClick={() => update('showScratchpad', !config.showScratchpad)}
+                            className={`p-2 text-xs rounded border flex flex-col items-center gap-1 ${config.showScratchpad ? 'bg-amber-100 text-amber-700 border-amber-500' : 'bg-white border-slate-200'}`}
+                        >
+                            <FileText size={16} /> Rascunho
+                        </button>
+                    </div>
+
+                    {config.penMode === 'pen' && (
+                        <div className="flex justify-between items-center bg-slate-50 p-2 rounded-lg">
+                            {['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#000000'].map(color => (
+                                <button
+                                    key={color}
+                                    onClick={() => update('penColor', color)}
+                                    className={`w-6 h-6 rounded-full border-2 ${config.penColor === color ? 'border-brand-primary scale-110' : 'border-transparent'}`}
+                                    style={{ backgroundColor: color }}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
 
             </div>

@@ -4,10 +4,11 @@ import { supabase } from '../../../services/supabaseClient';
 import { AccessibilityToolbar } from './AccessibilityToolbar';
 import { SimulationRenderer } from './SimulationRenderer';
 import { AccessibilityConfig, DEFAULT_ACCESSIBILITY_CONFIG } from './types';
-import { ChevronLeft, ChevronRight, CheckCircle, Clock, CloudUpload } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle, Clock, CloudUpload, FileText, EyeOff } from 'lucide-react';
 import { Exam, Item, StudentAnswer } from '../../../types';
 import { useProctoring } from '../../../hooks/useProctoring';
 import { RichTextRenderer } from '../../../components/RichTextRenderer';
+import { DrawingCanvas } from './DrawingCanvas';
 
 interface OnlineExamRunnerProps {
     examId: string;
@@ -19,29 +20,23 @@ interface OnlineExamRunnerProps {
 
 export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onComplete }: OnlineExamRunnerProps) => {
     const state = useAppStore();
-
-    // --- ACCESSIBILITY STATE ---
     const [a11y, setA11y] = useState<AccessibilityConfig>(DEFAULT_ACCESSIBILITY_CONFIG);
 
     // --- EXAM DATA ---
     const exam = state.exams.find(e => e.id === examId);
-
     const isAdaptive = exam?.model === 'ADAPTADO';
     const [adaptivePath, setAdaptivePath] = useState<Item[]>([]);
     const [currentTheta, setCurrentTheta] = useState<number>(0);
     const [adaptiveFinished, setAdaptiveFinished] = useState(false);
-    const [showAdaptiveIntro, setShowAdaptiveIntro] = useState(isAdaptive); // Show intro if adaptive
+    const [showAdaptiveIntro, setShowAdaptiveIntro] = useState(isAdaptive);
     const [lastQuestionLoadedAt, setLastQuestionLoadedAt] = useState(Date.now());
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
-    // For adaptive, this is the POOL. For linear, this is the exam.
     const itemPool = useMemo(() => state.items, [state.items]);
 
-    // The items to DISPLAY (Linear: all fixed items; Adaptive: items selected so far)
     const activeExamItems = useMemo(() => {
         if (!exam) return [];
         if (isAdaptive) return adaptivePath;
-
-        // Classic Fixed Exam Logic
         return exam.items.map(config => {
             const item = state.items.find(i => i.id === config.itemId);
             return item ? { ...item, ...config } : null;
@@ -53,14 +48,12 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
     const [attemptId, setAttemptId] = useState<string | null>(() => {
         return localStorage.getItem(`exam_attempt_${examId}_${studentId}`);
     });
-
-    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [answers, setAnswers] = useState<Record<string, string>>({}); // itemId -> selectedAlternativeId
+    const [answers, setAnswers] = useState<Record<string, string>>({});
+    const [strikedOptions, setStrikedOptions] = useState<Record<string, string[]>>({});
     const [isRestored, setIsRestored] = useState(false);
 
     // --- ACCESSIBILITY VARIANT LOGIC ---
     const variant = state.examVariants.find(v => v.id === variantId);
-
     // Applying extra time if variant rules specify it (e.g., TDAH +25%)
     const extraTimeMinutes = useMemo(() => {
         if (!variant || !variant.variantRules) return 0;
@@ -593,17 +586,51 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
             </div>
         );
     }
+    // --- ACCESSIBILITY LOGIC (TTS) ---
+    useEffect(() => {
+        if (!a11y.textToSpeech) {
+            window.speechSynthesis.cancel();
+            return;
+        }
+
+        const speak = (text: string) => {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'pt-BR';
+            utterance.rate = a11y.readingSpeed || 1.0;
+            window.speechSynthesis.speak(utterance);
+        };
+
+        const currentItem = activeExamItems[currentQuestionIndex];
+        if (currentItem) {
+            const cleanText = (html: string) => {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                return doc.body.textContent || "";
+            };
+            const textToRead = `Questão ${currentQuestionIndex + 1}. ${cleanText(currentItem.statement)}. Opções: ` +
+                currentItem.alternatives.map((a, i) => `Opção ${String.fromCharCode(65 + i)}: ${cleanText(a.text)}`).join('. ');
+            speak(textToRead);
+        }
+    }, [currentQuestionIndex, a11y.textToSpeech, a11y.readingSpeed, activeExamItems]);
+
     // --- HELPERS ---
     const getThemeClasses = () => {
-        if (a11y.theme === 'high-contrast') return 'bg-black text-yellow-400 font-bold';
+        if (a11y.theme === 'high-contrast') return 'theme-high-contrast font-bold';
         if (a11y.theme === 'dark') return 'bg-slate-900 text-white';
+        if (a11y.theme === 'sepia') return 'theme-sepia';
         return 'bg-slate-50 text-slate-900';
     };
 
-    const containerStyle = {
-        fontSize: `${a11y.fontSize}%`,
-        lineHeight: a11y.lineHeight
+    const getFontClass = () => {
+        if (a11y.fontType === 'dyslexic') return 'font-dyslexic';
+        if (a11y.fontType === 'serif') return 'font-serif';
+        return 'font-sans';
     };
+
+    const containerStyle = {
+        '--runner-font-scale': `${a11y.fontSize}%`,
+        lineHeight: a11y.lineHeight
+    } as React.CSSProperties;
 
     const handlePreventClipboard = (e: React.ClipboardEvent) => {
         e.preventDefault();
@@ -612,7 +639,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
 
     return (
         <div
-            className={`min-h-screen transition-colors duration-300 ${getThemeClasses()} flex flex-col select-none`}
+            className={`min-h-screen transition-colors duration-300 ${getThemeClasses()} ${getFontClass()} runner-container flex flex-col select-none`}
             style={containerStyle}
             onCopy={handlePreventClipboard}
             onPaste={handlePreventClipboard}
@@ -654,7 +681,28 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
             <main className={`flex-1 overflow-y-auto p-4 md:p-8 flex flex-col items-center ${a11y.focusMode ? 'justify-center' : ''}`}>
 
                 {/* QUESTION CONTAINER */}
-                <div className={`w-full max-w-4xl transition-all ${a11y.focusMode ? '' : 'bg-white/5 p-6 rounded-3xl border border-current/10'}`}>
+                <div className={`w-full max-w-4xl relative transition-all ${a11y.focusMode ? '' : 'bg-white/5 p-6 rounded-3xl border border-current/10'}`}>
+
+                    {/* DRAWING OVERLAY */}
+                    <DrawingCanvas
+                        isActive={a11y.penMode !== 'none'}
+                        mode={a11y.penMode}
+                        color={a11y.penColor}
+                        questionId={currentItem?.id || 'default'}
+                    />
+
+                    {/* SCRATCHPAD OVERLAY */}
+                    {a11y.showScratchpad && (
+                        <div className="absolute top-0 -right-80 w-72 h-[500px] bg-amber-50 shadow-2xl rounded-xl border-2 border-amber-200 p-4 z-30 animate-in slide-in-from-right hidden lg:block">
+                            <h4 className="font-bold text-amber-800 flex items-center gap-2 mb-2">
+                                <FileText size={16} /> Bloco de Rascunho
+                            </h4>
+                            <textarea
+                                className="w-full h-[420px] bg-transparent border-none focus:ring-0 text-amber-900 placeholder:text-amber-300/50 resize-none font-serif text-sm"
+                                placeholder="Use este espaço para contas ou anotações rápidas..."
+                            />
+                        </div>
+                    )}
 
                     {/* Item Statement */}
                     <div className="mb-8">
@@ -701,19 +749,33 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                                 }
 
                                 return (
-                                    <button
-                                        key={alt.id}
-                                        onClick={() => handleAnswer(currentItem.id, alt.id)}
-                                        className={`w-full p-6 rounded-xl text-left transition-all flex items-center gap-4 text-lg ${btnClass}`}
-                                    >
-                                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? 'border-current' : 'border-current/50'}`}>
-                                            {isSelected && <div className="w-4 h-4 rounded-full bg-current" />}
-                                        </div>
-                                        <RichTextRenderer
-                                            content={alt.text}
-                                            className="font-medium"
-                                        />
-                                    </button>
+                                    <div key={alt.id} className="relative group">
+                                        <button
+                                            onClick={() => handleAnswer(currentItem.id, alt.id)}
+                                            className={`w-full text-left p-6 rounded-2xl transition-all duration-300 flex items-center gap-4 ${btnClass} ${strikedOptions[currentItem.id]?.includes(alt.id) ? 'strikethrough' : ''}`}
+                                        >
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 font-bold shrink-0 ${isSelected ? 'bg-white text-brand-primary border-white' : 'border-current/20'}`}>
+                                                {String.fromCharCode(65 + currentItem.alternatives.indexOf(alt))}
+                                            </div>
+                                            <RichTextRenderer content={alt.text} className="text-lg" />
+                                        </button>
+
+                                        {/* Strikethrough Toggle Button (Manual use by student) */}
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                const currentStriked = strikedOptions[currentItem.id] || [];
+                                                const newStriked = currentStriked.includes(alt.id)
+                                                    ? currentStriked.filter(id => id !== alt.id)
+                                                    : [...currentStriked, alt.id];
+                                                setStrikedOptions({ ...strikedOptions, [currentItem.id]: newStriked });
+                                            }}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full opacity-0 group-hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5 transition-opacity"
+                                            title="Riscar alternativa"
+                                        >
+                                            <EyeOff size={18} className={strikedOptions[currentItem.id]?.includes(alt.id) ? 'text-brand-primary' : 'opacity-40'} />
+                                        </button>
+                                    </div>
                                 );
                             })}
                         </div>
@@ -748,8 +810,8 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                                 onClick={handleNextAdaptive}
                                 disabled={isComputing}
                                 className={`px-12 py-4 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-all ${isComputing
-                                        ? 'bg-slate-400 cursor-wait'
-                                        : a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black hover:bg-white' : 'bg-indigo-600 text-white hover:bg-indigo-500'
+                                    ? 'bg-slate-400 cursor-wait'
+                                    : a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black hover:bg-white' : 'bg-indigo-600 text-white hover:bg-indigo-500'
                                     }`}
                             >
                                 {isComputing ? 'Calculando...' : 'Próxima'} <ChevronRight />
@@ -779,8 +841,11 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
             {
                 a11y.focusMode && (
                     <div className="fixed inset-0 pointer-events-none z-10 hidden md:block">
-                        <div className="absolute top-0 left-0 right-0 h-[40vh] bg-black/80 backdrop-blur-sm" />
-                        <div className="absolute bottom-0 left-0 right-0 h-[40vh] bg-black/80 backdrop-blur-sm" />
+                        {/* More transparent and leave a wider gap to ensure statement is visible */}
+                        <div className="absolute top-0 left-0 right-0 h-[35vh] bg-black/60 backdrop-blur-[2px]" />
+                        <div className="absolute bottom-0 left-0 right-0 h-[45vh] bg-black/60 backdrop-blur-[2px]" />
+                        <div className="absolute top-[35vh] left-0 right-0 h-1 bg-brand-primary/30" />
+                        <div className="absolute bottom-[45vh] left-0 right-0 h-1 bg-brand-primary/30" />
                     </div>
                 )
             }

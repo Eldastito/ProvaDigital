@@ -10,6 +10,10 @@ export interface AccessibilityConfig {
     focusMode: boolean; // "Zen Mode"
     hideTimer: boolean;
     textToSpeech: boolean;
+    readingSpeed: number; // 0.8 to 2.0
+    penMode: 'none' | 'pen' | 'eraser';
+    penColor: string;
+    showScratchpad: boolean;
 }
 
 export const DEFAULT_ACCESSIBILITY_CONFIG: AccessibilityConfig = {
@@ -20,5 +24,9 @@ export const DEFAULT_ACCESSIBILITY_CONFIG: AccessibilityConfig = {
     letterSpacing: 0,
     focusMode: false,
     hideTimer: false,
-    textToSpeech: false
+    textToSpeech: false,
+    readingSpeed: 1.0,
+    penMode: 'none',
+    penColor: '#3b82f6', // blue-500
+    showScratchpad: false
 };

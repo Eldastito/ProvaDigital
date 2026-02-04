@@ -7,3 +7,61 @@
   --brand-primary: #00A3E0;
   --brand-secondary: #00CDAC;
 }
+
+/* OpenDyslexic Font Support */
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://antijingoist.github.io/opendyslexic/OpenDyslexic-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-sans {
+  font-family: 'Inter', sans-serif !important;
+}
+
+.font-serif {
+  font-family: 'Georgia', serif !important;
+}
+
+.font-dyslexic {
+  font-family: 'OpenDyslexic', sans-serif !important;
+}
+
+/* Accessibility Themes */
+.theme-sepia {
+  background-color: #f4e4bc !important;
+  color: #4f3e1e !important;
+}
+
+.theme-sepia .bg-white,
+.theme-sepia .bg-slate-50 {
+  background-color: #fdf6e3 !important;
+  border-color: #dfd2b5 !important;
+}
+
+.theme-high-contrast {
+  background-color: black !important;
+  color: #ffff00 !important;
+}
+
+.theme-high-contrast * {
+  border-color: #ffff00 !important;
+}
+
+/* Strikethrough for answers */
+.strikethrough {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+/* Font Scaling Engine */
+.runner-container {
+  font-size: var(--runner-font-scale, 100%);
+}
+
+/* Scale Tailwind classes relative to parent if needed, 
+   but parent font-size: % already scales em and rem if we adjust html font-size
+   Instead we will use a more surgical approach in the component.
+*/
