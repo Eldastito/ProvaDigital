@@ -533,7 +533,7 @@ async function callGeminiAPI<T>(
 
             const config: any = {
                 temperature: 0.7,
-                maxOutputTokens: 8192
+                maxOutputTokens: 16384
             };
 
             if (responseSchema) {
