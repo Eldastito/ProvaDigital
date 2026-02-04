@@ -14,6 +14,19 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
         onChange({ ...config, [key]: value });
     };
 
+    const isHighContrast = config.theme === 'high-contrast';
+
+    const getBtnBase = (active: boolean) => {
+        if (isHighContrast) {
+            return active
+                ? 'bg-yellow-400 text-black border-yellow-400 font-black'
+                : 'bg-black text-yellow-400 border-yellow-400 hover:bg-yellow-900/20 font-bold';
+        }
+        return active
+            ? 'bg-brand-primary text-white border-brand-primary font-bold shadow-md'
+            : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 font-semibold';
+    };
+
     if (!isOpen) {
         return (
             <button
@@ -27,13 +40,16 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
     }
 
     return (
-        <div className="fixed bottom-24 right-4 w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-6 z-[50] animate-in slide-in-from-bottom-4 fade-in">
+        <div className={`fixed bottom-24 right-4 w-80 rounded-2xl shadow-xl border p-6 z-[50] animate-in slide-in-from-bottom-4 fade-in transition-colors duration-300 ${config.theme === 'high-contrast'
+            ? 'bg-black border-yellow-400 text-yellow-400'
+            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white'
+            }`}>
             <div className="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
-                <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                    <Settings size={18} className="text-brand-primary" />
+                <h3 className={`font-bold flex items-center gap-2 ${config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-800 dark:text-white'}`}>
+                    <Settings size={18} className={config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-brand-primary'} />
                     Acessibilidade
                 </h3>
-                <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <button onClick={() => setIsOpen(false)} className={`hover:scale-110 transition-transform ${config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'}`}>
                     <X size={20} />
                 </button>
             </div>
@@ -42,8 +58,9 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
 
                 {/* 1. Tamanho da Fonte */}
                 <div className="space-y-2">
-                    <label className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase flex items-center gap-2 tracking-wider">
-                        <Type size={14} className="text-brand-primary" /> Tamanho do Texto
+                    <label className={`text-[11px] font-black uppercase flex items-center gap-2 tracking-wider ${config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-700 dark:text-slate-200'
+                        }`}>
+                        <Type size={14} className={config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-brand-primary'} /> Tamanho do Texto
                     </label>
                     <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-2 rounded-lg">
                         <button
@@ -64,59 +81,62 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                     </div>
                 </div>
 
-                {/* 2. Tipo de Fonte */}
                 <div className="space-y-2">
-                    <label className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider">Tipografia</label>
+                    <label className={`text-[11px] font-black uppercase tracking-wider ${isHighContrast ? 'text-yellow-400' : 'text-slate-700 dark:text-slate-200'}`}>Tipografia</label>
                     <div className="grid grid-cols-3 gap-2">
-                        <button
-                            onClick={() => update('fontType', 'sans')}
-                            className={`p-2 text-xs font-bold rounded border transition-colors ${config.fontType === 'sans' ? 'bg-brand-primary text-white border-brand-primary' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-brand-primary'}`}
-                        >
-                            Padrão
-                        </button>
-                        <button
-                            onClick={() => update('fontType', 'serif')}
-                            className={`p-2 text-xs font-serif font-bold rounded border transition-colors ${config.fontType === 'serif' ? 'bg-brand-primary text-white border-brand-primary' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-brand-primary'}`}
-                        >
-                            Serifa
-                        </button>
-                        <button
-                            onClick={() => update('fontType', 'dyslexic')}
-                            className={`p-2 text-xs font-bold rounded border transition-colors ${config.fontType === 'dyslexic' ? 'bg-brand-primary text-white border-brand-primary' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-brand-primary'}`}
-                            style={{ fontFamily: 'OpenDyslexic, sans-serif' }}
-                        >
-                            Dislexia
-                        </button>
+                        {(['sans', 'serif', 'dyslexic'] as FontType[]).map((type) => (
+                            <button
+                                key={type}
+                                onClick={() => update('fontType', type)}
+                                className={`p-2 text-xs rounded border transition-all ${getBtnBase(config.fontType === type)} ${type === 'serif' ? 'font-serif' : ''} ${type === 'dyslexic' ? 'font-dyslexic' : ''}`}
+                                style={type === 'dyslexic' ? { fontFamily: 'OpenDyslexic, sans-serif' } : {}}
+                            >
+                                {type === 'sans' ? 'Padrão' : type === 'serif' ? 'Serifa' : 'Dislexia'}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
                 {/* 3. Contraste e Tema */}
                 <div className="space-y-2">
-                    <label className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase flex items-center gap-2 tracking-wider">
-                        <Sun size={14} className="text-brand-primary" /> Contraste & Tema
+                    <label className={`text-[11px] font-black uppercase flex items-center gap-2 tracking-wider ${config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-700 dark:text-slate-200'
+                        }`}>
+                        <Sun size={14} className={config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-brand-primary'} /> Contraste & Tema
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                         <button
                             onClick={() => update('theme', 'light')}
-                            className={`p-2 text-xs font-bold rounded border flex items-center gap-2 transition-colors ${config.theme === 'light' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400 border-emerald-500' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50'}`}
+                            className={`p-2 text-xs rounded border flex items-center gap-2 transition-all ${config.theme === 'light'
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-500 font-bold'
+                                : (isHighContrast ? 'bg-black text-yellow-400 border-yellow-400' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50')
+                                }`}
                         >
                             <Sun size={14} /> Claro
                         </button>
                         <button
                             onClick={() => update('theme', 'dark')}
-                            className={`p-2 text-xs font-bold rounded border flex items-center gap-2 transition-colors ${config.theme === 'dark' ? 'bg-slate-700 text-white border-slate-500 shadow-inner' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200'}`}
+                            className={`p-2 text-xs rounded border flex items-center gap-2 transition-all ${config.theme === 'dark'
+                                ? 'bg-slate-700 text-white border-slate-400 font-bold shadow-inner'
+                                : (isHighContrast ? 'bg-black text-yellow-400 border-yellow-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200')
+                                }`}
                         >
                             <Moon size={14} /> Escuro
                         </button>
                         <button
                             onClick={() => update('theme', 'sepia')}
-                            className={`p-2 text-xs font-bold rounded border flex items-center gap-2 transition-colors ${config.theme === 'sepia' ? 'bg-[#f4e4bc] text-[#4f3e1e] border-[#d8c8a0]' : 'bg-[#fff8e1] dark:bg-[#2d2a23] text-[#4f3e1e] dark:text-[#d8c8a0] border-slate-200 dark:border-[#4f3e1e] hover:bg-[#fff0c0]'}`}
+                            className={`p-2 text-xs font-bold rounded border flex items-center gap-2 transition-all ${config.theme === 'sepia'
+                                    ? 'bg-[#f4e4bc] text-[#4f3e1e] border-[#d8c8a0]'
+                                    : (isHighContrast ? 'bg-black text-yellow-400 border-yellow-400' : 'bg-[#fff8e1] dark:bg-[#2d2a23] text-[#4f3e1e] dark:text-[#d8c8a0] border-slate-200 dark:border-[#4f3e1e] hover:bg-[#fff0c0]')
+                                }`}
                         >
                             <Eye size={14} /> Sépia
                         </button>
                         <button
                             onClick={() => update('theme', 'high-contrast')}
-                            className={`p-2 text-xs rounded border flex items-center gap-2 font-black transition-colors ${config.theme === 'high-contrast' ? 'bg-yellow-400 text-black border-black ring-2 ring-yellow-400 ring-offset-1 dark:ring-offset-slate-900' : 'bg-black dark:bg-slate-950 text-yellow-400 border-slate-200 dark:border-yellow-900/50 hover:bg-slate-900'}`}
+                            className={`p-2 text-xs rounded border flex items-center gap-2 font-black transition-all ${config.theme === 'high-contrast'
+                                    ? 'bg-yellow-400 text-black border-yellow-400 ring-2 ring-yellow-400 ring-offset-1 dark:ring-offset-slate-900 shadow-lg'
+                                    : 'bg-black text-yellow-400 border-yellow-400 hover:bg-yellow-900/20'
+                                }`}
                         >
                             <Sun size={14} /> Alto Contraste
                         </button>
@@ -125,8 +145,9 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
 
                 {/* 4. Altura da Linha */}
                 <div className="space-y-2">
-                    <label className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase flex items-center gap-2 tracking-wider">
-                        <Move size={14} className="text-brand-primary" /> Altura da Linha
+                    <label className={`text-[11px] font-black uppercase flex items-center gap-2 tracking-wider ${config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-700 dark:text-slate-200'
+                        }`}>
+                        <Move size={14} className={config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-brand-primary'} /> Altura da Linha
                     </label>
                     <input
                         type="range"
@@ -135,14 +156,15 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                         step="0.1"
                         value={config.lineHeight}
                         onChange={(e) => update('lineHeight', parseFloat(e.target.value))}
-                        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                        className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${isHighContrast ? 'bg-yellow-400 accent-black' : 'bg-slate-200 dark:bg-slate-700'}`}
                     />
                 </div>
 
                 {/* 5. Espaçamento entre Letras */}
                 <div className="space-y-2">
-                    <label className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase flex items-center gap-2 tracking-wider">
-                        <Type size={14} className="text-brand-primary" /> Espaçamento entre Letras
+                    <label className={`text-[11px] font-black uppercase flex items-center gap-2 tracking-wider ${config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-700 dark:text-slate-200'
+                        }`}>
+                        <Type size={14} className={config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-brand-primary'} /> Espaçamento entre Letras
                     </label>
                     <input
                         type="range"
@@ -151,7 +173,7 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                         step="0.5"
                         value={config.letterSpacing}
                         onChange={(e) => update('letterSpacing', parseFloat(e.target.value))}
-                        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                        className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${isHighContrast ? 'bg-yellow-400 accent-black' : 'bg-slate-200 dark:bg-slate-700'}`}
                     />
                 </div>
 
@@ -159,8 +181,8 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                 <div className="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <EyeOff size={18} className="text-brand-primary dark:text-blue-400" />
-                            <span className="text-sm font-bold text-slate-800 dark:text-slate-100">Modo Foco (Zen)</span>
+                            <EyeOff size={18} className={config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-brand-primary dark:text-blue-400'} />
+                            <span className={`text-sm font-bold ${config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-800 dark:text-slate-100'}`}>Modo Foco (Zen)</span>
                         </div>
                         <button
                             onClick={() => update('focusMode', !config.focusMode)}
@@ -172,8 +194,8 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
 
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <Clock size={18} className="text-brand-primary dark:text-blue-400" />
-                            <span className="text-sm font-bold text-slate-800 dark:text-slate-100">Exibir Cronômetro</span>
+                            <Clock size={18} className={config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-brand-primary dark:text-blue-400'} />
+                            <span className={`text-sm font-bold ${config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-800 dark:text-slate-100'}`}>Exibir Cronômetro</span>
                         </div>
                         <button
                             onClick={() => update('hideTimer', !config.hideTimer)}
@@ -185,8 +207,8 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
 
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <Volume2 size={18} className="text-brand-primary dark:text-blue-400" />
-                            <span className="text-sm font-bold text-slate-800 dark:text-slate-100">Leitor de Tela (TTS)</span>
+                            <Volume2 size={18} className={config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-brand-primary dark:text-blue-400'} />
+                            <span className={`text-sm font-bold ${config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-800 dark:text-slate-100'}`}>Leitor de Tela (TTS)</span>
                         </div>
                         <button
                             onClick={() => update('textToSpeech', !config.textToSpeech)}
@@ -198,43 +220,31 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                 </div>
 
                 {/* 6. Ferramentas de Estudo */}
-                <div className="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-4">
-                    <label className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase flex items-center gap-2 tracking-wider">
-                        <PenTool size={14} className="text-brand-primary" /> Ferramentas de Desenho
+                <div className={`pt-4 border-t space-y-4 ${config.theme === 'high-contrast' ? 'border-yellow-400' : 'border-slate-200 dark:border-slate-700'}`}>
+                    <label className={`text-[11px] font-black uppercase flex items-center gap-2 tracking-wider ${config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-700 dark:text-slate-200'
+                        }`}>
+                        <PenTool size={14} className={config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-brand-primary'} /> Ferramentas de Desenho
                     </label>
                     <div className="grid grid-cols-4 gap-2">
-                        <button
-                            onClick={() => update('penMode', config.penMode === 'pen' ? 'none' : 'pen')}
-                            className={`p-2 text-xs rounded border flex flex-col items-center gap-1 ${config.penMode === 'pen' ? 'bg-blue-100 text-blue-700 border-blue-500' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
-                            title="Caneta"
-                        >
-                            <PenTool size={16} />
-                            <span className="text-[10px]">Caneta</span>
-                        </button>
-                        <button
-                            onClick={() => update('penMode', config.penMode === 'highlighter' ? 'none' : 'highlighter')}
-                            className={`p-2 text-xs rounded border flex flex-col items-center gap-1 ${config.penMode === 'highlighter' ? 'bg-yellow-100 text-yellow-700 border-yellow-500' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
-                            title="Marca-texto"
-                        >
-                            <Highlighter size={16} />
-                            <span className="text-[10px]">Marca-t</span>
-                        </button>
-                        <button
-                            onClick={() => update('penMode', config.penMode === 'eraser' ? 'none' : 'eraser')}
-                            className={`p-2 text-xs rounded border flex flex-col items-center gap-1 ${config.penMode === 'eraser' ? 'bg-pink-100 text-pink-700 border-pink-500' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
-                            title="Borracha"
-                        >
-                            <Eraser size={16} />
-                            <span className="text-[10px]">Borrar</span>
-                        </button>
-                        <button
-                            onClick={() => update('showScratchpad', !config.showScratchpad)}
-                            className={`p-2 text-xs rounded border flex flex-col items-center gap-1 ${config.showScratchpad ? 'bg-amber-100 text-amber-700 border-amber-500' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
-                            title="Rascunho"
-                        >
-                            <FileText size={16} />
-                            <span className="text-[10px]">Bloco</span>
-                        </button>
+                        {[
+                            { id: 'pen', icon: PenTool, label: 'Caneta' },
+                            { id: 'highlighter', icon: Highlighter, label: 'Marca-t' },
+                            { id: 'eraser', icon: Eraser, label: 'Borracha' },
+                            { id: 'scratchpad', icon: FileText, label: 'Bloco' }
+                        ].map((tool) => (
+                            <button
+                                key={tool.id}
+                                onClick={() => tool.id === 'scratchpad' ? update('showScratchpad', !config.showScratchpad) : update('penMode', config.penMode === tool.id ? 'none' : tool.id)}
+                                className={`p-2 text-xs rounded border flex flex-col items-center gap-1 transition-all ${(tool.id === 'scratchpad' ? config.showScratchpad : config.penMode === tool.id)
+                                    ? getBtnBase(true)
+                                    : getBtnBase(false)
+                                    }`}
+                                title={tool.label}
+                            >
+                                <tool.icon size={16} />
+                                <span className="text-[10px]">{tool.label}</span>
+                            </button>
+                        ))}
                     </div>
 
                     {/* Controles de Cor Dinâmicos */}

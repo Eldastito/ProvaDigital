@@ -467,8 +467,8 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
     const currentItem = activeExamItems[currentQuestionIndex];
 
     const getThemeClasses = () => {
-        if (a11y.theme === 'high-contrast') return 'theme-high-contrast font-bold';
-        if (a11y.theme === 'dark') return 'bg-slate-900 text-white';
+        if (a11y.theme === 'high-contrast') return 'theme-high-contrast dark font-bold';
+        if (a11y.theme === 'dark') return 'bg-slate-900 text-white dark';
         if (a11y.theme === 'sepia') return 'theme-sepia';
         return 'bg-slate-50 text-slate-900';
     };
@@ -667,10 +667,10 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                 <div>
                     <h1 className="text-xl font-bold">{exam.title}</h1>
                     {!a11y.focusMode && (
-                        <p className="text-sm opacity-70">
+                        <p className={`text-sm font-bold ${a11y.theme === 'high-contrast' ? 'text-yellow-400' : 'opacity-80'}`}>
                             Questão {currentQuestionIndex + 1}
                             {isAdaptive ? '' : ` de ${activeExamItems.length}`}
-                            {isAdaptive && <span className="ml-2 text-[10px] bg-blue-100 text-blue-700 px-1 rounded border border-blue-200">ADAPTATIVO</span>}
+                            {isAdaptive && <span className={`ml-2 text-[10px] px-1 rounded border ${a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black border-black font-black' : 'bg-blue-100 text-blue-700 border-blue-200'}`}>ADAPTATIVO</span>}
                         </p>
                     )}
                 </div>
@@ -686,7 +686,8 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                             {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
                         </div>
                     )}
-                    <button onClick={onExit} className="px-4 py-2 opacity-50 hover:opacity-100 uppercase text-sm font-bold tracking-wider">
+                    <button onClick={onExit} className={`px-4 py-2 uppercase text-sm font-black tracking-widest transition-all ${a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black rounded-lg ml-4' : 'opacity-80 hover:opacity-100'
+                        }`}>
                         Sair
                     </button>
                 </div>
