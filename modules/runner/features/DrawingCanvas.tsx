@@ -16,33 +16,74 @@ export const DrawingCanvas = ({ mode, config, isActive, questionId }: DrawingCan
     const [isDrawing, setIsDrawing] = useState(false);
     const contextRef = useRef<CanvasRenderingContext2D | null>(null);
 
+    // Coordinate Normalization & Resizing Logic
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        // Handle high DPI screens
-        const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width * window.devicePixelRatio;
-        canvas.height = rect.height * window.devicePixelRatio;
+        const resizeCanvas = () => {
+            const rect = canvas.getBoundingClientRect();
+            const width = Math.floor(rect.width);
+            const height = Math.floor(rect.height);
 
-        const context = canvas.getContext('2d');
-        if (context) {
-            context.scale(window.devicePixelRatio, window.devicePixelRatio);
-            context.lineCap = 'round';
-            context.lineJoin = 'round';
-            contextRef.current = context;
-        }
+            if (canvas.width !== width * window.devicePixelRatio || canvas.height !== height * window.devicePixelRatio) {
+                // Save current content before resize
+                const tempData = canvas.toDataURL();
 
-        // Load saved drawings for this question
-        const saved = localStorage.getItem(`drawing_${questionId}`);
-        if (saved) {
-            const img = new Image();
-            img.onload = () => {
-                context?.drawImage(img, 0, 0, rect.width, rect.height);
-            };
-            img.src = saved;
-        }
-    }, [questionId]); // Reset context on question change
+                canvas.width = width * window.devicePixelRatio;
+                canvas.height = height * window.devicePixelRatio;
+
+                const context = canvas.getContext('2d');
+                if (context) {
+                    context.scale(window.devicePixelRatio, window.devicePixelRatio);
+                    context.lineCap = 'round';
+                    context.lineJoin = 'round';
+                    contextRef.current = context;
+
+                    // Re-apply settings
+                    const isEraser = mode === 'eraser';
+                    const isMarker = mode === 'highlighter';
+                    context.strokeStyle = isEraser ? '#ffffff' : (isMarker ? config.markerColor : config.penColor);
+                    context.lineWidth = isEraser ? 20 : (isMarker ? 20 : config.strokeSize);
+                    context.globalCompositeOperation = isEraser ? 'destination-out' : 'source-over';
+                    context.globalAlpha = isMarker ? 0.4 : 1.0;
+
+                    // Restore content
+                    const img = new Image();
+                    img.onload = () => context.drawImage(img, 0, 0, width, height);
+                    img.src = tempData;
+                }
+            }
+        };
+
+        const observer = new ResizeObserver(() => {
+            requestAnimationFrame(resizeCanvas);
+        });
+
+        observer.observe(canvas);
+        resizeCanvas();
+
+        const loadSaved = () => {
+            const saved = localStorage.getItem(`drawing_${questionId}`);
+            if (saved && contextRef.current) {
+                const rect = canvas.getBoundingClientRect();
+                const img = new Image();
+                img.onload = () => {
+                    contextRef.current?.clearRect(0, 0, rect.width, rect.height);
+                    contextRef.current?.drawImage(img, 0, 0, rect.width, rect.height);
+                };
+                img.src = saved;
+            } else {
+                contextRef.current?.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        };
+
+        loadSaved();
+
+        return () => {
+            observer.disconnect();
+        };
+    }, [questionId]);
 
     useEffect(() => {
         if (contextRef.current) {
@@ -55,6 +96,27 @@ export const DrawingCanvas = ({ mode, config, isActive, questionId }: DrawingCan
             contextRef.current.globalAlpha = isMarker ? 0.4 : 1.0;
         }
     }, [mode, config]);
+
+    const getCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return { offsetX: 0, offsetY: 0 };
+
+        const rect = canvas.getBoundingClientRect();
+        let clientX, clientY;
+
+        if ('touches' in e) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = (e as React.MouseEvent).clientX;
+            clientY = (e as React.MouseEvent).clientY;
+        }
+
+        return {
+            offsetX: clientX - rect.left,
+            offsetY: clientY - rect.top
+        };
+    };
 
     const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
         if (mode === 'none' || !isActive) return;
@@ -78,24 +140,6 @@ export const DrawingCanvas = ({ mode, config, isActive, questionId }: DrawingCan
             setIsDrawing(false);
             contextRef.current?.closePath();
             saveDrawing();
-        }
-    };
-
-    const getCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
-        const canvas = canvasRef.current;
-        if (!canvas) return { offsetX: 0, offsetY: 0 };
-
-        const rect = canvas.getBoundingClientRect();
-        if ('touches' in e) {
-            return {
-                offsetX: e.touches[0].clientX - rect.left,
-                offsetY: e.touches[0].clientY - rect.top
-            };
-        } else {
-            return {
-                offsetX: (e as React.MouseEvent).clientX - rect.left,
-                offsetY: (e as React.MouseEvent).clientY - rect.top
-            };
         }
     };
 

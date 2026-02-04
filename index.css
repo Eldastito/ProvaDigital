@@ -58,18 +58,35 @@
 
 /* Font Scaling Engine */
 .runner-container {
-  font-size: var(--runner-font-scale, 100%);
+  --runner-font-scale: 100%;
+  --runner-letter-spacing: 0px;
 }
 
-/* Evitar que o zoom afete a barra de opções */
-.no-zoom {
+/* Alvo do Zoom: Conteúdo da Prova e Alternativas */
+.runner-container main {
+  font-size: var(--runner-font-scale) !important;
+}
+
+.runner-container .rich-text-content,
+.runner-container .rich-text-content *,
+.runner-container button span {
+  font-size: 1em !important;
+  /* Herda a escala do main */
+  letter-spacing: var(--runner-letter-spacing) !important;
+}
+
+/* Evitar que o zoom afete a barra de opções, cabeçalho e rascunho */
+.no-zoom,
+.no-zoom *,
+header,
+header *,
+[role="complementary"] {
   font-size: 16px !important;
 }
 
 /* Timer Crítico */
 .timer-critical {
   color: #ef4444 !important;
-  /* text-red-500 */
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 

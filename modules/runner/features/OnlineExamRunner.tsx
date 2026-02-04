@@ -473,8 +473,8 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
 
     const containerStyle = {
         '--runner-font-scale': `${a11y.fontSize}%`,
+        '--runner-letter-spacing': `${a11y.letterSpacing}px`,
         lineHeight: a11y.lineHeight,
-        letterSpacing: `${a11y.letterSpacing}px`
     } as React.CSSProperties;
 
     const handlePreventClipboard = (e: React.ClipboardEvent) => {
@@ -509,11 +509,11 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
     }, [currentQuestionIndex, a11y.textToSpeech, a11y.readingSpeed, currentItem]);
 
     // --- GUARDS / RENDER MODALS ---
-    if (!exam) return <div className="p-8 text-center">Prova não encontrada.</div>;
+    if (!exam) return <div className="p-8 text-center no-zoom">Prova não encontrada.</div>;
 
     if (isAdaptive && showAdaptiveIntro && !isRestored) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-95 text-white p-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-95 text-white p-4 no-zoom">
                 <div className="max-w-2xl w-full bg-gray-800 rounded-2xl p-8 shadow-2xl border border-blue-500/30 ring-1 ring-blue-500/20">
                     <div className="flex items-center gap-4 mb-6">
                         <div className="p-3 bg-blue-600 rounded-lg">
@@ -563,7 +563,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
 
     if (!securityCheckPassed && !isRestored) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-95 text-white p-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-95 text-white p-4 no-zoom">
                 <div className="max-w-md w-full bg-gray-800 rounded-xl p-6 shadow-2xl border border-gray-700">
                     <h2 className="text-2xl font-bold mb-4 text-blue-400">🛡️ Verificação de Segurança</h2>
                     <p className="mb-6 text-gray-300 leading-relaxed">
@@ -596,7 +596,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
 
     if (isAdaptive && activeExamItems.length === 0) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-slate-50">
+            <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-slate-50 no-zoom">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mb-4" />
                 <h3 className="text-xl font-bold text-slate-800">Calibrando Motor Adaptativo...</h3>
                 <p className="text-slate-500">Ajustando nível inicial.</p>
@@ -606,7 +606,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
 
     if (state.items.length === 0) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-slate-50">
+            <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-slate-50 no-zoom">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mb-4" />
                 <h3 className="text-xl font-bold text-slate-800">Carregando itens...</h3>
                 <p className="text-slate-500">Sincronizando banco de dados seguro.</p>
@@ -616,7 +616,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
 
     if (!isAdaptive && activeExamItems.length === 0) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-slate-50">
+            <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-slate-50 no-zoom">
                 <h3 className="text-xl font-bold text-slate-800">Erro: Esta prova não possui questões cadastradas ou os itens não foram encontrados.</h3>
                 <button onClick={onExit} className="mt-4 px-6 py-2 bg-brand-primary text-white rounded-lg">Voltar</button>
             </div>
@@ -625,7 +625,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
 
     if (!currentItem) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-slate-50">
+            <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-slate-50 no-zoom">
                 <h3 className="text-xl font-bold text-slate-800">Erro ao carregar questão {currentQuestionIndex + 1}.</h3>
                 <button onClick={onExit} className="mt-4 px-6 py-2 bg-brand-primary text-white rounded-lg">Voltar</button>
             </div>
@@ -654,7 +654,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
             </div>
 
             {/* HEADER */}
-            <header className={`px-6 py-4 flex justify-between items-center border-b ${a11y.theme === 'high-contrast' ? 'border-yellow-400' : 'border-slate-200 dark:border-slate-700'}`}>
+            <header className={`px-6 py-4 flex justify-between items-center border-b no-zoom ${a11y.theme === 'high-contrast' ? 'border-yellow-400' : 'border-slate-200 dark:border-slate-700'}`}>
                 <div>
                     <h1 className="text-xl font-bold">{exam.title}</h1>
                     {!a11y.focusMode && (
@@ -670,8 +670,8 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                 <div className="flex items-center gap-4">
                     {!a11y.hideTimer && (
                         <div className={`flex items-center gap-2 font-mono text-xl font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${timeLeft < 300
-                                ? 'timer-critical'
-                                : (a11y.theme === 'high-contrast' ? 'border-2 border-yellow-400' : 'bg-white/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700')
+                            ? 'timer-critical'
+                            : (a11y.theme === 'high-contrast' ? 'border-2 border-yellow-400' : 'bg-white/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700')
                             }`}>
                             <Clock size={22} className={timeLeft < 300 ? 'text-red-600' : 'text-brand-primary'} />
                             {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
@@ -703,7 +703,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
 
                     {/* SCRATCHPAD OVERLAY */}
                     {a11y.showScratchpad && (
-                        <div className="absolute top-0 -right-80 w-72 h-[500px] bg-amber-50 shadow-2xl rounded-xl border-2 border-amber-200 p-4 z-30 animate-in slide-in-from-right hidden lg:block">
+                        <div className="absolute top-0 -right-80 w-72 h-[500px] bg-amber-50 shadow-2xl rounded-xl border-2 border-amber-200 p-4 z-30 animate-in slide-in-from-right hidden lg:block no-zoom">
                             <h4 className="font-bold text-amber-800 flex items-center gap-2 mb-2">
                                 <FileText size={16} /> Bloco de Rascunho
                             </h4>
@@ -718,7 +718,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                     <div className="mb-8">
                         <RichTextRenderer
                             content={currentItem.statement}
-                            className="text-2xl font-medium leading-relaxed"
+                            className="text-2xl font-medium leading-relaxed rich-text-content"
                         />
                     </div>
 
@@ -767,7 +767,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                                             <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 font-bold shrink-0 ${isSelected ? 'bg-white text-brand-primary border-white' : 'border-current/20'}`}>
                                                 {String.fromCharCode(65 + currentItem.alternatives.indexOf(alt))}
                                             </div>
-                                            <RichTextRenderer content={alt.text} className="text-lg" />
+                                            <RichTextRenderer content={alt.text} className="text-lg rich-text-content" />
                                         </button>
 
                                         {/* Strikethrough Toggle Button (Manual use by student) */}
