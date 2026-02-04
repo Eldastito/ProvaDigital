@@ -221,7 +221,7 @@ Critérios:
        - Se houver barreiras, forneça 'accessibilityInstructions' com adaptações
     
     4. TEXTUAL: Melhore a fluidez, gramática e elimine ambiguidades (Polimento).
-       - GERE VERSÕES MELHORADAS de TODOS os enunciados que precisam de correção
+       - GERE VERSÕES MELHORADAS apenas dos enunciados que REALMENTE precisam de correção
        - Mantenha o sentido original, apenas melhore a clareza
     
     5. ANTICHEAT: Sugira variações para itens críticos.
@@ -230,29 +230,27 @@ Critérios:
     
     6. TRI: Analise o equilíbrio dos parâmetros de dificuldade(b), discriminação(a) e acerto casual(c).
 
+    IMPORTANTE: Para economizar tokens, retorne APENAS os itens que REALMENTE precisam de correção.
+    NÃO retorne itens que já estão corretos.
+
     RETORNO OBRIGATÓRIO:
-    - Relatório de cada estágio (status: "OK" ou "WARN", feedback)
-    - **polishedItems**: ARRAY com TODOS os itens da prova
-      - Mantenha o mesmo 'id' do item original
-      - Se o item precisa de melhorias textuais, atualize 'statement' e/ou 'alternatives'
-      - Se não precisa melhorias, retorne o item original sem alterações
-      - Adicione/atualize 'isAccessible' (true/false) para TODOS os itens
-      - Adicione 'accessibilityInstructions' quando isAccessible for true ou houver adaptações
-    - **variantsSuggested**: ARRAY com variantes para itens problemáticos (anti-cola)
+    - Relatório de cada estágio (status: "OK" ou "WARN", feedback CONCISO)
+    - **polishedItems**: ARRAY com APENAS os itens que foram MODIFICADOS
+      - Inclua APENAS itens que tiveram mudanças textuais
+      - Cada item deve ter: id, statement (se mudou), alternatives (se mudaram), isAccessible, accessibilityInstructions
+    - **variantsSuggested**: ARRAY com variantes (máximo 3)
       - Inclua 'originalItemId', 'newStatement', 'newAlternatives'
-      - Gere variantes apenas para itens com risco de cola
-    - **itemsToRemove**: ARRAY com IDs de itens duplicados EXATOS que devem ser removidos
-      - Inclua apenas duplicatas exatas, não itens similares
+    - **itemsToRemove**: ARRAY com IDs de duplicatas EXATAS (máximo 5)
         
     Retorne OBRIGATORIAMENTE em JSON puro neste formato:
     {
         "stages": {
-            "structural": { "status": "OK" | "WARN", "feedback": "texto" },
-            "pedagogical": { "status": "OK" | "WARN", "feedback": "texto" },
-            "accessibility": { "status": "OK" | "WARN", "feedback": "texto" },
-            "textual": { "status": "OK" | "WARN", "feedback": "texto" },
-            "anticheat": { "status": "OK" | "WARN", "feedback": "texto" },
-            "tri": { "status": "OK" | "WARN", "feedback": "texto" }
+            "structural": { "status": "OK" | "WARN", "feedback": "texto CURTO" },
+            "pedagogical": { "status": "OK" | "WARN", "feedback": "texto CURTO" },
+            "accessibility": { "status": "OK" | "WARN", "feedback": "texto CURTO" },
+            "textual": { "status": "OK" | "WARN", "feedback": "texto CURTO" },
+            "anticheat": { "status": "OK" | "WARN", "feedback": "texto CURTO" },
+            "tri": { "status": "OK" | "WARN", "feedback": "texto CURTO" }
         },
         "overallScore": number,
         "polishedItems": [...],
