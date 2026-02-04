@@ -42,8 +42,8 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
 
                 {/* 1. Tamanho da Fonte */}
                 <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
-                        <Type size={14} /> Tamanho do Texto
+                    <label className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase flex items-center gap-2 tracking-wider">
+                        <Type size={14} className="text-brand-primary" /> Tamanho do Texto
                     </label>
                     <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-2 rounded-lg">
                         <button
@@ -66,23 +66,23 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
 
                 {/* 2. Tipo de Fonte */}
                 <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase">Tipografia</label>
+                    <label className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider">Tipografia</label>
                     <div className="grid grid-cols-3 gap-2">
                         <button
                             onClick={() => update('fontType', 'sans')}
-                            className={`p-2 text-xs rounded border ${config.fontType === 'sans' ? 'bg-brand-primary text-white border-brand-primary' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-brand-primary'}`}
+                            className={`p-2 text-xs font-bold rounded border transition-colors ${config.fontType === 'sans' ? 'bg-brand-primary text-white border-brand-primary' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-brand-primary'}`}
                         >
                             Padrão
                         </button>
                         <button
                             onClick={() => update('fontType', 'serif')}
-                            className={`p-2 text-xs font-serif rounded border ${config.fontType === 'serif' ? 'bg-brand-primary text-white border-brand-primary' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-brand-primary'}`}
+                            className={`p-2 text-xs font-serif font-bold rounded border transition-colors ${config.fontType === 'serif' ? 'bg-brand-primary text-white border-brand-primary' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-brand-primary'}`}
                         >
                             Serifa
                         </button>
                         <button
                             onClick={() => update('fontType', 'dyslexic')}
-                            className={`p-2 text-xs rounded border ${config.fontType === 'dyslexic' ? 'bg-brand-primary text-white border-brand-primary' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-brand-primary'}`}
+                            className={`p-2 text-xs font-bold rounded border transition-colors ${config.fontType === 'dyslexic' ? 'bg-brand-primary text-white border-brand-primary' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-brand-primary'}`}
                             style={{ fontFamily: 'OpenDyslexic, sans-serif' }}
                         >
                             Dislexia
@@ -92,31 +92,31 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
 
                 {/* 3. Contraste e Tema */}
                 <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
-                        <Sun size={14} /> Contraste & Tema
+                    <label className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase flex items-center gap-2 tracking-wider">
+                        <Sun size={14} className="text-brand-primary" /> Contraste & Tema
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                         <button
                             onClick={() => update('theme', 'light')}
-                            className={`p-2 text-xs rounded border flex items-center gap-2 ${config.theme === 'light' ? 'bg-emerald-100 text-emerald-800 border-emerald-500' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
+                            className={`p-2 text-xs font-bold rounded border flex items-center gap-2 transition-colors ${config.theme === 'light' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400 border-emerald-500' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50'}`}
                         >
                             <Sun size={14} /> Claro
                         </button>
                         <button
                             onClick={() => update('theme', 'dark')}
-                            className={`p-2 text-xs rounded border flex items-center gap-2 ${config.theme === 'dark' ? 'bg-slate-800 text-white border-slate-600' : 'bg-slate-100 border-slate-200 hover:bg-slate-200'}`}
+                            className={`p-2 text-xs font-bold rounded border flex items-center gap-2 transition-colors ${config.theme === 'dark' ? 'bg-slate-700 text-white border-slate-500 shadow-inner' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200'}`}
                         >
                             <Moon size={14} /> Escuro
                         </button>
                         <button
                             onClick={() => update('theme', 'sepia')}
-                            className={`p-2 text-xs rounded border flex items-center gap-2 ${config.theme === 'sepia' ? 'bg-[#f4e4bc] text-[#4f3e1e] border-[#d8c8a0]' : 'bg-[#fff8e1] border-slate-200 hover:bg-[#fff0c0]'}`}
+                            className={`p-2 text-xs font-bold rounded border flex items-center gap-2 transition-colors ${config.theme === 'sepia' ? 'bg-[#f4e4bc] text-[#4f3e1e] border-[#d8c8a0]' : 'bg-[#fff8e1] dark:bg-[#2d2a23] text-[#4f3e1e] dark:text-[#d8c8a0] border-slate-200 dark:border-[#4f3e1e] hover:bg-[#fff0c0]'}`}
                         >
                             <Eye size={14} /> Sépia
                         </button>
                         <button
                             onClick={() => update('theme', 'high-contrast')}
-                            className={`p-2 text-xs rounded border flex items-center gap-2 font-bold ${config.theme === 'high-contrast' ? 'bg-yellow-400 text-black border-black' : 'bg-black text-yellow-400 border-slate-200 hover:bg-slate-900'}`}
+                            className={`p-2 text-xs rounded border flex items-center gap-2 font-black transition-colors ${config.theme === 'high-contrast' ? 'bg-yellow-400 text-black border-black ring-2 ring-yellow-400 ring-offset-1 dark:ring-offset-slate-900' : 'bg-black dark:bg-slate-950 text-yellow-400 border-slate-200 dark:border-yellow-900/50 hover:bg-slate-900'}`}
                         >
                             <Sun size={14} /> Alto Contraste
                         </button>
@@ -125,8 +125,8 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
 
                 {/* 4. Altura da Linha */}
                 <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
-                        <Move size={14} /> Altura da Linha
+                    <label className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase flex items-center gap-2 tracking-wider">
+                        <Move size={14} className="text-brand-primary" /> Altura da Linha
                     </label>
                     <input
                         type="range"
@@ -141,8 +141,8 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
 
                 {/* 5. Espaçamento entre Letras */}
                 <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
-                        <Type size={14} /> Espaçamento entre Letras
+                    <label className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase flex items-center gap-2 tracking-wider">
+                        <Type size={14} className="text-brand-primary" /> Espaçamento entre Letras
                     </label>
                     <input
                         type="range"
@@ -159,8 +159,8 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                 <div className="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <EyeOff size={16} className="text-slate-500" />
-                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Modo Foco (Zen)</span>
+                            <EyeOff size={18} className="text-brand-primary dark:text-blue-400" />
+                            <span className="text-sm font-bold text-slate-800 dark:text-slate-100">Modo Foco (Zen)</span>
                         </div>
                         <button
                             onClick={() => update('focusMode', !config.focusMode)}
@@ -172,8 +172,8 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
 
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <Clock size={16} className="text-slate-500" />
-                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Exibir Cronômetro</span>
+                            <Clock size={18} className="text-brand-primary dark:text-blue-400" />
+                            <span className="text-sm font-bold text-slate-800 dark:text-slate-100">Exibir Cronômetro</span>
                         </div>
                         <button
                             onClick={() => update('hideTimer', !config.hideTimer)}
@@ -185,8 +185,8 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
 
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <Volume2 size={16} className="text-slate-500" />
-                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Leitor de Tela (TTS)</span>
+                            <Volume2 size={18} className="text-brand-primary dark:text-blue-400" />
+                            <span className="text-sm font-bold text-slate-800 dark:text-slate-100">Leitor de Tela (TTS)</span>
                         </div>
                         <button
                             onClick={() => update('textToSpeech', !config.textToSpeech)}
@@ -199,8 +199,8 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
 
                 {/* 6. Ferramentas de Estudo */}
                 <div className="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-4">
-                    <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
-                        <PenTool size={14} /> Ferramentas de Desenho
+                    <label className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase flex items-center gap-2 tracking-wider">
+                        <PenTool size={14} className="text-brand-primary" /> Ferramentas de Desenho
                     </label>
                     <div className="grid grid-cols-4 gap-2">
                         <button
