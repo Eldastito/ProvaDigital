@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Plus, MoreHorizontal, Clock, FileText, Printer, ClipboardCheck, Globe, School, Activity, ShieldCheck, Layers, Trash2 } from 'lucide-react';
+import { Plus, MoreHorizontal, Clock, FileText, Printer, ClipboardCheck, Globe, School, Activity, ShieldCheck, Layers, Trash2, Edit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppState, Exam, ExamStatus, QuestionType } from '../../types';
 import { Badge } from '../../components/ui/Badge';
@@ -81,6 +81,25 @@ export const ExamsListView = () => {
                                     <span className="text-xs text-slate-400 flex-1">Criada em {new Date(exam.createdAt).toLocaleDateString()}</span>
 
                                     <div className="flex gap-3">
+                                        {/* 1. EDITAR PROVA */}
+                                        <button
+                                            onClick={() => navigate(`/exams/new?id=${exam.id}`)}
+                                            className="text-blue-500 font-medium text-sm hover:text-blue-700 flex items-center gap-1 transition"
+                                            title="Editar questões e configurações da prova"
+                                        >
+                                            <Edit size={18} />
+                                        </button>
+
+                                        {/* 2. IMPRIMIR - NÃO FUNCIONA */}
+                                        <button
+                                            onClick={() => alert('⚠️ Funcionalidade em desenvolvimento')}
+                                            className="text-slate-400 font-medium text-sm hover:text-slate-500 flex items-center gap-1 transition cursor-not-allowed"
+                                            title="Visualizar e imprimir prova (em desenvolvimento)"
+                                        >
+                                            <Printer size={18} />
+                                        </button>
+
+                                        {/* 3. AUDITORIA IA */}
                                         {(() => {
                                             const tenant = state.tenants.find(t => t.id === userTenantId);
                                             const canAudit = tenant?.features?.ai_audit !== false;
@@ -88,50 +107,47 @@ export const ExamsListView = () => {
                                                 <button
                                                     onClick={() => setAuditExamId(exam.id)}
                                                     className="text-indigo-500 font-medium text-sm hover:text-indigo-700 flex items-center gap-1 transition"
-                                                    title="Auditoria IA (Fase 3)"
+                                                    title="Revisar qualidade pedagógica com IA"
                                                 >
                                                     <ShieldCheck size={18} />
                                                 </button>
                                             );
                                         })()}
+
+                                        {/* 4. VARIANTES - Redireciona para edição */}
                                         <button
-                                            onClick={() => navigate(`/print-exam/${exam.id}`)}
-                                            className="text-slate-500 font-medium text-sm hover:text-brand-primary flex items-center gap-1 transition"
-                                            title="Imprimir / Visualizar"
-                                        >
-                                            <Printer size={18} />
-                                        </button>
-                                        <button
-                                            onClick={() => navigate(`/exams/${exam.id}/variants`)}
+                                            onClick={() => navigate(`/exams/new?id=${exam.id}`)}
                                             className="text-amber-600 font-medium text-sm hover:text-amber-800 flex items-center gap-1 transition"
-                                            title="Gerenciar Variantes (V2)"
+                                            title="Criar variantes da prova (abre editor)"
                                         >
                                             <Layers size={18} />
-                                        </button >
-                                        {/* Enable Monitor for ACTIVE exams */}
-                                        {
-                                            exam.status === ExamStatus.ACTIVE && (
+                                        </button>
+
+                                        {/* 5. MONITOR - Condicional */}
+                                        {exam.status === ExamStatus.ACTIVE && (
+                                            <button
+                                                onClick={() => navigate(`/monitor/${exam.id}`)}
+                                                className="text-brand-primary font-medium text-sm hover:text-brand-dark flex items-center gap-1 transition"
+                                                title="Monitorar alunos em tempo real (prova ativa)"
+                                            >
+                                                <Activity size={18} />
+                                            </button>
+                                        )}
+
+                                        {/* 6. CORRIGIR - NÃO FUNCIONA */}
+                                        {(exam.status === ExamStatus.ACTIVE ||
+                                            exam.status === ExamStatus.COMPLETED ||
+                                            (exam.status as any) === 'PUBLISHED') && (
                                                 <button
-                                                    onClick={() => navigate(`/monitor/${exam.id}`)}
-                                                    className="text-brand-primary font-medium text-sm hover:text-brand-dark flex items-center gap-1 transition"
-                                                    title="Monitorar em Tempo Real"
-                                                >
-                                                    <Activity size={18} />
-                                                </button>
-                                            )
-                                        }
-                                        {/* Enable Grading for ACTIVE and COMPLETED exams (and legacy PUBLISHED) */}
-                                        {
-                                            (exam.status === ExamStatus.ACTIVE || exam.status === ExamStatus.COMPLETED || (exam.status as any) === 'PUBLISHED') && (
-                                                <button
-                                                    onClick={() => navigate(`/results/${exam.id}`)}
-                                                    className="text-brand-secondary font-medium text-sm hover:text-cyan-700 flex items-center gap-1 transition"
-                                                    title="Lançar Notas / Corrigir"
+                                                    onClick={() => alert('⚠️ Funcionalidade em desenvolvimento')}
+                                                    className="text-slate-400 font-medium text-sm hover:text-slate-500 flex items-center gap-1 transition cursor-not-allowed"
+                                                    title="Lançar notas e corrigir (em desenvolvimento)"
                                                 >
                                                     <ClipboardCheck size={18} />
                                                 </button>
-                                            )
-                                        }
+                                            )}
+
+                                        {/* 7. EXCLUIR */}
                                         <button
                                             onClick={async (e) => {
                                                 e.stopPropagation();
@@ -140,11 +156,11 @@ export const ExamsListView = () => {
                                                 }
                                             }}
                                             className="text-red-500 font-medium text-sm hover:text-red-700 flex items-center gap-1 transition"
-                                            title="Excluir Prova"
+                                            title="Excluir prova permanentemente"
                                         >
                                             <Trash2 size={18} />
                                         </button>
-                                    </div >
+                                    </div>
                                 </div >
                             </div >
                         </div >
