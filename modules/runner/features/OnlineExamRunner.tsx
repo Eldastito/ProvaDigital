@@ -696,7 +696,8 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                         config={{
                             penColor: a11y.penColor,
                             markerColor: a11y.markerColor,
-                            strokeSize: a11y.strokeSize
+                            strokeSize: a11y.strokeSize,
+                            eraserSize: a11y.eraserSize
                         }}
                         questionId={currentItem?.id || 'default'}
                     />

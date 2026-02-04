@@ -6,6 +6,7 @@ interface DrawingCanvasProps {
         penColor: string;
         markerColor: string;
         strokeSize: number;
+        eraserSize: number;
     };
     isActive: boolean;
     questionId: string;
@@ -44,7 +45,7 @@ export const DrawingCanvas = ({ mode, config, isActive, questionId }: DrawingCan
                     const isEraser = mode === 'eraser';
                     const isMarker = mode === 'highlighter';
                     context.strokeStyle = isEraser ? '#ffffff' : (isMarker ? config.markerColor : config.penColor);
-                    context.lineWidth = isEraser ? 20 : (isMarker ? 20 : config.strokeSize);
+                    context.lineWidth = isEraser ? config.eraserSize : (isMarker ? 20 : config.strokeSize);
                     context.globalCompositeOperation = isEraser ? 'destination-out' : 'source-over';
                     context.globalAlpha = isMarker ? 0.4 : 1.0;
 
@@ -91,7 +92,7 @@ export const DrawingCanvas = ({ mode, config, isActive, questionId }: DrawingCan
             const isMarker = mode === 'highlighter';
 
             contextRef.current.strokeStyle = isEraser ? '#ffffff' : (isMarker ? config.markerColor : config.penColor);
-            contextRef.current.lineWidth = isEraser ? 20 : (isMarker ? 20 : config.strokeSize);
+            contextRef.current.lineWidth = isEraser ? config.eraserSize : (isMarker ? 20 : config.strokeSize);
             contextRef.current.globalCompositeOperation = isEraser ? 'destination-out' : 'source-over';
             contextRef.current.globalAlpha = isMarker ? 0.4 : 1.0;
         }

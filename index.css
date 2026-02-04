@@ -27,6 +27,10 @@
 
 .font-dyslexic {
   font-family: 'OpenDyslexic', sans-serif !important;
+  font-size: 1.15em !important;
+  /* Aumento automático para legibilidade */
+  line-height: 1.6 !important;
+  letter-spacing: 0.05em !important;
 }
 
 /* Accessibility Themes */

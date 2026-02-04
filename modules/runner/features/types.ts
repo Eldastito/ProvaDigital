@@ -15,6 +15,7 @@ export interface AccessibilityConfig {
     penColor: string;
     markerColor: string;
     strokeSize: number;
+    eraserSize: number;
     showScratchpad: boolean;
 }
 
@@ -32,5 +33,6 @@ export const DEFAULT_ACCESSIBILITY_CONFIG: AccessibilityConfig = {
     penColor: '#3b82f6', // blue-500
     markerColor: '#fde047', // yellow-300
     strokeSize: 3,
+    eraserSize: 20,
     showScratchpad: false
 };

@@ -229,7 +229,17 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                             </label>
                             <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-2 rounded-lg">
                                 {(config.penMode === 'pen'
-                                    ? ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#000000']
+                                    ? [
+                                        '#3b82f6', // azul
+                                        '#ef4444', // vermelho
+                                        '#10b981', // verde
+                                        '#f59e0b', // laranja
+                                        '#8b5cf6', // roxo
+                                        '#ec4899', // rosa
+                                        '#991b1b', // bordô
+                                        '#475569', // cinza
+                                        '#000000'  // preto
+                                    ]
                                     : ['#fef08a', '#bbf7d0', '#bfdbfe', '#fbcfe8', '#cbd5e1']
                                 ).map(color => (
                                     <button
@@ -246,16 +256,18 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                         </div>
                     )}
 
-                    {/* Espessura do traço */}
-                    {config.penMode !== 'none' && config.penMode !== 'eraser' && (
+                    {/* Espessura do traço / Borracha */}
+                    {config.penMode !== 'none' && (
                         <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase">Espessura</label>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase">
+                                Espessura {config.penMode === 'eraser' ? 'da Borracha' : 'do Traço'}
+                            </label>
                             <input
                                 type="range"
-                                min="1"
-                                max="10"
-                                value={config.strokeSize}
-                                onChange={(e) => update('strokeSize', parseInt(e.target.value))}
+                                min={config.penMode === 'eraser' ? 5 : 1}
+                                max={config.penMode === 'eraser' ? 100 : 10}
+                                value={config.penMode === 'eraser' ? config.eraserSize : config.strokeSize}
+                                onChange={(e) => update(config.penMode === 'eraser' ? 'eraserSize' : 'strokeSize', parseInt(e.target.value))}
                                 className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer"
                             />
                         </div>
