@@ -50,6 +50,15 @@ export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ 
         removed: number;
     }>({ polished: 0, variants: 0, removed: 0 });
 
+    // Modal de resumo de correções
+    const [showSummaryModal, setShowSummaryModal] = useState(false);
+    const [correctionsSummary, setCorrectionsSummary] = useState<{
+        polished: number;
+        added: number;
+        removed: number;
+        total: number;
+    } | null>(null);
+
     // Fetch items if examId is provided and no items passed
     useEffect(() => {
         const fetchItems = async () => {
@@ -212,20 +221,34 @@ export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ 
         if (!reviewResult) return;
 
         let correctedItems = [...effectiveItems];
+        let changesLog = {
+            polished: 0,
+            added: 0,
+            removed: 0
+        };
 
         // 1. Aplicar polishedItems (substituir versões melhoradas)
         if (reviewResult.polishedItems) {
             correctedItems = correctedItems.map(item => {
                 const polished = reviewResult.polishedItems.find((p: any) => p.id === item.id);
-                return polished ? { ...item, ...polished } : item;
+                if (polished && (
+                    item.statement !== polished.statement ||
+                    JSON.stringify(item.alternatives) !== JSON.stringify(polished.alternatives)
+                )) {
+                    changesLog.polished++;
+                    return { ...item, ...polished };
+                }
+                return item;
             });
         }
 
         // 2. Remover duplicatas
         if (reviewResult.itemsToRemove && reviewResult.itemsToRemove.length > 0) {
+            const beforeCount = correctedItems.length;
             correctedItems = correctedItems.filter(item =>
                 !reviewResult.itemsToRemove.includes(item.id)
             );
+            changesLog.removed = beforeCount - correctedItems.length;
         }
 
         // 3. Adicionar variantes sugeridas
@@ -240,10 +263,21 @@ export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ 
                     origin: 'AI_VARIANT' as any
                 };
             });
+            changesLog.added = newVariants.length;
             correctedItems = [...correctedItems, ...newVariants];
         }
 
-        onComplete && onComplete(correctedItems, reviewResult);
+        // Mostrar modal de resumo
+        setCorrectionsSummary({
+            polished: changesLog.polished,
+            added: changesLog.added,
+            removed: changesLog.removed,
+            total: correctedItems.length
+        });
+        setShowSummaryModal(true);
+
+        // Guardar itens corrigidos para aplicar depois
+        (window as any).__correctedItems = correctedItems;
     };
 
     useEffect(() => {
@@ -372,6 +406,75 @@ export const AdvancedReviewPipeline: React.FC<AdvancedReviewPipelineProps> = ({ 
                         </button>
                     </div>
                 </div>
+
+                {/* Modal de Resumo de Correções */}
+                {showSummaryModal && correctionsSummary && (
+                    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 animate-in fade-in duration-200">
+                        <div className="bg-slate-800 p-8 rounded-2xl max-w-md border-2 border-brand-primary/30 shadow-2xl animate-in zoom-in-95 duration-300">
+                            <div className="text-center mb-6">
+                                <div className="w-16 h-16 bg-brand-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <Sparkles size={32} className="text-brand-primary" />
+                                </div>
+                                <h3 className="text-2xl font-bold text-white">
+                                    Correções Aplicadas!
+                                </h3>
+                                <p className="text-slate-400 text-sm mt-2">Resumo das alterações realizadas</p>
+                            </div>
+
+                            <div className="space-y-4 mb-6">
+                                <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-xl">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                                            <Type size={16} className="text-emerald-400" />
+                                        </div>
+                                        <span className="text-slate-300 text-sm">Questões melhoradas</span>
+                                    </div>
+                                    <span className="text-2xl font-bold text-emerald-400">{correctionsSummary.polished}</span>
+                                </div>
+
+                                <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-xl">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                                            <GitMerge size={16} className="text-blue-400" />
+                                        </div>
+                                        <span className="text-slate-300 text-sm">Variantes adicionadas</span>
+                                    </div>
+                                    <span className="text-2xl font-bold text-blue-400">{correctionsSummary.added}</span>
+                                </div>
+
+                                <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-xl">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 bg-rose-500/20 rounded-lg flex items-center justify-center">
+                                            <AlertTriangle size={16} className="text-rose-400" />
+                                        </div>
+                                        <span className="text-slate-300 text-sm">Duplicatas removidas</span>
+                                    </div>
+                                    <span className="text-2xl font-bold text-rose-400">{correctionsSummary.removed}</span>
+                                </div>
+
+                                <div className="flex items-center justify-between p-4 bg-brand-primary/10 rounded-xl border border-brand-primary/30 mt-4">
+                                    <div className="flex items-center gap-3">
+                                        <FileText size={20} className="text-brand-primary" />
+                                        <span className="text-white font-bold">Total de questões</span>
+                                    </div>
+                                    <span className="text-3xl font-bold text-brand-primary">{correctionsSummary.total}</span>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => {
+                                    setShowSummaryModal(false);
+                                    const correctedItems = (window as any).__correctedItems;
+                                    onComplete && onComplete(correctedItems, reviewResult);
+                                }}
+                                className="w-full bg-brand-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-brand-dark transition flex items-center justify-center gap-2"
+                            >
+                                <CheckCircle2 size={20} />
+                                Continuar
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
