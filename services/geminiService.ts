@@ -507,21 +507,22 @@ async function callGeminiAPI<T>(
                 apiKey
             });
 
-            const config: any = {};
+            const config: any = {
+                temperature: 0.7,
+                maxOutputTokens: 8192
+            };
+
             if (responseSchema) {
                 config.responseMimeType = "application/json";
                 config.responseSchema = responseSchema;
             }
-
-            // Otimização para geração de itens
-            config.temperature = 0.7; // Mais criatividade/diversidade
-            config.maxOutputTokens = 8192; // Garantir que não corte o JSON longo
 
             // NOVO SDK: contents deve ser um array de objetos
             const formattedContents = typeof contents === 'string'
                 ? [{ role: 'user', parts: [{ text: contents }] }]
                 : contents;
 
+            // Uso do barramento legatário compatível com esta versão do SDK
             const response = await ai.models.generateContent({
                 model: DEFAULT_MODEL,
                 contents: formattedContents,
@@ -1049,37 +1050,38 @@ const mockGenerate = (qty: number, type: QuestionType, diff: DifficultyLevel): G
     }));
 };
 export const reviewExamAdvanced = async (items: any[]): Promise<any> => {
+    console.log("[GeminiService] Iniciando revisão avançada (vSchema-Literal-Fixed)");
     const prompt = PROMPTS.REVIEW_EXAM(JSON.stringify(items));
     const schema = {
-        type: Type.OBJECT,
+        type: "object",
         properties: {
             stages: {
-                type: Type.OBJECT,
+                type: "object",
                 properties: {
-                    structural: { type: Type.OBJECT, properties: { status: { type: Type.STRING }, feedback: { type: Type.STRING } } },
-                    pedagogical: { type: Type.OBJECT, properties: { status: { type: Type.STRING }, feedback: { type: Type.STRING } } },
-                    accessibility: { type: Type.OBJECT, properties: { status: { type: Type.STRING }, feedback: { type: Type.STRING } } },
-                    textual: { type: Type.OBJECT, properties: { status: { type: Type.STRING }, feedback: { type: Type.STRING } } },
-                    anticheat: { type: Type.OBJECT, properties: { status: { type: Type.STRING }, feedback: { type: Type.STRING } } },
-                    tri: { type: Type.OBJECT, properties: { status: { type: Type.STRING }, feedback: { type: Type.STRING } } }
+                    structural: { type: "object", properties: { status: { type: "string" }, feedback: { type: "string" } }, required: ["status", "feedback"] },
+                    pedagogical: { type: "object", properties: { status: { type: "string" }, feedback: { type: "string" } }, required: ["status", "feedback"] },
+                    accessibility: { type: "object", properties: { status: { type: "string" }, feedback: { type: "string" } }, required: ["status", "feedback"] },
+                    textual: { type: "object", properties: { status: { type: "string" }, feedback: { type: "string" } }, required: ["status", "feedback"] },
+                    anticheat: { type: "object", properties: { status: { type: "string" }, feedback: { type: "string" } }, required: ["status", "feedback"] },
+                    tri: { type: "object", properties: { status: { type: "string" }, feedback: { type: "string" } }, required: ["status", "feedback"] }
                 },
                 required: ["structural", "pedagogical", "accessibility", "textual", "anticheat", "tri"]
             },
-            overallScore: { type: Type.NUMBER },
+            overallScore: { type: "number" },
             polishedItems: {
-                type: Type.ARRAY,
+                type: "array",
                 items: {
-                    type: Type.OBJECT,
+                    type: "object",
                     properties: {
-                        id: { type: Type.STRING },
-                        statement: { type: Type.STRING },
+                        id: { type: "string" },
+                        statement: { type: "string" },
                         alternatives: {
-                            type: Type.ARRAY,
+                            type: "array",
                             items: {
-                                type: Type.OBJECT,
+                                type: "object",
                                 properties: {
-                                    text: { type: Type.STRING },
-                                    isCorrect: { type: Type.BOOLEAN }
+                                    text: { type: "string" },
+                                    isCorrect: { type: "boolean" }
                                 },
                                 required: ["text", "isCorrect"]
                             }
@@ -1089,19 +1091,19 @@ export const reviewExamAdvanced = async (items: any[]): Promise<any> => {
                 }
             },
             variantsSuggested: {
-                type: Type.ARRAY,
+                type: "array",
                 items: {
-                    type: Type.OBJECT,
+                    type: "object",
                     properties: {
-                        originalItemId: { type: Type.STRING },
-                        newStatement: { type: Type.STRING },
+                        originalItemId: { type: "string" },
+                        newStatement: { type: "string" },
                         newAlternatives: {
-                            type: Type.ARRAY,
+                            type: "array",
                             items: {
-                                type: Type.OBJECT,
+                                type: "object",
                                 properties: {
-                                    text: { type: Type.STRING },
-                                    isCorrect: { type: Type.BOOLEAN }
+                                    text: { type: "string" },
+                                    isCorrect: { type: "boolean" }
                                 },
                                 required: ["text", "isCorrect"]
                             }
