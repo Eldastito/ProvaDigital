@@ -1080,10 +1080,12 @@ export const reviewExamAdvanced = async (items: any[]): Promise<any> => {
                                 properties: {
                                     text: { type: Type.STRING },
                                     isCorrect: { type: Type.BOOLEAN }
-                                }
+                                },
+                                required: ["text", "isCorrect"]
                             }
                         }
-                    }
+                    },
+                    required: ["id", "statement", "alternatives"]
                 }
             },
             variantsSuggested: {
@@ -1100,14 +1102,16 @@ export const reviewExamAdvanced = async (items: any[]): Promise<any> => {
                                 properties: {
                                     text: { type: Type.STRING },
                                     isCorrect: { type: Type.BOOLEAN }
-                                }
+                                },
+                                required: ["text", "isCorrect"]
                             }
                         }
-                    }
+                    },
+                    required: ["originalItemId", "newStatement", "newAlternatives"]
                 }
             }
         },
-        required: ["stages", "overallScore"]
+        required: ["stages", "overallScore", "polishedItems", "variantsSuggested"]
     };
 
     const fallback = {
