@@ -63,20 +63,29 @@
 /* Font Scaling Engine */
 .runner-container {
   --runner-font-scale: 100%;
+  --runner-line-height: 1.5;
   --runner-letter-spacing: 0px;
+  --dyslexia-multiplier: 1;
+}
+
+.runner-container.font-dyslexic {
+  --dyslexia-multiplier: 1.15;
 }
 
 /* Alvo do Zoom: Conteúdo da Prova e Alternativas */
 .runner-container main {
-  font-size: var(--runner-font-scale) !important;
+  /* Cálculo final do font-size: Zoom do usuário * Multiplicador de Dislexia */
+  font-size: calc(var(--runner-font-scale) * var(--dyslexia-multiplier)) !important;
+  line-height: var(--runner-line-height) !important;
 }
 
+/* Aplicar espaçamento e herança de fonte em todos os conteúdos pedagógicos */
 .runner-container .rich-text-content,
 .runner-container .rich-text-content *,
 .runner-container button span {
   font-size: 1em !important;
-  /* Herda a escala do main */
   letter-spacing: var(--runner-letter-spacing) !important;
+  line-height: inherit !important;
 }
 
 /* Evitar que o zoom afete a barra de opções, cabeçalho e rascunho */
@@ -86,6 +95,21 @@ header,
 header *,
 [role="complementary"] {
   font-size: 16px !important;
+  letter-spacing: normal !important;
+  line-height: normal !important;
+  transform: none !important;
+}
+
+/* Bloco de Rascunho - Liberar Seleção e Interatividade */
+.scratchpad-container {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  pointer-events: auto !important;
+}
+
+.scratchpad-container textarea {
+  pointer-events: auto !important;
+  cursor: text !important;
 }
 
 /* Timer Crítico */

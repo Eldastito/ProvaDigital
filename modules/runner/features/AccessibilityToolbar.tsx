@@ -123,10 +123,10 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                     </div>
                 </div>
 
-                {/* 4. Espaçamento */}
+                {/* 4. Altura da Linha */}
                 <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
-                        <Move size={14} /> Espaçamento
+                        <Move size={14} /> Altura da Linha
                     </label>
                     <input
                         type="range"
@@ -135,6 +135,22 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                         step="0.1"
                         value={config.lineHeight}
                         onChange={(e) => update('lineHeight', parseFloat(e.target.value))}
+                        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                </div>
+
+                {/* 5. Espaçamento entre Letras */}
+                <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+                        <Type size={14} /> Espaçamento entre Letras
+                    </label>
+                    <input
+                        type="range"
+                        min="0"
+                        max="5"
+                        step="0.5"
+                        value={config.letterSpacing}
+                        onChange={(e) => update('letterSpacing', parseFloat(e.target.value))}
                         className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
                     />
                 </div>

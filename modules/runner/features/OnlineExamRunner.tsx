@@ -51,6 +51,9 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
     const [answers, setAnswers] = useState<Record<string, string>>({});
     const [strikedOptions, setStrikedOptions] = useState<Record<string, string[]>>({});
     const [isRestored, setIsRestored] = useState(false);
+    const [scratchpadValue, setScratchpadValue] = useState(() => {
+        return localStorage.getItem(`exam_scratchpad_${examId}`) || '';
+    });
 
     // --- ACCESSIBILITY VARIANT LOGIC ---
     const variant = state.examVariants.find(v => v.id === variantId);
@@ -159,6 +162,11 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
     useEffect(() => {
         setLastQuestionLoadedAt(Date.now());
     }, [currentQuestionIndex]);
+
+    // Save Scratchpad
+    useEffect(() => {
+        localStorage.setItem(`exam_scratchpad_${examId}`, scratchpadValue);
+    }, [scratchpadValue, examId]);
 
     // Timer Tick
     useEffect(() => {
@@ -474,6 +482,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
     const containerStyle = {
         '--runner-font-scale': `${a11y.fontSize}%`,
         '--runner-letter-spacing': `${a11y.letterSpacing}px`,
+        '--runner-line-height': a11y.lineHeight,
         lineHeight: a11y.lineHeight,
     } as React.CSSProperties;
 
@@ -704,13 +713,15 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
 
                     {/* SCRATCHPAD OVERLAY */}
                     {a11y.showScratchpad && (
-                        <div className="absolute top-0 -right-80 w-72 h-[500px] bg-amber-50 shadow-2xl rounded-xl border-2 border-amber-200 p-4 z-30 animate-in slide-in-from-right hidden lg:block no-zoom">
+                        <div className="absolute top-0 -right-80 w-72 h-[500px] bg-amber-50 shadow-2xl rounded-xl border-2 border-amber-200 p-4 z-30 animate-in slide-in-from-right hidden lg:block no-zoom scratchpad-container">
                             <h4 className="font-bold text-amber-800 flex items-center gap-2 mb-2">
                                 <FileText size={16} /> Bloco de Rascunho
                             </h4>
                             <textarea
                                 className="w-full h-[420px] bg-transparent border-none focus:ring-0 text-amber-900 placeholder:text-amber-300/50 resize-none font-serif text-sm"
                                 placeholder="Use este espaço para contas ou anotações rápidas..."
+                                value={scratchpadValue}
+                                onChange={(e) => setScratchpadValue(e.target.value)}
                             />
                         </div>
                     )}
