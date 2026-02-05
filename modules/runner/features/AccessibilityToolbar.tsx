@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Type, ZoomIn, ZoomOut, Eye, EyeOff, Sun, Moon, Volume2, Move, X, Clock, FileText, Eraser, MousePointer2, PenTool, Highlighter, Palette } from 'lucide-react';
+import { Settings, Type, ZoomIn, ZoomOut, Eye, EyeOff, Sun, Moon, Volume2, Move, X, Clock, FileText, Eraser, MousePointer2, PenTool, Highlighter, Palette, Video } from 'lucide-react';
 import { AccessibilityConfig, FontType, ThemeType } from './types';
 
 interface AccessibilityToolbarProps {
@@ -125,8 +125,8 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                         <button
                             onClick={() => update('theme', 'sepia')}
                             className={`p-2 text-xs font-bold rounded border flex items-center gap-2 transition-all ${config.theme === 'sepia'
-                                    ? 'bg-[#f4e4bc] text-[#4f3e1e] border-[#d8c8a0]'
-                                    : (isHighContrast ? 'bg-black text-yellow-400 border-yellow-400' : 'bg-[#fff8e1] dark:bg-[#2d2a23] text-[#4f3e1e] dark:text-[#d8c8a0] border-slate-200 dark:border-[#4f3e1e] hover:bg-[#fff0c0]')
+                                ? 'bg-[#f4e4bc] text-[#4f3e1e] border-[#d8c8a0]'
+                                : (isHighContrast ? 'bg-black text-yellow-400 border-yellow-400' : 'bg-[#fff8e1] dark:bg-[#2d2a23] text-[#4f3e1e] dark:text-[#d8c8a0] border-slate-200 dark:border-[#4f3e1e] hover:bg-[#fff0c0]')
                                 }`}
                         >
                             <Eye size={14} /> Sépia
@@ -134,8 +134,8 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                         <button
                             onClick={() => update('theme', 'high-contrast')}
                             className={`p-2 text-xs rounded border flex items-center gap-2 font-black transition-all ${config.theme === 'high-contrast'
-                                    ? 'bg-yellow-400 text-black border-yellow-400 ring-2 ring-yellow-400 ring-offset-1 dark:ring-offset-slate-900 shadow-lg'
-                                    : 'bg-black text-yellow-400 border-yellow-400 hover:bg-yellow-900/20'
+                                ? 'bg-yellow-400 text-black border-yellow-400 ring-2 ring-yellow-400 ring-offset-1 dark:ring-offset-slate-900 shadow-lg'
+                                : 'bg-black text-yellow-400 border-yellow-400 hover:bg-yellow-900/20'
                                 }`}
                         >
                             <Sun size={14} /> Alto Contraste
@@ -215,6 +215,21 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                             className={`w-12 h-6 rounded-full transition-colors relative ${config.textToSpeech ? 'bg-brand-primary' : 'bg-slate-300'}`}
                         >
                             <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${config.textToSpeech ? 'left-7' : 'left-1'}`} />
+                        </button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Video size={18} className={config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-brand-primary dark:text-blue-400'} />
+                            <span className={`text-sm font-bold ${config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-800 dark:text-slate-100'}`}>Tradutor Libras</span>
+                        </div>
+                        <button
+                            onClick={() => update('showLibrasWindow', !config.showLibrasWindow)}
+                            disabled={!config.librasVideoUrl}
+                            className={`w-12 h-6 rounded-full transition-colors relative ${config.showLibrasWindow ? 'bg-brand-primary' : (config.librasVideoUrl ? 'bg-slate-300' : 'bg-slate-100 opacity-50 cursor-not-allowed')}`}
+                            title={!config.librasVideoUrl ? "Nenhuma tradução disponível para esta questão" : "Ativar Tradução em Libras"}
+                        >
+                            <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${config.showLibrasWindow ? 'left-7' : 'left-1'}`} />
                         </button>
                     </div>
                 </div>

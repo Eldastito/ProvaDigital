@@ -4,7 +4,7 @@ import { supabase } from '../../../services/supabaseClient';
 import { AccessibilityToolbar } from './AccessibilityToolbar';
 import { SimulationRenderer } from './SimulationRenderer';
 import { AccessibilityConfig, DEFAULT_ACCESSIBILITY_CONFIG } from './types';
-import { ChevronLeft, ChevronRight, CheckCircle, Clock, CloudUpload, FileText, EyeOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle, Clock, CloudUpload, FileText, EyeOff, Minimize, Video } from 'lucide-react';
 import { Exam, Item, StudentAnswer } from '../../../types';
 import { useProctoring } from '../../../hooks/useProctoring';
 import { RichTextRenderer } from '../../../components/RichTextRenderer';
@@ -54,6 +54,12 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
     const [scratchpadValue, setScratchpadValue] = useState(() => {
         return localStorage.getItem(`exam_scratchpad_${examId}`) || '';
     });
+
+    // --- ACCESSIBILITY LIBRAS LOGIC ---
+    useEffect(() => {
+        // Reset Libras URL when question changes to avoid showing old translation
+        setA11y(prev => ({ ...prev, librasVideoUrl: null }));
+    }, [currentQuestionIndex]);
 
     // --- ACCESSIBILITY VARIANT LOGIC ---
     const variant = state.examVariants.find(v => v.id === variantId);
@@ -662,6 +668,47 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                 <AccessibilityToolbar config={a11y} onChange={setA11y} />
             </div>
 
+            {/* ACCESSITY OVERLAYS */}
+            {a11y.showLibrasWindow && a11y.librasVideoUrl && (
+                <div className="fixed bottom-24 right-6 w-72 h-44 bg-slate-900 border-2 border-brand-primary rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col group no-zoom">
+                    <div className="flex items-center justify-between px-3 py-1 bg-brand-primary text-white text-[10px] font-bold uppercase tracking-widest">
+                        <span>Tradução Libras</span>
+                        <div className="flex gap-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                        </div>
+                    </div>
+                    <div className="flex-1 bg-black">
+                        {a11y.librasVideoUrl.includes('youtube.com') || a11y.librasVideoUrl.includes('youtu.be') ? (
+                            <iframe
+                                width="100%"
+                                height="100%"
+                                src={`https://www.youtube.com/embed/${a11y.librasVideoUrl.includes('v=') ? a11y.librasVideoUrl.split('v=')[1].split('&')[0] : a11y.librasVideoUrl.split('/').pop()}?autoplay=1&mute=1&controls=0`}
+                                frameBorder="0"
+                                allow="autoplay; encrypted-media"
+                                allowFullScreen
+                            />
+                        ) : (
+                            <video
+                                src={a11y.librasVideoUrl}
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                className="w-full h-full object-cover"
+                            />
+                        )}
+                    </div>
+                    <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                            onClick={() => setA11y(prev => ({ ...prev, showLibrasWindow: false }))}
+                            className="bg-black/50 hover:bg-black rounded-full p-1 text-white"
+                        >
+                            <Minimize size={14} />
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* HEADER */}
             <header className={`px-6 py-4 flex justify-between items-center border-b no-zoom ${a11y.theme === 'high-contrast' ? 'border-yellow-400' : 'border-slate-200 dark:border-slate-700'}`}>
                 <div>
@@ -732,6 +779,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                         <RichTextRenderer
                             content={currentItem.statement}
                             className="text-2xl font-medium leading-relaxed rich-text-content"
+                            onLibrasDetected={(url) => setA11y(prev => ({ ...prev, librasVideoUrl: url }))}
                         />
                     </div>
 
@@ -786,8 +834,8 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                                             className={`w-full text-left p-6 rounded-2xl transition-all duration-300 flex items-center gap-4 ${btnClass} ${strikedOptions[currentItem.id]?.includes(alt.id) ? 'strikethrough' : ''}`}
                                         >
                                             <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 shrink-0 transition-colors ${isSelected
-                                                    ? (a11y.theme === 'high-contrast' ? 'bg-black text-yellow-400 border-black font-black' : 'bg-white text-brand-primary border-white font-bold')
-                                                    : (a11y.theme === 'high-contrast' ? 'border-yellow-400 text-yellow-400 font-black' : 'border-current/20 font-bold')
+                                                ? (a11y.theme === 'high-contrast' ? 'bg-black text-yellow-400 border-black font-black' : 'bg-white text-brand-primary border-white font-bold')
+                                                : (a11y.theme === 'high-contrast' ? 'border-yellow-400 text-yellow-400 font-black' : 'border-current/20 font-bold')
                                                 }`}>
                                                 {String.fromCharCode(65 + currentItem.alternatives.indexOf(alt))}
                                             </div>

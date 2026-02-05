@@ -17,6 +17,8 @@ export interface AccessibilityConfig {
     strokeSize: number;
     eraserSize: number;
     showScratchpad: boolean;
+    showLibrasWindow: boolean;
+    librasVideoUrl: string | null;
 }
 
 export const DEFAULT_ACCESSIBILITY_CONFIG: AccessibilityConfig = {
@@ -34,5 +36,7 @@ export const DEFAULT_ACCESSIBILITY_CONFIG: AccessibilityConfig = {
     markerColor: '#fde047', // yellow-300
     strokeSize: 3,
     eraserSize: 20,
-    showScratchpad: false
+    showScratchpad: false,
+    showLibrasWindow: false,
+    librasVideoUrl: null
 };

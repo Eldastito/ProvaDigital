@@ -5,9 +5,10 @@ import DOMPurify from 'dompurify';
 interface RichTextRendererProps {
     content: string;
     className?: string;
+    onLibrasDetected?: (url: string) => void;
 }
 
-export const RichTextRenderer = ({ content, className = '' }: RichTextRendererProps) => {
+export const RichTextRenderer = ({ content, className = '', onLibrasDetected }: RichTextRendererProps) => {
     // Force re-render when KaTeX loads from CDN
     const [, setTick] = useState(0);
 
@@ -23,6 +24,16 @@ export const RichTextRenderer = ({ content, className = '' }: RichTextRendererPr
         }
     }, []);
 
+    // Detect Libras URLs and notify parent
+    useEffect(() => {
+        if (!content || !onLibrasDetected) return;
+        const librasRegex = /\[libras\]([\s\S]*?)\[\/libras\]/gi;
+        const match = librasRegex.exec(content);
+        if (match && match[1]) {
+            onLibrasDetected(match[1].trim());
+        }
+    }, [content, onLibrasDetected]);
+
     const parseContent = (text: string) => {
         if (!text) return '';
 
@@ -34,7 +45,10 @@ export const RichTextRenderer = ({ content, className = '' }: RichTextRendererPr
 
         let processed = text;
 
-        // 0. Extract Multimedia Tags (NEW)
+        // 0. Extract Libras Tags (NEW - Hide from UI as they are rendered in PiP)
+        processed = processed.replace(/\[libras\]([\s\S]*?)\[\/libras\]/gi, '');
+
+        // 0.1 Extract Multimedia Tags (NEW)
         // Image [img]url[/img]
         processed = processed.replace(/\[img\]([\s\S]*?)\[\/img\]/g, (match, url) => {
             return pushPlaceholder(
