@@ -405,14 +405,8 @@ export const batchGradeAnswers = async (answers: AnswerContext[]): Promise<Batch
         }
     };
 
-    // Fallback Mock
-    const fallback: BatchGradeResult[] = answers.map(a => ({
-        id: a.id,
-        score: a.maxScore * 0.7,
-        feedback: "Correção offline (Simulada). Verifique conexão."
-    }));
-
-    return callGeminiAPI<BatchGradeResult[]>(prompt, schema, fallback);
+    // No production fallback for batch grading
+    return callGeminiAPI<BatchGradeResult[]>(prompt, schema, []);
 };
 
 
@@ -601,12 +595,12 @@ async function callGeminiAPI<T>(
 
             // CRITICAL: Throw real error to UI instead of Mock
             console.error(`[GeminiService] Erro crítico após retentativas:`, error);
-            throw new Error(`Erro na IA: ${error.message || 'Falha desconhecida'}`);
+            throw new Error(`Erro na IA: ${error.message || 'Falha desconhecida'}. Verifique sua cota ou chave de API.`);
         }
     }
 
-    console.warn(`[GeminiService] Excedido número de tentativas. Retornando fallback.`);
-    return fallbackValue;
+    // This part should technically not be reached if maxRetries are handled above, but for safety:
+    throw new Error("Falha ao gerar conteúdo após múltiplas tentativas.");
 }
 
 export const listAvailableModels = async (): Promise<any[]> => {
@@ -685,7 +679,8 @@ export const generateQuestionsFromText = async (
     };
 
     interface SchemaResponse { questions: GeneratedQuestion[] }
-    const res = await callGeminiAPI<SchemaResponse>(prompt, schema, { questions: mockGenerate(quantity, type, difficulty) });
+    // No production fallback for generating questions
+    const res = await callGeminiAPI<SchemaResponse>(prompt, schema, { questions: [] });
 
     // Ensure we return an array
     return Array.isArray(res.questions) ? res.questions : [res as any];
@@ -708,12 +703,8 @@ export const gradeEssayAnswer = async (
         }
     };
 
-    const fallback: EssayGrade = {
-        score: maxScore * 0.8,
-        feedback: "Simulação: Resposta parece correta, mas faltou detalhar X. (Modo Offline)"
-    };
-
-    return callGeminiAPI<EssayGrade>(prompt, schema, fallback);
+    // No production fallback for grading
+    return callGeminiAPI<EssayGrade>(prompt, schema, { score: 0, feedback: "Erro na correção automática." });
 };
 
 export const askOwlTutor = async (
@@ -753,16 +744,11 @@ export const generateStudyPlanSuggestions = async (
         }
     };
 
-    const fallback: StudyPlanSuggestion = {
-        title: `Plano de Recuperação: ${weakSubject}`,
-        tasks: [
-            `Revisar capítulo 4 de ${weakSubject} (Sugestão Automática)`,
-            `Refazer exercícios da prova anterior`,
-            `Assistir vídeo-aula sobre o tema`
-        ]
-    };
-
-    return callGeminiAPI<StudyPlanSuggestion>(prompt, schema, fallback);
+    // No production fallback for study plans
+    return callGeminiAPI<StudyPlanSuggestion>(prompt, schema, {
+        title: "Plano Indisponível",
+        tasks: ["Ocorreu um erro ao gerar suas sugestões de estudo."]
+    });
 };
 
 export const generateAssessmentReport = async (
@@ -783,14 +769,13 @@ export const generateAssessmentReport = async (
         }
     };
 
-    const fallback: AssessmentReport = {
-        resultType: "Perfil Demo (Offline)",
-        report: "Este é um relatório simulado pois a conexão com a IA não pôde ser estabelecida. Suas respostas foram salvas localmente.",
-        strengths: ["Resiliência (Simulado)", "Proatividade (Simulado)", "Criatividade (Simulado)"],
-        weaknesses: ["Organização (Simulado)", "Foco (Simulado)", "Paciência (Simulado)"]
-    };
-
-    return callGeminiAPI<AssessmentReport>(prompt, schema, fallback);
+    // No production fallback for reports
+    return callGeminiAPI<AssessmentReport>(prompt, schema, {
+        resultType: "Erro no Processamento",
+        report: "Não foi possível gerar o relatório no momento. Tente novamente mais tarde.",
+        strengths: [],
+        weaknesses: []
+    });
 };
 
 export const improveItemStatement = async (statement: string): Promise<string> => {
