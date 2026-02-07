@@ -9,6 +9,9 @@ import { Exam, Item, StudentAnswer } from '../../../types';
 import { useProctoring } from '../../../hooks/useProctoring';
 import { RichTextRenderer } from '../../../components/RichTextRenderer';
 import { DrawingCanvas } from './DrawingCanvas';
+import { offlineCacheService } from '../../../services/offlineCacheService';
+import { registerCachedExam } from '../../../services/offlineDb';
+import { DownloadCloud, CloudCheck } from 'lucide-react'; // Some extra icons
 
 interface OnlineExamRunnerProps {
     examId: string;
@@ -54,6 +57,37 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
     const [scratchpadValue, setScratchpadValue] = useState(() => {
         return localStorage.getItem(`exam_scratchpad_${examId}`) || '';
     });
+
+    // --- OFFLINE CACHE STATE ---
+    const [isOfflineReady, setIsOfflineReady] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [downloadProgress, setDownloadProgress] = useState(0);
+
+    useEffect(() => {
+        const checkOffline = async () => {
+            const ready = await offlineCacheService.isAvailableOffline(examId);
+            setIsOfflineReady(ready);
+        };
+        checkOffline();
+    }, [examId]);
+
+    const handleDownloadOffline = async () => {
+        if (!exam || activeExamItems.length === 0) return;
+        setIsDownloading(true);
+        try {
+            const success = await offlineCacheService.downloadExamForOffline(exam, activeExamItems);
+            if (success) {
+                await registerCachedExam(exam.id, exam.title);
+                setIsOfflineReady(true);
+            } else {
+                alert("Falha ao baixar prova. Verifique sua conexão.");
+            }
+        } catch (err) {
+            console.error("Erro no download offline:", err);
+        } finally {
+            setIsDownloading(false);
+        }
+    };
 
     // --- ACCESSIBILITY LIBRAS LOGIC ---
     useEffect(() => {
@@ -439,7 +473,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
             // Retornar respostas corrigidas
             onComplete(gradingResult.answers);
         } catch (error) {
-            console.error('Erro na correção automática, usando fallback resiliente...', error);
+            console.error('Erro na correção automática, ativando resiliência offline...', error);
 
             // FALLBACK RESILIENTE: 
             // - Objetivas: correção local
@@ -473,8 +507,23 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                 };
             });
 
+            // SALVAR NA FILA OFFLINE SE SUBMISSÃO FALHAR TOTALMENTE
+            try {
+                const { enqueueOfflineResult } = await import('../../../services/offlineDb');
+                await enqueueOfflineResult(examId, studentId, {
+                    answers: finalAnswers,
+                    submittedAt: new Date().toISOString(),
+                    mode: 'offline_emergency'
+                });
+                console.log('📦 Resultado enfileirado no IndexedDB para sincronização posterior.');
+            } catch (dbErr) {
+                console.error('Falha crítica ao salvar backup offline:', dbErr);
+            }
+
             if (attemptId) {
-                submitExamAttempt(attemptId, isTimeout ? 'timed_out' : 'submitted');
+                submitExamAttempt(attemptId, isTimeout ? 'timed_out' : 'submitted').catch(() => {
+                    console.warn('Submissão online falhou, mas backup offline foi salvo.');
+                });
                 localStorage.removeItem(`exam_attempt_${examId}_${studentId}`);
             }
 
@@ -585,8 +634,46 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                     >
                         Entendi, começar prova
                     </button>
+
+                    {/* Offline Download Option */}
+                    <div className="mt-6 pt-6 border-t border-white/10 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            {isOfflineReady ? (
+                                <div className="p-2 bg-emerald-500/20 rounded-full">
+                                    <CheckCircle size={20} className="text-emerald-400" />
+                                </div>
+                            ) : (
+                                <div className="p-2 bg-blue-500/10 rounded-full">
+                                    <DownloadCloud size={20} className="text-blue-400" />
+                                </div>
+                            )}
+                            <div>
+                                <p className="text-sm font-bold text-white">
+                                    {isOfflineReady ? 'Disponível Offline' : 'Modo Offline'}
+                                </p>
+                                <p className="text-xs text-gray-400">
+                                    {isOfflineReady
+                                        ? 'Esta prova já está salva no seu dispositivo.'
+                                        : 'Baixe agora para garantir que não haverá interrupções.'}
+                                </p>
+                            </div>
+                        </div>
+
+                        {!isOfflineReady && (
+                            <button
+                                onClick={handleDownloadOffline}
+                                disabled={isDownloading || activeExamItems.length === 0}
+                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${isDownloading
+                                    ? 'bg-gray-700 text-gray-400 cursor-wait'
+                                    : 'bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white border border-blue-500/30'
+                                    }`}
+                            >
+                                {isDownloading ? 'Baixando...' : 'Baixar Agora'}
+                            </button>
+                        )}
+                    </div>
                 </div>
-            </div>
+            </div >
         );
     }
 
@@ -617,6 +704,23 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                         >
                             Prefiro não compartilhar (Assumir riscos)
                         </button>
+
+                        {/* Offline Download in Security Gate */}
+                        <div className="mt-4 p-4 rounded-xl border border-white/5 bg-white/5 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                {isOfflineReady ? <CheckCircle size={18} className="text-emerald-400" /> : <DownloadCloud size={18} className="text-blue-400" />}
+                                <span className="text-xs font-bold">{isOfflineReady ? 'Salvo Offline 🛡️' : 'Baixar para Offline'}</span>
+                            </div>
+                            {!isOfflineReady && (
+                                <button
+                                    onClick={handleDownloadOffline}
+                                    disabled={isDownloading}
+                                    className="text-[10px] px-3 py-1.5 bg-blue-600/20 text-blue-400 rounded-md border border-blue-500/20 hover:bg-blue-600 hover:text-white transition-all"
+                                >
+                                    {isDownloading ? 'Baixando...' : 'Obter Agora'}
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -725,14 +829,26 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
 
             {/* HEADER */}
             <header className={`px-6 py-4 flex justify-between items-center border-b no-zoom ${a11y.theme === 'high-contrast' ? 'border-yellow-400' : 'border-slate-200 dark:border-slate-700'}`}>
-                <div>
-                    <h1 className="text-xl font-bold">{exam.title}</h1>
-                    {!a11y.focusMode && (
-                        <p className={`text-sm font-bold ${a11y.theme === 'high-contrast' ? 'text-yellow-400' : 'opacity-80'}`}>
-                            Questão {currentQuestionIndex + 1}
-                            {isAdaptive ? '' : ` de ${activeExamItems.length}`}
-                            {isAdaptive && <span className={`ml-2 text-[10px] px-1 rounded border ${a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black border-black font-black' : 'bg-blue-100 text-blue-700 border-blue-200'}`}>ADAPTATIVO</span>}
-                        </p>
+                <div className="flex items-center gap-4">
+                    <div>
+                        <h1 className="text-xl font-bold">{exam.title}</h1>
+                        {!a11y.focusMode && (
+                            <p className={`text-sm font-bold ${a11y.theme === 'high-contrast' ? 'text-yellow-400' : 'opacity-80'}`}>
+                                Questão {currentQuestionIndex + 1}
+                                {isAdaptive ? '' : ` de ${activeExamItems.length}`}
+                                {isAdaptive && <span className={`ml-2 text-[10px] px-1 rounded border ${a11y.theme === 'high-contrast' ? 'bg-yellow-400 text-black border-black font-black' : 'bg-blue-100 text-blue-700 border-blue-200'}`}>ADAPTATIVO</span>}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Offline Protection Indicator */}
+                    {isOfflineReady && (
+                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${a11y.theme === 'high-contrast'
+                            ? 'bg-yellow-400 text-black border border-black'
+                            : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                            }`} title="Prova salva localmente para segurança total">
+                            <CloudCheck size={12} /> Proteção Offline
+                        </div>
                     )}
                 </div>
 

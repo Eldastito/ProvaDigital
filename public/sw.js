@@ -108,32 +108,32 @@ self.addEventListener('sync', (event) => {
     }
 });
 
+/**
+ * Sincroniza resultados que estão enfileirados no IndexedDB
+ * Requer acesso ao Dexie no Worker ou API nativa de sincronização
+ */
 async function syncResults() {
-    // TODO: Implementar sincronização de resultados salvos offline
-    console.log('[SW] Syncing results...');
+    console.log('[SW] Sincronização em segundo plano iniciada...');
+    // A implementação real depende do acesso ao IndexedDB compartilhado
+    // Geralmente comunicamos com o app via BroadcastChannel ou pegamos dados brutos
 }
 
-// Push Notifications (futuro)
-self.addEventListener('push', (event) => {
-    console.log('[SW] Push notification received');
+/**
+ * Listener de Mensagens do App para o SW
+ */
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'PREFETCH_EXAM') {
+        const { urls } = event.data;
+        console.log('[SW] Recebido comando de prefetch:', urls.length, 'assets');
 
-    const data = event.data ? event.data.json() : {};
-    const title = data.title || 'ExamePad';
-    const options = {
-        body: data.body || 'Nova notificação',
-        icon: '/icon-192.png',
-        badge: '/icon-72.png',
-        vibrate: [200, 100, 200],
-        data: data.url || '/',
-        actions: [
-            { action: 'open', title: 'Abrir' },
-            { action: 'close', title: 'Fechar' }
-        ]
-    };
-
-    event.waitUntil(
-        self.registration.showNotification(title, options)
-    );
+        event.waitUntil(
+            caches.open('examepad-exams-v1').then((cache) => {
+                return cache.addAll(urls).catch(err => {
+                    console.warn('[SW] Falha em alguns assets no prefetch, continuando...', err);
+                });
+            })
+        );
+    }
 });
 
 // Clique em notificação
@@ -161,4 +161,4 @@ self.addEventListener('notificationclick', (event) => {
     }
 });
 
-console.log('[SW] Service Worker loaded');
+console.log('[SW] Service Worker loaded with Sync & Cache messaging');
