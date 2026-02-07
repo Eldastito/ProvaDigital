@@ -48,6 +48,8 @@ import { ExamScheduler } from './modules/coordinator/ExamScheduler';
 import { CommandCenter } from './modules/coordinator/CommandCenter';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ReportGeneratorView } from './modules/reports/ReportGeneratorView';
+import { LiveDashboard } from './modules/runner/professor/LiveDashboard';
+import { ProfessorApp } from './modules/runner/student-app/ProfessorApp';
 
 // Helper for Role-based Dashboard
 const ConditionalDashboard = () => {
@@ -83,6 +85,22 @@ const OnlineExamRunnerWrapper = () => {
                     alert("Erro técnico ao salvar sua prova. Por favor, avise o professor.");
                 }
             }}
+        />
+    );
+};
+
+const LiveDashboardWrapper = () => {
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const eventId = queryParams.get('eventId') || 'EVT-GLOBAL';
+    const examId = queryParams.get('examId') || 'EXAM-001';
+    const totalQuestions = parseInt(queryParams.get('totalQuestions') || '10');
+
+    return (
+        <LiveDashboard
+            eventId={eventId}
+            examId={examId}
+            totalQuestions={totalQuestions}
         />
     );
 };
@@ -173,6 +191,8 @@ export const appRoutes: RouteObject[] = [
             { path: 'online-exam/run/:id', element: <OnlineExamRunnerWrapper /> },
             { path: 'online-exam/results/:id', element: <ResultFeedbackView /> },
             { path: 'monitor/:examId', element: <LiveExamMonitorView /> },
+            { path: 'live-dashboard', element: <LiveDashboardWrapper /> },
+            { path: 'professor/logistics', element: <ProfessorApp onBack={() => window.history.back()} /> },
 
             // Utils
             { path: 'diag-ai', element: <AIDiagnosticView /> }

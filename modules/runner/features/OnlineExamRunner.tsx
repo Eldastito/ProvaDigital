@@ -439,22 +439,36 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
             // Retornar respostas corrigidas
             onComplete(gradingResult.answers);
         } catch (error) {
-            console.error('Erro na correção automática, usando fallback...', error);
+            console.error('Erro na correção automática, usando fallback resiliente...', error);
 
-            // FALLBACK: Correção simples apenas para objetivas
+            // FALLBACK RESILIENTE: 
+            // - Objetivas: correção local
+            // - Dissertativas: Marcar para revisão manual (preserva resposta)
             const finalAnswers: StudentAnswer[] = activeExamItems.map(item => {
                 const selectedAltId = answers[item.id];
+                const isEssay = item.type === 'ESSAY' || item.type === 'REDACTION';
+
+                if (isEssay) {
+                    return {
+                        itemId: item.id,
+                        selectedAlternativeId: null,
+                        text: (answers as any)[`${item.id}_text`] || null,
+                        isCorrect: false,
+                        scoreObtained: 0,
+                        gradingMethod: 'MANUAL_REQUIRED' as any,
+                        essayFeedback: 'Erro técnico durante correção automática. Revisão humana necessária.'
+                    };
+                }
+
                 const selectedAlt = item.alternatives.find(a => a.id === selectedAltId);
                 const isCorrect = selectedAlt?.isCorrect || false;
-
-                // Adaptive Score: Could use Theta, but for fallback use classic sum
-                const score = isAdaptive ? (isCorrect ? 1 : 0) : ((item as any).score || 1);
+                const score = isCorrect ? (item.score || 1) : 0;
 
                 return {
                     itemId: item.id,
                     selectedAlternativeId: selectedAltId || null,
                     isCorrect,
-                    scoreObtained: isCorrect ? score : 0,
+                    scoreObtained: score,
                     gradingMethod: 'OFFLINE_OBJECTIVE' as any
                 };
             });

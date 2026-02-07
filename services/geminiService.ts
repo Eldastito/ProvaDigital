@@ -406,7 +406,7 @@ export const batchGradeAnswers = async (answers: AnswerContext[]): Promise<Batch
     };
 
     // No production fallback for batch grading
-    return callGeminiAPI<BatchGradeResult[]>(prompt, schema, []);
+    return callGeminiAPI<BatchGradeResult[]>(prompt, schema);
 };
 
 
@@ -500,8 +500,7 @@ export interface VisualSuggestion {
 
 async function callGeminiAPI<T>(
     contents: string | any,
-    responseSchema: any | undefined,
-    fallbackValue: T
+    responseSchema: any | undefined
 ): Promise<T> {
     const apiKey = getApiKey();
 
@@ -680,7 +679,7 @@ export const generateQuestionsFromText = async (
 
     interface SchemaResponse { questions: GeneratedQuestion[] }
     // No production fallback for generating questions
-    const res = await callGeminiAPI<SchemaResponse>(prompt, schema, { questions: [] });
+    const res = await callGeminiAPI<SchemaResponse>(prompt, schema);
 
     // Ensure we return an array
     return Array.isArray(res.questions) ? res.questions : [res as any];
@@ -704,7 +703,7 @@ export const gradeEssayAnswer = async (
     };
 
     // No production fallback for grading
-    return callGeminiAPI<EssayGrade>(prompt, schema, { score: 0, feedback: "Erro na correção automática." });
+    return callGeminiAPI<EssayGrade>(prompt, schema);
 };
 
 export const askOwlTutor = async (
@@ -725,7 +724,7 @@ export const askOwlTutor = async (
 
     const fallback = "Olá! Estou operando em modo offline no momento. Verifique sua conexão ou a chave de API para conversarmos melhor! 🦉";
 
-    return callGeminiAPI<string>(prompt, undefined, fallback);
+    return callGeminiAPI<string>(prompt, undefined);
 };
 
 export const generateStudyPlanSuggestions = async (
@@ -745,10 +744,7 @@ export const generateStudyPlanSuggestions = async (
     };
 
     // No production fallback for study plans
-    return callGeminiAPI<StudyPlanSuggestion>(prompt, schema, {
-        title: "Plano Indisponível",
-        tasks: ["Ocorreu um erro ao gerar suas sugestões de estudo."]
-    });
+    return callGeminiAPI<StudyPlanSuggestion>(prompt, schema);
 };
 
 export const generateAssessmentReport = async (
@@ -770,17 +766,12 @@ export const generateAssessmentReport = async (
     };
 
     // No production fallback for reports
-    return callGeminiAPI<AssessmentReport>(prompt, schema, {
-        resultType: "Erro no Processamento",
-        report: "Não foi possível gerar o relatório no momento. Tente novamente mais tarde.",
-        strengths: [],
-        weaknesses: []
-    });
+    return callGeminiAPI<AssessmentReport>(prompt, schema);
 };
 
 export const improveItemStatement = async (statement: string): Promise<string> => {
     const prompt = PROMPTS.IMPROVE_STATEMENT(statement);
-    return callGeminiAPI<string>(prompt, undefined, statement);
+    return callGeminiAPI<string>(prompt, undefined);
 };
 
 export const generateDistractors = async (statement: string, correct: string): Promise<string[]> => {
@@ -789,12 +780,7 @@ export const generateDistractors = async (statement: string, correct: string): P
         type: Type.ARRAY,
         items: { type: Type.STRING }
     };
-    return callGeminiAPI<string[]>(prompt, schema, [
-        "Distrator Automático 1 (Modo Offline)",
-        "Distrator Automático 2 (Modo Offline)",
-        "Distrator Automático 3 (Modo Offline)",
-        "Distrator Automático 4 (Modo Offline)"
-    ]);
+    return callGeminiAPI<string[]>(prompt, schema);
 };
 
 export const suggestBNCC = async (statement: string): Promise<{ code: string; reason: string }> => {
@@ -806,10 +792,7 @@ export const suggestBNCC = async (statement: string): Promise<{ code: string; re
             reason: { type: Type.STRING }
         }
     };
-    return callGeminiAPI<{ code: string; reason: string }>(prompt, schema, {
-        code: "EF00MOCK",
-        reason: "Modo offline habilitado."
-    });
+    return callGeminiAPI<{ code: string; reason: string }>(prompt, schema);
 };
 
 /**
@@ -880,20 +863,12 @@ export async function auditPedagogicalItem(itemJson: string): Promise<{
         required: ["score", "pros", "improvements", "bnccVerdict", "bloomLevel"]
     };
 
-    const fallback = {
-        score: 70,
-        pros: ["Análise offline: Verifique conexão"],
-        improvements: ["Não foi possível realizar auditoria profunda em modo offline."],
-        bnccVerdict: "Indefinido",
-        bloomLevel: "Não definido"
-    };
-
-    return callGeminiAPI<any>(prompt, schema, fallback);
+    return callGeminiAPI<any>(prompt, schema);
 }
 
 export const generateJustification = async (statement: string, correct: string): Promise<string> => {
     const prompt = PROMPTS.GENERATE_JUSTIFICATION(statement, correct);
-    return callGeminiAPI<string>(prompt, undefined, "Justificativa gerada em modo offline.");
+    return callGeminiAPI<string>(prompt, undefined);
 };
 
 export const variateItem = async (itemJson: string): Promise<GeneratedQuestion> => {
@@ -927,7 +902,7 @@ export const variateItem = async (itemJson: string): Promise<GeneratedQuestion> 
         },
         required: ["statement", "alternatives", "justification"]
     };
-    return callGeminiAPI<GeneratedQuestion>(prompt, schema, JSON.parse(itemJson));
+    return callGeminiAPI<GeneratedQuestion>(prompt, schema);
 };
 
 export const adaptItemForAccessibility = async (itemJson: string, profile: 'TEA' | 'TDAH' | 'VISUAL' | 'GERAL'): Promise<GeneratedQuestion & { isAccessible: boolean; accessibilityInstructions: string }> => {
@@ -953,7 +928,7 @@ export const adaptItemForAccessibility = async (itemJson: string, profile: 'TEA'
         },
         required: ["statement", "alternatives", "isAccessible", "accessibilityInstructions"]
     };
-    return callGeminiAPI<any>(prompt, schema, { ...JSON.parse(itemJson), isAccessible: true, accessibilityInstructions: "Modo Offline" });
+    return callGeminiAPI<any>(prompt, schema);
 }
 
 // --- NEW FEATURES: AI CONTENT PIPELINE ---
@@ -999,16 +974,7 @@ export const generateSyllabus = async (subject: string, grade: string, topic: st
         required: ["bnccCodes", "weeks"]
     };
 
-    const fallback: Syllabus = {
-        bnccCodes: ["EF_OFFLINE"],
-        overview: "Plano gerado localmente (Offline)",
-        weeks: [
-            { week: 1, theme: "Introdução (Offline)", objective: "Revisar conexão", activity: "Leitura" },
-            { week: 2, theme: "Desenvolvimento (Offline)", objective: "Revisar conexão", activity: "Exercícios" }
-        ]
-    };
-
-    return callGeminiAPI<Syllabus>(prompt, schema, fallback);
+    return callGeminiAPI<Syllabus>(prompt, schema);
 };
 
 export const generateTextAsset = async (theme: string, genre: string): Promise<TextAsset> => {
@@ -1024,14 +990,7 @@ export const generateTextAsset = async (theme: string, genre: string): Promise<T
         required: ["title", "body"]
     };
 
-    const fallback: TextAsset = {
-        title: "Texto Exemplo (Offline)",
-        body: "Lorem ipsum dolor sit amet. Este é um texto simulado pois a IA está offline.",
-        source: "Gerador Interno",
-        readingTime: "1 min"
-    };
-
-    return callGeminiAPI<TextAsset>(prompt, schema, fallback);
+    return callGeminiAPI<TextAsset>(prompt, schema);
 };
 
 // --- Internal Mock Generator (Fallback) ---
@@ -1127,22 +1086,7 @@ export const reviewExamAdvanced = async (items: any[]): Promise<any> => {
         required: ["stages", "overallScore", "polishedItems", "variantsSuggested", "itemsToRemove"]
     };
 
-    const fallback = {
-        stages: {
-            structural: { status: "OK", feedback: "Simulação offline: Estrutura parece consistente." },
-            pedagogical: { status: "OK", feedback: "Simulação offline: Alinhamento BNCC ok." },
-            accessibility: { status: "OK", feedback: "Simulação offline: Sem barreiras detectadas." },
-            textual: { status: "OK", feedback: "Simulação offline: Texto revisado." },
-            anticheat: { status: "OK", feedback: "Simulação offline: Baixo risco de cola." },
-            tri: { status: "OK", feedback: "Simulação offline: Parâmetros equilibrados." }
-        },
-        overallScore: 90,
-        polishedItems: items,
-        variantsSuggested: [],
-        itemsToRemove: []
-    };
-
-    return callGeminiAPI<any>(prompt, schema, fallback);
+    return callGeminiAPI<any>(prompt, schema);
 };
 
 // --- Phase 9: Pedagogical Report Generation ---
@@ -1190,35 +1134,31 @@ export const generatePedagogicalReport = async (
         - Retorne APENAS o texto formatado em Markdown, sem blocos de código (fences) ou introduções.
     `;
 
-    const fallback = `Parabéns, ${studentName}! Você obteve ${percentage}% de aproveitamento. ${percentage >= 70
-        ? 'Continue assim! Seu desempenho está excelente.'
-        : 'Identifique os tópicos que você errou e revise-os com atenção. O Corujão está aqui para ajudar!'
-        }`;
-
-    try {
-        const apiKey = getApiKey();
-        if (!apiKey) return fallback;
-
-        const ai = new GoogleGenAI({ apiKey });
-        const response = await ai.models.generateContent({
-            model: DEFAULT_MODEL,
-            contents: [{ role: 'user', parts: [{ text: prompt }] }]
-        });
-
-        let text = "";
-        if (typeof response.text === 'string') {
-            text = response.text;
-        } else if (typeof (response as any).text === 'function') {
-            text = (response as any).text();
-        } else if (response.candidates && response.candidates[0]?.content?.parts?.[0]?.text) {
-            text = response.candidates[0].content.parts[0].text;
-        }
-
-        return text.trim() || fallback;
-    } catch (error) {
-        console.error('[GeminiService] Error generating pedagogical report:', error);
-        return fallback;
+    const apiKey = getApiKey();
+    if (!apiKey) {
+        throw new Error("Chave da API Gemini não encontrada. Não é possível gerar o relatório pedagógico.");
     }
+
+    const ai = new GoogleGenAI({ apiKey });
+    const response = await ai.models.generateContent({
+        model: DEFAULT_MODEL,
+        contents: [{ role: 'user', parts: [{ text: prompt }] }]
+    });
+
+    let text = "";
+    if (typeof response.text === 'string') {
+        text = response.text;
+    } else if (typeof (response as any).text === 'function') {
+        text = (response as any).text();
+    } else if (response.candidates && response.candidates[0]?.content?.parts?.[0]?.text) {
+        text = response.candidates[0].content.parts[0].text;
+    }
+
+    if (!text) {
+        throw new Error("Falha ao gerar o relatório pedagógico: A IA retornou uma resposta vazia.");
+    }
+
+    return text.trim();
 };
 
 /**
@@ -1251,13 +1191,7 @@ export const generateEssayQuestion = async (
         required: ["title", "motivationalText", "instruction", "criteria"]
     };
 
-    return callGeminiAPI<GeneratedEssay>(prompt, schema, {
-        title: "Tema de Redação Simulado",
-        motivationalText: "Texto motivador offline...",
-        instruction: "Instrução offline...",
-        criteria: [{ name: "Competência 1", description: "Descrição...", maxPoints: 200 }],
-        bnccCode: "OFFLINE"
-    });
+    return callGeminiAPI<GeneratedEssay>(prompt, schema);
 };
 
 /**
@@ -1278,12 +1212,7 @@ export const generateVisualSuggestion = async (
         required: ["visualType", "description", "imageGeneratorPrompt"]
     };
 
-    return callGeminiAPI<VisualSuggestion>(prompt, schema, {
-        visualType: "Gráfico",
-        description: "Descrição offline...",
-        pedagogicalValue: "Valor offline...",
-        imageGeneratorPrompt: "Prompt offline..."
-    });
+    return callGeminiAPI<VisualSuggestion>(prompt, schema);
 };
 
 /**
@@ -1332,25 +1261,7 @@ export async function generateVocationalAnalysis(
         required: ["discArchetype", "ikigai", "careerMatches", "purposeStatement"]
     };
 
-    const fallback: VocationalProfile = {
-        studentId: "demo",
-        generatedAt: new Date().toISOString(),
-        discArchetype: "Explorador Criativo (Offline)",
-        dominantIntelligences: ["Lógico-Matemática"],
-        purposeStatement: "Inspirar a próxima geração de solucionadores de problemas.",
-        ikigai: {
-            love: ["Tecnologia"], goodAt: ["Lógica"], paidFor: ["Engenharia"], needs: ["Inovação"]
-        },
-        careerMatches: [
-            {
-                id: "1", title: "Offline Demo Career", matchScore: 100,
-                description: "Modo offline ativado.", salaryRange: "N/A",
-                requiredSkills: ["N/A"], whyThisFits: "System Offline", educationalPath: []
-            }
-        ]
-    };
-
-    const result = await callGeminiAPI<any>(prompt, schema, fallback);
+    const result = await callGeminiAPI<any>(prompt, schema);
 
     return {
         ...result,

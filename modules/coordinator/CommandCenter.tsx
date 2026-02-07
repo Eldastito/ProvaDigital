@@ -14,6 +14,7 @@ import {
 import { commandCenterService, ExamSession } from '../../services/commandCenterService';
 import { MetricsCard } from '../../components/Metrics/MetricsCard';
 import { useNavigate } from 'react-router-dom';
+import { MeshRouterPanel } from '../runner/professor/MeshRouterPanel';
 
 interface CommandCenterProps {
     onClose?: () => void;
@@ -43,6 +44,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({ onClose }) => {
     const [selectedSession, setSelectedSession] = useState<ExamSession | null>(null);
     const [messageText, setMessageText] = useState('');
     const [messageType, setMessageType] = useState<'INFO' | 'WARNING' | 'ALERT'>('INFO');
+    const [showMeshRouter, setShowMeshRouter] = useState(false);
 
     // Carregar dados
     useEffect(() => {
@@ -196,6 +198,14 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({ onClose }) => {
                     </div>
                     <div className="flex gap-3">
                         <button
+                            onClick={() => setShowMeshRouter(!showMeshRouter)}
+                            className={`px-4 py-2 ${showMeshRouter ? 'bg-slate-900 text-white' : 'bg-white border border-slate-300 text-slate-700'} rounded-xl hover:opacity-90 transition flex items-center gap-2`}
+                            title="Configurar Roteador Mesh"
+                        >
+                            <Wifi size={18} />
+                            Logística Mesh
+                        </button>
+                        <button
                             onClick={loadData}
                             className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition flex items-center gap-2"
                         >
@@ -212,6 +222,16 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({ onClose }) => {
                         )}
                     </div>
                 </div>
+
+                {/* PAINEL DE ROTEADOR MESH */}
+                {showMeshRouter && (
+                    <div className="mt-6 animate-in slide-in-from-top duration-300">
+                        <MeshRouterPanel
+                            schoolId="SCHOOL-001" // Em produção, viria do contexto
+                            eventId={sessions[0]?.id || 'GLOBAL'}
+                        />
+                    </div>
+                )}
             </div>
 
             {/* Métricas Globais */}
@@ -505,8 +525,8 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({ onClose }) => {
                                     <button
                                         onClick={() => setMessageType('INFO')}
                                         className={`p-3 rounded-lg border-2 transition ${messageType === 'INFO'
-                                                ? 'border-blue-600 bg-blue-50 text-blue-900'
-                                                : 'border-slate-200'
+                                            ? 'border-blue-600 bg-blue-50 text-blue-900'
+                                            : 'border-slate-200'
                                             }`}
                                     >
                                         Info
@@ -514,8 +534,8 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({ onClose }) => {
                                     <button
                                         onClick={() => setMessageType('WARNING')}
                                         className={`p-3 rounded-lg border-2 transition ${messageType === 'WARNING'
-                                                ? 'border-yellow-600 bg-yellow-50 text-yellow-900'
-                                                : 'border-slate-200'
+                                            ? 'border-yellow-600 bg-yellow-50 text-yellow-900'
+                                            : 'border-slate-200'
                                             }`}
                                     >
                                         Aviso
@@ -523,8 +543,8 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({ onClose }) => {
                                     <button
                                         onClick={() => setMessageType('ALERT')}
                                         className={`p-3 rounded-lg border-2 transition ${messageType === 'ALERT'
-                                                ? 'border-red-600 bg-red-50 text-red-900'
-                                                : 'border-slate-200'
+                                            ? 'border-red-600 bg-red-50 text-red-900'
+                                            : 'border-slate-200'
                                             }`}
                                     >
                                         Alerta
