@@ -155,13 +155,13 @@ function StudentApp() {
 
 ## 🛣️ Roadmap
 
-### ✅ Sprint 0: Base Logística (67%)
+### ✅ Sprint 0: Base Logística (100%)
 - [x] Algoritmo de otimização por PICO
 - [x] Gestão de pool de tablets
 - [x] Provisionamento automático
 - [x] Sistema multi-login base
-- [ ] Interface ExamScheduler.tsx
-- [ ] Interface CommandCenter.tsx
+- [x] Interface ExamScheduler.tsx
+- [x] Interface CommandCenter.tsx
 
 ### ✅ Sprint 1: Multi-Login (100%)
 - [x] Hook useStudentSession
