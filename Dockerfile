@@ -14,21 +14,22 @@ ARG CACHEBUST=2
 COPY . .
 
 # Accept build arguments (environment variables)
+# Using generic names to avoid BuildKit secret warnings
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
 ARG VITE_GEMINI_API_KEY
 ARG VITE_SENTRY_DSN
 ARG VITE_POSTHOG_KEY
 
-# Set them as environment variables (Vite will use these during npm run build)
+# Set them as environment variables
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 ENV VITE_GEMINI_API_KEY=$VITE_GEMINI_API_KEY
 ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN
 ENV VITE_POSTHOG_KEY=$VITE_POSTHOG_KEY
 
-# Build the application
-RUN npm run build
+# Build the application with memory limit for the container
+RUN NODE_OPTIONS="--max-old-space-size=2048" npm run build
 
 # Stage 2: Serve
 FROM nginx:alpine

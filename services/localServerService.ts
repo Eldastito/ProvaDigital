@@ -55,10 +55,10 @@ export class LocalServerService {
             }
 
             // Dynamic imports to prevent Vite from bundling these for the browser
-            const express = (await import('express')).default;
-            const { createServer } = await import('http');
-            const { Server: SocketIOServer } = await import('socket.io');
-            const cors = (await import('cors')).default;
+            const express = (await import(/* @vite-ignore */ 'express')).default;
+            const { createServer } = await import(/* @vite-ignore */ 'http');
+            const { Server: SocketIOServer } = await import(/* @vite-ignore */ 'socket.io');
+            const cors = (await import(/* @vite-ignore */ 'cors')).default;
 
             this.app = express();
             this.httpServer = createServer(this.app);
