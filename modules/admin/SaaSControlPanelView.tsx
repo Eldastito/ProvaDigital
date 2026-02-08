@@ -52,7 +52,12 @@ export const SaaSControlPanelView = () => {
     const target_scale = 5000;
 
     const metrics = React.useMemo(() => calculateBusinessMetrics(
-        colaboradores, infra_sede, veiculo_ops, patrimônio_extra, custos_variáveis, fiscal_config, cac_global, churn_global, target_scale
+        colaboradores, infra_sede, veiculo_ops, patrimônio_extra, custos_variáveis, fiscal_config,
+        cac_global, churn_global, target_scale,
+        // Novos argumentos (investimentoHardware, custoInicialPorAluno, outrosCustos) com valores default para o Dashboard
+        85000, // Valor fixo de investimento em hardware para o dashboard simplificado
+        150,   // Custo inicial padrão
+        { fixo: 0, variavel: 0 } // Outros custos zerados
     ), [tenants.length, students.length]);
 
     const ops = React.useMemo(() => calculateLogistics(
