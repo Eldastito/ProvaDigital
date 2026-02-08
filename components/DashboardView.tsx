@@ -14,8 +14,13 @@ export const DashboardView = () => {
     const state = useAppStore();
     const { currentUser } = state;
 
-    // --- 1. DASHBOARD ESTRATÉGICO (SECRETÁRIO / DONO / SECRETÁRIA ESTADUAL) ---
-    if (currentUser?.role === UserRole.TENANT_ADMIN || currentUser?.role === UserRole.SUPER_ADMIN || currentUser?.role === UserRole.STATE_ADMIN) {
+    // --- 1. DASHBOARD ESTRATÉGICO (SaaS MASTER / MEC / ESTADO / MUNICÍPIO) ---
+    if (
+        currentUser?.role === UserRole.SYSTEM_ADMIN ||
+        currentUser?.role === UserRole.SUPER_ADMIN ||
+        currentUser?.role === UserRole.STATE_ADMIN ||
+        currentUser?.role === UserRole.TENANT_ADMIN
+    ) {
         return <NetworkDashboardView />;
     }
 
