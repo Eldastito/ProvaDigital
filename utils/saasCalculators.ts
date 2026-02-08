@@ -186,3 +186,108 @@ export const calculateBusinessMetrics = (
         }
     };
 };
+export interface AIInsight {
+    id: string;
+    type: 'critical' | 'opportunity' | 'info';
+    title: string;
+    message: string;
+    impact: string;
+    action: string;
+}
+
+/**
+ * Gera insights estratégicos baseados nos KPIs calculados.
+ * Utiliza heurísticas de negócio para identificar riscos e oportunidades.
+ */
+export const generateAIInsights = (
+    metrics: {
+        financial: FinancialResult;
+        marketing: SalesMarketingResult;
+        customers: CustomerResult;
+        hr: HRResult;
+    },
+    ops: OpsLogisticsResult
+): AIInsight[] => {
+    const insights: AIInsight[] = [];
+
+    // 1. Insights Financeiros
+    if (metrics.financial.ltvCacRatio < 3) {
+        insights.push({
+            id: 'ltv-cac-low',
+            type: 'critical',
+            title: 'Eficiência de Aquisição Baixa',
+            message: `Sua relação LTV/CAC está em ${metrics.financial.ltvCacRatio.toFixed(1)}x. O benchmark ideal para SaaS é > 3.0x.`,
+            impact: 'Risco de insustentabilidade a longo prazo.',
+            action: 'Revisar canais de marketing ou aumentar o Ticket Médio.'
+        });
+    }
+
+    if (metrics.financial.paybackMonths > 12) {
+        insights.push({
+            id: 'payback-high',
+            type: 'opportunity',
+            title: 'Payback Prolongado',
+            message: `O tempo de recuperação do CAC é de ${metrics.financial.paybackMonths.toFixed(1)} meses.`,
+            impact: 'Ciclo de caixa pressionado.',
+            action: 'Implementar taxas de setup ou planos anuais antecipados.'
+        });
+    }
+
+    // 2. Insights de Operações & Logística
+    if (ops.taxaRefugo > 3) {
+        insights.push({
+            id: 'waste-high',
+            type: 'critical',
+            title: 'Desperdício Operacional Elevado',
+            message: `A taxa de refugo/dano está em ${ops.taxaRefugo}%, acima do limite de tolerância de 2%.`,
+            impact: 'Erosão da margem líquida por perda de hardware.',
+            action: 'Trocar fornecedor de malas de transporte ou treinar equipe de campo.'
+        });
+    }
+
+    if (ops.otd < 95) {
+        insights.push({
+            id: 'otd-low',
+            type: 'critical',
+            title: 'Falha na Experiência de Entrega',
+            message: `Pontualidade (OTD) em ${ops.otd}%.`,
+            impact: 'Insatisfação do cliente e risco de churn no primeiro uso.',
+            action: 'Otimizar rotas de distribuição ou descentralizar estoque.'
+        });
+    }
+
+    // 3. Insights de RH
+    if (metrics.hr.turnover > 7) {
+        insights.push({
+            id: 'turnover-risk',
+            type: 'info',
+            title: 'Instabilidade de Capital Humano',
+            message: `Turnover mensal de ${metrics.hr.turnover}% detectado.`,
+            impact: 'Perda de conhecimento técnico e custo alto de re-treinamento.',
+            action: 'Implementar programa de bonificação por metas batidas.'
+        });
+    }
+
+    // 4. Insights de Clientes (LTV/Churn)
+    if (metrics.customers.churnRate > 3) {
+        insights.push({
+            id: 'churn-burn',
+            type: 'critical',
+            title: 'Alerta de Evasão (Churn)',
+            message: `A taxa de cancelamento está em ${metrics.customers.churnRate}%.`,
+            impact: `Você está perdendo R$ ${(metrics.financial.opexTotal * (metrics.customers.churnRate / 100)).toLocaleString('pt-BR')} em receita mensal recorrente.`,
+            action: 'Investir em Customer Success e análise de NPS detrator.'
+        });
+    } else if (metrics.customers.nps > 80) {
+        insights.push({
+            id: 'nps-gold',
+            type: 'opportunity',
+            title: 'Alto Coeficiente de Lealdade',
+            message: `Seu NPS de ${metrics.customers.nps} é excelente (Zona de Encantamento).`,
+            impact: 'Oportunidade de expansão via indicação (Referral).',
+            action: 'Lançar campanha de Member Get Member para reduzir o CAC.'
+        });
+    }
+
+    return insights;
+};

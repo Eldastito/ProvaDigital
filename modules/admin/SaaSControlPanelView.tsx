@@ -7,6 +7,9 @@ import {
 import { useSafeAppStore } from '../../store/useAppStore';
 import { BusinessCalculator } from './components/BusinessCalculator';
 
+import { AIAdvisorDashboard } from './components/AIAdvisorDashboard';
+import { calculateBusinessMetrics, calculateLogistics, generateAIInsights } from '../../utils/saasCalculators';
+
 const MetricCard = ({ title, value, detail, icon: Icon, trend }: any) => (
     <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group">
         <div className="flex justify-between items-start mb-4">
@@ -29,8 +32,23 @@ export const SaaSControlPanelView = () => {
     const { tenants, students } = useSafeAppStore();
     const [view, setView] = React.useState<'dashboard' | 'calculator'>('dashboard');
 
-    // Mock metrics for demo/business management
-    const totalMRR = 45500;
+    // Mock constants for strategic insights
+    const fixedCosts = 18000;
+    const cac = 2500;
+    const churn = 3.5; // Trigger alert (>3%)
+    const targetScale = 5000;
+
+    const metrics = React.useMemo(() => calculateBusinessMetrics(
+        fixedCosts, 6, 150000, 14.5, cac, churn, targetScale
+    ), [tenants.length]);
+
+    const ops = React.useMemo(() => calculateLogistics(
+        50, targetScale, 5, 6, 92 // Trigger OTD alert (<95)
+    ), [targetScale]);
+
+    const aiInsights = React.useMemo(() => generateAIInsights(metrics, ops), [metrics, ops]);
+
+    const totalMRR = metrics.marketing.ticketMédio * targetScale;
     const activeStudents = students.length;
     const totalTenants = tenants.length;
     const examsInLast24h = 1240;
@@ -68,6 +86,9 @@ export const SaaSControlPanelView = () => {
                     </button>
                 </div>
             </header>
+
+            {/* AI Advisor Strategic Panel */}
+            <AIAdvisorDashboard insights={aiInsights} />
 
             {/* Top Metrics Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

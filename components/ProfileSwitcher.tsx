@@ -5,6 +5,7 @@ import { ChevronDown, User, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const PROFILE_OPTIONS = [
+    { role: 'SYSTEM_ADMIN' as UserRole, label: '🚀 GESTÃO SAAS (MASTER)', color: 'emerald', description: 'Controle Total & Business Intel' },
     { role: 'SUPER_ADMIN' as UserRole, label: '🏛️ MEC (SUPERADMIN)', color: 'purple', description: 'Visão Nacional' },
     { role: 'STATE_ADMIN' as UserRole, label: '🏢 Secretaria Estadual', color: 'indigo', description: 'Gestão Estadual' },
     { role: 'TENANT_ADMIN' as UserRole, label: '🌐 Secretaria Municipal', color: 'blue', description: 'Gestão Municipal' },
