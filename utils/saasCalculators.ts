@@ -117,6 +117,7 @@ export const calculateBusinessMetrics = (
         fixo: number;
         variavel: number;
     },
+    mesesDepreciacao: number = 36, // Novo: Tempo de depreciação do hardware
     taxaConversão: number = 10,
     npsAlvo: number = 75,
     turnoverAlvo: number = 5,
@@ -143,7 +144,17 @@ export const calculateBusinessMetrics = (
     const custoVeiculoOpEx = veiculo.tipo !== 'aquisicao' ? veiculo.valor : 0;
     const custoVeiculoFixo = veiculo.seguro + veiculo.manutencao + custoVeiculoOpEx;
 
-    const custoFixoTotal = custoPessoasTotal + custoInfraMensal + custoVeiculoFixo;
+    // 4. Consolidação de Patrimônio (CapEx) e Depreciação (OpEx não desembolsável)
+    // Nota: valorTabletsTotal definido mais abaixo, mas precisamos dele aqui para o custo fixo se quisermos ordem.
+    // Movendo cálculo de Capital para antes do Custo Fixo para permitir depreciação no OpEx.
+    const valorTabletsTotal = investimentoHardware;
+    const valorVeiculoCapEx = veiculo.tipo === 'aquisicao' ? veiculo.valor : 0;
+    const patrimônioTotal = valorTabletsTotal + valorVeiculoCapEx + patrimônioExtra.computadores + patrimônioExtra.infraestrutura;
+
+    // Depreciação Linear
+    const depreciacaoMensal = (valorTabletsTotal + valorVeiculoCapEx + patrimônioExtra.computadores) / mesesDepreciacao;
+
+    const custoFixoTotal = custoPessoasTotal + custoInfraMensal + custoVeiculoFixo + depreciacaoMensal;
 
     // 3. Consolidação de Custos Variáveis (por aluno)
     // Combustível + Outros + Custo Inicial Amortizado (se aplicável, mas aqui tratado como custo recorrente médio ou setup diluído?)
@@ -163,14 +174,13 @@ export const calculateBusinessMetrics = (
 
     const custoVariávelUnitário = totalAlunosAlvo > 0 ? custoVariávelTotal / totalAlunosAlvo : 0;
 
-    // 4. Consolidação de Patrimônio (CapEx)
-    // Tablets são calculados separadamente por necessidade real, mas aqui recebemos o valor total investido
-    const valorTabletsTotal = investimentoHardware;
-    const valorVeiculoCapEx = veiculo.tipo === 'aquisicao' ? veiculo.valor : 0;
-    const patrimônioTotal = valorTabletsTotal + valorVeiculoCapEx + patrimônioExtra.computadores + patrimônioExtra.infraestrutura;
+    // 4. Consolidação de Patrimônio (CapEx) - Já calculado acima para efeitos de Depreciação
+    // (Código removido para evitar duplicidade)
 
     // 5. Receita e Preço de Proposta
     const impostosFaturamentoPercentual = fiscal.iss + fiscal.pisCofins;
+
+    // Custo Unitário Base (com Depreciação já no Custo Fixo)
     const custoUnitárioBase = totalAlunosAlvo > 0
         ? (custoFixoTotal / totalAlunosAlvo + custoVariávelUnitário) / (1 - (impostosFaturamentoPercentual / 100))
         : 0;
@@ -180,11 +190,16 @@ export const calculateBusinessMetrics = (
 
     // 6. Impostos e Lucro
     const impostosFaturamentoTotal = receitaTotal * (impostosFaturamentoPercentual / 100);
-    const opexTotal = custoFixoTotal + custoVariávelTotal;
+    const opexTotal = custoFixoTotal + custoVariávelTotal; // Inclui Depreciação
 
-    const depreciaçãoMensal = patrimônioTotal / 36;
-    const ebitdaReal = receitaTotal - opexTotal - impostosFaturamentoTotal;
-    const lucroLíquido = ebitdaReal - depreciaçãoMensal;
+    // EBITDA = Receita - (Despesas Operacionais - Depreciação/Amortização) - Impostos
+    // Como opexTotal já tem a depreciação somada, precisamos subtrair ela para achar o EBITDA
+    const custosOperacionaisCaixa = opexTotal - depreciacaoMensal;
+    const ebitdaReal = receitaTotal - custosOperacionaisCaixa - impostosFaturamentoTotal;
+
+    // Lucro Líquido = EBITDA - Depreciação/Amortização - IR/CSLL (aqui simplificado nos impostos totais ou só EBIT)
+    // Mantendo a lógica anterior: Receita - OpExTotal - Impostos
+    const lucroLíquido = receitaTotal - opexTotal - impostosFaturamentoTotal;
 
     // 7. Margens e KPIs
     const margemEbitda = receitaTotal > 0 ? (ebitdaReal / receitaTotal) * 100 : 0;
@@ -244,7 +259,7 @@ export const calculateBusinessMetrics = (
             ruleOf40,
             magicNumber,
             burnMultiple: ebitdaReal < 0 ? Math.abs(ebitdaReal) / (netNewARR / 12) : 0,
-            depreciaçãoMensal,
+            depreciaçãoMensal: depreciacaoMensal,
             valuationEstimado,
             capitalGiroNecessário,
             margemBrutaSaaS: 85,
@@ -304,21 +319,22 @@ export interface OpsLogisticsResult extends LogisticsResult {
 export const calculateLogistics = (
     maiorTurma: number,
     totalAlunos: number,
+    professoresSimultaneos: number = 1, // Novo: Simultaneidade de aplicação
     diasSemana: number = 5,
     turmasPorDia: number = 6,
     otdAlvo: number = 98,
     rupturaAlvo: number = 2,
     refugoAlvo: number = 1
 ): OpsLogisticsResult => {
-    // A necessidade é definida pela maior turma (ponto de referência)
-    const tabletsBase = maiorTurma;
+    // A necessidade é definida pela maior turma (ponto de referência) * simultaneidade
+    const tabletsBase = maiorTurma * professoresSimultaneos;
 
     // Reserva técnica de 10%
     const reservaTécnica = Math.ceil(tabletsBase * 0.1);
 
     // Hardware fixo por escola/cenário
     const suporte = {
-        professor: 1,
+        professor: 1 * professoresSimultaneos, // 1 tablet por professor aplicando
         mesh: 1,
         coordenação: 1
     };
