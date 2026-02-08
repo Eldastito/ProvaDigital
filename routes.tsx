@@ -1,4 +1,5 @@
 import { RouteObject, Navigate } from 'react-router-dom';
+import { SaaSControlPanelView } from './modules/admin/SaaSControlPanelView';
 import { LoginPage } from './modules/auth/LoginPage';
 import { BulkImportView } from './modules/admin/components/BulkImportView';
 import { DashboardView } from './components/DashboardView';
@@ -138,6 +139,9 @@ export const appRoutes: RouteObject[] = [
             { path: 'admin/capabilities', element: <CapabilitiesView /> },
             { path: 'admin/audit', element: <AuditLogView /> },
             { path: 'admin/import', element: <BulkImportView /> },
+            { path: 'admin/saas', element: <SaaSControlPanelView /> },
+            { path: 'admin/tenants', element: <SaaSControlPanelView /> }, // Por enquanto usando a mesma visão consolidada
+            { path: 'admin/metrics', element: <SaaSControlPanelView /> }, // Por enquanto usando a mesma visão consolidada
             { path: 'risk-dashboard', element: <RiskDashboard /> },
             // Removed legacy analytics/SchoolDashboardView in favor of PerformanceAnalyticsDashboard below
 

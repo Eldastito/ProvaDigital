@@ -34,6 +34,7 @@ export const translateQuestionType = (type: QuestionType): string => {
         [QuestionType.TRUE_FALSE]: 'Verdadeiro ou Falso',
         [QuestionType.ESSAY]: 'Discursiva',
         [QuestionType.REDACTION]: 'Redação',
+        [QuestionType.SIMULATION]: 'Simulação Interativa',
     };
     return map[type] || type;
 };
@@ -62,7 +63,8 @@ export const translateSecurityFlag = (flag: string): string => {
 
 export const translateUserRole = (role: UserRole): string => {
     const map: Record<UserRole, string> = {
-        [UserRole.SUPER_ADMIN]: 'Administrador Geral',
+        [UserRole.SYSTEM_ADMIN]: 'Gestão SaaS (Global)',
+        [UserRole.SUPER_ADMIN]: 'Gestão MEC (Educacional)',
         [UserRole.STATE_ADMIN]: 'Secretaria Estadual',
         [UserRole.TENANT_ADMIN]: 'Secretaria Municipal',
         [UserRole.DIRETOR]: 'Diretor',
@@ -94,13 +96,18 @@ export const translateResource = (resource: string): string => {
         'ANALYTICS': 'Análises',
         'COMMUNICATION': 'Comunicação',
         'AI_FEATURES': 'Recursos de IA',
-        'FINANCIAL': 'Financeiro',
+        'FINANCIAL': 'Faturamento & Contratos',
         'NEURO_SCREENING': 'Triagem Neuro',
         'GAMIFIED_EVENTS': 'Eventos Gamificados',
         'EXAM': 'Prova',
         'STUDENT': 'Aluno',
         'CLASS': 'Turma',
         'SCHOOL': 'Escola',
+        'REPORTS': 'Relatórios e BI',
+        'SYSTEM_MGMT': 'Configurações de Sistema',
+        'TENANT_MGMT': 'Gestão de Clientes',
+        'SaaS_BILLING': 'Faturamento SaaS',
+        'PLATFORM_HEALTH': 'Saúde da Plataforma',
         'TENANT': 'Rede/Secretaria',
     };
     return map[resource] || resource;

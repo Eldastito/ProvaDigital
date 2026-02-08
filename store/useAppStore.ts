@@ -15,7 +15,7 @@ import { supabase } from '../services/supabaseClient';
 
 // OTIMIZAÇÃO HIERÁRQUICA DE PERMISSÕES - [Deploy Trigger: 2026-01-11]
 const DEFAULT_PERMISSIONS: PermissionMatrix = {
-    [UserRole.SUPER_ADMIN]: {
+    [UserRole.SYSTEM_ADMIN]: {
         SCHOOL_DATA: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
         USER_DATA: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
         ITEM_BANK: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
@@ -25,6 +25,25 @@ const DEFAULT_PERMISSIONS: PermissionMatrix = {
         COMMUNICATION: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
         AI_FEATURES: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
         FINANCIAL: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
+        NEURO_SCREENING: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
+        GAMIFIED_EVENTS: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
+        SCHEDULING: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
+        COMMAND_CENTER: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
+        REPORTS: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
+        SYSTEM_MGMT: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
+        TENANT_MGMT: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
+        SaaS_BILLING: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
+        PLATFORM_HEALTH: ['VIEW', 'CREATE', 'EDIT', 'DELETE']
+    },
+    [UserRole.SUPER_ADMIN]: {
+        SCHOOL_DATA: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
+        USER_DATA: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
+        ITEM_BANK: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
+        EXAM_MGMT: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
+        OFFLINE_OPS: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
+        ANALYTICS: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
+        COMMUNICATION: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
+        AI_FEATURES: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
         NEURO_SCREENING: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
         GAMIFIED_EVENTS: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
         SCHEDULING: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
@@ -273,7 +292,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
     tenants: USE_MOCK_DATA ? INITIAL_TENANTS : [],
     schools: USE_MOCK_DATA ? INITIAL_SCHOOLS : [],
     classes: USE_MOCK_DATA ? INITIAL_CLASSES : [],
-    users: USE_MOCK_DATA ? INITIAL_USERS : [],
+    users: USE_MOCK_DATA ? [
+        { id: 'u_system', name: 'Gestor SaaS', email: 'saas@examepad.com', role: UserRole.SYSTEM_ADMIN, tenantId: 't_system', status: 'active' },
+        ...INITIAL_USERS
+    ] : [],
     students: USE_MOCK_DATA ? INITIAL_STUDENTS : [],
     items: USE_MOCK_DATA ? INITIAL_ITEMS : [],
     exams: USE_MOCK_DATA ? INITIAL_EXAMS : [],

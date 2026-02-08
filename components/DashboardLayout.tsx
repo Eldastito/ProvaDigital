@@ -77,17 +77,18 @@ export const DashboardLayout = () => {
         navigate('/login');
     };
 
+    const isSystemAdmin = currentUser.role === UserRole.SYSTEM_ADMIN;
+    const isMecAdmin = currentUser.role === UserRole.SUPER_ADMIN;
     const isStudent = currentUser.role === UserRole.ALUNO;
     const isParent = currentUser.role === UserRole.PAIS;
     const isStateAdmin = currentUser.role === UserRole.STATE_ADMIN;
     const isTenantAdmin = currentUser.role === UserRole.TENANT_ADMIN;
-    const isSuperAdmin = currentUser.role === UserRole.SUPER_ADMIN;
+    const isOperational = currentUser.role === UserRole.PROFESSOR;
 
     const isStrategic = isStateAdmin || isTenantAdmin;
-    const isOperational = currentUser.role === UserRole.PROFESSOR;
-    const isManagement = currentUser.role === UserRole.DIRETOR || isStrategic || currentUser.role === UserRole.SUPER_ADMIN || currentUser.role === UserRole.SUPERVISOR;
+    const isManagement = isSystemAdmin || isMecAdmin || isStrategic || currentUser.role === UserRole.DIRETOR || currentUser.role === UserRole.SUPERVISOR;
 
-    const canManageCapabilities = currentUser.role === UserRole.SUPER_ADMIN || isStrategic || currentUser.role === UserRole.DIRETOR;
+    const canManageCapabilities = isSystemAdmin || isMecAdmin || isStrategic || currentUser.role === UserRole.DIRETOR;
 
     let tenantName = tenants.find(t => t.id === currentUser.tenantId)?.name || 'Tenant';
     if (isParent && selectedChildId) {
@@ -170,6 +171,15 @@ export const DashboardLayout = () => {
                         </>
                     )}
 
+                    {isSystemAdmin && (
+                        <>
+                            <div className="px-4 pt-4 pb-2 text-[10px] font-bold text-brand-secondary uppercase tracking-wider">Gestão do Negócio (SaaS)</div>
+                            <NavItem icon={Shield} label="Central de Controle" active={path === '/admin/saas'} onClick={() => navigate('/admin/saas')} />
+                            <NavItem icon={Users} label="Gestão de Clientes" active={path === '/admin/tenants'} onClick={() => navigate('/admin/tenants')} />
+                            <NavItem icon={BarChart} label="Métricas Globais" active={path === '/admin/metrics'} onClick={() => navigate('/admin/metrics')} />
+                        </>
+                    )}
+
                     {isManagement && (
                         <>
                             <NavItem icon={PieChart} label="Visão Geral" active={path === '/dashboard'} onClick={() => navigate('/dashboard')} />
@@ -210,7 +220,7 @@ export const DashboardLayout = () => {
                                 <NavItem icon={Target} label="Governança Hierárquica" active={path === '/admin/capabilities'} onClick={() => navigate('/admin/capabilities')} />
                             )}
 
-                            {currentUser.role !== UserRole.SUPERVISOR && (
+                            {(isSystemAdmin || (isMecAdmin && currentUser.role !== UserRole.SUPERVISOR)) && (
                                 <NavItem icon={Shield} label="Auditoria & Logs" active={path === '/admin/audit'} onClick={() => navigate('/admin/audit')} />
                             )}
                             <NavItem icon={Shield} label="Gestão de Risco" active={path === '/risk-dashboard'} onClick={() => navigate('/risk-dashboard')} />

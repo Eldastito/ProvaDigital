@@ -1,7 +1,8 @@
 
 // Enums
 export enum UserRole {
-  SUPER_ADMIN = 'SUPER_ADMIN',
+  SYSTEM_ADMIN = 'SYSTEM_ADMIN', // Gestão total do SaaS / Business
+  SUPER_ADMIN = 'SUPER_ADMIN', // MEC / Gestão Educacional
   STATE_ADMIN = 'STATE_ADMIN', // Secretaria Estadual
   TENANT_ADMIN = 'TENANT_ADMIN', // Secretaria Municipal
   DIRETOR = 'DIRETOR',
@@ -101,12 +102,16 @@ export type Resource =
   | 'ANALYTICS'        // Dashboards
   | 'COMMUNICATION'    // Chat, Mural
   | 'AI_FEATURES'      // Geração, Correção
-  | 'FINANCIAL'       // Apenas Super Admin
-  | 'NEURO_SCREENING' // Triagem
-  | 'GAMIFIED_EVENTS' // NOVO: Gestão de Eventos
-  | 'SCHEDULING'      // Agendamento de Provas
-  | 'COMMAND_CENTER'  // Central de Comando
-  | 'REPORTS';        // Relatórios e BI
+  | 'FINANCIAL'        // Apenas System Admin (Contratos/Faturamento)
+  | 'NEURO_SCREENING'  // Triagem
+  | 'GAMIFIED_EVENTS'  // NOVO: Gestão de Eventos
+  | 'SCHEDULING'       // Agendamento de Provas
+  | 'COMMAND_CENTER'   // Central de Comando
+  | 'REPORTS'          // Relatórios e BI
+  | 'SYSTEM_MGMT'      // Configurações globais do sistema
+  | 'TENANT_MGMT'      // Gestão de clientes/prefeituras
+  | 'SaaS_BILLING'     // Faturamento SaaS
+  | 'PLATFORM_HEALTH'; // Monitoramento de infra
 
 export type Action = 'VIEW' | 'CREATE' | 'EDIT' | 'DELETE';
 
@@ -187,8 +192,12 @@ export interface ExternalGame {
 export interface Tenant {
   id: string;
   name: string;
-  type: TenantType; // NOVO: Tipo de Rede
+  type: TenantType;
   cnpj: string;
+  status: 'active' | 'suspended' | 'trial'; // Status de negócio
+  billingEmail?: string;
+  contractEnd?: string;
+  maxStudents?: number;
   disabledResources?: Resource[];
   features?: {
     ai_audit?: boolean;
