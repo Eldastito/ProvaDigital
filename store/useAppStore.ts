@@ -166,6 +166,7 @@ interface AppActions {
 
     // --- PHASE 5: ADMIN & BI ---
     updateTenantFeatures: (tenantId: string, features: any) => Promise<void>;
+    addTenant: (tenant: Tenant) => Promise<void>;
     fetchAuditLogs: (tenantId: string) => Promise<AuditLog[]>;
     loadTenants: () => Promise<void>;
 
@@ -1255,6 +1256,33 @@ export const useAppStore = create<AppStore>((set, get) => ({
         try {
             await supabase.from('tenants').update({ features }).eq('id', tenantId);
         } catch (e) { console.error(e); }
+    },
+    addTenant: async (tenant) => {
+        set((state) => ({ tenants: [...state.tenants, tenant] }));
+        try {
+            const { error } = await supabase.from('tenants').insert({
+                id: tenant.id,
+                name: tenant.name,
+                type: tenant.type,
+                cnpj: tenant.cnpj,
+                status: tenant.status,
+                billing_email: tenant.billingEmail,
+                contract_end: tenant.contractEnd,
+                max_students: tenant.maxStudents,
+                features: tenant.features,
+                created_at: new Date().toISOString()
+            });
+
+            if (error) {
+                console.error('❌ Error saving tenant:', error);
+                set((state) => ({ tenants: state.tenants.filter(t => t.id !== tenant.id) }));
+                throw error;
+            }
+            console.log('✅ Tenant saved successfully:', tenant.id);
+        } catch (e) {
+            console.error('Failed to persist tenant:', e);
+            throw e;
+        }
     },
     updateMessages: (messages) => set({ messages }),
     updateChatGroups: (groups) => set({ chatGroups: groups }),

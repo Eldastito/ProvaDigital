@@ -120,9 +120,12 @@ export const calculateBusinessMetrics = (
     customers: CustomerResult;
     hr: HRResult;
 } => {
+    // Defensive Check: Ensure colaboradores is an array
+    const validColaboradores = Array.isArray(colaboradores) ? colaboradores : [];
+
     // 1. Consolidação de Folha e Pessoas
-    const folhaBase = colaboradores.reduce((acc, c) => acc + (c.salario * c.quantidade), 0);
-    const beneficiosTotal = colaboradores.reduce((acc, c) => acc + (c.beneficios * c.quantidade), 0);
+    const folhaBase = validColaboradores.reduce((acc, c) => acc + (c.salario * c.quantidade), 0);
+    const beneficiosTotal = validColaboradores.reduce((acc, c) => acc + (c.beneficios * c.quantidade), 0);
     const encargosFolhaTotal = folhaBase * (fiscal.encargosFolha / 100);
     const custoPessoasTotal = folhaBase + encargosFolhaTotal + beneficiosTotal;
 
