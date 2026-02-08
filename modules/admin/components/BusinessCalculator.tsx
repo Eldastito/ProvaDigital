@@ -138,6 +138,10 @@ export const BusinessCalculator = () => {
         variavel: 0
     });
 
+    // LOGÍSTICA & DEPRECIAÇÃO (Novo)
+    const [simultaneidade, setSimultaneidade] = useState(3); // Default: 3 professores simultâneos
+    const [mesesDepreciacao, setMesesDepreciacao] = useState(36); // Default: 36 meses
+
     // Sales & Customers state
     const [cac, setCac] = useState(2500);
     const [churn, setChurn] = useState(1.8);
@@ -163,8 +167,10 @@ export const BusinessCalculator = () => {
     // 1. Calculate Logistics FIRST to get Hardware needs
     const ops = useMemo(() => calculateLogistics(
         Math.max(...perfisEscolas.map(s => s.mediaAlunosTurma * 1), 50),
-        targetScale, 5, 6, 98, 2, 1
-    ), [perfisEscolas, targetScale]);
+        targetScale,
+        simultaneidade, // Novo: Simultaneidade
+        5, 6, 98, 2, 1
+    ), [perfisEscolas, targetScale, simultaneidade]);
 
     // 2. Calculate Hardware Investment based on Logistics
     const totalHardwareInvestment = useMemo(() => {
@@ -181,14 +187,15 @@ export const BusinessCalculator = () => {
         cac,
         adjustedChurn,
         targetScale,
-        totalHardwareInvestment, // Novo: Investimento calculado
-        custoInicialAluno,       // Novo: Custo Inicial
-        outrosCustos,           // Novo: Outros Custos
+        totalHardwareInvestment,
+        custoInicialAluno,
+        outrosCustos,
+        mesesDepreciacao, // Novo: Meses Depreciação
         12,
         85,
         4,
         adjustedTicket
-    ), [colaboradores, infra, veiculo, custosVariáveis, fiscal, cac, adjustedChurn, targetScale, totalHardwareInvestment, custoInicialAluno, outrosCustos, adjustedTicket]);
+    ), [colaboradores, infra, veiculo, custosVariáveis, fiscal, cac, adjustedChurn, targetScale, totalHardwareInvestment, custoInicialAluno, outrosCustos, mesesDepreciacao, adjustedTicket]);
 
     const handlePrint = () => window.print();
     const handleOpenTutor = (id: string) => setTutorKpi(id);
@@ -237,6 +244,7 @@ export const BusinessCalculator = () => {
 
     // Proposal Adjustment Logic
     const proposalPrice = useMemo(() => {
+        // OpExTotal now includes depreciation, which is correct for pricing (cost recovery)
         const costPerStudent = metrics.financial.opexTotal / targetScale;
         const taxRate = (fiscal.iss + fiscal.pisCofins) / 100;
         return (costPerStudent * (1 + margemAlvo / 100)) / (1 - taxRate);
@@ -349,6 +357,22 @@ export const BusinessCalculator = () => {
                         <div className="grid grid-cols-2 gap-4">
                             <InputField label="Custo Inicial/Aluno" value={custoInicialAluno} onChange={(v: any) => setCustoInicialAluno(v)} prefix="R$" help="Kit/Licença" />
                             <InputField label="Outros Variáveis" value={outrosCustos.variavel} onChange={(v: any) => setOutrosCustos({ ...outrosCustos, variavel: v })} prefix="R$" help="Mensal" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Simultaneidade</label>
+                                <input
+                                    type="range"
+                                    min="1"
+                                    max="10"
+                                    step="1"
+                                    value={simultaneidade}
+                                    onChange={(e) => setSimultaneidade(Number(e.target.value))}
+                                    className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                                />
+                                <div className="text-right text-xs font-bold text-brand-primary">{simultaneidade} Profs.</div>
+                            </div>
+                            <InputField label="Depreciação" value={mesesDepreciacao} onChange={(v: any) => setMesesDepreciacao(v)} suffix="meses" help="Vida Útil" />
                         </div>
                     </div>
 
