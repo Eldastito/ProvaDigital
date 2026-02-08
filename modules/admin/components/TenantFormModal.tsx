@@ -113,6 +113,7 @@ export const TenantFormModal = ({ isOpen, onClose }: TenantFormModalProps) => {
                                 >
                                     <option value={TenantType.PUBLIC_MUNICIPAL}>Prefeitura (Municipal)</option>
                                     <option value={TenantType.PUBLIC_STATE}>Estado (Estadual)</option>
+                                    <option value={TenantType.PUBLIC_FEDERAL}>Federal (Federal)</option>
                                     <option value={TenantType.PRIVATE}>Escola Privada / Rede</option>
                                 </select>
                             </div>
@@ -146,7 +147,7 @@ export const TenantFormModal = ({ isOpen, onClose }: TenantFormModalProps) => {
                                 <input
                                     type="range"
                                     min="500"
-                                    max="50000"
+                                    max="200000"
                                     step="500"
                                     value={formData.maxStudents}
                                     onChange={e => setFormData({ ...formData, maxStudents: parseInt(e.target.value) })}
@@ -185,8 +186,8 @@ export const TenantFormModal = ({ isOpen, onClose }: TenantFormModalProps) => {
                                 <label
                                     key={feature.id}
                                     className={`flex items-center gap-3 p-4 rounded-2xl border transition-all cursor-pointer ${formData.features[feature.id as keyof typeof formData.features]
-                                            ? 'bg-brand-primary/5 border-brand-primary/20 ring-1 ring-brand-primary/10'
-                                            : 'bg-slate-50 border-slate-100 opacity-60'
+                                        ? 'bg-brand-primary/5 border-brand-primary/20 ring-1 ring-brand-primary/10'
+                                        : 'bg-slate-50 border-slate-100 hover:bg-slate-100'
                                         }`}
                                 >
                                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${formData.features[feature.id as keyof typeof formData.features] ? 'bg-brand-primary text-white' : 'bg-slate-200 text-slate-400'}`}>
