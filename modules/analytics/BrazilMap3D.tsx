@@ -28,10 +28,10 @@ const MAP_HEIGHT = 650;
 const EXTRUDE_DEPTH = 10;
 
 // --- Colors ---
-const COLOR_STATE_DEFAULT = '#1e293b'; // Slate-800
-const COLOR_STATE_HOVER = '#334155';   // Slate-700
-const COLOR_STATE_ACTIVE = '#0f172a';  // Slate-900
-const COLOR_STROKE = '#475569';        // Slate-600
+const COLOR_STATE_DEFAULT = '#334155'; // Slate-700 (Lighter for visibility)
+const COLOR_STATE_HOVER = '#475569';   // Slate-600
+const COLOR_STATE_ACTIVE = '#1e293b';  // Slate-800
+const COLOR_STROKE = '#94a3b8';        // Slate-400
 
 const STATUS_COLORS = {
     NORMAL: '#34d399',  // Emerald-400
@@ -45,11 +45,16 @@ const StateMesh = ({ uf, pathData, isHovered, onHover, onClick }: any) => {
     const shape = useMemo(() => {
         try {
             const loader = new SVGLoader();
-            const path = loader.parse(pathData).paths[0];
-            if (!path) {
-                console.warn(`No path found for UF: ${uf}`);
+            // SVGLoader.parse expects a valid SVG XML string, not just path data
+            const svgString = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 612 650"><path d="${pathData}" /></svg>`;
+            const data = loader.parse(svgString);
+
+            if (!data.paths || data.paths.length === 0) {
+                console.warn(`No path parsed for UF: ${uf}`);
                 return null;
             }
+
+            const path = data.paths[0];
             const shapes = path.toShapes(true);
             return shapes[0];
         } catch (e) {
