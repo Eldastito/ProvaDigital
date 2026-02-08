@@ -34,14 +34,18 @@ export const SaaSControlPanelView = () => {
     const location = useLocation();
     const path = location.pathname;
 
-    // Mock constants for strategic insights
-    const fixedCosts = 18000;
+    // Mock constants for strategic insights (Raio-X ready)
+    const fixos = { aluguel: 3500, folhaPagamento: 12000, assinaturas: 800, financiamentos: 1500, outros: 1000 };
+    const variáveis = { combustível: 2.5, colaboradoresProjeto: 1.5, benefícios: 0.8, outros: 0.2 };
+    const patrimônio = { tablets: 85000, computadores: 15000, infraestrutura: 5000 };
+    const fiscal = { iss: 5, pisCofins: 3.65, encargosFolha: 28 };
+
     const cac = 2500;
     const churn = 3.5;
     const targetScale = 5000;
 
     const metrics = React.useMemo(() => calculateBusinessMetrics(
-        fixedCosts, 6, 150000, 14.5, cac, churn, targetScale
+        fixos, variáveis, patrimônio, fiscal, cac, churn, targetScale
     ), [tenants.length]);
 
     const ops = React.useMemo(() => calculateLogistics(
@@ -197,17 +201,25 @@ export const SaaSControlPanelView = () => {
                                     <p className="text-xs text-slate-500 leading-relaxed">Considerando um CAC de R$ {cac.toLocaleString()} e um Churn de {churn}%.</p>
                                 </div>
                                 <div className="space-y-4">
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase">Tempo de Payback</div>
-                                    <div className="text-4xl font-black text-brand-dark">{metrics.financial.paybackMonths.toFixed(1)} <span className="text-lg">meses</span></div>
-                                    <p className="text-xs text-slate-500 leading-relaxed">Objetivo corporativo: recuperar investimento em menos de 12 meses.</p>
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase">Rule of 40 (Growth + Margin)</div>
+                                    <div className="text-4xl font-black text-brand-dark">{metrics.financial.ruleOf40.toFixed(1)}%</div>
+                                    <p className="text-xs text-slate-500 leading-relaxed">Benchmark SaaS Tier 1: {'>'} 40%.</p>
                                 </div>
                                 <div className="space-y-4 pt-4 border-t">
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase">Margem de Contribuição</div>
-                                    <div className="text-3xl font-black text-slate-700">{metrics.financial.margemContribuição.toFixed(1)}%</div>
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase">Valuation Estimado (5x ARR)</div>
+                                    <div className="text-3xl font-black text-slate-700">R$ {metrics.financial.valuationEstimado.toLocaleString()}</div>
                                 </div>
                                 <div className="space-y-4 pt-4 border-t">
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase">ROE (Retorno sobre Patrimônio)</div>
-                                    <div className="text-3xl font-black text-slate-700">{metrics.financial.roi.toFixed(1)}%</div>
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase">Magic Number</div>
+                                    <div className="text-3xl font-black text-slate-700">{metrics.financial.magicNumber.toFixed(2)}</div>
+                                </div>
+                                <div className="space-y-4 pt-4 border-t">
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase">Margem Bruta SaaS</div>
+                                    <div className="text-3xl font-black text-slate-700">{metrics.financial.margemBrutaSaaS}%</div>
+                                </div>
+                                <div className="space-y-4 pt-4 border-t">
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase">Burn Multiple</div>
+                                    <div className="text-3xl font-black text-slate-700">{metrics.financial.burnMultiple.toFixed(1)}x</div>
                                 </div>
                             </div>
                         </div>

@@ -4,7 +4,8 @@ import {
     Plus, Minus, TrendingDown, DollarSign,
     Package, MapPin, BarChart3, Receipt,
     Download, Printer, Shield, Users, Clock, Globe,
-    Sparkles, BrainCircuit, MessageSquare, ToggleLeft, ToggleRight
+    Sparkles, BrainCircuit, MessageSquare, ToggleLeft, ToggleRight,
+    Zap, Target, Layers, Activity, Briefcase
 } from 'lucide-react';
 import { calculateLogistics, calculateBusinessMetrics } from '../../../utils/saasCalculators';
 import { useAppStore } from '../../../store/useAppStore';
@@ -19,7 +20,7 @@ const Card = ({ children, className = "" }: any) => (
     </div>
 );
 
-const InputField = ({ label, value, onChange, type = "number", suffix, prefix, help, onLearnMore, kpiId }: any) => (
+const InputField = ({ label, value, onChange, type = "number", suffix, prefix, help, onLearnMore, kpiId, min, max, step }: any) => (
     <div className="space-y-1.5">
         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex justify-between items-center">
             <span className="flex items-center gap-1">
@@ -40,6 +41,9 @@ const InputField = ({ label, value, onChange, type = "number", suffix, prefix, h
             <input
                 type={type}
                 value={value}
+                min={min}
+                max={max}
+                step={step}
                 onChange={(e) => onChange(type === "number" ? parseFloat(e.target.value) || 0 : e.target.value)}
                 className={`w-full bg-slate-50 border border-slate-100 rounded-xl py-2.5 text-sm font-bold text-slate-700 focus:bg-white focus:border-brand-primary/30 transition-all outline-none ${prefix ? 'pl-10' : 'pl-4'} ${suffix ? 'pr-10' : 'pr-4'}`}
             />
@@ -48,21 +52,31 @@ const InputField = ({ label, value, onChange, type = "number", suffix, prefix, h
     </div>
 );
 
-const ResultTab = ({ label, value, sub, icon: Icon, color = "brand-primary", kpiId, onLearnMore }: any) => (
+const ResultTab = ({ label, value, sub, icon: Icon, color = "brand-primary", kpiId, onLearnMore, benchmark }: any) => (
     <div className="flex items-center gap-4 p-4 rounded-xl border border-slate-50 bg-slate-50/30 group relative">
         <div className={`p-3 rounded-lg bg-${color}/10 text-${color}`}>
             <Icon size={20} />
         </div>
-        <div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
-                {label}
-                {kpiId && (
-                    <button
-                        onClick={() => onLearnMore(kpiId)}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-brand-primary hover:text-brand-light transition-all"
-                    >
-                        <Sparkles size={10} />
-                    </button>
+        <div className="flex-1">
+            <div className="text-[10px] font-bold text-slate-400 uppercase flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                    {label}
+                    {kpiId && (
+                        <button
+                            onClick={() => onLearnMore(kpiId)}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-brand-primary hover:text-brand-light transition-all"
+                        >
+                            <Sparkles size={10} />
+                        </button>
+                    )}
+                </span>
+                {benchmark && (
+                    <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter ${benchmark === 'Best-in-Class' ? 'bg-emerald-500 text-white' :
+                            benchmark === 'Tier 1' ? 'bg-blue-500 text-white' :
+                                'bg-slate-200 text-slate-500'
+                        }`}>
+                        {benchmark}
+                    </span>
                 )}
             </div>
             <div className="text-lg font-black text-slate-800">{value}</div>
@@ -73,74 +87,85 @@ const ResultTab = ({ label, value, sub, icon: Icon, color = "brand-primary", kpi
 
 export const BusinessCalculator = () => {
     const store = useAppStore();
-    const [activeTab, setActiveTab] = useState<'logistics' | 'financial' | 'sales' | 'hr' | 'report'>('logistics');
+    const [activeTab, setActiveTab] = useState<'logistics' | 'financial' | 'report' | 'xray' | 'clevel' | 'simulation'>('xray');
     const [isIntelligenceMode, setIsIntelligenceMode] = useState(false);
     const [tutorKpi, setTutorKpi] = useState<string | null>(null);
 
-    // Logistics & Ops state
-    const [maxClassSize, setMaxClassSize] = useState(50);
-    const [totalAlunos, setTotalAlunos] = useState(600);
-    const [otd, setOtd] = useState(98);
-    const [ruptura, setRuptura] = useState(2);
-    const [refugo, setRefugo] = useState(1);
+    // RAIO-X: Custos Fixos Detalhados
+    const [fixos, setFixos] = useState({
+        aluguel: 3500,
+        folhaPagamento: 12000,
+        assinaturas: 800,
+        financiamentos: 1500,
+        outros: 1000
+    });
 
-    // Financial base state
-    const [fixedCosts, setFixedCosts] = useState(15000);
-    const [varCostPerStudent, setVarCostPerStudent] = useState(5);
-    const [taxPercent, setTaxPercent] = useState(14.5);
-    const [hardwareInvestment, setHardwareInvestment] = useState(120000);
+    // RAIO-X: Custos Variáveis Detalhados
+    const [variáveis, setVariáveis] = useState({
+        combustível: 2.5,
+        colaboradoresProjeto: 1.5,
+        benefícios: 0.8,
+        outros: 0.2
+    });
+
+    // RAIO-X: Ativos e Patrimônio (CapEx)
+    const [patrimônio, setPatrimônio] = useState({
+        tablets: 85000,
+        computadores: 15000,
+        infraestrutura: 5000
+    });
+
+    // RAIO-X: Fiscal
+    const [fiscal, setFiscal] = useState({
+        iss: 5,
+        pisCofins: 3.65,
+        encargosFolha: 28 // INSS + FGTS + Riscos
+    });
 
     // Sales & Customers state
-    const [cac, setCac] = useState(2000);
-    const [churn, setChurn] = useState(2);
-    const [conversion, setConversion] = useState(12);
-    const [targetScale, setTargetScale] = useState(2000);
-    const [nps, setNps] = useState(78);
+    const [cac, setCac] = useState(2500);
+    const [churn, setChurn] = useState(1.8);
+    const [targetScale, setTargetScale] = useState(1500);
+    const [ticketManual, setTicketManual] = useState<number | undefined>(undefined);
 
-    // HR state
-    const [turnover, setTurnover] = useState(4);
-    const [absenteísmo, setAbsenteísmo] = useState(3);
+    // What-IF Sliders
+    const [simPriceAdj, setSimPriceAdj] = useState(0); // em %
+    const [simChurnAdj, setSimChurnAdj] = useState(0); // em %
 
     // --- EFFECT: DATA SYNC ---
     useEffect(() => {
         if (isIntelligenceMode) {
-            // 1. Sync Logistics with real peak demand
             const realLogistics = getRealLogisticsDemand(store);
             if (realLogistics) {
-                // Percorrer todas as escolas do dia para achar o pico global
                 const peak = Math.max(...realLogistics.schools.map(s => s.peakStudentCount), 0);
-                setMaxClassSize(peak || 50);
-                // Total students across all schools in the day/network
-                const total = store.students.length;
-                setTotalAlunos(total);
-                setOtd(99.2); // Real dynamic metric (simulated from service)
+                setPatrimônio(prev => ({ ...prev, tablets: peak * 1200 }));
+                setTargetScale(store.students.length);
             }
-
-            // 2. Sync Retention/Churn with Analytics Service
-            const syncRealAnalytics = async () => {
-                const retention = await analyticsService.getRetentionData('all');
-                setChurn(retention.churnRate);
-                setNps(retention.satisfactionScore * 20); // Scale to 100
-            };
-            syncRealAnalytics();
         }
     }, [isIntelligenceMode, store]);
 
     // Dynamic calculations
-    const ops = useMemo(() => calculateLogistics(maxClassSize, totalAlunos, 5, 6, otd, ruptura, refugo),
-        [maxClassSize, totalAlunos, otd, ruptura, refugo]);
+    const adjustedTicket = useMemo(() => {
+        const base = ticketManual || 0;
+        if (base === 0) return undefined;
+        return base * (1 + simPriceAdj / 100);
+    }, [ticketManual, simPriceAdj]);
+
+    const adjustedChurn = useMemo(() => {
+        return Math.max(0.1, churn * (1 + simChurnAdj / 100));
+    }, [churn, simChurnAdj]);
 
     const metrics = useMemo(() => calculateBusinessMetrics(
-        fixedCosts, varCostPerStudent, hardwareInvestment, taxPercent, cac, churn, targetScale, conversion, nps, turnover
-    ), [fixedCosts, varCostPerStudent, hardwareInvestment, taxPercent, cac, churn, targetScale, conversion, nps, turnover]);
+        fixos, variáveis, patrimônio, fiscal, cac, adjustedChurn, targetScale, 12, 85, 4, adjustedTicket
+    ), [fixos, variáveis, patrimônio, fiscal, cac, adjustedChurn, targetScale, adjustedTicket]);
+
+    const ops = useMemo(() => calculateLogistics(50, targetScale, 5, 6, 98, 2, 1), [targetScale]);
 
     const handlePrint = () => window.print();
-
     const handleOpenTutor = (id: string) => setTutorKpi(id);
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto pb-20">
-            {/* AI Tutor Drawer */}
             <AITutorDrawer
                 isOpen={!!tutorKpi}
                 onClose={() => setTutorKpi(null)}
@@ -149,17 +174,16 @@ export const BusinessCalculator = () => {
 
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8 print:hidden">
                 <div className="flex items-center gap-3">
-                    <div className="p-3 bg-brand-primary text-white rounded-2xl shadow-lg shadow-brand-primary/20">
-                        <BarChart3 size={24} />
+                    <div className="p-3 bg-slate-900 text-white rounded-2xl shadow-lg border border-slate-800">
+                        <Briefcase size={24} className="text-brand-secondary" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-black text-slate-800 tracking-tight text-brand-dark uppercase">Business Intel & KPIs</h2>
-                        <p className="text-slate-500 text-sm font-medium">Análise de IA & Viabilidade Estratégica</p>
+                        <h2 className="text-2xl font-black text-slate-800 tracking-tight text-brand-dark uppercase">Enterprise RAIO-X</h2>
+                        <p className="text-slate-500 text-sm font-medium">Gestão C-Level, Valuation & Sensibilidade</p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-6">
-                    {/* Real Data Toggle */}
                     <button
                         onClick={() => setIsIntelligenceMode(!isIntelligenceMode)}
                         className={`flex items-center gap-3 px-4 py-2 rounded-xl border transition-all ${isIntelligenceMode
@@ -169,17 +193,16 @@ export const BusinessCalculator = () => {
                     >
                         <BrainCircuit size={18} className={isIntelligenceMode ? "animate-pulse" : ""} />
                         <span className="text-[10px] font-black uppercase tracking-widest">
-                            {isIntelligenceMode ? '🧠 Inteligência Real Ativa' : '🧪 Modo Simulação'}
+                            {isIntelligenceMode ? '🧠 Inteligência Real Ativa' : '🧪 Business Designer'}
                         </span>
-                        {isIntelligenceMode ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
                     </button>
 
                     <div className="flex flex-wrap bg-slate-100 p-1 rounded-xl">
                         {[
-                            { id: 'logistics', label: 'Logística & Ops' },
-                            { id: 'financial', label: 'Finanças' },
-                            { id: 'sales', label: 'Vendas & Mkt' },
-                            { id: 'hr', label: 'RH' },
+                            { id: 'xray', label: 'Dashboard' },
+                            { id: 'clevel', label: 'C-Level' },
+                            { id: 'simulation', label: 'Simulação' },
+                            { id: 'logistics', label: 'Logística' },
                             { id: 'report', label: 'Relatório' }
                         ].map((tab) => (
                             <button
@@ -195,278 +218,331 @@ export const BusinessCalculator = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                {/* Inputs Sidebar */}
-                <Card className="lg:col-span-4 space-y-8 flex flex-col h-fit print:hidden sticky top-8">
-                    {activeTab === 'logistics' && (
-                        <div className="space-y-6">
-                            <h3 className="font-bold text-slate-800 flex items-center gap-2"><Package size={18} className="text-brand-primary" /> Eficiência Operacional</h3>
-                            <InputField
-                                label="Maior Turma" value={maxClassSize} onChange={setMaxClassSize} suffix="alunos" help="Capacidade"
-                                kpiId="tablets" onLearnMore={handleOpenTutor}
-                            />
-                            <InputField label="Alunos por Escola" value={totalAlunos} onChange={setTotalAlunos} suffix="alunos" />
-                            <InputField
-                                label="OTD Alvo (Entrega)" value={otd} onChange={setOtd} suffix="%"
-                                kpiId="otd" onLearnMore={handleOpenTutor}
-                            />
-                            <InputField label="Ruptura Alvo" value={ruptura} onChange={setRuptura} suffix="%" />
+                <Card className="lg:col-span-4 space-y-6 flex flex-col h-[85vh] overflow-y-auto no-scrollbar print:hidden sticky top-8 border-slate-200 shadow-sm">
+                    <div className="space-y-6">
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2 text-[10px] uppercase tracking-wider"><Package size={16} className="text-brand-primary" /> Ativos & CapEx</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <InputField label="Frota Tablets" value={patrimônio.tablets} onChange={(v: any) => setPatrimônio({ ...patrimônio, tablets: v })} prefix="R$" />
+                            <InputField label="Workstations" value={patrimônio.computadores} onChange={(v: any) => setPatrimônio({ ...patrimônio, computadores: v })} prefix="R$" />
                         </div>
-                    )}
+                    </div>
 
-                    {activeTab === 'financial' && (
-                        <div className="space-y-6">
-                            <h3 className="font-bold text-slate-800 flex items-center gap-2"><DollarSign size={18} className="text-emerald-500" /> Capex & Opex</h3>
-                            <InputField label="Custos Fixos Mensais" value={fixedCosts} onChange={setFixedCosts} prefix="R$" kpiId="ebitda" onLearnMore={handleOpenTutor} />
-                            <InputField label="Variável / Aluno" value={varCostPerStudent} onChange={setVarCostPerStudent} prefix="R$" />
-                            <InputField label="Inv. Inicial Hardware" value={hardwareInvestment} onChange={setHardwareInvestment} prefix="R$" />
-                            <InputField label="Carga Tributária" value={taxPercent} onChange={setTaxPercent} suffix="%" />
-                            <InputField label="Total Alunos (Escala)" value={targetScale} onChange={setTargetScale} suffix="alunos" />
+                    <div className="space-y-6 pt-6 border-t border-slate-50">
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2 text-[10px] uppercase tracking-wider"><DollarSign size={16} className="text-emerald-500" /> Estrutura de Custos (OpEx)</h3>
+                        <InputField label="Salários (Total)" value={fixos.folhaPagamento} onChange={(v: any) => setFixos({ ...fixos, folhaPagamento: v })} prefix="R$" />
+                        <InputField label="SaaS & Cloud" value={fixos.assinaturas} onChange={(v: any) => setFixos({ ...fixos, assinaturas: v })} prefix="R$" />
+                        <InputField label="Custos de Terceiros" value={fixos.outros} onChange={(v: any) => setFixos({ ...fixos, outros: v })} prefix="R$" />
+                    </div>
+
+                    <div className="space-y-6 pt-6 border-t border-slate-50">
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2 text-[10px] uppercase tracking-wider"><TrendingUp size={16} className="text-blue-500" /> Escala & CAC</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <InputField label="Escala (Alunos)" value={targetScale} onChange={(v: any) => setTargetScale(v)} suffix="un" />
+                            <InputField label="CAC Unitário" value={cac} onChange={(v: any) => setCac(v)} prefix="R$" />
                         </div>
-                    )}
+                        <InputField label="Churn Mensal Base" value={churn} onChange={(v: any) => setChurn(v)} suffix="%" />
+                    </div>
 
-                    {activeTab === 'sales' && (
-                        <div className="space-y-6">
-                            <h3 className="font-bold text-slate-800 flex items-center gap-2"><TrendingUp size={18} className="text-blue-500" /> Growth & Retenção</h3>
-                            <InputField label="CAC Médio" value={cac} onChange={setCac} prefix="R$" kpiId="payback" onLearnMore={handleOpenTutor} />
-                            <InputField label="Taxa de Conversão" value={conversion} onChange={setConversion} suffix="%" />
-                            <InputField label="Churn Rate Mensal" value={churn} onChange={setChurn} suffix="%" kpiId="ltv-cac" onLearnMore={handleOpenTutor} />
-                            <InputField label="NPS Alvo" value={nps} onChange={setNps} suffix="pts" />
-                        </div>
-                    )}
-
-                    {activeTab === 'hr' && (
-                        <div className="space-y-6">
-                            <h3 className="font-bold text-slate-800 flex items-center gap-2"><Users size={18} className="text-orange-500" /> Capital Humano</h3>
-                            <InputField label="Turnover Alvo" value={turnover} onChange={setTurnover} suffix="%" />
-                            <InputField label="Absenteísmo" value={absenteísmo} onChange={setAbsenteísmo} suffix="%" />
-                        </div>
-                    )}
-
-                    {/* BI Assistant Bar */}
                     <div className="mt-auto pt-6 border-t border-slate-50 space-y-4">
-                        <div className="relative">
-                            <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                            <input
-                                type="text"
-                                placeholder="Perguntar ao Owl BI..."
-                                className="w-full pl-10 pr-4 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-medium outline-none border border-slate-800 focus:border-brand-primary placeholder:text-slate-600"
-                            />
+                        <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden relative">
+                            <Zap className="absolute -right-4 -top-4 text-white/5" size={80} />
+                            <div className="flex items-center gap-2 text-brand-secondary font-black text-[10px] mb-2 uppercase tracking-widest relative z-10">
+                                <Sparkles size={12} /> Valuation de Saída
+                            </div>
+                            <div className="text-2xl font-black text-white relative z-10 transition-all duration-700">
+                                R$ {metrics.financial.valuationEstimado.toLocaleString('pt-BR')}
+                            </div>
+                            <div className="text-[9px] text-slate-400 mt-1 relative z-10">Estimativa conservadora (5x ARR)</div>
                         </div>
-                        <button
-                            onClick={() => setActiveTab('report')}
-                            className="w-full py-3 bg-brand-dark text-white rounded-xl font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg uppercase tracking-tighter"
-                        >
-                            Gerar Relatório de Viabilidade
-                        </button>
                     </div>
                 </Card>
 
-                {/* Results Main Area */}
-                <div className="lg:col-span-8 space-y-6 h-full flex flex-col">
-                    {activeTab === 'logistics' && (
-                        <Card className="flex-1 space-y-8 animate-in fade-in zoom-in-95 duration-300">
-                            <h3 className="font-black text-brand-dark uppercase text-[10px] tracking-widest border-b border-slate-50 pb-4">Logística & Eficiência (Smart Prediction)</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <ResultTab label="Tablets Alunos" value={ops.tabletsNecessários} icon={Laptop} sub="Foco: Pico de Demanda Real" kpiId="tablets" onLearnMore={handleOpenTutor} />
-                                <ResultTab label="Total Hardware" value={ops.totalTablets} icon={Plus} color="orange" sub="Com Reserva Técnica Otimizada" />
-                                <ResultTab label="OTD (On-Time Delivery)" value={`${ops.otd}%`} icon={Clock} color="emerald" sub="Score Logístico Atual" kpiId="otd" onLearnMore={handleOpenTutor} />
-                                <ResultTab label="Refugo / Danos" value={`${ops.taxaRefugo}%`} icon={TrendingDown} color="rose" sub="Volume de Perdas em Campo" kpiId="refugo" onLearnMore={handleOpenTutor} />
+                <div className="lg:col-span-8 space-y-6">
+                    {activeTab === 'xray' && (
+                        <Card className="space-y-8 animate-in fade-in zoom-in-95 duration-300">
+                            <div className="flex justify-between items-center border-b border-slate-50 pb-4">
+                                <h3 className="font-black text-brand-dark uppercase text-[10px] tracking-widest">DRE Profissional Consolidado</h3>
+                                <div className="text-[10px] font-bold text-slate-400">Padrão de Auditoria Real</div>
                             </div>
-                            <div className="p-4 bg-slate-900 rounded-xl text-white flex justify-between items-center transition-all hover:bg-slate-800 cursor-pointer group">
-                                <div>
-                                    <div className="text-[8px] font-bold text-brand-secondary uppercase tracking-widest mb-1 flex items-center gap-1">
-                                        Malas Necessárias <Sparkles size={8} className="animate-pulse" />
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="space-y-4">
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Demonstrativo Gerencial</div>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-500 font-bold uppercase text-[9px]">Receita Bruta</span>
+                                            <span className="font-black text-slate-800">R$ {(metrics.marketing.ticketMédio * targetScale).toLocaleString('pt-BR')}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm text-rose-500">
+                                            <span className="font-medium text-[9px] uppercase">(-) Impostos & Deduções</span>
+                                            <span className="font-bold">R$ {metrics.financial.impostosTotais.toLocaleString('pt-BR')}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm text-slate-400">
+                                            <span className="font-medium text-[9px] uppercase">(-) OpEx (Fixo + Variável)</span>
+                                            <span className="font-bold">R$ {metrics.financial.opexTotal.toLocaleString('pt-BR')}</span>
+                                        </div>
+                                        <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-sm font-black text-slate-800">
+                                            <span className="uppercase text-[9px]">EBITDA Mensal</span>
+                                            <span className="text-brand-primary">R$ {metrics.financial.ebitdaReal.toLocaleString('pt-BR')}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm text-slate-400">
+                                            <span className="font-medium text-[9px] uppercase">(-) Depreciação (Non-Cash)</span>
+                                            <span className="font-bold">R$ {metrics.financial.depreciaçãoMensal.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
+                                        </div>
                                     </div>
-                                    <div className="text-2xl font-black">{ops.malasTransporte} Malas de Transporte</div>
+                                    <div className="pt-4 border-t border-slate-50 flex justify-between items-center">
+                                        <span className="text-sm font-black text-slate-900 uppercase text-[10px]">Net Profit (Lucro Líquido)</span>
+                                        <span className="text-lg font-black text-brand-dark">R$ {(metrics.financial.ebitdaReal - metrics.financial.depreciaçãoMensal).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
+                                    </div>
                                 </div>
-                                <div className="p-3 bg-white/5 rounded-xl group-hover:scale-110 transition-transform">
-                                    <Package className="text-brand-secondary" size={32} />
+
+                                <div className="bg-brand-dark rounded-2xl p-6 text-white flex flex-col justify-center space-y-6 shadow-2xl relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                        <Target size={120} />
+                                    </div>
+                                    <div className="text-center space-y-1 relative z-10">
+                                        <div className="text-[10px] font-bold text-brand-secondary uppercase tracking-widest">Margem Líquida Real</div>
+                                        <div className="text-4xl font-black text-white">{metrics.financial.margemLíquida.toFixed(1)}%</div>
+                                        <div className="text-[9px] text-slate-500 font-bold uppercase tracking-tighter">Pós-Depreciação de Hardware</div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4 border-t border-white/10 pt-6 relative z-10">
+                                        <div className="text-center border-r border-white/10">
+                                            <div className="text-[8px] font-bold text-white/40 uppercase mb-1 tracking-widest">Margem Contrib.</div>
+                                            <div className="text-xl font-bold">{metrics.financial.margemContribuição.toFixed(1)}%</div>
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="text-[8px] font-bold text-white/40 uppercase mb-1 tracking-widest">Capital Giro</div>
+                                            <div className="text-lg font-bold text-brand-secondary">R$ {metrics.financial.capitalGiroNecessário.toLocaleString('pt-BR')}</div>
+                                        </div>
+                                    </div>
                                 </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-50 pt-8">
+                                <ResultTab label="Payback (Meses)" value={metrics.financial.paybackMonths.toFixed(1)} icon={Clock} color="rose" benchmark={metrics.financial.paybackMonths < 12 ? 'Best-in-Class' : 'Tier 1'} />
+                                <ResultTab label="LTV/CAC" value={`${metrics.financial.ltvCacRatio.toFixed(1)}x`} icon={Shield} color="orange" benchmark={metrics.financial.ltvCacRatio > 3 ? 'SaaS Gold' : 'Healthy'} />
+                                <ResultTab label="Rentab. Ativos" value={`${metrics.financial.rentabilidade.toFixed(1)}%`} color="emerald" icon={TrendingUp} />
                             </div>
                         </Card>
                     )}
 
-                    {activeTab === 'financial' && (
-                        <Card className="flex-1 space-y-8 animate-in fade-in zoom-in-95 duration-300">
-                            <h3 className="font-black text-brand-dark uppercase text-[10px] tracking-widest border-b border-slate-50 pb-4">Indicadores Financeiros</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="p-4 rounded-xl border border-slate-100 bg-emerald-50/20 group relative cursor-pointer" onClick={() => handleOpenTutor('ebitda')}>
-                                    <Sparkles size={10} className="absolute top-2 right-2 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    <div className="text-[8px] font-bold text-emerald-600 uppercase tracking-widest mb-1">EBITDA Mensal</div>
-                                    <div className="text-lg font-black text-emerald-700">R$ {metrics.financial.ebitdaReal.toLocaleString('pt-BR')}</div>
-                                </div>
-                                <div className="p-4 rounded-xl border border-slate-100">
-                                    <div className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Margem Líquida</div>
-                                    <div className="text-lg font-black text-slate-800">{metrics.financial.margemLíquida.toFixed(1)}%</div>
-                                </div>
-                                <div className="p-4 rounded-xl border border-slate-100">
-                                    <div className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Margem Contribuição</div>
-                                    <div className="text-lg font-black text-blue-600">{metrics.financial.margemContribuição.toFixed(1)}%</div>
-                                </div>
+                    {activeTab === 'clevel' && (
+                        <Card className="space-y-8 animate-in fade-in zoom-in-95 duration-300">
+                            <div className="flex justify-between items-center border-b border-slate-50 pb-4">
+                                <h3 className="font-black text-brand-dark uppercase text-[10px] tracking-widest flex items-center gap-2">
+                                    <Shield size={16} className="text-brand-primary" /> Eficiência SaaS & Board Reporting
+                                </h3>
+                                <div className="p-1 px-3 bg-brand-primary text-white text-[8px] font-black rounded-full uppercase tracking-widest">C-Level View</div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-4 p-4 rounded-xl border border-slate-100">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-[10px] font-bold text-slate-500 uppercase">ROE (Retorno s/ Capital)</span>
-                                        <span className="text-sm font-black text-brand-primary">{metrics.financial.rentabilidade.toFixed(1)}%</span>
-                                    </div>
-                                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                        <div className="h-full bg-brand-primary" style={{ width: `${Math.min(metrics.financial.rentabilidade, 100)}%` }} />
-                                    </div>
-                                </div>
-                                <div className="space-y-4 p-4 rounded-xl border border-slate-100">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-[10px] font-bold text-slate-500 uppercase">ROI Acumulado</span>
-                                        <span className="text-sm font-black text-emerald-600">{metrics.financial.roi.toFixed(1)}%</span>
-                                    </div>
-                                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                        <div className="h-full bg-emerald-500" style={{ width: `${Math.min(metrics.financial.roi, 100)}%` }} />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Ponto de Equilíbrio (Break-even)</h4>
-                                <div className="flex items-end gap-2">
-                                    <span className="text-4xl font-black text-slate-800">{metrics.financial.breakEvenAlunos.toLocaleString()}</span>
-                                    <span className="text-sm font-bold text-slate-400 pb-1 mb-1">alunos para zerar custos</span>
-                                </div>
-                            </div>
-                        </Card>
-                    )}
-
-                    {activeTab === 'sales' && (
-                        <Card className="flex-1 space-y-8 animate-in fade-in zoom-in-95 duration-300">
-                            <h3 className="font-black text-brand-dark uppercase text-[10px] tracking-widest border-b border-slate-50 pb-4">Gestão de Vendas & Clientes (Churn Prediction)</h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <ResultTab label="Ticket Médio (ARPU)" value={`R$ ${metrics.marketing.ticketMédio.toFixed(2)}`} icon={Receipt} sub="Por aluno/mês" />
-                                <ResultTab label="LTV Estimado" value={`R$ ${metrics.financial.ltv.toFixed(0)}`} icon={TrendingUp} color="emerald" sub="Valor total por cliente" kpiId="ltv-cac" onLearnMore={handleOpenTutor} />
-                                <ResultTab label="NPS (Satisfação)" value={metrics.customers.nps} icon={Shield} color="blue" sub="Lealdade do Cliente" />
-                                <ResultTab label="Market Share" value={`${metrics.marketing.marketShare.toFixed(3)}%`} icon={Globe} color="orange" sub="Fatia do mercado nacional" />
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                                <div className="p-4 rounded-xl border border-slate-100 bg-brand-primary/5 space-y-1 relative group cursor-pointer" onClick={() => handleOpenTutor('ltv-cac')}>
-                                    <Sparkles size={12} className="absolute top-3 right-3 text-brand-primary animate-pulse" />
-                                    <div className="text-[10px] font-bold text-brand-primary uppercase tracking-widest">Saúde do Modelo (LTV/CAC)</div>
-                                    <div className="text-2xl font-black text-brand-dark">{metrics.financial.ltvCacRatio.toFixed(1)}x</div>
-                                    <div className="text-[10px] text-slate-500">Benchmark ideal: {'>'} 3.0x</div>
-                                </div>
-                                <div className="p-4 rounded-xl border border-slate-100 bg-rose-50/30 space-y-1 relative group cursor-pointer" onClick={() => handleOpenTutor('payback')}>
-                                    <Sparkles size={12} className="absolute top-3 right-3 text-rose-400 animate-pulse" />
-                                    <div className="text-[10px] font-bold text-rose-600 uppercase tracking-widest">CAC Payback</div>
-                                    <div className="text-2xl font-black text-rose-700">{metrics.financial.paybackMonths.toFixed(1)} meses</div>
-                                    <div className="text-[10px] text-slate-500">Tempo para recuperar investimentos</div>
-                                </div>
-                            </div>
-                        </Card>
-                    )}
-
-                    {activeTab === 'hr' && (
-                        <Card className="flex-1 space-y-8 animate-in fade-in zoom-in-95 duration-300">
-                            <h3 className="font-black text-brand-dark uppercase text-[10px] tracking-widest border-b border-slate-50 pb-4">Gestão de Pessoas (RH)</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-4">
-                                    <div className="flex justify-between items-end">
-                                        <div>
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase">Turnover Mensal</div>
-                                            <div className="text-3xl font-black text-slate-800">{metrics.hr.turnover}%</div>
+                                <div className="p-6 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+                                    <div>
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Rule of 40</div>
+                                            <span className={`text-[10px] font-black px-2 py-1 rounded ${metrics.financial.ruleOf40 > 40 ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                                                {metrics.financial.ruleOf40 > 40 ? 'SaaS Tier 1' : 'Growing'}
+                                            </span>
                                         </div>
+                                        <div className="text-4xl font-black text-slate-800">{metrics.financial.ruleOf40.toFixed(1)}%</div>
+                                        <p className="text-[11px] text-slate-500 mt-2 leading-tight">Soma da taxa de crescimento e margem líquida. Benchmark de eficiência em Venture Capital.</p>
                                     </div>
-                                    <div className="p-3 bg-slate-50 rounded-lg text-[10px] text-slate-500 leading-relaxed font-medium">
-                                        Reflete a rotatividade do staff operacional e técnico. Uma taxa alta impacta o custo fixo via treinamentos.
+                                    <div className="mt-6 h-1 w-full bg-slate-200 rounded-full overflow-hidden">
+                                        <div className="h-full bg-brand-primary" style={{ width: `${Math.min(100, metrics.financial.ruleOf40)}%` }} />
                                     </div>
                                 </div>
-                                <div className="space-y-4">
-                                    <div className="flex justify-between items-end">
-                                        <div>
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase">Absenteísmo</div>
-                                            <div className="text-3xl font-black text-slate-800">{metrics.hr.absenteísmo}%</div>
+
+                                <div className="p-6 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
+                                    <div>
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Magic Number</div>
+                                            <span className={`text-[10px] font-black px-2 py-1 rounded ${metrics.financial.magicNumber > 0.75 ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                                                {metrics.financial.magicNumber > 0.75 ? 'Sales Machine' : 'Otimizar'}
+                                            </span>
+                                        </div>
+                                        <div className="text-4xl font-black text-slate-800">{metrics.financial.magicNumber.toFixed(2)}</div>
+                                        <p className="text-[11px] text-slate-500 mt-2 leading-tight">Quantos reais de receita recorrente anual (ARR) você gera para cada R$ 1 investido em vendas.</p>
+                                    </div>
+                                    <div className="mt-6 flex justify-between gap-1">
+                                        {[...Array(5)].map((_, i) => (
+                                            <div key={i} className={`h-1.5 flex-1 rounded-full ${i < metrics.financial.magicNumber * 5 ? 'bg-blue-500' : 'bg-slate-200'}`} />
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="p-6 rounded-2xl bg-slate-50 border border-slate-100">
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Capital de Giro & Runway</div>
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-500 font-medium">Reserva Recomendada (3m)</span>
+                                            <span className="font-bold text-slate-800">R$ {metrics.financial.capitalGiroNecessário.toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-500 font-medium">Burn Multiple</span>
+                                            <span className="font-bold text-rose-500">{metrics.financial.burnMultiple.toFixed(1)}x</span>
                                         </div>
                                     </div>
-                                    <div className="p-3 bg-slate-50 rounded-lg text-[10px] text-slate-500 leading-relaxed font-medium">
-                                        Impacto direto na produtividade e necessidade de sobrecarga de rede/suporte.
+                                </div>
+
+                                <div className="p-6 rounded-2xl bg-slate-50 border border-slate-100">
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Eficiência de Ativos</div>
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-500 font-medium">Utilização da Frota</span>
+                                            <span className="font-bold text-slate-800">{metrics.financial.taxaUtilizaçãoAtivos}%</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-500 font-medium">Margem Bruta SaaS</span>
+                                            <span className="font-bold text-emerald-500">{metrics.financial.margemBrutaSaaS}%</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div className="pt-6 border-t border-slate-50">
-                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">ROI de Treinamento</h4>
-                                <div className="flex items-center gap-4">
-                                    <div className="text-4xl font-black text-blue-600">{metrics.hr.roiTreinamento}%</div>
-                                    <div className="text-[10px] text-slate-400 font-bold uppercase max-w-[150px]">Retorno Estimado sobre capacitação de rede</div>
+                        </Card>
+                    )}
+
+                    {activeTab === 'simulation' && (
+                        <Card className="space-y-8 animate-in fade-in zoom-in-95 duration-300">
+                            <div className="flex justify-between items-center border-b border-slate-50 pb-4">
+                                <h3 className="font-black text-brand-dark uppercase text-[10px] tracking-widest">Laboratório de Sensibilidade (What-IF)</h3>
+                                <div className="text-[10px] font-bold text-slate-400">Simulação de Impacto Financeiro</div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="space-y-8">
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-xs font-black text-slate-700 uppercase tracking-tighter">Ajuste de Preço</label>
+                                            <span className={`text-xs font-black ${simPriceAdj >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>{simPriceAdj > 0 ? '+' : ''}{simPriceAdj}%</span>
+                                        </div>
+                                        <input
+                                            type="range" min="-30" max="100" value={simPriceAdj}
+                                            onChange={(e) => setSimPriceAdj(parseInt(e.target.value))}
+                                            className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-brand-primary"
+                                        />
+                                        <div className="flex justify-between text-[8px] font-bold text-slate-300 uppercase">
+                                            <span>Desconto Aggressive</span>
+                                            <span>Premium Pricing</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-xs font-black text-slate-700 uppercase tracking-tighter">Impacto no Churn</label>
+                                            <span className={`text-xs font-black ${simChurnAdj <= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>{simChurnAdj > 0 ? '+' : ''}{simChurnAdj}%</span>
+                                        </div>
+                                        <input
+                                            type="range" min="-50" max="200" value={simChurnAdj}
+                                            onChange={(e) => setSimChurnAdj(parseInt(e.target.value))}
+                                            className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-brand-secondary"
+                                        />
+                                        <div className="flex justify-between text-[8px] font-bold text-slate-300 uppercase">
+                                            <span>Retenção Total</span>
+                                            <span>Erosão de Base</span>
+                                        </div>
+                                    </div>
                                 </div>
+
+                                <div className="p-6 rounded-2xl bg-slate-900 text-white space-y-6 shadow-2xl relative overflow-hidden">
+                                    <div className="absolute -right-8 -bottom-8 opacity-10">
+                                        <TrendingUp size={160} />
+                                    </div>
+                                    <div className="text-center space-y-1">
+                                        <div className="text-[10px] font-bold text-brand-secondary uppercase tracking-widest">Impacto no Valuation</div>
+                                        <div className="text-4xl font-black text-white">R$ {metrics.financial.valuationEstimado.toLocaleString('pt-BR')}</div>
+                                        <div className="text-[9px] text-white/40 uppercase tracking-tighter mt-2">Valor Simulado da Empresa</div>
+                                    </div>
+                                    <div className="space-y-3 pt-6 border-t border-white/10 relative z-10">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-[9px] font-bold text-white/60 uppercase">EBITDA Simulado</span>
+                                            <span className="text-sm font-black text-brand-secondary">R$ {metrics.financial.ebitdaReal.toLocaleString('pt-BR')}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-[9px] font-bold text-white/60 uppercase">Novo LTV Unitário</span>
+                                            <span className="text-sm font-black">R$ {metrics.financial.ltv.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
+                                        </div>
+                                    </div>
+                                    <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-[10px] text-white/60 leading-tight">
+                                        A combinação de preço e retenção pode multiplicar seu valuation em até {((metrics.financial.valuationEstimado / (metrics.marketing.ticketMédio * targetScale * 12 * 5))).toFixed(1)}x.
+                                    </div>
+                                </div>
+                            </div>
+                        </Card>
+                    )}
+
+                    {activeTab === 'logistics' && (
+                        <Card className="space-y-8 animate-in fade-in zoom-in-95 duration-300">
+                            <h3 className="font-black text-brand-dark uppercase text-[10px] tracking-widest border-b border-slate-50 pb-4">Logística & Eficiência de Hardware</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <ResultTab label="Tablets Ativos" value={ops.totalTablets} icon={Laptop} sub="Foco: Pico de Demanda Real" />
+                                <ResultTab label="Malas de Campo" value={ops.malasTransporte} icon={Package} color="orange" sub="Logística de Distribuição" />
+                                <ResultTab label="On-Time Delivery (OTD)" value={`${ops.otd}%`} icon={Clock} color="emerald" sub="SLA de Entrega em Escolas" />
+                                <ResultTab label="Taxa de Refugo Alvo" value={`${ops.taxaRefugo}%`} icon={TrendingDown} color="rose" sub="Limite de perdas de hardware" />
                             </div>
                         </Card>
                     )}
 
                     {activeTab === 'report' && (
-                        <Card className="flex-1 space-y-8 animate-in fade-in zoom-in-95 duration-300">
+                        <Card className="space-y-8 animate-in fade-in zoom-in-95 duration-300">
                             <div className="flex justify-between items-center border-b border-slate-50 pb-6 print:hidden">
-                                <h3 className="font-black text-slate-800 uppercase text-xs tracking-widest">Estratégia de Precificação</h3>
-                                <button onClick={handlePrint} className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg hover:scale-105 transition-transform">
-                                    <Printer size={14} /> GERAR PDF EXECUTIVO
+                                <h3 className="font-black text-slate-800 uppercase text-xs tracking-widest">DRE Executivo Enterprise</h3>
+                                <button onClick={handlePrint} className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg hover:scale-105 transition-transform shadow-md">
+                                    <Printer size={14} /> IMPRIMIR RAIO-X
                                 </button>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="p-6 rounded-2xl border-2 border-slate-100 space-y-4">
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Preço Sobrevivência</div>
-                                    <div className="text-3xl font-black text-slate-600 tracking-tighter">
-                                        R$ {metrics.financial.sugestõesPreço.mínimo.toFixed(2)}
+                            <div className="space-y-8">
+                                <section className="space-y-4">
+                                    <div className="flex items-center gap-2 text-brand-primary font-black uppercase text-[10px]">
+                                        <div className="w-1.5 h-4 bg-brand-primary rounded-full" /> Diagnóstico de Margens
                                     </div>
-                                    <p className="text-[10px] text-slate-400 font-medium">Margem de contribuição mínima.</p>
-                                </div>
-                                <div className="p-6 rounded-2xl border-2 border-brand-primary bg-brand-primary/5 shadow-xl shadow-brand-primary/10 space-y-4">
-                                    <div className="text-[10px] font-bold text-brand-primary uppercase tracking-widest">Preço Recomendado</div>
-                                    <div className="text-3xl font-black text-brand-dark tracking-tighter">
-                                        R$ {metrics.financial.sugestõesPreço.ideal.toFixed(2)}
+                                    <div className="grid grid-cols-3 gap-4 text-center">
+                                        <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                                            <div className="text-[8px] font-bold text-slate-400 mb-1">EBITDA</div>
+                                            <div className="text-xl font-black text-slate-800">{metrics.financial.margemEbitda.toFixed(1)}%</div>
+                                        </div>
+                                        <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-100">
+                                            <div className="text-[8px] font-bold text-emerald-600 mb-1">LUCRO LÍQUIDO</div>
+                                            <div className="text-xl font-black text-emerald-700">{metrics.financial.margemLíquida.toFixed(1)}%</div>
+                                        </div>
+                                        <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-100">
+                                            <div className="text-[8px] font-bold text-blue-600 mb-1">MARGEM CONTRIB.</div>
+                                            <div className="text-xl font-black text-blue-700">{metrics.financial.margemContribuição.toFixed(1)}%</div>
+                                        </div>
                                     </div>
-                                    <p className="text-[10px] text-slate-500 font-medium">Ideal para EBITDA de saudável.</p>
-                                </div>
-                                <div className="p-6 rounded-2xl border-2 border-emerald-500/30 space-y-4">
-                                    <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Preço de Expansão</div>
-                                    <div className="text-3xl font-black text-emerald-700 tracking-tighter">
-                                        R$ {metrics.financial.sugestõesPreço.folgado.toFixed(2)}
-                                    </div>
-                                    <p className="text-[10px] text-slate-400 font-medium">Margem premium para reinvestimento.</p>
-                                </div>
-                            </div>
+                                </section>
 
-                            <div className="hidden print:block pt-10 border-t border-slate-100">
-                                <div className="flex justify-between mb-8">
-                                    <h1 className="text-2xl font-black text-slate-900 underline underline-offset-8">Relatório de Viabilidade SaaS</h1>
-                                    <span className="text-xs font-bold text-slate-400">{new Date().toLocaleDateString()}</span>
-                                </div>
-                                <div className="grid grid-cols-2 gap-12 text-[10px] leading-relaxed">
-                                    <div className="space-y-4">
-                                        <h4 className="font-bold border-b pb-1">Operacional & Logística</h4>
-                                        <div className="grid grid-cols-2">
-                                            <span>Hardware Total:</span> <span className="font-bold text-right">{ops.totalTablets} un</span>
-                                            <span>OTD Alvo:</span> <span className="font-bold text-right">{ops.otd}%</span>
-                                            <span>Malas Transporte:</span> <span className="font-bold text-right">{ops.malasTransporte}</span>
+                                <section className="space-y-4 pt-6 border-t border-slate-50">
+                                    <div className="flex items-center gap-2 text-brand-secondary font-black uppercase text-[10px]">
+                                        <div className="w-1.5 h-4 bg-brand-secondary rounded-full" /> Visão Patrimonial Consolidada
+                                    </div>
+                                    <div className="p-6 rounded-2xl bg-slate-900 text-white flex justify-between items-center">
+                                        <div>
+                                            <div className="text-[9px] font-bold text-white/40 uppercase tracking-widest mb-1">Valor Justo de Mercado</div>
+                                            <div className="text-3xl font-black">R$ {metrics.financial.valuationEstimado.toLocaleString()}</div>
                                         </div>
-                                        <h4 className="font-bold border-b pb-1 mt-6">Vendas & Clientes</h4>
-                                        <div className="grid grid-cols-2">
-                                            <span>LTV Estimado:</span> <span className="font-bold text-right">R$ {metrics.financial.ltv.toFixed(0)}</span>
-                                            <span>CAC Global:</span> <span className="font-bold text-right">R$ {metrics.financial.cac.toLocaleString()}</span>
-                                            <span>Payback:</span> <span className="font-bold text-right">{metrics.financial.paybackMonths.toFixed(1)} meses</span>
+                                        <div className="text-right">
+                                            <div className="text-[9px] font-bold text-brand-secondary uppercase tracking-widest mb-1">Status Rule of 40</div>
+                                            <div className="text-2xl font-black text-brand-secondary">{metrics.financial.ruleOf40.toFixed(1)}%</div>
                                         </div>
                                     </div>
-                                    <div className="space-y-4">
-                                        <h4 className="font-bold border-b pb-1">Financeiro & Saúde</h4>
-                                        <div className="grid grid-cols-2">
-                                            <span>Margem EBITDA:</span> <span className="font-bold text-right">{metrics.financial.margemEbitda.toFixed(1)}%</span>
-                                            <span>Margem Líquida:</span> <span className="font-bold text-right">{metrics.financial.margemLíquida.toFixed(1)}%</span>
-                                            <span>ROI Dự Kiến:</span> <span className="font-bold text-right">{metrics.financial.roi.toFixed(1)}%</span>
+                                </section>
+
+                                <section className="space-y-4 pt-6 border-t border-slate-50">
+                                    <div className="flex items-center gap-2 text-slate-800 font-black uppercase text-[10px]">
+                                        <div className="w-1.5 h-4 bg-orange-400 rounded-full" /> Matriz de Precificação Estratégica
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="p-4 rounded-xl border border-slate-100 space-y-2">
+                                            <div className="text-[8px] font-bold text-slate-400 uppercase">Preço Mínimo (Breakeven)</div>
+                                            <div className="text-2xl font-black text-slate-600">R$ {metrics.financial.sugestõesPreço.mínimo.toFixed(2)}</div>
                                         </div>
-                                        <h4 className="font-bold border-b pb-1 mt-6">Sugestão Comercial</h4>
-                                        <div className="p-4 bg-slate-50 border border-slate-100 rounded-lg">
-                                            <div className="text-[8px] uppercase font-bold text-slate-400">Preço Ideal p/ Aluno</div>
-                                            <div className="text-xl font-black text-brand-dark">R$ {metrics.financial.sugestõesPreço.ideal.toFixed(2)}</div>
+                                        <div className="p-4 rounded-xl border-2 border-brand-primary bg-brand-primary/5 space-y-2">
+                                            <div className="text-[8px] font-bold text-brand-primary uppercase">Ticket Ideal Recomendado</div>
+                                            <div className="text-2xl font-black text-brand-dark">R$ {metrics.financial.sugestõesPreço.ideal.toFixed(2)}</div>
                                         </div>
                                     </div>
-                                </div>
+                                </section>
                             </div>
                         </Card>
                     )}

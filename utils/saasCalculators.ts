@@ -10,27 +10,206 @@ export interface LogisticsResult {
     };
 }
 
+export interface CostDetail {
+    label: string;
+    value: number;
+    category: 'fixo' | 'variável' | 'patrimônio' | 'fiscal';
+}
+
 export interface FinancialResult {
     opexTotal: number;
     impostosTotais: number;
-    margemEbitda: number; // EBITDA / Receita
-    ebitdaReal: number;   // Lucro operacional antes de impostos
-    margemLíquida: number; // Lucro líquido / Receita
-    margemContribuição: number; // (Receita - Custos Variáveis) / Receita
+    margemEbitda: number;
+    ebitdaReal: number;
+    margemLíquida: number;
+    margemContribuição: number;
     breakEvenAlunos: number;
     cac: number;
     ltv: number;
     ltvCacRatio: number;
     paybackMonths: number;
-    lucratividade: number; // Lucro / Faturamento
-    rentabilidade: number; // Lucro / Investimento Hardware
-    roi: number;           // Retorno sobre investimento total
+    lucratividade: number;
+    rentabilidade: number;
+    roi: number;
+    custosDetalhados: CostDetail[];
+    patrimônioTotal: number;
     sugestõesPreço: {
         mínimo: number;
         ideal: number;
         folgado: number;
     };
+    // Métricas Profissionais (C-Level)
+    ruleOf40: number;
+    magicNumber: number;
+    burnMultiple: number;
+    depreciaçãoMensal: number;
+    valuationEstimado: number;
+    capitalGiroNecessário: number;
+    margemBrutaSaaS: number;
+    taxaUtilizaçãoAtivos: number;
 }
+
+/**
+ * Calcula KPIs de negócio e Raio-X Financeiro Detalhado.
+ */
+export const calculateBusinessMetrics = (
+    // Custos Fixos Detalhados
+    fixos: {
+        aluguel: number;
+        folhaPagamento: number;
+        assinaturas: number;
+        financiamentos: number;
+        outros: number;
+    },
+    // Custos Variáveis Detalhados
+    variáveis: {
+        combustível: number;
+        colaboradoresProjeto: number;
+        benefícios: number;
+        outros: number;
+    },
+    // Patrimônio e Tecnologia (CapEx)
+    patrimônio: {
+        tablets: number;
+        computadores: number;
+        infraestrutura: number;
+    },
+    // Fiscal
+    fiscal: {
+        iss: number; // %
+        pisCofins: number; // %
+        encargosFolha: number; // % (INSS/FGTS)
+    },
+    cacGlobal: number,
+    churnMensal: number,
+    totalAlunosAlvo: number,
+    taxaConversão: number = 10,
+    npsAlvo: number = 75,
+    turnoverAlvo: number = 5,
+    ticketMédioManual?: number
+): {
+    financial: FinancialResult;
+    marketing: SalesMarketingResult;
+    customers: CustomerResult;
+    hr: HRResult;
+} => {
+    // 1. Consolidação de Custos Fixos
+    const encargosFolhaTotal = fixos.folhaPagamento * (fiscal.encargosFolha / 100);
+    const custoFixoTotal = fixos.aluguel + fixos.folhaPagamento + encargosFolhaTotal + fixos.assinaturas + fixos.financiamentos + fixos.outros;
+
+    // 2. Consolidação de Custos Variáveis (por aluno)
+    const custoVariávelUnitário = variáveis.combustível + variáveis.colaboradoresProjeto + variáveis.benefícios + variáveis.outros;
+    const custoVariávelTotal = custoVariávelUnitário * totalAlunosAlvo;
+
+    // 3. Consolidação de Patrimônio (CapEx)
+    const patrimônioTotal = patrimônio.tablets + patrimônio.computadores + patrimônio.infraestrutura;
+
+    // 4. Receita e Preço
+    const impostosFaturamentoPercentual = fiscal.iss + fiscal.pisCofins;
+    const custoUnitárioBase = (custoFixoTotal / totalAlunosAlvo + custoVariávelUnitário) / (1 - (impostosFaturamentoPercentual / 100));
+    const ticketMédio = ticketMédioManual || custoUnitárioBase * 1.4;
+    const receitaTotal = ticketMédio * totalAlunosAlvo;
+
+    // 5. Impostos e Lucro
+    const impostosFaturamentoTotal = receitaTotal * (impostosFaturamentoPercentual / 100);
+    const opexTotal = custoFixoTotal + custoVariávelTotal;
+
+    // Profissional: Depreciação (Hardware em 36 meses)
+    const depreciaçãoMensal = patrimônioTotal / 36;
+
+    const ebitdaReal = receitaTotal - opexTotal - impostosFaturamentoTotal;
+    // Lucro Líquido Profissional (EBITDA - Depreciação)
+    const lucroLíquido = ebitdaReal - depreciaçãoMensal;
+
+    // 6. Margens e KPIs
+    const margemEbitda = (ebitdaReal / receitaTotal) * 100;
+    const margemLíquida = (lucroLíquido / receitaTotal) * 100;
+    const margemContribuição = ((receitaTotal - custoVariávelTotal - impostosFaturamentoTotal) / receitaTotal) * 100;
+
+    const roi = (lucroLíquido / (patrimônioTotal + cacGlobal)) * 100;
+    const rentabilidade = (lucroLíquido / patrimônioTotal) * 100;
+    const lucratividade = (lucroLíquido / receitaTotal) * 100;
+
+    const ltv = ticketMédio / (churnMensal / 100);
+    const ltvCacRatio = ltv / cacGlobal;
+    const paybackMonths = (cacGlobal + (patrimônioTotal / totalAlunosAlvo)) / (ticketMédio - custoVariávelUnitário);
+
+    // 6.b Métricas Profissionais (C-Level)
+    const crescimentoMensalProjetado = 15; // Benchmark SaaS 15% MoM
+    const ruleOf40 = margemEbitda + (crescimentoMensalProjetado * 4); // Normalizado anual
+
+    // Magic Number = (New ARR last quarter) / (S&M spend last quarter)
+    const netNewARR = (receitaTotal * 0.15) * 12; // 15% de crescimento convertid para ARR
+    const smSpend = cacGlobal * (totalAlunosAlvo * 0.05); // Estimativa de investimento em vendas
+    const magicNumber = smSpend > 0 ? netNewARR / smSpend : 0;
+
+    const burnMultiple = ebitdaReal < 0 ? Math.abs(ebitdaReal) / (netNewARR / 12) : 0;
+    const valuationEstimado = (receitaTotal * 12) * 5; // Múltiplo de 5x ARR
+    const capitalGiroNecessário = opexTotal * 3; // 3 meses de reserva
+    const margemBrutaSaaS = 85; // Benchmark SaaS Prova Digital
+    const taxaUtilizaçãoAtivos = 92; // Benchmark operacional
+
+    // 7. Quebra para Raio-X (DRE)
+    const custosDetalhados: CostDetail[] = [
+        { label: 'Folha + Encargos', value: fixos.folhaPagamento + encargosFolhaTotal, category: 'fixo' },
+        { label: 'Aluguel & Infra', value: fixos.aluguel, category: 'fixo' },
+        { label: 'SaaS & Assinaturas', value: fixos.assinaturas, category: 'fixo' },
+        { label: 'Financiamentos', value: fixos.financiamentos, category: 'fixo' },
+        { label: 'Combustível & Logística', value: variáveis.combustível * totalAlunosAlvo, category: 'variável' },
+        { label: 'Impostos (ISS/PIS)', value: impostosFaturamentoTotal, category: 'fiscal' },
+        { label: 'Patoimônio (Ativos)', value: patrimônioTotal, category: 'patrimônio' }
+    ];
+
+    return {
+        financial: {
+            opexTotal,
+            impostosTotais: impostosFaturamentoTotal + encargosFolhaTotal,
+            ebitdaReal,
+            margemEbitda,
+            margemLíquida,
+            margemContribuição,
+            breakEvenAlunos: Math.ceil(custoFixoTotal / (ticketMédio - custoVariávelUnitário)),
+            cac: cacGlobal,
+            ltv,
+            ltvCacRatio,
+            paybackMonths,
+            lucratividade,
+            rentabilidade,
+            roi,
+            custosDetalhados,
+            patrimônioTotal,
+            sugestõesPreço: {
+                mínimo: custoUnitárioBase * 1.05,
+                ideal: custoUnitárioBase * 1.4,
+                folgado: custoUnitárioBase * 1.8
+            },
+            // Métricas Profissionais (C-Level)
+            ruleOf40,
+            magicNumber,
+            burnMultiple,
+            depreciaçãoMensal,
+            valuationEstimado,
+            capitalGiroNecessário,
+            margemBrutaSaaS,
+            taxaUtilizaçãoAtivos
+        },
+        marketing: {
+            ticketMédio,
+            taxaConversão,
+            marketShare: (totalAlunosAlvo / 10000000) * 100
+        },
+        customers: {
+            nps: npsAlvo,
+            índiceRecompra: 100 - churnMensal,
+            churnRate: churnMensal
+        },
+        hr: {
+            turnover: turnoverAlvo,
+            absenteísmo: 0,
+            roiTreinamento: 0
+        }
+    };
+};
 
 export interface SalesMarketingResult {
     ticketMédio: number;
@@ -95,95 +274,6 @@ export const calculateLogistics = (
         otd: otdAlvo,
         índiceRuptura: rupturaAlvo,
         taxaRefugo: refugoAlvo
-    };
-};
-
-/**
- * Calcula KPIs de negócio e sugestões de preço.
- */
-export const calculateBusinessMetrics = (
-    custosFixos: number, // Aluguel, salários, infra
-    custosVariáveisPorAluno: number, // Token IA, suporte pro-rata
-    investimentoHardware: number,
-    impostosPercentual: number, // Soma de Fed/Est/Mun
-    cacGlobal: number,
-    churnMensal: number,
-    totalAlunosAlvo: number,
-    taxaConversão: number = 10,
-    npsAlvo: number = 75,
-    turnoverAlvo: number = 5,
-    ticketMédioManual?: number
-): {
-    financial: FinancialResult;
-    marketing: SalesMarketingResult;
-    customers: CustomerResult;
-    hr: HRResult;
-} => {
-    // 1. Receita e Preço
-    // Se não houver ticket médio manual, calculamos o "Ideal" para as métricas base
-    const custoUnitárioBase = (custosFixos / totalAlunosAlvo + custosVariáveisPorAluno) / (1 - (impostosPercentual / 100));
-    const ticketMédio = ticketMédioManual || custoUnitárioBase * 1.4;
-    const receitaTotal = ticketMédio * totalAlunosAlvo;
-
-    // 2. Custos e Impostos
-    const custosVariáveisTotais = custosVariáveisPorAluno * totalAlunosAlvo;
-    const opexTotal = custosFixos + custosVariáveisTotais;
-    const impostosTotais = receitaTotal * (impostosPercentual / 100);
-
-    // 3. Lucro e Margens
-    const ebitdaReal = receitaTotal - opexTotal - impostosTotais;
-    const lucroLíquido = ebitdaReal; // Simplificado (sem depreciação/juros no simulador)
-    const margemEbitda = (ebitdaReal / receitaTotal) * 100;
-    const margemLíquida = (lucroLíquido / receitaTotal) * 100;
-    const margemContribuição = ((receitaTotal - custosVariáveisTotais - impostosTotais) / receitaTotal) * 100;
-
-    // 4. ROI e Investimento
-    const roi = (lucroLíquido / (investimentoHardware + cacGlobal)) * 100;
-    const rentabilidade = (lucroLíquido / investimentoHardware) * 100;
-    const lucratividade = (lucroLíquido / receitaTotal) * 100;
-
-    // 5. SaaS KPIs
-    const ltv = ticketMédio / (churnMensal / 100);
-    const ltvCacRatio = ltv / cacGlobal;
-    const paybackMonths = cacGlobal / (ticketMédio - custosVariáveisPorAluno);
-
-    return {
-        financial: {
-            opexTotal,
-            impostosTotais,
-            ebitdaReal,
-            margemEbitda,
-            margemLíquida,
-            margemContribuição,
-            breakEvenAlunos: Math.ceil(custosFixos / (ticketMédio - custosVariáveisPorAluno)),
-            cac: cacGlobal,
-            ltv,
-            ltvCacRatio,
-            paybackMonths,
-            lucratividade,
-            rentabilidade,
-            roi,
-            sugestõesPreço: {
-                mínimo: custoUnitárioBase * 1.05,
-                ideal: custoUnitárioBase * 1.4,
-                folgado: custoUnitárioBase * 1.8
-            }
-        },
-        marketing: {
-            ticketMédio,
-            taxaConversão,
-            marketShare: (totalAlunosAlvo / 10000000) * 100 // Ex: share sobre 10M de alunos no Brasil
-        },
-        customers: {
-            nps: npsAlvo,
-            índiceRecompra: 100 - churnMensal,
-            churnRate: churnMensal
-        },
-        hr: {
-            turnover: turnoverAlvo,
-            absenteísmo: 2, // Default 2%
-            roiTreinamento: 150 // Default 150%
-        }
     };
 };
 export interface AIInsight {
