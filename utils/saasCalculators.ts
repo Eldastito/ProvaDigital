@@ -193,6 +193,7 @@ export interface AIInsight {
     message: string;
     impact: string;
     action: string;
+    targetPath?: string; // Novo: Caminho para navegação
 }
 
 /**
@@ -218,7 +219,8 @@ export const generateAIInsights = (
             title: 'Eficiência de Aquisição Baixa',
             message: `Sua relação LTV/CAC está em ${metrics.financial.ltvCacRatio.toFixed(1)}x. O benchmark ideal para SaaS é > 3.0x.`,
             impact: 'Risco de insustentabilidade a longo prazo.',
-            action: 'Revisar canais de marketing ou aumentar o Ticket Médio.'
+            action: 'Analisar Métricas Globais',
+            targetPath: '/admin/metrics'
         });
     }
 
@@ -229,7 +231,8 @@ export const generateAIInsights = (
             title: 'Payback Prolongado',
             message: `O tempo de recuperação do CAC é de ${metrics.financial.paybackMonths.toFixed(1)} meses.`,
             impact: 'Ciclo de caixa pressionado.',
-            action: 'Implementar taxas de setup ou planos anuais antecipados.'
+            action: 'Otimizar Fluxo de Caixa',
+            targetPath: '/admin/metrics'
         });
     }
 
@@ -241,22 +244,12 @@ export const generateAIInsights = (
             title: 'Desperdício Operacional Elevado',
             message: `A taxa de refugo/dano está em ${ops.taxaRefugo}%, acima do limite de tolerância de 2%.`,
             impact: 'Erosão da margem líquida por perda de hardware.',
-            action: 'Trocar fornecedor de malas de transporte ou treinar equipe de campo.'
+            action: 'Ver Relatório de Perdas',
+            targetPath: '/admin/saas'
         });
     }
 
-    if (ops.otd < 95) {
-        insights.push({
-            id: 'otd-low',
-            type: 'critical',
-            title: 'Falha na Experiência de Entrega',
-            message: `Pontualidade (OTD) em ${ops.otd}%.`,
-            impact: 'Insatisfação do cliente e risco de churn no primeiro uso.',
-            action: 'Otimizar rotas de distribuição ou descentralizar estoque.'
-        });
-    }
-
-    // 3. Insights de RH
+    // 3. Insights de RH (Informação)
     if (metrics.hr.turnover > 7) {
         insights.push({
             id: 'turnover-risk',
@@ -264,28 +257,48 @@ export const generateAIInsights = (
             title: 'Instabilidade de Capital Humano',
             message: `Turnover mensal de ${metrics.hr.turnover}% detectado.`,
             impact: 'Perda de conhecimento técnico e custo alto de re-treinamento.',
-            action: 'Implementar programa de bonificação por metas batidas.'
+            action: 'Analisar Retenção',
+            targetPath: '/admin/saas'
         });
     }
 
-    // 4. Insights de Clientes (LTV/Churn)
+    // 4. Insights de Clientes (Churn & Upsell)
     if (metrics.customers.churnRate > 3) {
         insights.push({
             id: 'churn-burn',
             type: 'critical',
             title: 'Alerta de Evasão (Churn)',
             message: `A taxa de cancelamento está em ${metrics.customers.churnRate}%.`,
-            impact: `Você está perdendo R$ ${(metrics.financial.opexTotal * (metrics.customers.churnRate / 100)).toLocaleString('pt-BR')} em receita mensal recorrente.`,
-            action: 'Investir em Customer Success e análise de NPS detrator.'
+            impact: `Perda de R$ ${(metrics.financial.opexTotal * (metrics.customers.churnRate / 100)).toLocaleString('pt-BR')} em MRR.`,
+            action: 'Gerenciar Clientes em Risco',
+            targetPath: '/admin/tenants'
         });
-    } else if (metrics.customers.nps > 80) {
+    }
+
+    // NOVO: Upsell Predictor (IA Preditiva)
+    const criticalCapacityTenants = 2; // Mock: prefeituras perto do limite
+    if (criticalCapacityTenants > 0) {
         insights.push({
-            id: 'nps-gold',
+            id: 'upsell-predict',
             type: 'opportunity',
-            title: 'Alto Coeficiente de Lealdade',
-            message: `Seu NPS de ${metrics.customers.nps} é excelente (Zona de Encantamento).`,
-            impact: 'Oportunidade de expansão via indicação (Referral).',
-            action: 'Lançar campanha de Member Get Member para reduzir o CAC.'
+            title: 'Oportunidade de Upsell Preditivo',
+            message: `${criticalCapacityTenants} prefeituras atingiram 90% do limite de alunos contratados.`,
+            impact: 'Potencial de expansão imediata de faturamento.',
+            action: 'Enviar Proposta de Expansão',
+            targetPath: '/admin/tenants'
+        });
+    }
+
+    // NOVO: ROI Report (IA Justificativa de Valor)
+    if (metrics.customers.nps > 80) {
+        insights.push({
+            id: 'roi-storytelling',
+            type: 'opportunity',
+            title: 'Gerador de ROI para Renovação',
+            message: `NPS excepcional (${metrics.customers.nps}). A economia de papel estimada na rede é de 85%.`,
+            impact: 'Facilita a renovação de contratos públicos.',
+            action: 'Gerar Relatório de Impacto',
+            targetPath: '/admin/metrics'
         });
     }
 

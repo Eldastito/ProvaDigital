@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Sparkles, AlertTriangle, TrendingUp, Lightbulb, ChevronRight, X, BrainCircuit } from 'lucide-react';
 import { AIInsight } from '../../../utils/saasCalculators';
 
@@ -9,11 +10,18 @@ interface AIAdvisorDashboardProps {
 export const AIAdvisorDashboard: React.FC<AIAdvisorDashboardProps> = ({ insights }) => {
     const [isVisible, setIsVisible] = useState(true);
     const [isThinking, setIsThinking] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const timer = setTimeout(() => setIsThinking(false), 1500);
         return () => clearTimeout(timer);
     }, []);
+
+    const handleAction = (insight: AIInsight) => {
+        if (insight.targetPath) {
+            navigate(insight.targetPath);
+        }
+    };
 
     if (!isVisible || (insights.length === 0 && !isThinking)) return null;
 
@@ -52,9 +60,9 @@ export const AIAdvisorDashboard: React.FC<AIAdvisorDashboardProps> = ({ insights
                     insights.map((insight) => (
                         <div
                             key={insight.id}
-                            className={`p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] cursor-default flex flex-col justify-between ${insight.type === 'critical' ? 'bg-rose-500/10 border-rose-500/20' :
-                                    insight.type === 'opportunity' ? 'bg-emerald-500/10 border-emerald-500/20' :
-                                        'bg-brand-primary/10 border-brand-primary/20'
+                            className={`p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] cursor-default flex flex-col justify-between ${insight.type === 'critical' ? 'bg-rose-500/10 border-rose-500/20 shadow-lg shadow-rose-500/5' :
+                                insight.type === 'opportunity' ? 'bg-emerald-500/10 border-emerald-500/20 shadow-lg shadow-emerald-500/5' :
+                                    'bg-brand-primary/10 border-brand-primary/20 shadow-lg shadow-brand-primary/5'
                                 }`}
                         >
                             <div className="space-y-3">
@@ -63,8 +71,8 @@ export const AIAdvisorDashboard: React.FC<AIAdvisorDashboardProps> = ({ insights
                                         insight.type === 'opportunity' ? <TrendingUp size={14} className="text-emerald-400" /> :
                                             <Lightbulb size={14} className="text-brand-primary" />}
                                     <span className={`text-[10px] font-black uppercase tracking-widest ${insight.type === 'critical' ? 'text-rose-400' :
-                                            insight.type === 'opportunity' ? 'text-emerald-400' :
-                                                'text-brand-primary'
+                                        insight.type === 'opportunity' ? 'text-emerald-400' :
+                                            'text-brand-primary'
                                         }`}>
                                         {insight.title}
                                     </span>
@@ -76,12 +84,15 @@ export const AIAdvisorDashboard: React.FC<AIAdvisorDashboardProps> = ({ insights
 
                             <div className="mt-4 pt-4 border-t border-white/5 space-y-2">
                                 <div className="text-[9px] font-bold text-slate-500 uppercase">Impacto: {insight.impact}</div>
-                                <div className={`flex items-center gap-1.5 text-[10px] font-black group/btn cursor-pointer ${insight.type === 'critical' ? 'text-rose-400 hover:text-rose-300' :
+                                <button
+                                    onClick={() => handleAction(insight)}
+                                    className={`flex items-center gap-1.5 text-[10px] font-black group/btn cursor-pointer transition-colors ${insight.type === 'critical' ? 'text-rose-400 hover:text-rose-300' :
                                         insight.type === 'opportunity' ? 'text-emerald-400 hover:text-emerald-300' :
                                             'text-brand-primary hover:text-brand-light'
-                                    }`}>
+                                        }`}
+                                >
                                     {insight.action} <ChevronRight size={12} className="group-hover/btn:translate-x-1 transition-transform" />
-                                </div>
+                                </button>
                             </div>
                         </div>
                     ))
