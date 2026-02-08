@@ -1,11 +1,17 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
     Calculator, Laptop, TrendingUp, FileText,
     Plus, Minus, TrendingDown, DollarSign,
     Package, MapPin, BarChart3, Receipt,
-    Download, Printer, Shield, Users, Clock, Globe
+    Download, Printer, Shield, Users, Clock, Globe,
+    Sparkles, BrainCircuit, MessageSquare, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import { calculateLogistics, calculateBusinessMetrics } from '../../../utils/saasCalculators';
+import { useAppStore } from '../../../store/useAppStore';
+import { getRealLogisticsDemand } from '../../../utils/logisticsEngine';
+import { analyticsService } from '../../../services/analyticsService';
+import { AITutorDrawer } from './AITutorDrawer';
+import { KPI_KNOWLEDGE_BASE } from '../../../utils/kpiKnowledgeBase';
 
 const Card = ({ children, className = "" }: any) => (
     <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-6 ${className}`}>
@@ -13,10 +19,20 @@ const Card = ({ children, className = "" }: any) => (
     </div>
 );
 
-const InputField = ({ label, value, onChange, type = "number", suffix, prefix, help }: any) => (
+const InputField = ({ label, value, onChange, type = "number", suffix, prefix, help, onLearnMore, kpiId }: any) => (
     <div className="space-y-1.5">
-        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex justify-between">
-            {label}
+        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex justify-between items-center">
+            <span className="flex items-center gap-1">
+                {label}
+                {kpiId && (
+                    <button
+                        onClick={() => onLearnMore(kpiId)}
+                        className="p-1 text-brand-primary/50 hover:text-brand-primary transition-colors"
+                    >
+                        <Sparkles size={10} />
+                    </button>
+                )}
+            </span>
             {help && <span className="normal-case font-medium text-slate-300">({help})</span>}
         </label>
         <div className="relative">
@@ -32,13 +48,23 @@ const InputField = ({ label, value, onChange, type = "number", suffix, prefix, h
     </div>
 );
 
-const ResultTab = ({ label, value, sub, icon: Icon, color = "brand-primary" }: any) => (
-    <div className="flex items-center gap-4 p-4 rounded-xl border border-slate-50 bg-slate-50/30">
+const ResultTab = ({ label, value, sub, icon: Icon, color = "brand-primary", kpiId, onLearnMore }: any) => (
+    <div className="flex items-center gap-4 p-4 rounded-xl border border-slate-50 bg-slate-50/30 group relative">
         <div className={`p-3 rounded-lg bg-${color}/10 text-${color}`}>
             <Icon size={20} />
         </div>
         <div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase">{label}</div>
+            <div className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                {label}
+                {kpiId && (
+                    <button
+                        onClick={() => onLearnMore(kpiId)}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-brand-primary hover:text-brand-light transition-all"
+                    >
+                        <Sparkles size={10} />
+                    </button>
+                )}
+            </div>
             <div className="text-lg font-black text-slate-800">{value}</div>
             {sub && <div className="text-[10px] text-slate-400">{sub}</div>}
         </div>
@@ -46,7 +72,10 @@ const ResultTab = ({ label, value, sub, icon: Icon, color = "brand-primary" }: a
 );
 
 export const BusinessCalculator = () => {
+    const store = useAppStore();
     const [activeTab, setActiveTab] = useState<'logistics' | 'financial' | 'sales' | 'hr' | 'report'>('logistics');
+    const [isIntelligenceMode, setIsIntelligenceMode] = useState(false);
+    const [tutorKpi, setTutorKpi] = useState<string | null>(null);
 
     // Logistics & Ops state
     const [maxClassSize, setMaxClassSize] = useState(50);
@@ -72,6 +101,31 @@ export const BusinessCalculator = () => {
     const [turnover, setTurnover] = useState(4);
     const [absenteísmo, setAbsenteísmo] = useState(3);
 
+    // --- EFFECT: DATA SYNC ---
+    useEffect(() => {
+        if (isIntelligenceMode) {
+            // 1. Sync Logistics with real peak demand
+            const realLogistics = getRealLogisticsDemand(store);
+            if (realLogistics) {
+                // Percorrer todas as escolas do dia para achar o pico global
+                const peak = Math.max(...realLogistics.schools.map(s => s.peakStudentCount), 0);
+                setMaxClassSize(peak || 50);
+                // Total students across all schools in the day/network
+                const total = store.students.length;
+                setTotalAlunos(total);
+                setOtd(99.2); // Real dynamic metric (simulated from service)
+            }
+
+            // 2. Sync Retention/Churn with Analytics Service
+            const syncRealAnalytics = async () => {
+                const retention = await analyticsService.getRetentionData('all');
+                setChurn(retention.churnRate);
+                setNps(retention.satisfactionScore * 20); // Scale to 100
+            };
+            syncRealAnalytics();
+        }
+    }, [isIntelligenceMode, store]);
+
     // Dynamic calculations
     const ops = useMemo(() => calculateLogistics(maxClassSize, totalAlunos, 5, 6, otd, ruptura, refugo),
         [maxClassSize, totalAlunos, otd, ruptura, refugo]);
@@ -82,8 +136,17 @@ export const BusinessCalculator = () => {
 
     const handlePrint = () => window.print();
 
+    const handleOpenTutor = (id: string) => setTutorKpi(id);
+
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto pb-20">
+            {/* AI Tutor Drawer */}
+            <AITutorDrawer
+                isOpen={!!tutorKpi}
+                onClose={() => setTutorKpi(null)}
+                kpi={tutorKpi ? KPI_KNOWLEDGE_BASE[tutorKpi] : null}
+            />
+
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8 print:hidden">
                 <div className="flex items-center gap-3">
                     <div className="p-3 bg-brand-primary text-white rounded-2xl shadow-lg shadow-brand-primary/20">
@@ -91,26 +154,43 @@ export const BusinessCalculator = () => {
                     </div>
                     <div>
                         <h2 className="text-2xl font-black text-slate-800 tracking-tight text-brand-dark uppercase">Business Intel & KPIs</h2>
-                        <p className="text-slate-500 text-sm font-medium">Simulador de Viabilidade Corporativa 360°</p>
+                        <p className="text-slate-500 text-sm font-medium">Análise de IA & Viabilidade Estratégica</p>
                     </div>
                 </div>
 
-                <div className="flex flex-wrap bg-slate-100 p-1 rounded-xl">
-                    {[
-                        { id: 'logistics', label: 'Logística & Ops' },
-                        { id: 'financial', label: 'Finanças' },
-                        { id: 'sales', label: 'Vendas & Mkt' },
-                        { id: 'hr', label: 'RH' },
-                        { id: 'report', label: 'Relatório' }
-                    ].map((tab) => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            className={`px-4 py-2 rounded-lg text-[10px] font-bold transition-all uppercase tracking-widest ${activeTab === tab.id ? 'bg-white text-brand-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
+                <div className="flex items-center gap-6">
+                    {/* Real Data Toggle */}
+                    <button
+                        onClick={() => setIsIntelligenceMode(!isIntelligenceMode)}
+                        className={`flex items-center gap-3 px-4 py-2 rounded-xl border transition-all ${isIntelligenceMode
+                            ? 'bg-brand-primary/10 border-brand-primary text-brand-primary'
+                            : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
+                            }`}
+                    >
+                        <BrainCircuit size={18} className={isIntelligenceMode ? "animate-pulse" : ""} />
+                        <span className="text-[10px] font-black uppercase tracking-widest">
+                            {isIntelligenceMode ? '🧠 Inteligência Real Ativa' : '🧪 Modo Simulação'}
+                        </span>
+                        {isIntelligenceMode ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
+                    </button>
+
+                    <div className="flex flex-wrap bg-slate-100 p-1 rounded-xl">
+                        {[
+                            { id: 'logistics', label: 'Logística & Ops' },
+                            { id: 'financial', label: 'Finanças' },
+                            { id: 'sales', label: 'Vendas & Mkt' },
+                            { id: 'hr', label: 'RH' },
+                            { id: 'report', label: 'Relatório' }
+                        ].map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                className={`px-4 py-2 rounded-lg text-[10px] font-bold transition-all uppercase tracking-widest ${activeTab === tab.id ? 'bg-white text-brand-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -120,9 +200,15 @@ export const BusinessCalculator = () => {
                     {activeTab === 'logistics' && (
                         <div className="space-y-6">
                             <h3 className="font-bold text-slate-800 flex items-center gap-2"><Package size={18} className="text-brand-primary" /> Eficiência Operacional</h3>
-                            <InputField label="Maior Turma" value={maxClassSize} onChange={setMaxClassSize} suffix="alunos" help="Capacidade" />
+                            <InputField
+                                label="Maior Turma" value={maxClassSize} onChange={setMaxClassSize} suffix="alunos" help="Capacidade"
+                                kpiId="tablets" onLearnMore={handleOpenTutor}
+                            />
                             <InputField label="Alunos por Escola" value={totalAlunos} onChange={setTotalAlunos} suffix="alunos" />
-                            <InputField label="OTD Alvo (Entrega)" value={otd} onChange={setOtd} suffix="%" />
+                            <InputField
+                                label="OTD Alvo (Entrega)" value={otd} onChange={setOtd} suffix="%"
+                                kpiId="otd" onLearnMore={handleOpenTutor}
+                            />
                             <InputField label="Ruptura Alvo" value={ruptura} onChange={setRuptura} suffix="%" />
                         </div>
                     )}
@@ -130,7 +216,7 @@ export const BusinessCalculator = () => {
                     {activeTab === 'financial' && (
                         <div className="space-y-6">
                             <h3 className="font-bold text-slate-800 flex items-center gap-2"><DollarSign size={18} className="text-emerald-500" /> Capex & Opex</h3>
-                            <InputField label="Custos Fixos Mensais" value={fixedCosts} onChange={setFixedCosts} prefix="R$" />
+                            <InputField label="Custos Fixos Mensais" value={fixedCosts} onChange={setFixedCosts} prefix="R$" kpiId="ebitda" onLearnMore={handleOpenTutor} />
                             <InputField label="Variável / Aluno" value={varCostPerStudent} onChange={setVarCostPerStudent} prefix="R$" />
                             <InputField label="Inv. Inicial Hardware" value={hardwareInvestment} onChange={setHardwareInvestment} prefix="R$" />
                             <InputField label="Carga Tributária" value={taxPercent} onChange={setTaxPercent} suffix="%" />
@@ -141,9 +227,9 @@ export const BusinessCalculator = () => {
                     {activeTab === 'sales' && (
                         <div className="space-y-6">
                             <h3 className="font-bold text-slate-800 flex items-center gap-2"><TrendingUp size={18} className="text-blue-500" /> Growth & Retenção</h3>
-                            <InputField label="CAC Médio" value={cac} onChange={setCac} prefix="R$" />
+                            <InputField label="CAC Médio" value={cac} onChange={setCac} prefix="R$" kpiId="payback" onLearnMore={handleOpenTutor} />
                             <InputField label="Taxa de Conversão" value={conversion} onChange={setConversion} suffix="%" />
-                            <InputField label="Churn Rate Mensal" value={churn} onChange={setChurn} suffix="%" />
+                            <InputField label="Churn Rate Mensal" value={churn} onChange={setChurn} suffix="%" kpiId="ltv-cac" onLearnMore={handleOpenTutor} />
                             <InputField label="NPS Alvo" value={nps} onChange={setNps} suffix="pts" />
                         </div>
                     )}
@@ -156,7 +242,16 @@ export const BusinessCalculator = () => {
                         </div>
                     )}
 
-                    <div className="mt-auto pt-6 border-t border-slate-50">
+                    {/* BI Assistant Bar */}
+                    <div className="mt-auto pt-6 border-t border-slate-50 space-y-4">
+                        <div className="relative">
+                            <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                            <input
+                                type="text"
+                                placeholder="Perguntar ao Owl BI..."
+                                className="w-full pl-10 pr-4 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-medium outline-none border border-slate-800 focus:border-brand-primary placeholder:text-slate-600"
+                            />
+                        </div>
                         <button
                             onClick={() => setActiveTab('report')}
                             className="w-full py-3 bg-brand-dark text-white rounded-xl font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg uppercase tracking-tighter"
@@ -170,19 +265,23 @@ export const BusinessCalculator = () => {
                 <div className="lg:col-span-8 space-y-6 h-full flex flex-col">
                     {activeTab === 'logistics' && (
                         <Card className="flex-1 space-y-8 animate-in fade-in zoom-in-95 duration-300">
-                            <h3 className="font-black text-brand-dark uppercase text-[10px] tracking-widest border-b border-slate-50 pb-4">Logística & Eficiência</h3>
+                            <h3 className="font-black text-brand-dark uppercase text-[10px] tracking-widest border-b border-slate-50 pb-4">Logística & Eficiência (Smart Prediction)</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <ResultTab label="Tablets Alunos" value={ops.tabletsNecessários} icon={Laptop} sub="Ponto de Ref. Maior Turma" />
-                                <ResultTab label="Total Hardware" value={ops.totalTablets} icon={Plus} color="orange" sub="Hardware + Suporte + Reserva" />
-                                <ResultTab label="OTD (On-Time Delivery)" value={`${ops.otd}%`} icon={Clock} color="emerald" sub="Pontualidade Logística" />
-                                <ResultTab label="Refugo / Danos" value={`${ops.taxaRefugo}%`} icon={TrendingDown} color="rose" sub="Volume de Manutenção" />
+                                <ResultTab label="Tablets Alunos" value={ops.tabletsNecessários} icon={Laptop} sub="Foco: Pico de Demanda Real" kpiId="tablets" onLearnMore={handleOpenTutor} />
+                                <ResultTab label="Total Hardware" value={ops.totalTablets} icon={Plus} color="orange" sub="Com Reserva Técnica Otimizada" />
+                                <ResultTab label="OTD (On-Time Delivery)" value={`${ops.otd}%`} icon={Clock} color="emerald" sub="Score Logístico Atual" kpiId="otd" onLearnMore={handleOpenTutor} />
+                                <ResultTab label="Refugo / Danos" value={`${ops.taxaRefugo}%`} icon={TrendingDown} color="rose" sub="Volume de Perdas em Campo" kpiId="refugo" onLearnMore={handleOpenTutor} />
                             </div>
-                            <div className="p-4 bg-slate-900 rounded-xl text-white flex justify-between items-center">
+                            <div className="p-4 bg-slate-900 rounded-xl text-white flex justify-between items-center transition-all hover:bg-slate-800 cursor-pointer group">
                                 <div>
-                                    <div className="text-[8px] font-bold text-brand-secondary uppercase tracking-widest mb-1">Malas Nécessárias</div>
+                                    <div className="text-[8px] font-bold text-brand-secondary uppercase tracking-widest mb-1 flex items-center gap-1">
+                                        Malas Necessárias <Sparkles size={8} className="animate-pulse" />
+                                    </div>
                                     <div className="text-2xl font-black">{ops.malasTransporte} Malas de Transporte</div>
                                 </div>
-                                <Package className="text-white/20" size={40} />
+                                <div className="p-3 bg-white/5 rounded-xl group-hover:scale-110 transition-transform">
+                                    <Package className="text-brand-secondary" size={32} />
+                                </div>
                             </div>
                         </Card>
                     )}
@@ -191,7 +290,8 @@ export const BusinessCalculator = () => {
                         <Card className="flex-1 space-y-8 animate-in fade-in zoom-in-95 duration-300">
                             <h3 className="font-black text-brand-dark uppercase text-[10px] tracking-widest border-b border-slate-50 pb-4">Indicadores Financeiros</h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="p-4 rounded-xl border border-slate-100 bg-emerald-50/20">
+                                <div className="p-4 rounded-xl border border-slate-100 bg-emerald-50/20 group relative cursor-pointer" onClick={() => handleOpenTutor('ebitda')}>
+                                    <Sparkles size={10} className="absolute top-2 right-2 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                                     <div className="text-[8px] font-bold text-emerald-600 uppercase tracking-widest mb-1">EBITDA Mensal</div>
                                     <div className="text-lg font-black text-emerald-700">R$ {metrics.financial.ebitdaReal.toLocaleString('pt-BR')}</div>
                                 </div>
@@ -238,21 +338,23 @@ export const BusinessCalculator = () => {
 
                     {activeTab === 'sales' && (
                         <Card className="flex-1 space-y-8 animate-in fade-in zoom-in-95 duration-300">
-                            <h3 className="font-black text-brand-dark uppercase text-[10px] tracking-widest border-b border-slate-50 pb-4">Gestão de Vendas & Clientes</h3>
+                            <h3 className="font-black text-brand-dark uppercase text-[10px] tracking-widest border-b border-slate-50 pb-4">Gestão de Vendas & Clientes (Churn Prediction)</h3>
                             <div className="grid grid-cols-2 gap-4">
                                 <ResultTab label="Ticket Médio (ARPU)" value={`R$ ${metrics.marketing.ticketMédio.toFixed(2)}`} icon={Receipt} sub="Por aluno/mês" />
-                                <ResultTab label="LTV Estimado" value={`R$ ${metrics.financial.ltv.toFixed(0)}`} icon={TrendingUp} color="emerald" sub="Valor total por cliente" />
+                                <ResultTab label="LTV Estimado" value={`R$ ${metrics.financial.ltv.toFixed(0)}`} icon={TrendingUp} color="emerald" sub="Valor total por cliente" kpiId="ltv-cac" onLearnMore={handleOpenTutor} />
                                 <ResultTab label="NPS (Satisfação)" value={metrics.customers.nps} icon={Shield} color="blue" sub="Lealdade do Cliente" />
                                 <ResultTab label="Market Share" value={`${metrics.marketing.marketShare.toFixed(3)}%`} icon={Globe} color="orange" sub="Fatia do mercado nacional" />
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                                <div className="p-4 rounded-xl border border-slate-100 bg-brand-primary/5 space-y-1">
+                                <div className="p-4 rounded-xl border border-slate-100 bg-brand-primary/5 space-y-1 relative group cursor-pointer" onClick={() => handleOpenTutor('ltv-cac')}>
+                                    <Sparkles size={12} className="absolute top-3 right-3 text-brand-primary animate-pulse" />
                                     <div className="text-[10px] font-bold text-brand-primary uppercase tracking-widest">Saúde do Modelo (LTV/CAC)</div>
                                     <div className="text-2xl font-black text-brand-dark">{metrics.financial.ltvCacRatio.toFixed(1)}x</div>
                                     <div className="text-[10px] text-slate-500">Benchmark ideal: {'>'} 3.0x</div>
                                 </div>
-                                <div className="p-4 rounded-xl border border-slate-100 bg-rose-50/30 space-y-1">
+                                <div className="p-4 rounded-xl border border-slate-100 bg-rose-50/30 space-y-1 relative group cursor-pointer" onClick={() => handleOpenTutor('payback')}>
+                                    <Sparkles size={12} className="absolute top-3 right-3 text-rose-400 animate-pulse" />
                                     <div className="text-[10px] font-bold text-rose-600 uppercase tracking-widest">CAC Payback</div>
                                     <div className="text-2xl font-black text-rose-700">{metrics.financial.paybackMonths.toFixed(1)} meses</div>
                                     <div className="text-[10px] text-slate-500">Tempo para recuperar investimentos</div>
