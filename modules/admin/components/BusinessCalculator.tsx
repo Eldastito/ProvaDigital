@@ -3,7 +3,7 @@ import {
     Calculator, Laptop, TrendingUp, FileText,
     Plus, Minus, TrendingDown, DollarSign,
     Package, MapPin, BarChart3, Receipt,
-    Download, Printer, Shield
+    Download, Printer, Shield, Users, Clock, Globe
 } from 'lucide-react';
 import { calculateLogistics, calculateBusinessMetrics } from '../../../utils/saasCalculators';
 
@@ -46,101 +46,122 @@ const ResultTab = ({ label, value, sub, icon: Icon, color = "brand-primary" }: a
 );
 
 export const BusinessCalculator = () => {
-    const [activeTab, setActiveTab] = useState<'logistics' | 'financial' | 'report'>('logistics');
+    const [activeTab, setActiveTab] = useState<'logistics' | 'financial' | 'sales' | 'hr' | 'report'>('logistics');
 
-    // Logistics state
+    // Logistics & Ops state
     const [maxClassSize, setMaxClassSize] = useState(50);
     const [totalAlunos, setTotalAlunos] = useState(600);
+    const [otd, setOtd] = useState(98);
+    const [ruptura, setRuptura] = useState(2);
+    const [refugo, setRefugo] = useState(1);
 
-    // Financial state
+    // Financial base state
     const [fixedCosts, setFixedCosts] = useState(15000);
     const [varCostPerStudent, setVarCostPerStudent] = useState(5);
     const [taxPercent, setTaxPercent] = useState(14.5);
+    const [hardwareInvestment, setHardwareInvestment] = useState(120000);
+
+    // Sales & Customers state
     const [cac, setCac] = useState(2000);
     const [churn, setChurn] = useState(2);
+    const [conversion, setConversion] = useState(12);
     const [targetScale, setTargetScale] = useState(2000);
+    const [nps, setNps] = useState(78);
+
+    // HR state
+    const [turnover, setTurnover] = useState(4);
+    const [absenteísmo, setAbsenteísmo] = useState(3);
 
     // Dynamic calculations
-    const logistics = useMemo(() => calculateLogistics(maxClassSize, totalAlunos), [maxClassSize, totalAlunos]);
-    const financial = useMemo(() => calculateBusinessMetrics(
-        fixedCosts, varCostPerStudent, 0, taxPercent, cac, churn, targetScale
-    ), [fixedCosts, varCostPerStudent, taxPercent, cac, churn, targetScale]);
+    const ops = useMemo(() => calculateLogistics(maxClassSize, totalAlunos, 5, 6, otd, ruptura, refugo),
+        [maxClassSize, totalAlunos, otd, ruptura, refugo]);
+
+    const metrics = useMemo(() => calculateBusinessMetrics(
+        fixedCosts, varCostPerStudent, hardwareInvestment, taxPercent, cac, churn, targetScale, conversion, nps, turnover
+    ), [fixedCosts, varCostPerStudent, hardwareInvestment, taxPercent, cac, churn, targetScale, conversion, nps, turnover]);
 
     const handlePrint = () => window.print();
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto pb-20">
-            <div className="flex items-center justify-between mb-8 print:hidden">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8 print:hidden">
                 <div className="flex items-center gap-3">
                     <div className="p-3 bg-brand-primary text-white rounded-2xl shadow-lg shadow-brand-primary/20">
-                        <Calculator size={24} />
+                        <BarChart3 size={24} />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-black text-slate-800 tracking-tight">Cálculo Estratégico SaaS</h2>
-                        <p className="text-slate-500 text-sm font-medium">Logística, KPIs e Precificação Inteligente</p>
+                        <h2 className="text-2xl font-black text-slate-800 tracking-tight text-brand-dark uppercase">Business Intel & KPIs</h2>
+                        <p className="text-slate-500 text-sm font-medium">Simulador de Viabilidade Corporativa 360°</p>
                     </div>
                 </div>
 
-                <div className="flex bg-slate-100 p-1 rounded-xl">
-                    <button
-                        onClick={() => setActiveTab('logistics')}
-                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'logistics' ? 'bg-white text-brand-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                        Logística
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('financial')}
-                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'financial' ? 'bg-white text-brand-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                        Financeiro & KPIs
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('report')}
-                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'report' ? 'bg-white text-brand-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                        Preços & Relatório
-                    </button>
+                <div className="flex flex-wrap bg-slate-100 p-1 rounded-xl">
+                    {[
+                        { id: 'logistics', label: 'Logística & Ops' },
+                        { id: 'financial', label: 'Finanças' },
+                        { id: 'sales', label: 'Vendas & Mkt' },
+                        { id: 'hr', label: 'RH' },
+                        { id: 'report', label: 'Relatório' }
+                    ].map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as any)}
+                            className={`px-4 py-2 rounded-lg text-[10px] font-bold transition-all uppercase tracking-widest ${activeTab === tab.id ? 'bg-white text-brand-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Inputs Sidebar */}
-                <Card className="lg:col-span-4 space-y-8 flex flex-col h-full print:hidden">
-                    {activeTab === 'logistics' ? (
-                        <>
-                            <div className="space-y-6">
-                                <h3 className="font-bold text-slate-800 flex items-center gap-2"><Package size={18} className="text-brand-primary" /> Dados da Escola</h3>
-                                <InputField label="Maior Turma da Escola" value={maxClassSize} onChange={setMaxClassSize} suffix="alunos" help="Ponto de Ref." />
-                                <InputField label="Total de Alunos" value={totalAlunos} onChange={setTotalAlunos} suffix="alunos" />
-                            </div>
-                            <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                                <p className="text-[10px] text-blue-700 font-medium leading-relaxed">
-                                    <strong>Regra de Negócio:</strong> Calculamos os tablets baseados na maior turma para permitir o reuso entre as 6 janelas diárias de aplicação. Adicionamos 10% de reserva e hardware de suporte.
-                                </p>
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            <div className="space-y-6">
-                                <h3 className="font-bold text-slate-800 flex items-center gap-2"><DollarSign size={18} className="text-emerald-500" /> Estrutura de Custos</h3>
-                                <InputField label="Custos Fixos Mensais" value={fixedCosts} onChange={setFixedCosts} prefix="R$" help="Aluguel, Staff, Cloud" />
-                                <InputField label="Custo Var. por Aluno" value={varCostPerStudent} onChange={setVarCostPerStudent} prefix="R$" help="IA, Provas, SMS" />
-                                <InputField label="Carga Tributária" value={taxPercent} onChange={setTaxPercent} suffix="%" help="Fed + Est + Mun" />
-                                <InputField label="Escala Alvo" value={targetScale} onChange={setTargetScale} suffix="alunos" />
-                            </div>
-                            <div className="space-y-6 pt-4 border-t border-slate-50">
-                                <h3 className="font-bold text-slate-800 flex items-center gap-2"><TrendingUp size={18} className="text-blue-500" /> Métricas de Crescimento</h3>
-                                <InputField label="CAC Unitário" value={cac} onChange={setCac} prefix="R$" />
-                                <InputField label="Churn Mensal" value={churn} onChange={setChurn} suffix="%" />
-                            </div>
-                        </>
+                <Card className="lg:col-span-4 space-y-8 flex flex-col h-fit print:hidden sticky top-8">
+                    {activeTab === 'logistics' && (
+                        <div className="space-y-6">
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2"><Package size={18} className="text-brand-primary" /> Eficiência Operacional</h3>
+                            <InputField label="Maior Turma" value={maxClassSize} onChange={setMaxClassSize} suffix="alunos" help="Capacidade" />
+                            <InputField label="Alunos por Escola" value={totalAlunos} onChange={setTotalAlunos} suffix="alunos" />
+                            <InputField label="OTD Alvo (Entrega)" value={otd} onChange={setOtd} suffix="%" />
+                            <InputField label="Ruptura Alvo" value={ruptura} onChange={setRuptura} suffix="%" />
+                        </div>
                     )}
+
+                    {activeTab === 'financial' && (
+                        <div className="space-y-6">
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2"><DollarSign size={18} className="text-emerald-500" /> Capex & Opex</h3>
+                            <InputField label="Custos Fixos Mensais" value={fixedCosts} onChange={setFixedCosts} prefix="R$" />
+                            <InputField label="Variável / Aluno" value={varCostPerStudent} onChange={setVarCostPerStudent} prefix="R$" />
+                            <InputField label="Inv. Inicial Hardware" value={hardwareInvestment} onChange={setHardwareInvestment} prefix="R$" />
+                            <InputField label="Carga Tributária" value={taxPercent} onChange={setTaxPercent} suffix="%" />
+                            <InputField label="Total Alunos (Escala)" value={targetScale} onChange={setTargetScale} suffix="alunos" />
+                        </div>
+                    )}
+
+                    {activeTab === 'sales' && (
+                        <div className="space-y-6">
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2"><TrendingUp size={18} className="text-blue-500" /> Growth & Retenção</h3>
+                            <InputField label="CAC Médio" value={cac} onChange={setCac} prefix="R$" />
+                            <InputField label="Taxa de Conversão" value={conversion} onChange={setConversion} suffix="%" />
+                            <InputField label="Churn Rate Mensal" value={churn} onChange={setChurn} suffix="%" />
+                            <InputField label="NPS Alvo" value={nps} onChange={setNps} suffix="pts" />
+                        </div>
+                    )}
+
+                    {activeTab === 'hr' && (
+                        <div className="space-y-6">
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2"><Users size={18} className="text-orange-500" /> Capital Humano</h3>
+                            <InputField label="Turnover Alvo" value={turnover} onChange={setTurnover} suffix="%" />
+                            <InputField label="Absenteísmo" value={absenteísmo} onChange={setAbsenteísmo} suffix="%" />
+                        </div>
+                    )}
+
                     <div className="mt-auto pt-6 border-t border-slate-50">
                         <button
                             onClick={() => setActiveTab('report')}
-                            className="w-full py-3 bg-brand-dark text-white rounded-xl font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg"
+                            className="w-full py-3 bg-brand-dark text-white rounded-xl font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg uppercase tracking-tighter"
                         >
-                            Ver Simulador de Preços
+                            Gerar Relatório de Viabilidade
                         </button>
                     </div>
                 </Card>
@@ -149,93 +170,129 @@ export const BusinessCalculator = () => {
                 <div className="lg:col-span-8 space-y-6 h-full flex flex-col">
                     {activeTab === 'logistics' && (
                         <Card className="flex-1 space-y-8 animate-in fade-in zoom-in-95 duration-300">
-                            <div className="flex justify-between items-center border-b border-slate-50 pb-6">
-                                <h3 className="font-black text-slate-800 uppercase text-xs tracking-widest">Necessidade de Hardware</h3>
-                                <span className="px-3 py-1 bg-brand-primary/10 text-brand-primary text-[10px] font-bold rounded-full">PROJEÇÃO LOGÍSTICA</span>
-                            </div>
-
+                            <h3 className="font-black text-brand-dark uppercase text-[10px] tracking-widest border-b border-slate-50 pb-4">Logística & Eficiência</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <ResultTab label="Tablets Ativos" value={logistics.tabletsNecessários} icon={Laptop} sub="Capacidade Maior Turma" />
-                                <ResultTab label="Reserva Técnica" value={logistics.reservaTécnica} icon={Shield} color="emerald" sub="10% para imprevistos" />
-                                <ResultTab label="Malas de Transporte" value={logistics.malasTransporte} icon={Package} color="blue" sub="20 unidades por mala" />
-                                <ResultTab label="Total de Hardware" value={logistics.totalTablets} icon={Plus} color="orange" sub="Hardware Total + Suporte" />
+                                <ResultTab label="Tablets Alunos" value={ops.tabletsNecessários} icon={Laptop} sub="Ponto de Ref. Maior Turma" />
+                                <ResultTab label="Total Hardware" value={ops.totalTablets} icon={Plus} color="orange" sub="Hardware + Suporte + Reserva" />
+                                <ResultTab label="OTD (On-Time Delivery)" value={`${ops.otd}%`} icon={Clock} color="emerald" sub="Pontualidade Logística" />
+                                <ResultTab label="Refugo / Danos" value={`${ops.taxaRefugo}%`} icon={TrendingDown} color="rose" sub="Volume de Manutenção" />
                             </div>
-
-                            <div className="p-6 bg-slate-900 rounded-2xl text-white relative overflow-hidden">
-                                <div className="absolute top-0 right-0 p-8 opacity-5">
-                                    <Package size={120} />
+                            <div className="p-4 bg-slate-900 rounded-xl text-white flex justify-between items-center">
+                                <div>
+                                    <div className="text-[8px] font-bold text-brand-secondary uppercase tracking-widest mb-1">Malas Nécessárias</div>
+                                    <div className="text-2xl font-black">{ops.malasTransporte} Malas de Transporte</div>
                                 </div>
-                                <h4 className="text-xs font-bold text-brand-secondary uppercase mb-4 tracking-widest">Configuração de Suporte Fixo</h4>
-                                <div className="flex gap-8">
-                                    <div>
-                                        <div className="text-2xl font-black">01</div>
-                                        <div className="text-[10px] text-slate-400 font-bold uppercase">Tablet Professor</div>
-                                    </div>
-                                    <div>
-                                        <div className="text-2xl font-black">01</div>
-                                        <div className="text-[10px] text-slate-400 font-bold uppercase">Ponto Rede Mesh</div>
-                                    </div>
-                                    <div>
-                                        <div className="text-2xl font-black">01</div>
-                                        <div className="text-[10px] text-slate-400 font-bold uppercase">Tablet Coordenação</div>
-                                    </div>
-                                </div>
+                                <Package className="text-white/20" size={40} />
                             </div>
                         </Card>
                     )}
 
                     {activeTab === 'financial' && (
                         <Card className="flex-1 space-y-8 animate-in fade-in zoom-in-95 duration-300">
-                            <div className="flex justify-between items-center border-b border-slate-50 pb-6">
-                                <h3 className="font-black text-slate-800 uppercase text-xs tracking-widest">Indicadores de Negócio</h3>
-                                <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full tracking-wider">HEALTH CHECK</span>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-                                <div className="p-4 rounded-xl border border-slate-100 space-y-1">
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Custo Operacional (OPEX)</div>
-                                    <div className="text-xl font-black text-slate-800">R$ {financial.opexTotal.toLocaleString('pt-BR')}</div>
-                                    <div className="text-[10px] text-slate-400">Mensal na escala atual</div>
+                            <h3 className="font-black text-brand-dark uppercase text-[10px] tracking-widest border-b border-slate-50 pb-4">Indicadores Financeiros</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="p-4 rounded-xl border border-slate-100 bg-emerald-50/20">
+                                    <div className="text-[8px] font-bold text-emerald-600 uppercase tracking-widest mb-1">EBITDA Mensal</div>
+                                    <div className="text-lg font-black text-emerald-700">R$ {metrics.financial.ebitdaReal.toLocaleString('pt-BR')}</div>
                                 </div>
-                                <div className="p-4 rounded-xl border border-slate-100 space-y-1">
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Impostos Totais</div>
-                                    <div className="text-xl font-black text-rose-500">R$ {financial.impostosTotais.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</div>
-                                    <div className="text-[10px] text-slate-400">Fed + Est + Mun ({taxPercent}%)</div>
+                                <div className="p-4 rounded-xl border border-slate-100">
+                                    <div className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Margem Líquida</div>
+                                    <div className="text-lg font-black text-slate-800">{metrics.financial.margemLíquida.toFixed(1)}%</div>
                                 </div>
-                                <div className="p-4 rounded-xl border border-slate-100 space-y-1">
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Break-Even Point</div>
-                                    <div className="text-xl font-black text-blue-500">{financial.breakEvenAlunos.toLocaleString('pt-BR')}</div>
-                                    <div className="text-[10px] text-slate-400">Alunos necessários</div>
+                                <div className="p-4 rounded-xl border border-slate-100">
+                                    <div className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">Margem Contribuição</div>
+                                    <div className="text-lg font-black text-blue-600">{metrics.financial.margemContribuição.toFixed(1)}%</div>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="space-y-4">
-                                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                                        <div className="h-full bg-brand-primary w-[75%]" />
-                                    </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-4 p-4 rounded-xl border border-slate-100">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-[10px] font-bold text-slate-500">LTV / CAC Ratio</span>
-                                        <span className="text-sm font-black text-brand-primary">{financial.ltvCacRatio.toFixed(1)}x</span>
+                                        <span className="text-[10px] font-bold text-slate-500 uppercase">ROE (Retorno s/ Capital)</span>
+                                        <span className="text-sm font-black text-brand-primary">{metrics.financial.rentabilidade.toFixed(1)}%</span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                        <div className="h-full bg-brand-primary" style={{ width: `${Math.min(metrics.financial.rentabilidade, 100)}%` }} />
+                                    </div>
+                                </div>
+                                <div className="space-y-4 p-4 rounded-xl border border-slate-100">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[10px] font-bold text-slate-500 uppercase">ROI Acumulado</span>
+                                        <span className="text-sm font-black text-emerald-600">{metrics.financial.roi.toFixed(1)}%</span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                        <div className="h-full bg-emerald-500" style={{ width: `${Math.min(metrics.financial.roi, 100)}%` }} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Ponto de Equilíbrio (Break-even)</h4>
+                                <div className="flex items-end gap-2">
+                                    <span className="text-4xl font-black text-slate-800">{metrics.financial.breakEvenAlunos.toLocaleString()}</span>
+                                    <span className="text-sm font-bold text-slate-400 pb-1 mb-1">alunos para zerar custos</span>
+                                </div>
+                            </div>
+                        </Card>
+                    )}
+
+                    {activeTab === 'sales' && (
+                        <Card className="flex-1 space-y-8 animate-in fade-in zoom-in-95 duration-300">
+                            <h3 className="font-black text-brand-dark uppercase text-[10px] tracking-widest border-b border-slate-50 pb-4">Gestão de Vendas & Clientes</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <ResultTab label="Ticket Médio (ARPU)" value={`R$ ${metrics.marketing.ticketMédio.toFixed(2)}`} icon={Receipt} sub="Por aluno/mês" />
+                                <ResultTab label="LTV Estimado" value={`R$ ${metrics.financial.ltv.toFixed(0)}`} icon={TrendingUp} color="emerald" sub="Valor total por cliente" />
+                                <ResultTab label="NPS (Satisfação)" value={metrics.customers.nps} icon={Shield} color="blue" sub="Lealdade do Cliente" />
+                                <ResultTab label="Market Share" value={`${metrics.marketing.marketShare.toFixed(3)}%`} icon={Globe} color="orange" sub="Fatia do mercado nacional" />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                                <div className="p-4 rounded-xl border border-slate-100 bg-brand-primary/5 space-y-1">
+                                    <div className="text-[10px] font-bold text-brand-primary uppercase tracking-widest">Saúde do Modelo (LTV/CAC)</div>
+                                    <div className="text-2xl font-black text-brand-dark">{metrics.financial.ltvCacRatio.toFixed(1)}x</div>
+                                    <div className="text-[10px] text-slate-500">Benchmark ideal: {'>'} 3.0x</div>
+                                </div>
+                                <div className="p-4 rounded-xl border border-slate-100 bg-rose-50/30 space-y-1">
+                                    <div className="text-[10px] font-bold text-rose-600 uppercase tracking-widest">CAC Payback</div>
+                                    <div className="text-2xl font-black text-rose-700">{metrics.financial.paybackMonths.toFixed(1)} meses</div>
+                                    <div className="text-[10px] text-slate-500">Tempo para recuperar investimentos</div>
+                                </div>
+                            </div>
+                        </Card>
+                    )}
+
+                    {activeTab === 'hr' && (
+                        <Card className="flex-1 space-y-8 animate-in fade-in zoom-in-95 duration-300">
+                            <h3 className="font-black text-brand-dark uppercase text-[10px] tracking-widest border-b border-slate-50 pb-4">Gestão de Pessoas (RH)</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-end">
+                                        <div>
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase">Turnover Mensal</div>
+                                            <div className="text-3xl font-black text-slate-800">{metrics.hr.turnover}%</div>
+                                        </div>
+                                    </div>
+                                    <div className="p-3 bg-slate-50 rounded-lg text-[10px] text-slate-500 leading-relaxed font-medium">
+                                        Reflete a rotatividade do staff operacional e técnico. Uma taxa alta impacta o custo fixo via treinamentos.
                                     </div>
                                 </div>
                                 <div className="space-y-4">
-                                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                                        <div className="h-full bg-emerald-500 w-[45%]" />
+                                    <div className="flex justify-between items-end">
+                                        <div>
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase">Absenteísmo</div>
+                                            <div className="text-3xl font-black text-slate-800">{metrics.hr.absenteísmo}%</div>
+                                        </div>
                                     </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-[10px] font-bold text-slate-500">CAC Payback</span>
-                                        <span className="text-sm font-black text-emerald-600">{financial.paybackMonths.toFixed(1)} meses</span>
+                                    <div className="p-3 bg-slate-50 rounded-lg text-[10px] text-slate-500 leading-relaxed font-medium">
+                                        Impacto direto na produtividade e necessidade de sobrecarga de rede/suporte.
                                     </div>
                                 </div>
-                                <div className="space-y-4">
-                                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                                        <div className="h-full bg-blue-500 w-[60%]" />
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-[10px] font-bold text-slate-500">Margem EBITDA</span>
-                                        <span className="text-sm font-black text-blue-600">~{financial.margemEbitda}%</span>
-                                    </div>
+                            </div>
+                            <div className="pt-6 border-t border-slate-50">
+                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">ROI de Treinamento</h4>
+                                <div className="flex items-center gap-4">
+                                    <div className="text-4xl font-black text-blue-600">{metrics.hr.roiTreinamento}%</div>
+                                    <div className="text-[10px] text-slate-400 font-bold uppercase max-w-[150px]">Retorno Estimado sobre capacitação de rede</div>
                                 </div>
                             </div>
                         </Card>
@@ -244,56 +301,68 @@ export const BusinessCalculator = () => {
                     {activeTab === 'report' && (
                         <Card className="flex-1 space-y-8 animate-in fade-in zoom-in-95 duration-300">
                             <div className="flex justify-between items-center border-b border-slate-50 pb-6 print:hidden">
-                                <h3 className="font-black text-slate-800 uppercase text-xs tracking-widest">Sugestão de Precificação</h3>
-                                <div className="flex gap-2">
-                                    <button onClick={handlePrint} className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-lg hover:bg-slate-200">
-                                        <Printer size={14} /> IMPRIMIR RELATÓRIO
-                                    </button>
-                                </div>
+                                <h3 className="font-black text-slate-800 uppercase text-xs tracking-widest">Estratégia de Precificação</h3>
+                                <button onClick={handlePrint} className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg hover:scale-105 transition-transform">
+                                    <Printer size={14} /> GERAR PDF EXECUTIVO
+                                </button>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="p-6 rounded-2xl border-2 border-slate-100 hover:border-slate-200 transition-all space-y-4">
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Preço Mínimo</div>
+                                <div className="p-6 rounded-2xl border-2 border-slate-100 space-y-4">
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Preço Sobrevivência</div>
                                     <div className="text-3xl font-black text-slate-600 tracking-tighter">
-                                        R$ {financial.sugestõesPreço.mínimo.toFixed(2)}
-                                        <span className="text-xs font-medium text-slate-400">/aluno</span>
+                                        R$ {metrics.financial.sugestõesPreço.mínimo.toFixed(2)}
                                     </div>
-                                    <p className="text-[10px] text-slate-400 leading-relaxed font-medium">Margem de sobrevivência. Cobre apenas OPEX e impostos diretos.</p>
+                                    <p className="text-[10px] text-slate-400 font-medium">Margem de contribuição mínima.</p>
                                 </div>
-
-                                <div className="p-6 rounded-2xl border-2 border-brand-primary bg-brand-primary/5 shadow-xl shadow-brand-primary/10 space-y-4 relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 p-2 bg-brand-primary text-white text-[8px] font-black rounded-bl-lg uppercase">Ideal</div>
-                                    <div className="text-[10px] font-bold text-brand-primary uppercase tracking-widest">Preço Sugerido</div>
+                                <div className="p-6 rounded-2xl border-2 border-brand-primary bg-brand-primary/5 shadow-xl shadow-brand-primary/10 space-y-4">
+                                    <div className="text-[10px] font-bold text-brand-primary uppercase tracking-widest">Preço Recomendado</div>
                                     <div className="text-3xl font-black text-brand-dark tracking-tighter">
-                                        R$ {financial.sugestõesPreço.ideal.toFixed(2)}
-                                        <span className="text-xs font-medium text-slate-400">/aluno</span>
+                                        R$ {metrics.financial.sugestõesPreço.ideal.toFixed(2)}
                                     </div>
-                                    <p className="text-[10px] text-slate-500 leading-relaxed font-medium">Garante reinvestimento em P&D, margem de segurança e ROI saudável.</p>
+                                    <p className="text-[10px] text-slate-500 font-medium">Ideal para EBITDA de saudável.</p>
                                 </div>
-
-                                <div className="p-6 rounded-2xl border-2 border-emerald-500/30 hover:border-emerald-500/50 transition-all space-y-4">
-                                    <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Preço Premium</div>
+                                <div className="p-6 rounded-2xl border-2 border-emerald-500/30 space-y-4">
+                                    <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Preço de Expansão</div>
                                     <div className="text-3xl font-black text-emerald-700 tracking-tighter">
-                                        R$ {financial.sugestõesPreço.folgado.toFixed(2)}
-                                        <span className="text-xs font-medium text-slate-400">/aluno</span>
+                                        R$ {metrics.financial.sugestõesPreço.folgado.toFixed(2)}
                                     </div>
-                                    <p className="text-[10px] text-slate-400 leading-relaxed font-medium">Margem folgada para expansão agressiva e projetos customizados.</p>
+                                    <p className="text-[10px] text-slate-400 font-medium">Margem premium para reinvestimento.</p>
                                 </div>
                             </div>
 
                             <div className="hidden print:block pt-10 border-t border-slate-100">
-                                <h4 className="text-xs font-bold text-slate-900 uppercase mb-4">Resumo Executivo de Viabilidade</h4>
-                                <div className="grid grid-cols-2 gap-8 text-xs">
-                                    <div className="space-y-2">
-                                        <p><strong>Total de Alunos:</strong> {totalAlunos}</p>
-                                        <p><strong>Hardware Necessário:</strong> {logistics.totalTablets} unidades</p>
-                                        <p><strong>Malas de Transporte:</strong> {logistics.malasTransporte}</p>
+                                <div className="flex justify-between mb-8">
+                                    <h1 className="text-2xl font-black text-slate-900 underline underline-offset-8">Relatório de Viabilidade SaaS</h1>
+                                    <span className="text-xs font-bold text-slate-400">{new Date().toLocaleDateString()}</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-12 text-[10px] leading-relaxed">
+                                    <div className="space-y-4">
+                                        <h4 className="font-bold border-b pb-1">Operacional & Logística</h4>
+                                        <div className="grid grid-cols-2">
+                                            <span>Hardware Total:</span> <span className="font-bold text-right">{ops.totalTablets} un</span>
+                                            <span>OTD Alvo:</span> <span className="font-bold text-right">{ops.otd}%</span>
+                                            <span>Malas Transporte:</span> <span className="font-bold text-right">{ops.malasTransporte}</span>
+                                        </div>
+                                        <h4 className="font-bold border-b pb-1 mt-6">Vendas & Clientes</h4>
+                                        <div className="grid grid-cols-2">
+                                            <span>LTV Estimado:</span> <span className="font-bold text-right">R$ {metrics.financial.ltv.toFixed(0)}</span>
+                                            <span>CAC Global:</span> <span className="font-bold text-right">R$ {metrics.financial.cac.toLocaleString()}</span>
+                                            <span>Payback:</span> <span className="font-bold text-right">{metrics.financial.paybackMonths.toFixed(1)} meses</span>
+                                        </div>
                                     </div>
-                                    <div className="space-y-2">
-                                        <p><strong>OPEX Estimado:</strong> R$ {financial.opexTotal.toLocaleString('pt-BR')}</p>
-                                        <p><strong>Carga Tributária:</strong> {taxPercent}%</p>
-                                        <p><strong>ROI Estimado:</strong> {financial.ltvCacRatio.toFixed(1)}x (LTV/CAC)</p>
+                                    <div className="space-y-4">
+                                        <h4 className="font-bold border-b pb-1">Financeiro & Saúde</h4>
+                                        <div className="grid grid-cols-2">
+                                            <span>Margem EBITDA:</span> <span className="font-bold text-right">{metrics.financial.margemEbitda.toFixed(1)}%</span>
+                                            <span>Margem Líquida:</span> <span className="font-bold text-right">{metrics.financial.margemLíquida.toFixed(1)}%</span>
+                                            <span>ROI Dự Kiến:</span> <span className="font-bold text-right">{metrics.financial.roi.toFixed(1)}%</span>
+                                        </div>
+                                        <h4 className="font-bold border-b pb-1 mt-6">Sugestão Comercial</h4>
+                                        <div className="p-4 bg-slate-50 border border-slate-100 rounded-lg">
+                                            <div className="text-[8px] uppercase font-bold text-slate-400">Preço Ideal p/ Aluno</div>
+                                            <div className="text-xl font-black text-brand-dark">R$ {metrics.financial.sugestõesPreço.ideal.toFixed(2)}</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
