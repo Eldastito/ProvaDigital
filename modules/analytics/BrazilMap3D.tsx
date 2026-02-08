@@ -43,11 +43,22 @@ const STATUS_COLORS = {
 
 const StateMesh = ({ uf, pathData, isHovered, onHover, onClick }: any) => {
     const shape = useMemo(() => {
-        const loader = new SVGLoader();
-        const path = loader.parse(pathData).paths[0];
-        const shapes = path.toShapes(true);
-        return shapes[0];
-    }, [pathData]);
+        try {
+            const loader = new SVGLoader();
+            const path = loader.parse(pathData).paths[0];
+            if (!path) {
+                console.warn(`No path found for UF: ${uf}`);
+                return null;
+            }
+            const shapes = path.toShapes(true);
+            return shapes[0];
+        } catch (e) {
+            console.error(`Error parsing SVG for UF: ${uf}`, e);
+            return null;
+        }
+    }, [pathData, uf]);
+
+    if (!shape) return null;
 
     // Spring-like hover animation (simple lerp in useFrame could be added for smoothness)
 
