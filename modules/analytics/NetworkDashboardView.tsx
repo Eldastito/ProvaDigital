@@ -9,6 +9,7 @@ import { Download } from 'lucide-react';
 
 import { GlobalRankingView } from './GlobalRankingView';
 import { GeoMap } from './GeoMap';
+import { BrazilMap3D } from './BrazilMap3D';
 import { AuditLogView } from '../admin/components/AuditLogView';
 
 export const NetworkDashboardView = () => {
@@ -308,13 +309,13 @@ export const NetworkDashboardView = () => {
                         </div>
                     </div>
 
-                    {/* THE MAP */}
-                    <div className="flex-1 bg-white rounded-2xl shadow-lg border border-slate-200 p-1 relative overflow-hidden min-h-[500px]">
-                        <div className="absolute top-4 right-4 z-10 bg-white/90 backdrop-blur px-3 py-1 rounded text-xs font-bold text-slate-500 uppercase shadow-sm border border-slate-100 flex items-center gap-2">
-                            <MapPin size={12} /> Brasil / Estados
+                    {/* THE MAP - 3D VERSION */}
+                    <div className="flex-1 rounded-2xl shadow-lg border border-slate-700 relative overflow-hidden min-h-[500px] bg-[#0f172a]">
+                        <div className="absolute top-4 right-4 z-10 bg-slate-900/80 backdrop-blur px-3 py-1 rounded text-xs font-bold text-slate-400 uppercase shadow-sm border border-slate-700 flex items-center gap-2">
+                            <MapPin size={12} /> Brasil 3D
                         </div>
 
-                        {/* RANKING MODAL - POSICIONADO DENTRO DO QUADRO MAPA (Bottom Left) */}
+                        {/* RANKING MODAL */}
                         {selectedState && (
                             <div className="absolute bottom-2 left-2 right-2 md:right-auto md:bottom-4 md:left-4 z-40 md:w-72 bg-slate-900/95 backdrop-blur shadow-2xl rounded-2xl border border-slate-700 animate-in slide-in-from-left-4 overflow-hidden">
                                 <div className="bg-brand-dark p-3 flex justify-between items-center border-b border-slate-700">
@@ -348,16 +349,17 @@ export const NetworkDashboardView = () => {
                             </div>
                         )}
 
-                        <div className="w-full h-full rounded-xl overflow-hidden bg-white">
-                            <GeoMap
-                                level={dashboardLevel}
+                        <div className="w-full h-full rounded-xl overflow-hidden">
+                            <BrazilMap3D
                                 dataPoints={mapPoints as any}
                                 onSelect={(id) => {
-                                    // Mapping id to label is done inside GeoMap for rendering, but here we need to find it back
-                                    const point = mapPoints.find(p => p.id === id);
-                                    setSelectedRegion(point?.label || id.toUpperCase());
+                                    const normalizedId = id.toLowerCase();
+                                    const point = mapPoints.find(p => p.id.toLowerCase() === normalizedId);
+                                    const label = point?.label || id.toUpperCase();
+
+                                    setSelectedRegion(label);
                                     if (dashboardLevel === 'FEDERAL') {
-                                        setSelectedState(point?.label || id.toUpperCase());
+                                        setSelectedState(label);
                                     }
                                 }}
                             />
