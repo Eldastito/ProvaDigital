@@ -51,6 +51,8 @@ import { ReportGeneratorView } from './modules/reports/ReportGeneratorView';
 import { LiveDashboard } from './modules/runner/professor/LiveDashboard';
 import { ProfessorApp } from './modules/runner/student-app/ProfessorApp';
 import { MarketplaceView } from './modules/marketplace/MarketplaceView';
+import { MultimodalLabView } from './modules/builder/MultimodalLabView';
+import { PredictiveRiskDashboard } from './modules/analytics/PredictiveRiskDashboard';
 
 // Helper for Role-based Dashboard
 const ConditionalDashboard = () => {
@@ -123,6 +125,7 @@ export const appRoutes: RouteObject[] = [
             { path: 'items', element: <ItemsListView /> },
             { path: 'items/new', element: <ItemEditorView /> },
             { path: 'items/ai-generator', element: <AIQuestionGeneratorView /> },
+            { path: 'items/multimodal-lab', element: <MultimodalLabView /> },
             { path: 'items/:id/edit-v2', element: <ItemEditorV2 /> },
             { path: 'exams', element: <ExamsListView /> },
             { path: 'exams/:id/variants', element: <ExamVariantsManager /> },
@@ -145,6 +148,10 @@ export const appRoutes: RouteObject[] = [
             {
                 path: 'analytics',
                 element: <AnalyticsDashboard />
+            },
+            {
+                path: 'predictive-risk',
+                element: <PredictiveRiskDashboard />
             },
             {
                 path: 'marketplace',

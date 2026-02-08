@@ -22,9 +22,12 @@ export interface RiskAssessment {
     riskLevel: RiskLevel;
     factors: RiskFactor[];
     interventions?: any[]; // Added to match AlertService expectation
-    generatedAt: string;
     simulatedAttendance: number; // Porcentagem de presença (0-100)
     evasionProbability: 'BAIXA' | 'MEDIA' | 'ALTA' | 'CRITICA';
+    generatedAt: string;         // Restaurado
+    predictedScore?: number;    // Novo: Predição da nota do próximo bimestre
+    aiInsight?: string;         // Novo: Insight gerado por IA
+    recommendedIntervention?: string; // Novo: Ação recomendada por IA
 }
 
 /**

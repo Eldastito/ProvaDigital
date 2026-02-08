@@ -39,7 +39,7 @@ const DEFAULT_PERMISSIONS: PermissionMatrix = {
         OFFLINE_OPS: [],
         ANALYTICS: ['VIEW'],
         COMMUNICATION: ['VIEW', 'CREATE'],
-        AI_FEATURES: ['VIEW'],
+        AI_FEATURES: [],
         FINANCIAL: [],
         NEURO_SCREENING: [],
         GAMIFIED_EVENTS: ['VIEW']
@@ -57,11 +57,11 @@ const DEFAULT_PERMISSIONS: PermissionMatrix = {
         NEURO_SCREENING: [],
         GAMIFIED_EVENTS: ['VIEW']
     },
-    [UserRole.STATE_ADMIN]: { SCHOOL_DATA: ['VIEW'], USER_DATA: ['VIEW'], ITEM_BANK: [], EXAM_MGMT: [], OFFLINE_OPS: [], ANALYTICS: ['VIEW', 'CREATE', 'EDIT'], COMMUNICATION: ['VIEW', 'CREATE'], AI_FEATURES: ['VIEW'], FINANCIAL: ['VIEW'], NEURO_SCREENING: ['VIEW'], GAMIFIED_EVENTS: ['VIEW'], SCHEDULING: ['VIEW', 'CREATE', 'EDIT', 'DELETE'], COMMAND_CENTER: ['VIEW', 'CREATE', 'EDIT', 'DELETE'], REPORTS: ['VIEW', 'CREATE'] },
+    [UserRole.STATE_ADMIN]: { SCHOOL_DATA: ['VIEW'], USER_DATA: ['VIEW'], ITEM_BANK: ['VIEW'], EXAM_MGMT: [], OFFLINE_OPS: [], ANALYTICS: ['VIEW', 'CREATE', 'EDIT'], COMMUNICATION: ['VIEW', 'CREATE'], AI_FEATURES: ['VIEW'], FINANCIAL: ['VIEW'], NEURO_SCREENING: ['VIEW'], GAMIFIED_EVENTS: ['VIEW'], SCHEDULING: ['VIEW', 'CREATE', 'EDIT', 'DELETE'], COMMAND_CENTER: ['VIEW', 'CREATE', 'EDIT', 'DELETE'], REPORTS: ['VIEW', 'CREATE'] },
     [UserRole.TENANT_ADMIN]: { SCHOOL_DATA: ['VIEW', 'CREATE', 'EDIT', 'DELETE'], USER_DATA: ['VIEW', 'CREATE', 'EDIT', 'DELETE'], ITEM_BANK: [], EXAM_MGMT: [], OFFLINE_OPS: [], ANALYTICS: ['VIEW'], COMMUNICATION: ['VIEW', 'CREATE', 'EDIT', 'DELETE'], AI_FEATURES: ['VIEW'], FINANCIAL: [], NEURO_SCREENING: ['VIEW'], GAMIFIED_EVENTS: ['VIEW'], SCHEDULING: ['VIEW', 'CREATE', 'EDIT', 'DELETE'], COMMAND_CENTER: ['VIEW', 'CREATE', 'EDIT', 'DELETE'], REPORTS: ['VIEW', 'CREATE'] },
     [UserRole.DIRETOR]: { SCHOOL_DATA: ['VIEW', 'EDIT'], USER_DATA: ['VIEW', 'CREATE', 'EDIT', 'DELETE'], ITEM_BANK: ['VIEW'], EXAM_MGMT: ['VIEW'], OFFLINE_OPS: ['VIEW'], ANALYTICS: ['VIEW'], COMMUNICATION: ['VIEW', 'CREATE', 'EDIT', 'DELETE'], AI_FEATURES: ['VIEW'], FINANCIAL: [], NEURO_SCREENING: ['VIEW'], GAMIFIED_EVENTS: ['VIEW', 'CREATE', 'EDIT'], SCHEDULING: ['VIEW', 'CREATE', 'EDIT', 'DELETE'], COMMAND_CENTER: ['VIEW', 'CREATE', 'EDIT', 'DELETE'], REPORTS: ['VIEW', 'CREATE'] },
-    [UserRole.SUPERVISOR]: { SCHOOL_DATA: ['VIEW'], USER_DATA: ['VIEW'], ITEM_BANK: ['VIEW', 'CREATE', 'EDIT'], EXAM_MGMT: ['VIEW', 'CREATE', 'EDIT', 'DELETE'], OFFLINE_OPS: ['VIEW', 'CREATE'], ANALYTICS: ['VIEW'], COMMUNICATION: ['VIEW', 'CREATE'], AI_FEATURES: ['VIEW', 'CREATE'], FINANCIAL: [], NEURO_SCREENING: ['VIEW'], GAMIFIED_EVENTS: ['VIEW', 'CREATE', 'EDIT'], SCHEDULING: ['VIEW', 'CREATE', 'EDIT', 'DELETE'], COMMAND_CENTER: ['VIEW', 'CREATE', 'EDIT', 'DELETE'], REPORTS: ['VIEW'] },
-    [UserRole.PROFESSOR]: { SCHOOL_DATA: ['VIEW'], USER_DATA: ['VIEW'], ITEM_BANK: ['VIEW', 'CREATE'], EXAM_MGMT: ['VIEW', 'CREATE'], OFFLINE_OPS: ['VIEW', 'EDIT'], ANALYTICS: ['VIEW'], COMMUNICATION: ['VIEW', 'CREATE'], AI_FEATURES: ['VIEW', 'CREATE'], FINANCIAL: [], NEURO_SCREENING: [], GAMIFIED_EVENTS: ['VIEW', 'CREATE', 'EDIT', 'DELETE'], SCHEDULING: ['VIEW', 'CREATE', 'EDIT'], COMMAND_CENTER: ['VIEW', 'EDIT'], REPORTS: ['VIEW'] }
+    [UserRole.SUPERVISOR]: { SCHOOL_DATA: ['VIEW'], USER_DATA: ['VIEW'], ITEM_BANK: ['VIEW', 'CREATE', 'EDIT', 'DELETE'], EXAM_MGMT: ['VIEW', 'CREATE', 'EDIT', 'DELETE'], OFFLINE_OPS: ['VIEW', 'CREATE'], ANALYTICS: ['VIEW'], COMMUNICATION: ['VIEW', 'CREATE'], AI_FEATURES: ['VIEW', 'CREATE'], FINANCIAL: [], NEURO_SCREENING: ['VIEW'], GAMIFIED_EVENTS: ['VIEW', 'CREATE', 'EDIT'], SCHEDULING: ['VIEW', 'CREATE', 'EDIT', 'DELETE'], COMMAND_CENTER: ['VIEW', 'CREATE', 'EDIT', 'DELETE'], REPORTS: ['VIEW'] },
+    [UserRole.PROFESSOR]: { SCHOOL_DATA: ['VIEW'], USER_DATA: ['VIEW'], ITEM_BANK: ['VIEW', 'CREATE'], EXAM_MGMT: ['VIEW', 'CREATE'], OFFLINE_OPS: ['VIEW', 'CREATE', 'EDIT'], ANALYTICS: ['VIEW'], COMMUNICATION: ['VIEW', 'CREATE'], AI_FEATURES: ['VIEW', 'CREATE'], FINANCIAL: [], NEURO_SCREENING: [], GAMIFIED_EVENTS: ['VIEW', 'CREATE', 'EDIT', 'DELETE'], SCHEDULING: ['VIEW'], COMMAND_CENTER: ['VIEW'], REPORTS: ['VIEW'] }
 };
 
 interface AppActions {
@@ -909,6 +909,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
         } catch (e) { console.error(e); }
     },
     deleteClass: async (classId) => {
+        const state = get();
+        await state.logSecurityEvent({
+            attemptId: 'SYSTEM',
+            eventType: 'CLASS_DELETE',
+            severity: 'WARNING',
+            eventData: { classId, deletedBy: state.currentUser?.email }
+        });
         set((state) => ({ classes: state.classes.filter(c => c.id !== classId) }));
         try {
             await supabase.from('classes').delete().eq('id', classId);
@@ -954,12 +961,26 @@ export const useAppStore = create<AppStore>((set, get) => ({
         } catch (e) { console.error(e); }
     },
     deleteStudent: async (studentId) => {
+        const state = get();
+        await state.logSecurityEvent({
+            attemptId: 'SYSTEM',
+            eventType: 'STUDENT_DELETE',
+            severity: 'WARNING',
+            eventData: { studentId, deletedBy: state.currentUser?.email }
+        });
         set((state) => ({ students: state.students.filter(s => s.id !== studentId) }));
         try {
             await supabase.from('students').delete().eq('id', studentId);
         } catch (e) { console.error(e); }
     },
     deleteSchool: async (schoolId) => {
+        const state = get();
+        await state.logSecurityEvent({
+            attemptId: 'SYSTEM',
+            eventType: 'SCHOOL_DELETE',
+            severity: 'WARNING',
+            eventData: { schoolId, deletedBy: state.currentUser?.email }
+        });
         set((state) => ({ schools: state.schools.filter(s => s.id !== schoolId) }));
         try {
             await supabase.from('schools').delete().eq('id', schoolId);
@@ -988,6 +1009,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
     },
 
     deleteUser: async (userId) => {
+        const state = get();
+        await state.logSecurityEvent({
+            attemptId: 'SYSTEM',
+            eventType: 'USER_DELETE',
+            severity: 'CRITICAL',
+            eventData: { userId, deletedBy: state.currentUser?.email }
+        });
         try {
             await supabase.from('users').delete().eq('id', userId);
             set((state) => ({ users: state.users.filter(u => u.id !== userId) }));
@@ -997,10 +1025,18 @@ export const useAppStore = create<AppStore>((set, get) => ({
         }
     },
     deleteExam: async (examId) => {
-        const previousExams = get().exams;
+        const state = get();
+        const exam = state.exams.find(e => e.id === examId);
+        await state.logSecurityEvent({
+            attemptId: 'SYSTEM',
+            eventType: 'EXAM_DELETE',
+            severity: 'CRITICAL',
+            eventData: { examTitle: exam?.title, deletedBy: state.currentUser?.email }
+        });
+
+        const previousExams = state.exams;
         set((state) => ({ exams: state.exams.filter(e => e.id !== examId) }));
         try {
-            // Attempt to delete (RLS or FK might fail)
             const { error } = await supabase.from('exams').delete().eq('id', examId);
             if (error) {
                 console.error('❌ Error deleting exam:', error);
@@ -1175,7 +1211,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
         }
     },
     updateSettings: (settings) => set({ settings }),
-    updatePermissions: (matrix) => set({ globalPermissions: matrix }),
+    updatePermissions: (matrix: PermissionMatrix) => {
+        const state = get();
+        state.logSecurityEvent({
+            attemptId: 'SYSTEM',
+            eventType: 'PERMISSION_CHANGE',
+            severity: 'CRITICAL',
+            eventData: { changedBy: state.currentUser?.email, timestamp: new Date() }
+        });
+        set({ globalPermissions: matrix });
+    },
     updateTenantFeatures: async (tenantId, features) => {
         set((state) => ({
             tenants: state.tenants.map(t => t.id === tenantId ? { ...t, features } : t)

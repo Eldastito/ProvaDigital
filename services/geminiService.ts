@@ -309,40 +309,62 @@ REQUISITOS:
 }
 `,
     GENERATE_MULTIMODAL_DESCRIPTION: (context: string) => `
-        Analise o contexto pedagógico abaixo e sugira um RECURSO VISUAL(Gráfico, Mapa, Imagem ou Infográfico) que enriqueceria a questão.
+        Analise o contexto pedagógico abaixo e sugira um RECURSO VISUAL (Gráfico, Mapa, Imagem ou Infográfico) que enriqueceria a questão.
 
-    CONTEXTO: "${context}"
+        CONTEXTO: "${context}"
 
-TAREFA:
-1. Descreva DETALHADAMENTE o que deve conter nessa imagem(ex: "Um gráfico de barras mostrando a evolução do PIB...").
+        TAREFA:
+        1. Descreva DETALHADAMENTE o que deve conter nessa imagem (ex: "Um gráfico de barras mostrando a evolução do PIB...").
         2. Explique como esse recurso ajuda a resolver a questão.
-        3. Forneça o "Prompt de Geração" que o professor poderia usar em uma IA de imagem(DALL - E / Midjourney).
-        
+        3. Forneça o "Prompt de Geração" que o professor poderia usar em uma IA de imagem (DALL-E / Midjourney).
+
         Retorne JSON: { "visualType": string, "description": string, "pedagogicalValue": string, "imageGeneratorPrompt": string }
-`,
+    `,
     VOCATIONAL_ANALYSIS: (grades: string, assessments: string, interests: string) => `
-        Você é um Orientador Vocacional de Alto Nível e Especialista em "Design de Vida"(Life Design), inspirado na metodologia "Comece pelo Porquê" de Simon Sinek e no conceito de IKIGAI.
+        Você é um Orientador Vocacional de Alto Nível e Especialista em "Design de Vida" (Life Design), inspirado na metodologia "Comece pelo Porquê" de Simon Sinek e no conceito de IKIGAI.
         
         DADOS DO ALUNO:
-- Desempenho Acadêmico(O QUE faz bem): "${grades}"
-    - Perfil Comportamental(COMO age): "${assessments}"
-        - Interesses Pessoais(O QUE ama): "${interests}"
-
-TAREFA:
-1. Golden Circle(Simon Sinek): Identifique o "PORQUÊ"(Causa / Crença) do aluno.O que motiva ele profundamente ?
-    2. Analise os dados para encontrar o "Ponto Doce" do Ikigai.
-        3. Escreva uma "Declaração de Propósito"(Why Statement) impactante.Ex: "Inspirar pessoas a superar limites através da tecnologia."
-4. Sugira 3 Carreiras Modernas alinhadas a esse PORQUÊ.
+        - Desempenho Acadêmico (O QUE faz bem): "${grades}"
+        - Perfil Comportamental (COMO age): "${assessments}"
+        - Interesses Pessoais (O QUE ama): "${interests}"
+ 
+        TAREFA:
+        1. Golden Circle (Simon Sinek): Identifique o "PORQUÊ" (Causa / Crença) do aluno. O que motiva ele profundamente?
+        2. Analise os dados para encontrar o "Ponto Doce" do Ikigai.
+        3. Escreva uma "Declaração de Propósito" (Why Statement) impactante. Ex: "Inspirar pessoas a superar limites através da tecnologia."
+        4. Sugira 3 Carreiras Modernas alinhadas a esse PORQUÊ.
         
-        Retorne estritamente em JSON conforme o schema de VocationalProfile.O campo 'purposeStatement' deve ser o 'Manifesto do Porquê'.
+        Retorne estritamente em JSON conforme o schema de VocationalProfile. O campo 'purposeStatement' deve ser o 'Manifesto do Porquê'.
+    `,
+    PREDICT_STUDENT_OUTCOME: (history: string) => `
+        Você é um Analista de Dados Educacionais Sênior e Cientista de Comportamento.
+        Sua tarefa é analisar o histórico de um aluno e prever seu desempenho futuro e risco de evasão.
+
+        HISTÓRICO DO ALUNO (JSON):
+        ${history}
+
+        TAREFA:
+        1. Identifique Padrões: Notas em queda, frequência irregular ou platôs.
+        2. Projete o Próximo Bimestre: Estimativa de nota média.
+        3. Calcule Probabilidade de Evasão: Baseado em desengajamento.
+        4. Gere Insights Acionáveis: O que o professor deve fazer HOJE para mudar essa trajetória?
+
+        RETORNE EM JSON:
+        {
+            "predictedScore": number,
+            "evasionRiskProbability": number,
+            "trend": "UP" | "DOWN" | "STABLE",
+            "criticalAlerts": string[],
+            "aiInsight": string,
+            "recommendedIntervention": string
+        }
     `
 };
 
 // ... (Rest of imports and helpers remain)
 
 // --- Interfaces ---
-// ... Interface atualizada com suporte a TRI
-interface GeneratedQuestion {
+export interface GeneratedQuestion {
     statement: string;
     alternatives: { text: string; isCorrect: boolean }[];
     justification: string;
@@ -353,10 +375,11 @@ interface GeneratedQuestion {
         discrimination: number; // 0 a 2
         guessing: number; // 0 a 0.25
         bloomTaxonomy: string;
+        cognitiveAxis: string;
     };
 }
 
-interface EssayGrade {
+export interface EssayGrade {
     score: number;
     feedback: string;
 }
@@ -375,7 +398,32 @@ export interface BatchGradeResult {
     feedback: string;
 }
 
-// ... (Rest of existing interfaces)
+export interface StudyPlanSuggestion {
+    title: string;
+    tasks: string[];
+}
+
+export interface AssessmentReport {
+    resultType: string;
+    report: string;
+    strengths: string[];
+    weaknesses: string[];
+}
+
+export interface GeneratedEssay {
+    title: string;
+    motivationalText: string;
+    instruction: string;
+    criteria: { name: string; description: string; maxPoints: number }[];
+    bnccCode: string;
+}
+
+export interface VisualSuggestion {
+    visualType: string;
+    description: string;
+    pedagogicalValue: string;
+    imageGeneratorPrompt: string;
+}
 
 // ... (Inside Exported Services)
 
@@ -454,47 +502,6 @@ const getApiKey = (): string | undefined => {
     console.error("[GeminiService] Nenhuma chave de API encontrada em nenhuma fonte!");
     return undefined;
 };
-
-// --- Interfaces ---
-interface GeneratedQuestion {
-    statement: string;
-    alternatives: { text: string; isCorrect: boolean }[];
-    justification: string;
-    difficulty: string;
-    bnccCode?: string;
-}
-
-interface EssayGrade {
-    score: number;
-    feedback: string;
-}
-
-interface StudyPlanSuggestion {
-    title: string;
-    tasks: string[];
-}
-
-interface AssessmentReport {
-    resultType: string;
-    report: string;
-    strengths: string[];
-    weaknesses: string[];
-}
-
-export interface GeneratedEssay {
-    title: string;
-    motivationalText: string;
-    instruction: string;
-    criteria: { name: string; description: string; maxPoints: number }[];
-    bnccCode: string;
-}
-
-export interface VisualSuggestion {
-    visualType: string;
-    description: string;
-    pedagogicalValue: string;
-    imageGeneratorPrompt: string;
-}
 
 // --- Helper Functions ---
 
@@ -799,30 +806,65 @@ export const suggestBNCC = async (statement: string): Promise<{ code: string; re
  * OCR Inteligente: Converte imagem em questão estruturada
  */
 export async function extractItemFromImage(base64Image: string): Promise<GeneratedQuestion | null> {
+    return extractItemsFromMultipleImages([base64Image]).then(items => items.length > 0 ? items[0] : null);
+}
+
+/**
+ * Extração Multimodal: Converte múltiplas imagens (capítulos, fotos, apostilas) em banco de questões
+ */
+export async function extractItemsFromMultipleImages(base64Images: string[]): Promise<GeneratedQuestion[]> {
     const apiKey = getApiKey();
-    if (!apiKey) return null;
+    if (!apiKey || base64Images.length === 0) return [];
 
     try {
         const ai = new GoogleGenAI({ apiKey });
-        const contents = [
-            {
-                role: 'user',
-                parts: [
-                    { text: (PROMPTS as any).EXTRACT_ITEM_FROM_IMAGE() },
-                    {
-                        inlineData: {
-                            data: base64Image.split(',')[1],
-                            mimeType: "image/jpeg"
-                        }
-                    }
-                ]
-            }
-        ];
+        const parts: any[] = [{ text: (PROMPTS as any).EXTRACT_ITEM_FROM_IMAGE() }];
+
+        base64Images.forEach(img => {
+            parts.push({
+                inlineData: {
+                    data: img.split(',')[1],
+                    mimeType: "image/jpeg"
+                }
+            });
+        });
+
+        const contents = [{ role: 'user', parts }];
 
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: contents,
-            config: { responseMimeType: "application/json" }
+            config: {
+                responseMimeType: "application/json",
+                // Aumentamos o limite para suportar mais questões
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        questions: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    statement: { type: Type.STRING },
+                                    alternatives: {
+                                        type: Type.ARRAY,
+                                        items: {
+                                            type: Type.OBJECT,
+                                            properties: {
+                                                text: { type: Type.STRING },
+                                                isCorrect: { type: Type.BOOLEAN }
+                                            }
+                                        }
+                                    },
+                                    justification: { type: Type.STRING },
+                                    difficulty: { type: Type.STRING },
+                                    bnccCode: { type: Type.STRING }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         });
 
         let text = "";
@@ -832,11 +874,11 @@ export async function extractItemFromImage(base64Image: string): Promise<Generat
             text = response.candidates[0].content.parts[0].text;
         }
 
-        const cleanJson = text.replace(/```json\n?|```/g, '').trim();
-        return JSON.parse(cleanJson) as GeneratedQuestion;
+        const data = JSON.parse(text.replace(/```json\n?|```/g, '')) as { questions: GeneratedQuestion[] };
+        return data.questions || [];
     } catch (error) {
-        console.error("AI Error (OCR extraction):", error);
-        return null;
+        console.error("AI Error (Multimodal extraction):", error);
+        return [];
     }
 }
 
@@ -1011,7 +1053,8 @@ const mockGenerate = (qty: number, type: QuestionType, diff: DifficultyLevel): G
             difficulty: diff === 'DIFICIL' ? 2 : diff === 'MEDIO' ? 0 : -2,
             discrimination: 1.5,
             guessing: 0.2,
-            bloomTaxonomy: "Compreensão"
+            bloomTaxonomy: "Compreensão",
+            cognitiveAxis: "COMPREENDER_FENOMENOS"
         }
     }));
 };
@@ -1268,4 +1311,38 @@ export async function generateVocationalAnalysis(
         studentId: "generated",
         generatedAt: new Date().toISOString()
     };
+}
+
+/**
+ * Predição de Sucesso/Risco do Aluno (v4.0)
+ */
+export async function predictStudentOutcome(studentHistory: any): Promise<{
+    predictedScore: number;
+    evasionRiskProbability: number;
+    trend: 'UP' | 'DOWN' | 'STABLE';
+    criticalAlerts: string[];
+    aiInsight: string;
+    recommendedIntervention: string;
+} | null> {
+    const prompt = (PROMPTS as any).PREDICT_STUDENT_OUTCOME(JSON.stringify(studentHistory));
+
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            predictedScore: { type: Type.NUMBER },
+            evasionRiskProbability: { type: Type.NUMBER },
+            trend: { type: Type.STRING, enum: ["UP", "DOWN", "STABLE"] },
+            criticalAlerts: { type: Type.ARRAY, items: { type: Type.STRING } },
+            aiInsight: { type: Type.STRING },
+            recommendedIntervention: { type: Type.STRING }
+        },
+        required: ["predictedScore", "evasionRiskProbability", "trend", "aiInsight", "recommendedIntervention"]
+    };
+
+    try {
+        return callGeminiAPI<any>(prompt, schema);
+    } catch (error) {
+        console.error("AI Error (Prediction):", error);
+        return null;
+    }
 }

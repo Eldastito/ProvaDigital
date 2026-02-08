@@ -3,6 +3,7 @@ import { Shield, Clock, Search, AlertTriangle, FileText, Download } from 'lucide
 import { useAppStore } from '../../../store/useAppStore';
 import { reportService } from '../../../services/reportService';
 import { translateActionType, translateResource } from '../../../utils/translations';
+import { maskPII } from '../../../utils/privacyUtils';
 
 export const AuditLogView = () => {
     const { currentUser, auditLogs, fetchAuditLogs } = useAppStore();
@@ -88,7 +89,7 @@ export const AuditLogView = () => {
                                         {new Date(log.createdAt).toLocaleString()}
                                     </td>
                                     <td className="p-4 font-medium text-slate-800">
-                                        {log.actorEmail || 'Sistema'}
+                                        {log.actorEmail ? maskPII(log.actorEmail, 'EMAIL') : 'Sistema'}
                                     </td>
                                     <td className="p-4">
                                         <span className={`px-2 py-1 rounded text-xs font-bold ${getActionColor(log.actionType)}`}>
