@@ -127,6 +127,17 @@ export const BusinessCalculator = () => {
         encargosFolha: 28
     });
 
+    // CUSTOS GRANULARES (Novo)
+    const [hardwareCosts, setHardwareCosts] = useState({
+        tablet: 850,
+        mala: 4000
+    });
+    const [custoInicialAluno, setCustoInicialAluno] = useState(150);
+    const [outrosCustos, setOutrosCustos] = useState({
+        fixo: 0,
+        variavel: 0
+    });
+
     // Sales & Customers state
     const [cac, setCac] = useState(2500);
     const [churn, setChurn] = useState(1.8);
@@ -149,6 +160,17 @@ export const BusinessCalculator = () => {
         return Math.max(0.1, churn * (1 + simChurnAdj / 100));
     }, [churn, simChurnAdj]);
 
+    // 1. Calculate Logistics FIRST to get Hardware needs
+    const ops = useMemo(() => calculateLogistics(
+        Math.max(...perfisEscolas.map(s => s.mediaAlunosTurma * 1), 50),
+        targetScale, 5, 6, 98, 2, 1
+    ), [perfisEscolas, targetScale]);
+
+    // 2. Calculate Hardware Investment based on Logistics
+    const totalHardwareInvestment = useMemo(() => {
+        return (ops.totalTablets * hardwareCosts.tablet) + (ops.malasTransporte * hardwareCosts.mala);
+    }, [ops, hardwareCosts]);
+
     const metrics = useMemo(() => calculateBusinessMetrics(
         colaboradores,
         infra,
@@ -159,11 +181,14 @@ export const BusinessCalculator = () => {
         cac,
         adjustedChurn,
         targetScale,
+        totalHardwareInvestment, // Novo: Investimento calculado
+        custoInicialAluno,       // Novo: Custo Inicial
+        outrosCustos,           // Novo: Outros Custos
         12,
         85,
         4,
         adjustedTicket
-    ), [colaboradores, infra, veiculo, custosVariáveis, fiscal, cac, adjustedChurn, targetScale, adjustedTicket]);
+    ), [colaboradores, infra, veiculo, custosVariáveis, fiscal, cac, adjustedChurn, targetScale, totalHardwareInvestment, custoInicialAluno, outrosCustos, adjustedTicket]);
 
     const handlePrint = () => window.print();
     const handleOpenTutor = (id: string) => setTutorKpi(id);
@@ -209,13 +234,6 @@ export const BusinessCalculator = () => {
             setTargetScale(totalStudentsComputed);
         }
     }, [totalStudentsComputed, isIntelligenceMode]);
-
-    // ... (metrics useMemo remains same)
-
-    const ops = useMemo(() => calculateLogistics(
-        Math.max(...perfisEscolas.map(s => s.mediaAlunosTurma * 1), 50),
-        targetScale, 5, 6, 98, 2, 1
-    ), [perfisEscolas, targetScale]);
 
     // Proposal Adjustment Logic
     const proposalPrice = useMemo(() => {
@@ -316,7 +334,22 @@ export const BusinessCalculator = () => {
                             <InputField label="Luz & Água" value={infra.luz + infra.agua} onChange={(v: any) => setInfra({ ...infra, luz: v * 0.8, agua: v * 0.2 })} prefix="R$" />
                             <InputField label="Internet" value={infra.internet} onChange={(v: any) => setInfra({ ...infra, internet: v })} prefix="R$" />
                         </div>
-                        <InputField label="Assinaturas & Cloud" value={800} onChange={() => { }} prefix="R$" help="Mock" />
+                        <div className="grid grid-cols-2 gap-4">
+                            <InputField label="Assinaturas/Soft" value={800} onChange={() => { }} prefix="R$" help="Mock" />
+                            <InputField label="Outros Fixos" value={outrosCustos.fixo} onChange={(v: any) => setOutrosCustos({ ...outrosCustos, fixo: v })} prefix="R$" />
+                        </div>
+                    </div>
+
+                    <div className="space-y-6 pt-6 border-t border-slate-200">
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2 text-[10px] uppercase tracking-wider"><Layers size={16} className="text-purple-500" /> Variáveis e Hardware</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <InputField label="Tablet Unit." value={hardwareCosts.tablet} onChange={(v: any) => setHardwareCosts({ ...hardwareCosts, tablet: v })} prefix="R$" />
+                            <InputField label="Mala Unit." value={hardwareCosts.mala} onChange={(v: any) => setHardwareCosts({ ...hardwareCosts, mala: v })} prefix="R$" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <InputField label="Custo Inicial/Aluno" value={custoInicialAluno} onChange={(v: any) => setCustoInicialAluno(v)} prefix="R$" help="Kit/Licença" />
+                            <InputField label="Outros Variáveis" value={outrosCustos.variavel} onChange={(v: any) => setOutrosCustos({ ...outrosCustos, variavel: v })} prefix="R$" help="Mensal" />
+                        </div>
                     </div>
 
                     <div className="space-y-6 pt-6 border-t border-slate-200">

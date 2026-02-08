@@ -110,6 +110,13 @@ export const calculateBusinessMetrics = (
     cacGlobal: number,
     churnMensal: number,
     totalAlunosAlvo: number,
+    // Novos Parâmetros Granulares
+    investimentoHardware: number, // Total Tablets + Malas (calculado fora)
+    custoInicialPorAluno: number, // Kit aluno, licenças, etc.
+    outrosCustos: {
+        fixo: number;
+        variavel: number;
+    },
     taxaConversão: number = 10,
     npsAlvo: number = 75,
     turnoverAlvo: number = 5,
@@ -130,7 +137,7 @@ export const calculateBusinessMetrics = (
     const custoPessoasTotal = folhaBase + encargosFolhaTotal + beneficiosTotal;
 
     // 2. Consolidação de Infraestrutura (OpEx Fixo)
-    const custoInfraMensal = infra.luz + infra.agua + infra.internet + infra.manutencao + infra.seguros;
+    const custoInfraMensal = infra.luz + infra.agua + infra.internet + infra.manutencao + infra.seguros + outrosCustos.fixo;
 
     // Tratamento do Veículo (OpEx se aluguel/assinatura)
     const custoVeiculoOpEx = veiculo.tipo !== 'aquisicao' ? veiculo.valor : 0;
@@ -139,12 +146,26 @@ export const calculateBusinessMetrics = (
     const custoFixoTotal = custoPessoasTotal + custoInfraMensal + custoVeiculoFixo;
 
     // 3. Consolidação de Custos Variáveis (por aluno)
-    const custoVariávelTotal = custosVariáveis.combustívelMensal + (custosVariáveis.outrosPorAluno * totalAlunosAlvo);
+    // Combustível + Outros + Custo Inicial Amortizado (se aplicável, mas aqui tratado como custo recorrente médio ou setup diluído?)
+    // O custo inicial (R$ 150) geralmente é COGS único. Vamos considerá-lo como custo variável mensal *se* for recorrente, 
+    // ou se for setup, deveria entrar no CAC ou amortização. 
+    // Com base no pedido "valor inicial para cada aluno é de 150 reais", vamos assumir que é um custo de ativação/setup por aluno.
+    // Para simplificar no modelo de MRR, vamos considerar como "Outros Variaveis" se for recorrente ou adicionar uma linha específica.
+    // SE for setup, impacta o payback. SE for recorrente, impacta margem.
+    // Assumindo Custo Variável para Margem de Contribuição (Setup diluído ou material de consumo).
+    // Vou somar ao custo variável unitário para ser seguro no cálculo de margem.
+    const custoVariávelTotal = custosVariáveis.combustívelMensal +
+        ((custosVariáveis.outrosPorAluno + outrosCustos.variavel + (custoInicialPorAluno / 12)) * totalAlunosAlvo);
+    // Nota: Diluindo custo inicial em 12 meses para efeito de MRR/OpEx mensal, ou tratar como investimento? 
+    // O usuário disse "valor inicial", pode ser setup. Vou tratar como custo variável mensalizado simplificado ou item de margem.
+    // Melhor abordagem: Custo Variável Unitário = (Setup/LTV_months?) + Recorrente. 
+    // Dado que é "inicial", vamos somar o (custoInicial / 12) para simular o impacto mensal no primeiro ano.
+
     const custoVariávelUnitário = totalAlunosAlvo > 0 ? custoVariávelTotal / totalAlunosAlvo : 0;
 
     // 4. Consolidação de Patrimônio (CapEx)
     // Tablets são calculados separadamente por necessidade real, mas aqui recebemos o valor total investido
-    const valorTabletsTotal = 85000; // Mock ou derivado de SchoolProfile no futuro
+    const valorTabletsTotal = investimentoHardware;
     const valorVeiculoCapEx = veiculo.tipo === 'aquisicao' ? veiculo.valor : 0;
     const patrimônioTotal = valorTabletsTotal + valorVeiculoCapEx + patrimônioExtra.computadores + patrimônioExtra.infraestrutura;
 
