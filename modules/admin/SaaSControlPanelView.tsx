@@ -36,6 +36,11 @@ export const SaaSControlPanelView = () => {
     const location = useLocation();
     const path = location.pathname;
 
+    // Reset view when navigating between tabs
+    React.useEffect(() => {
+        setInternalView('dashboard');
+    }, [path]);
+
     // Novos dados granulares compatíveis com o motor atualizado (Business X-Ray)
     const colaboradores = [
         { id: '1', cargo: 'Operação Central', salario: 12000, quantidade: 1, beneficios: 1500 },
