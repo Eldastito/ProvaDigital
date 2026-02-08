@@ -175,30 +175,28 @@ export const BrazilMap3D = ({ dataPoints, onSelect }: BrazilMap3DProps) => {
                     maxPolarAngle={Math.PI / 2.2}
                 />
 
-                <ambientLight intensity={0.2} />
+                <ambientLight intensity={0.4} />
                 <directionalLight position={[100, 200, 100]} intensity={1} castShadow />
                 <pointLight position={[-100, -100, 200]} intensity={0.5} color="#blue" />
 
-                <Center top>
-                    <group scale={[1, -1, 1]}> {/* Flip Y to match SVG coordinate system */}
-                        {/* Map States */}
-                        {Object.entries(BRAZIL_STATES).map(([uf, path]) => (
-                            <StateMesh
-                                key={uf}
-                                uf={uf}
-                                pathData={path}
-                                isHovered={hoveredUF === uf}
-                                onHover={setHoveredUF}
-                                onClick={onSelect}
-                            />
-                        ))}
+                <group position={[-MAP_WIDTH / 2, MAP_HEIGHT / 2, 0]} scale={[1, -1, 1]}>
+                    {/* Map States */} <mesh position={[0, 0, -1]}> <planeGeometry args={[MAP_WIDTH, MAP_HEIGHT]} /> <meshBasicMaterial transparent opacity={0} /> </mesh>
+                    {Object.entries(BRAZIL_STATES).map(([uf, path]) => (
+                        <StateMesh
+                            key={uf}
+                            uf={uf}
+                            pathData={path}
+                            isHovered={hoveredUF === uf}
+                            onHover={setHoveredUF}
+                            onClick={onSelect}
+                        />
+                    ))}
 
-                        {/* Data Points */}
-                        {dataPoints.map(point => (
-                            <DataOrb key={point.id} point={point} />
-                        ))}
-                    </group>
-                </Center>
+                    {/* Data Points */}
+                    {dataPoints.map(point => (
+                        <DataOrb key={point.id} point={point} />
+                    ))}
+                </group>
 
                 <Environment preset="city" />
             </Canvas>
