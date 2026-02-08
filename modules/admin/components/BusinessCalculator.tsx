@@ -504,7 +504,12 @@ export const BusinessCalculator = () => {
                                             </div>
                                             <div className="flex justify-between items-center pt-2 border-t border-slate-200">
                                                 <span className="text-xs font-black text-brand-primary uppercase">Mark-up Aplicado</span>
-                                                <span className="text-sm font-black text-brand-primary">+{margemAlvo}%</span>
+                                                <span className="text-sm font-black text-brand-primary">
+                                                    {ticketManual
+                                                        ? `+${(((ticketManual - (metrics.financial.opexTotal / targetScale)) / (metrics.financial.opexTotal / targetScale)) * 100).toFixed(0)}% (Manual)`
+                                                        : `+${margemAlvo}%`
+                                                    }
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -540,6 +545,19 @@ export const BusinessCalculator = () => {
                                         {proposalPrice.toFixed(2)}
                                     </div>
                                     <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-8">Por Aluno / Mês</div>
+
+                                    <div className="w-full px-4 mb-4">
+                                        <div className="bg-white/10 rounded-xl p-2 border border-white/10">
+                                            <div className="text-[8px] font-bold text-slate-400 uppercase mb-1">Simular Preço de Venda (R$)</div>
+                                            <input
+                                                type="number"
+                                                value={ticketManual || ''}
+                                                onChange={(e) => setTicketManual(parseFloat(e.target.value) || undefined)}
+                                                placeholder="Ex: 150.00"
+                                                className="w-full bg-transparent text-center font-black text-white text-lg outline-none placeholder:text-slate-600"
+                                            />
+                                        </div>
+                                    </div>
 
                                     <div className="w-full space-y-4">
                                         <button onClick={() => setTicketManual(proposalPrice)} className="w-full py-4 bg-brand-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-brand-light shadow-[0_0_20px_rgba(var(--brand-primary-rgb),0.3)] transition-all active:scale-95">
