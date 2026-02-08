@@ -13,7 +13,38 @@ export interface LogisticsResult {
 export interface CostDetail {
     label: string;
     value: number;
-    category: 'fixo' | 'variável' | 'patrimônio' | 'fiscal';
+    category: 'fixo' | 'variável' | 'patrimônio' | 'fiscal' | 'infra' | 'pessoas';
+}
+
+export interface Collaborator {
+    id: string;
+    cargo: string;
+    salario: number;
+    quantidade: number;
+    beneficios: number;
+}
+
+export interface Infrastructure {
+    luz: number;
+    agua: number;
+    internet: number;
+    manutencao: number;
+    seguros: number;
+}
+
+export interface SchoolProfile {
+    id: string;
+    nome: string;
+    totalAlunos: number;
+    turmas: number;
+    mediaAlunosTurma: number;
+}
+
+export interface Vehicle {
+    valor: number;
+    tipo: 'aquisicao' | 'aluguel' | 'assinatura';
+    seguro: number;
+    manutencao: number;
 }
 
 export interface FinancialResult {
@@ -47,38 +78,34 @@ export interface FinancialResult {
     capitalGiroNecessário: number;
     margemBrutaSaaS: number;
     taxaUtilizaçãoAtivos: number;
+    // Detalhamento para Proposta
+    combustívelFrequência: {
+        diário: number;
+        semanal: number;
+        quinzenal: number;
+        mensal: number;
+    };
 }
 
 /**
  * Calcula KPIs de negócio e Raio-X Financeiro Detalhado.
  */
 export const calculateBusinessMetrics = (
-    // Custos Fixos Detalhados
-    fixos: {
-        aluguel: number;
-        folhaPagamento: number;
-        assinaturas: number;
-        financiamentos: number;
-        outros: number;
-    },
-    // Custos Variáveis Detalhados
-    variáveis: {
-        combustível: number;
-        colaboradoresProjeto: number;
-        benefícios: number;
-        outros: number;
-    },
-    // Patrimônio e Tecnologia (CapEx)
-    patrimônio: {
-        tablets: number;
+    colaboradores: Collaborator[],
+    infra: Infrastructure,
+    veiculo: Vehicle,
+    patrimônioExtra: {
         computadores: number;
         infraestrutura: number;
     },
-    // Fiscal
+    custosVariáveis: {
+        combustívelMensal: number;
+        outrosPorAluno: number;
+    },
     fiscal: {
-        iss: number; // %
-        pisCofins: number; // %
-        encargosFolha: number; // % (INSS/FGTS)
+        iss: number;
+        pisCofins: number;
+        encargosFolha: number;
     },
     cacGlobal: number,
     churnMensal: number,
@@ -93,71 +120,78 @@ export const calculateBusinessMetrics = (
     customers: CustomerResult;
     hr: HRResult;
 } => {
-    // 1. Consolidação de Custos Fixos
-    const encargosFolhaTotal = fixos.folhaPagamento * (fiscal.encargosFolha / 100);
-    const custoFixoTotal = fixos.aluguel + fixos.folhaPagamento + encargosFolhaTotal + fixos.assinaturas + fixos.financiamentos + fixos.outros;
+    // 1. Consolidação de Folha e Pessoas
+    const folhaBase = colaboradores.reduce((acc, c) => acc + (c.salario * c.quantidade), 0);
+    const beneficiosTotal = colaboradores.reduce((acc, c) => acc + (c.beneficios * c.quantidade), 0);
+    const encargosFolhaTotal = folhaBase * (fiscal.encargosFolha / 100);
+    const custoPessoasTotal = folhaBase + encargosFolhaTotal + beneficiosTotal;
 
-    // 2. Consolidação de Custos Variáveis (por aluno)
-    const custoVariávelUnitário = variáveis.combustível + variáveis.colaboradoresProjeto + variáveis.benefícios + variáveis.outros;
-    const custoVariávelTotal = custoVariávelUnitário * totalAlunosAlvo;
+    // 2. Consolidação de Infraestrutura (OpEx Fixo)
+    const custoInfraMensal = infra.luz + infra.agua + infra.internet + infra.manutencao + infra.seguros;
 
-    // 3. Consolidação de Patrimônio (CapEx)
-    const patrimônioTotal = patrimônio.tablets + patrimônio.computadores + patrimônio.infraestrutura;
+    // Tratamento do Veículo (OpEx se aluguel/assinatura)
+    const custoVeiculoOpEx = veiculo.tipo !== 'aquisicao' ? veiculo.valor : 0;
+    const custoVeiculoFixo = veiculo.seguro + veiculo.manutencao + custoVeiculoOpEx;
 
-    // 4. Receita e Preço
+    const custoFixoTotal = custoPessoasTotal + custoInfraMensal + custoVeiculoFixo;
+
+    // 3. Consolidação de Custos Variáveis (por aluno)
+    const custoVariávelTotal = custosVariáveis.combustívelMensal + (custosVariáveis.outrosPorAluno * totalAlunosAlvo);
+    const custoVariávelUnitário = totalAlunosAlvo > 0 ? custoVariávelTotal / totalAlunosAlvo : 0;
+
+    // 4. Consolidação de Patrimônio (CapEx)
+    // Tablets são calculados separadamente por necessidade real, mas aqui recebemos o valor total investido
+    const valorTabletsTotal = 85000; // Mock ou derivado de SchoolProfile no futuro
+    const valorVeiculoCapEx = veiculo.tipo === 'aquisicao' ? veiculo.valor : 0;
+    const patrimônioTotal = valorTabletsTotal + valorVeiculoCapEx + patrimônioExtra.computadores + patrimônioExtra.infraestrutura;
+
+    // 5. Receita e Preço de Proposta
     const impostosFaturamentoPercentual = fiscal.iss + fiscal.pisCofins;
-    const custoUnitárioBase = (custoFixoTotal / totalAlunosAlvo + custoVariávelUnitário) / (1 - (impostosFaturamentoPercentual / 100));
+    const custoUnitárioBase = totalAlunosAlvo > 0
+        ? (custoFixoTotal / totalAlunosAlvo + custoVariávelUnitário) / (1 - (impostosFaturamentoPercentual / 100))
+        : 0;
+
     const ticketMédio = ticketMédioManual || custoUnitárioBase * 1.4;
     const receitaTotal = ticketMédio * totalAlunosAlvo;
 
-    // 5. Impostos e Lucro
+    // 6. Impostos e Lucro
     const impostosFaturamentoTotal = receitaTotal * (impostosFaturamentoPercentual / 100);
     const opexTotal = custoFixoTotal + custoVariávelTotal;
 
-    // Profissional: Depreciação (Hardware em 36 meses)
     const depreciaçãoMensal = patrimônioTotal / 36;
-
     const ebitdaReal = receitaTotal - opexTotal - impostosFaturamentoTotal;
-    // Lucro Líquido Profissional (EBITDA - Depreciação)
     const lucroLíquido = ebitdaReal - depreciaçãoMensal;
 
-    // 6. Margens e KPIs
-    const margemEbitda = (ebitdaReal / receitaTotal) * 100;
-    const margemLíquida = (lucroLíquido / receitaTotal) * 100;
-    const margemContribuição = ((receitaTotal - custoVariávelTotal - impostosFaturamentoTotal) / receitaTotal) * 100;
+    // 7. Margens e KPIs
+    const margemEbitda = receitaTotal > 0 ? (ebitdaReal / receitaTotal) * 100 : 0;
+    const margemLíquida = receitaTotal > 0 ? (lucroLíquido / receitaTotal) * 100 : 0;
+    const margemContribuição = receitaTotal > 0 ? ((receitaTotal - custoVariávelTotal - impostosFaturamentoTotal) / receitaTotal) * 100 : 0;
 
     const roi = (lucroLíquido / (patrimônioTotal + cacGlobal)) * 100;
     const rentabilidade = (lucroLíquido / patrimônioTotal) * 100;
-    const lucratividade = (lucroLíquido / receitaTotal) * 100;
 
     const ltv = ticketMédio / (churnMensal / 100);
     const ltvCacRatio = ltv / cacGlobal;
-    const paybackMonths = (cacGlobal + (patrimônioTotal / totalAlunosAlvo)) / (ticketMédio - custoVariávelUnitário);
+    const paybackMonths = totalAlunosAlvo > 0 ? (cacGlobal + (patrimônioTotal / totalAlunosAlvo)) / (ticketMédio - custoVariávelUnitário) : 0;
 
-    // 6.b Métricas Profissionais (C-Level)
-    const crescimentoMensalProjetado = 15; // Benchmark SaaS 15% MoM
-    const ruleOf40 = margemEbitda + (crescimentoMensalProjetado * 4); // Normalizado anual
-
-    // Magic Number = (New ARR last quarter) / (S&M spend last quarter)
-    const netNewARR = (receitaTotal * 0.15) * 12; // 15% de crescimento convertid para ARR
-    const smSpend = cacGlobal * (totalAlunosAlvo * 0.05); // Estimativa de investimento em vendas
+    // 8. Métricas C-Level
+    const crescimentoMensalProjetado = 15;
+    const ruleOf40 = margemEbitda + (crescimentoMensalProjetado * 4);
+    const netNewARR = (receitaTotal * 0.15) * 12;
+    const smSpend = cacGlobal * (totalAlunosAlvo * 0.05);
     const magicNumber = smSpend > 0 ? netNewARR / smSpend : 0;
+    const valuationEstimado = (receitaTotal * 12) * 5;
+    const capitalGiroNecessário = opexTotal * 3;
 
-    const burnMultiple = ebitdaReal < 0 ? Math.abs(ebitdaReal) / (netNewARR / 12) : 0;
-    const valuationEstimado = (receitaTotal * 12) * 5; // Múltiplo de 5x ARR
-    const capitalGiroNecessário = opexTotal * 3; // 3 meses de reserva
-    const margemBrutaSaaS = 85; // Benchmark SaaS Prova Digital
-    const taxaUtilizaçãoAtivos = 92; // Benchmark operacional
-
-    // 7. Quebra para Raio-X (DRE)
+    // 9. Quebra para Raio-X (DRE)
     const custosDetalhados: CostDetail[] = [
-        { label: 'Folha + Encargos', value: fixos.folhaPagamento + encargosFolhaTotal, category: 'fixo' },
-        { label: 'Aluguel & Infra', value: fixos.aluguel, category: 'fixo' },
-        { label: 'SaaS & Assinaturas', value: fixos.assinaturas, category: 'fixo' },
-        { label: 'Financiamentos', value: fixos.financiamentos, category: 'fixo' },
-        { label: 'Combustível & Logística', value: variáveis.combustível * totalAlunosAlvo, category: 'variável' },
+        { label: 'Pessoas (Folha + Encargos)', value: custoPessoasTotal, category: 'pessoas' },
+        { label: 'Infraestrutura (Sede)', value: custoInfraMensal, category: 'infra' },
+        { label: 'Veículo (Operação)', value: custoVeiculoFixo, category: 'variável' },
+        { label: 'Cloud & SaaS', value: 800, category: 'fixo' }, // Mock para agora
+        { label: 'Combustível', value: custosVariáveis.combustívelMensal, category: 'variável' },
         { label: 'Impostos (ISS/PIS)', value: impostosFaturamentoTotal, category: 'fiscal' },
-        { label: 'Patoimônio (Ativos)', value: patrimônioTotal, category: 'patrimônio' }
+        { label: 'Patrimônio (Total Ativos)', value: patrimônioTotal, category: 'patrimônio' }
     ];
 
     return {
@@ -173,7 +207,7 @@ export const calculateBusinessMetrics = (
             ltv,
             ltvCacRatio,
             paybackMonths,
-            lucratividade,
+            lucratividade: margemLíquida,
             rentabilidade,
             roi,
             custosDetalhados,
@@ -183,15 +217,20 @@ export const calculateBusinessMetrics = (
                 ideal: custoUnitárioBase * 1.4,
                 folgado: custoUnitárioBase * 1.8
             },
-            // Métricas Profissionais (C-Level)
             ruleOf40,
             magicNumber,
-            burnMultiple,
+            burnMultiple: ebitdaReal < 0 ? Math.abs(ebitdaReal) / (netNewARR / 12) : 0,
             depreciaçãoMensal,
             valuationEstimado,
             capitalGiroNecessário,
-            margemBrutaSaaS,
-            taxaUtilizaçãoAtivos
+            margemBrutaSaaS: 85,
+            taxaUtilizaçãoAtivos: 92,
+            combustívelFrequência: {
+                diário: custosVariáveis.combustívelMensal / 30,
+                semanal: custosVariáveis.combustívelMensal / 4,
+                quinzenal: custosVariáveis.combustívelMensal / 2,
+                mensal: custosVariáveis.combustívelMensal
+            }
         },
         marketing: {
             ticketMédio,

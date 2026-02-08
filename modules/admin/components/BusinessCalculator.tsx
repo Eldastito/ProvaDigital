@@ -7,7 +7,7 @@ import {
     Sparkles, BrainCircuit, MessageSquare, ToggleLeft, ToggleRight,
     Zap, Target, Layers, Activity, Briefcase
 } from 'lucide-react';
-import { calculateLogistics, calculateBusinessMetrics } from '../../../utils/saasCalculators';
+import { calculateLogistics, calculateBusinessMetrics, Collaborator, Infrastructure, Vehicle, SchoolProfile } from '../../../utils/saasCalculators';
 import { useAppStore } from '../../../store/useAppStore';
 import { getRealLogisticsDemand } from '../../../utils/logisticsEngine';
 import { analyticsService } from '../../../services/analyticsService';
@@ -72,8 +72,8 @@ const ResultTab = ({ label, value, sub, icon: Icon, color = "brand-primary", kpi
                 </span>
                 {benchmark && (
                     <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter ${benchmark === 'Best-in-Class' ? 'bg-emerald-500 text-white' :
-                            benchmark === 'Tier 1' ? 'bg-blue-500 text-white' :
-                                'bg-slate-200 text-slate-500'
+                        benchmark === 'Tier 1' ? 'bg-blue-500 text-white' :
+                            'bg-slate-200 text-slate-500'
                         }`}>
                         {benchmark}
                     </span>
@@ -87,39 +87,44 @@ const ResultTab = ({ label, value, sub, icon: Icon, color = "brand-primary", kpi
 
 export const BusinessCalculator = () => {
     const store = useAppStore();
-    const [activeTab, setActiveTab] = useState<'logistics' | 'financial' | 'report' | 'xray' | 'clevel' | 'simulation'>('xray');
+    const [activeTab, setActiveTab] = useState<'logistics' | 'financial' | 'report' | 'xray' | 'clevel' | 'simulation' | 'proposal'>('xray');
     const [isIntelligenceMode, setIsIntelligenceMode] = useState(false);
     const [tutorKpi, setTutorKpi] = useState<string | null>(null);
 
-    // RAIO-X: Custos Fixos Detalhados
-    const [fixos, setFixos] = useState({
-        aluguel: 3500,
-        folhaPagamento: 12000,
-        assinaturas: 800,
-        financiamentos: 1500,
-        outros: 1000
+    // FINANCEIRO: Novos Estados Granulares
+    const [colaboradores, setColaboradores] = useState<Collaborator[]>([
+        { id: '1', cargo: 'Gestor de Projeto', salario: 5500, quantidade: 1, beneficios: 1200 },
+        { id: '2', cargo: 'Suporte Técnico', salario: 2800, quantidade: 2, beneficios: 800 },
+    ]);
+
+    const [infra, setInfra] = useState<Infrastructure>({
+        luz: 450,
+        agua: 120,
+        internet: 350,
+        manutencao: 500,
+        seguros: 800
     });
 
-    // RAIO-X: Custos Variáveis Detalhados
-    const [variáveis, setVariáveis] = useState({
-        combustível: 2.5,
-        colaboradoresProjeto: 1.5,
-        benefícios: 0.8,
-        outros: 0.2
+    const [veiculo, setVeiculo] = useState<Vehicle>({
+        valor: 85000,
+        tipo: 'aquisicao',
+        seguro: 3500,
+        manutencao: 1200
     });
 
-    // RAIO-X: Ativos e Patrimônio (CapEx)
-    const [patrimônio, setPatrimônio] = useState({
-        tablets: 85000,
-        computadores: 15000,
-        infraestrutura: 5000
+    const [perfisEscolas, setPerfisEscolas] = useState<SchoolProfile[]>([
+        { id: '1', nome: 'Escola Municipal Sede', totalAlunos: 1200, turmas: 40, mediaAlunosTurma: 30 }
+    ]);
+
+    const [custosVariáveis, setCustosVariáveis] = useState({
+        combustívelMensal: 2500,
+        outrosPorAluno: 1.2
     });
 
-    // RAIO-X: Fiscal
     const [fiscal, setFiscal] = useState({
         iss: 5,
         pisCofins: 3.65,
-        encargosFolha: 28 // INSS + FGTS + Riscos
+        encargosFolha: 28
     });
 
     // Sales & Customers state
@@ -127,22 +132,11 @@ export const BusinessCalculator = () => {
     const [churn, setChurn] = useState(1.8);
     const [targetScale, setTargetScale] = useState(1500);
     const [ticketManual, setTicketManual] = useState<number | undefined>(undefined);
+    const [margemAlvo, setMargemAlvo] = useState(35); // Mark-up alvo em %
 
     // What-IF Sliders
-    const [simPriceAdj, setSimPriceAdj] = useState(0); // em %
-    const [simChurnAdj, setSimChurnAdj] = useState(0); // em %
-
-    // --- EFFECT: DATA SYNC ---
-    useEffect(() => {
-        if (isIntelligenceMode) {
-            const realLogistics = getRealLogisticsDemand(store);
-            if (realLogistics) {
-                const peak = Math.max(...realLogistics.schools.map(s => s.peakStudentCount), 0);
-                setPatrimônio(prev => ({ ...prev, tablets: peak * 1200 }));
-                setTargetScale(store.students.length);
-            }
-        }
-    }, [isIntelligenceMode, store]);
+    const [simPriceAdj, setSimPriceAdj] = useState(0);
+    const [simChurnAdj, setSimChurnAdj] = useState(0);
 
     // Dynamic calculations
     const adjustedTicket = useMemo(() => {
@@ -156,13 +150,79 @@ export const BusinessCalculator = () => {
     }, [churn, simChurnAdj]);
 
     const metrics = useMemo(() => calculateBusinessMetrics(
-        fixos, variáveis, patrimônio, fiscal, cac, adjustedChurn, targetScale, 12, 85, 4, adjustedTicket
-    ), [fixos, variáveis, patrimônio, fiscal, cac, adjustedChurn, targetScale, adjustedTicket]);
-
-    const ops = useMemo(() => calculateLogistics(50, targetScale, 5, 6, 98, 2, 1), [targetScale]);
+        colaboradores,
+        infra,
+        veiculo,
+        { computadores: 15000, infraestrutura: 5000 },
+        custosVariáveis,
+        fiscal,
+        cac,
+        adjustedChurn,
+        targetScale,
+        12,
+        85,
+        4,
+        adjustedTicket
+    ), [colaboradores, infra, veiculo, custosVariáveis, fiscal, cac, adjustedChurn, targetScale, adjustedTicket]);
 
     const handlePrint = () => window.print();
     const handleOpenTutor = (id: string) => setTutorKpi(id);
+
+    // Helper to add collaborator
+    const addCollaborator = () => {
+        const newCollab: Collaborator = {
+            id: Math.random().toString(36).substr(2, 9),
+            cargo: 'Nova Função',
+            salario: 2500,
+            quantidade: 1,
+            beneficios: 600
+        };
+        setColaboradores([...colaboradores, newCollab]);
+    };
+
+    const removeCollaborator = (id: string) => {
+        setColaboradores(colaboradores.filter(c => c.id !== id));
+    };
+
+    const updateCollaborator = (id: string, field: keyof Collaborator, value: any) => {
+        setColaboradores(colaboradores.map(c => c.id === id ? { ...c, [field]: value } : c));
+    };
+
+    // Helper for School Profiles
+    const addSchool = () => {
+        const newSchool: SchoolProfile = {
+            id: Math.random().toString(36).substr(2, 9),
+            nome: 'Nova Escola',
+            totalAlunos: 500,
+            turmas: 15,
+            mediaAlunosTurma: 33
+        };
+        setPerfisEscolas([...perfisEscolas, newSchool]);
+    };
+
+    // Calculate total students from profiles
+    const totalStudentsComputed = useMemo(() => perfisEscolas.reduce((acc, s) => acc + s.totalAlunos, 0), [perfisEscolas]);
+
+    // Sync with computed scale unless in intelligence mode
+    useEffect(() => {
+        if (!isIntelligenceMode) {
+            setTargetScale(totalStudentsComputed);
+        }
+    }, [totalStudentsComputed, isIntelligenceMode]);
+
+    // ... (metrics useMemo remains same)
+
+    const ops = useMemo(() => calculateLogistics(
+        Math.max(...perfisEscolas.map(s => s.mediaAlunosTurma * 1), 50),
+        targetScale, 5, 6, 98, 2, 1
+    ), [perfisEscolas, targetScale]);
+
+    // Proposal Adjustment Logic
+    const proposalPrice = useMemo(() => {
+        const costPerStudent = metrics.financial.opexTotal / targetScale;
+        const taxRate = (fiscal.iss + fiscal.pisCofins) / 100;
+        return (costPerStudent * (1 + margemAlvo / 100)) / (1 - taxRate);
+    }, [metrics.financial.opexTotal, targetScale, margemAlvo, fiscal]);
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto pb-20">
@@ -178,8 +238,8 @@ export const BusinessCalculator = () => {
                         <Briefcase size={24} className="text-brand-secondary" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-black text-slate-800 tracking-tight text-brand-dark uppercase">Enterprise RAIO-X</h2>
-                        <p className="text-slate-500 text-sm font-medium">Gestão C-Level, Valuation & Sensibilidade</p>
+                        <h2 className="text-2xl font-black text-slate-800 tracking-tight text-brand-dark uppercase italic">Business X-Ray <span className="text-brand-primary">Pro</span></h2>
+                        <p className="text-slate-500 text-sm font-medium">Motor de Precificação & Viabilidade Real</p>
                     </div>
                 </div>
 
@@ -187,28 +247,28 @@ export const BusinessCalculator = () => {
                     <button
                         onClick={() => setIsIntelligenceMode(!isIntelligenceMode)}
                         className={`flex items-center gap-3 px-4 py-2 rounded-xl border transition-all ${isIntelligenceMode
-                            ? 'bg-brand-primary/10 border-brand-primary text-brand-primary'
+                            ? 'bg-brand-primary/10 border-brand-primary text-brand-primary shadow-[0_0_15px_rgba(var(--brand-primary-rgb),0.2)]'
                             : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'
                             }`}
                     >
                         <BrainCircuit size={18} className={isIntelligenceMode ? "animate-pulse" : ""} />
                         <span className="text-[10px] font-black uppercase tracking-widest">
-                            {isIntelligenceMode ? '🧠 Inteligência Real Ativa' : '🧪 Business Designer'}
+                            {isIntelligenceMode ? '🧠 Inteligência Real Ativa' : '🧪 Designer de Operação'}
                         </span>
                     </button>
 
                     <div className="flex flex-wrap bg-slate-100 p-1 rounded-xl">
                         {[
                             { id: 'xray', label: 'Dashboard' },
+                            { id: 'proposal', label: 'Proposta' },
                             { id: 'clevel', label: 'C-Level' },
                             { id: 'simulation', label: 'Simulação' },
-                            { id: 'logistics', label: 'Logística' },
-                            { id: 'report', label: 'Relatório' }
+                            { id: 'logistics', label: 'Logística' }
                         ].map((tab) => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as any)}
-                                className={`px-4 py-2 rounded-lg text-[10px] font-bold transition-all uppercase tracking-widest ${activeTab === tab.id ? 'bg-white text-brand-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                className={`px-4 py-2 rounded-lg text-[10px] font-bold transition-all uppercase tracking-widest ${activeTab === tab.id ? 'bg-white text-brand-primary shadow-sm border border-slate-100' : 'text-slate-500 hover:text-slate-700'}`}
                             >
                                 {tab.label}
                             </button>
@@ -218,41 +278,75 @@ export const BusinessCalculator = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <Card className="lg:col-span-4 space-y-6 flex flex-col h-[85vh] overflow-y-auto no-scrollbar print:hidden sticky top-8 border-slate-200 shadow-sm">
+                {/* SIDEBAR: Detalhamento de Ativos e Infra */}
+                <Card className="lg:col-span-4 space-y-6 flex flex-col h-[85vh] overflow-y-auto no-scrollbar print:hidden sticky top-8 border-slate-200 shadow-xl bg-slate-50/50">
+
                     <div className="space-y-6">
-                        <h3 className="font-bold text-slate-800 flex items-center gap-2 text-[10px] uppercase tracking-wider"><Package size={16} className="text-brand-primary" /> Ativos & CapEx</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            <InputField label="Frota Tablets" value={patrimônio.tablets} onChange={(v: any) => setPatrimônio({ ...patrimônio, tablets: v })} prefix="R$" />
-                            <InputField label="Workstations" value={patrimônio.computadores} onChange={(v: any) => setPatrimônio({ ...patrimônio, computadores: v })} prefix="R$" />
+                        <div className="flex justify-between items-center">
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2 text-[10px] uppercase tracking-wider"><Users size={16} className="text-brand-primary" /> Time e Salários</h3>
+                            <button onClick={addCollaborator} className="p-1 bg-brand-primary/10 text-brand-primary rounded hover:bg-brand-primary hover:text-white transition-all">
+                                <Plus size={14} />
+                            </button>
+                        </div>
+                        <div className="space-y-4 max-h-60 overflow-y-auto pr-2 no-scrollbar">
+                            {colaboradores.map(c => (
+                                <div key={c.id} className="p-3 bg-white rounded-xl border border-slate-100 space-y-2 group">
+                                    <div className="flex justify-between items-center text-[9px] font-black text-slate-400 uppercase">
+                                        <input
+                                            value={c.cargo}
+                                            onChange={(e) => updateCollaborator(c.id, 'cargo', e.target.value)}
+                                            className="bg-transparent border-none outline-none focus:text-brand-primary w-2/3"
+                                        />
+                                        <button onClick={() => removeCollaborator(c.id)} className="opacity-0 group-hover:opacity-100 text-rose-400 hover:text-rose-600">
+                                            <Minus size={12} />
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <InputField label="Salário" value={c.salario} onChange={(v: any) => updateCollaborator(c.id, 'salario', v)} prefix="R$" />
+                                        <InputField label="Qtd" value={c.quantidade} onChange={(v: any) => updateCollaborator(c.id, 'quantidade', v)} suffix="x" />
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
 
-                    <div className="space-y-6 pt-6 border-t border-slate-50">
-                        <h3 className="font-bold text-slate-800 flex items-center gap-2 text-[10px] uppercase tracking-wider"><DollarSign size={16} className="text-emerald-500" /> Estrutura de Custos (OpEx)</h3>
-                        <InputField label="Salários (Total)" value={fixos.folhaPagamento} onChange={(v: any) => setFixos({ ...fixos, folhaPagamento: v })} prefix="R$" />
-                        <InputField label="SaaS & Cloud" value={fixos.assinaturas} onChange={(v: any) => setFixos({ ...fixos, assinaturas: v })} prefix="R$" />
-                        <InputField label="Custos de Terceiros" value={fixos.outros} onChange={(v: any) => setFixos({ ...fixos, outros: v })} prefix="R$" />
-                    </div>
-
-                    <div className="space-y-6 pt-6 border-t border-slate-50">
-                        <h3 className="font-bold text-slate-800 flex items-center gap-2 text-[10px] uppercase tracking-wider"><TrendingUp size={16} className="text-blue-500" /> Escala & CAC</h3>
+                    <div className="space-y-6 pt-6 border-t border-slate-200">
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2 text-[10px] uppercase tracking-wider"><Globe size={16} className="text-blue-500" /> Infra e Sede (Mês)</h3>
                         <div className="grid grid-cols-2 gap-4">
-                            <InputField label="Escala (Alunos)" value={targetScale} onChange={(v: any) => setTargetScale(v)} suffix="un" />
-                            <InputField label="CAC Unitário" value={cac} onChange={(v: any) => setCac(v)} prefix="R$" />
+                            <InputField label="Luz & Água" value={infra.luz + infra.agua} onChange={(v: any) => setInfra({ ...infra, luz: v * 0.8, agua: v * 0.2 })} prefix="R$" />
+                            <InputField label="Internet" value={infra.internet} onChange={(v: any) => setInfra({ ...infra, internet: v })} prefix="R$" />
                         </div>
-                        <InputField label="Churn Mensal Base" value={churn} onChange={(v: any) => setChurn(v)} suffix="%" />
+                        <InputField label="Assinaturas & Cloud" value={800} onChange={() => { }} prefix="R$" help="Mock" />
                     </div>
 
-                    <div className="mt-auto pt-6 border-t border-slate-50 space-y-4">
-                        <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden relative">
+                    <div className="space-y-6 pt-6 border-t border-slate-200">
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2 text-[10px] uppercase tracking-wider"><MapPin size={16} className="text-orange-500" /> Cenário Escolar</h3>
+                        <div className="space-y-4">
+                            {perfisEscolas.map(s => (
+                                <div key={s.id} className="p-3 bg-white rounded-xl border border-slate-200">
+                                    <div className="text-[9px] font-black text-brand-dark uppercase mb-2 group flex justify-between">
+                                        {s.nome}
+                                        <span className="text-slate-300 font-normal">ID: {s.id}</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <InputField label="Total Alunos" value={s.totalAlunos} onChange={(v: any) => setPerfisEscolas(perfisEscolas.map(item => item.id === s.id ? { ...item, totalAlunos: v } : item))} suffix="un" />
+                                        <InputField label="Turmas" value={s.turmas} onChange={(v: any) => setPerfisEscolas(perfisEscolas.map(item => item.id === s.id ? { ...item, turmas: v } : item))} suffix="un" />
+                                    </div>
+                                </div>
+                            ))}
+                            <button onClick={addSchool} className="w-full py-2 border-2 border-dashed border-slate-200 rounded-xl text-[9px] font-black text-slate-400 uppercase hover:border-brand-primary/30 hover:text-brand-primary transition-all">
+                                + Adicionar Escola
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="mt-auto pt-6 border-t border-slate-200 space-y-4">
+                        <div className="p-4 bg-brand-dark rounded-2xl border border-slate-800 shadow-2xl relative overflow-hidden">
                             <Zap className="absolute -right-4 -top-4 text-white/5" size={80} />
-                            <div className="flex items-center gap-2 text-brand-secondary font-black text-[10px] mb-2 uppercase tracking-widest relative z-10">
-                                <Sparkles size={12} /> Valuation de Saída
+                            <div className="text-[10px] font-bold text-brand-secondary uppercase tracking-widest relative z-10 mb-1">Custo Operacional Total</div>
+                            <div className="text-2xl font-black text-white relative z-10">
+                                R$ {metrics.financial.opexTotal.toLocaleString('pt-BR')}
                             </div>
-                            <div className="text-2xl font-black text-white relative z-10 transition-all duration-700">
-                                R$ {metrics.financial.valuationEstimado.toLocaleString('pt-BR')}
-                            </div>
-                            <div className="text-[9px] text-slate-400 mt-1 relative z-10">Estimativa conservadora (5x ARR)</div>
                         </div>
                     </div>
                 </Card>
@@ -261,67 +355,135 @@ export const BusinessCalculator = () => {
                     {activeTab === 'xray' && (
                         <Card className="space-y-8 animate-in fade-in zoom-in-95 duration-300">
                             <div className="flex justify-between items-center border-b border-slate-50 pb-4">
-                                <h3 className="font-black text-brand-dark uppercase text-[10px] tracking-widest">DRE Profissional Consolidado</h3>
-                                <div className="text-[10px] font-bold text-slate-400">Padrão de Auditoria Real</div>
+                                <h3 className="font-black text-brand-dark uppercase text-[10px] tracking-widest flex items-center gap-2"><Layers size={16} className="text-brand-primary" /> DRE Consolidado (TCO Real)</h3>
+                                <div className="text-[10px] font-bold text-slate-400">Total Cost of Ownership</div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="space-y-4">
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Demonstrativo Gerencial</div>
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estrutura de Gastos Mensais</div>
                                     <div className="space-y-3">
-                                        <div className="flex justify-between items-center text-sm">
-                                            <span className="text-slate-500 font-bold uppercase text-[9px]">Receita Bruta</span>
-                                            <span className="font-black text-slate-800">R$ {(metrics.marketing.ticketMédio * targetScale).toLocaleString('pt-BR')}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-sm text-rose-500">
-                                            <span className="font-medium text-[9px] uppercase">(-) Impostos & Deduções</span>
-                                            <span className="font-bold">R$ {metrics.financial.impostosTotais.toLocaleString('pt-BR')}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-sm text-slate-400">
-                                            <span className="font-medium text-[9px] uppercase">(-) OpEx (Fixo + Variável)</span>
-                                            <span className="font-bold">R$ {metrics.financial.opexTotal.toLocaleString('pt-BR')}</span>
-                                        </div>
-                                        <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-sm font-black text-slate-800">
-                                            <span className="uppercase text-[9px]">EBITDA Mensal</span>
-                                            <span className="text-brand-primary">R$ {metrics.financial.ebitdaReal.toLocaleString('pt-BR')}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-sm text-slate-400">
-                                            <span className="font-medium text-[9px] uppercase">(-) Depreciação (Non-Cash)</span>
-                                            <span className="font-bold">R$ {metrics.financial.depreciaçãoMensal.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
-                                        </div>
+                                        {metrics.financial.custosDetalhados.map((item, i) => (
+                                            <div key={i} className="flex justify-between items-center text-sm">
+                                                <span className="text-slate-500 font-bold uppercase text-[9px]">{item.label}</span>
+                                                <span className="font-black text-slate-800">R$ {item.value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
+                                            </div>
+                                        ))}
                                     </div>
-                                    <div className="pt-4 border-t border-slate-50 flex justify-between items-center">
-                                        <span className="text-sm font-black text-slate-900 uppercase text-[10px]">Net Profit (Lucro Líquido)</span>
-                                        <span className="text-lg font-black text-brand-dark">R$ {(metrics.financial.ebitdaReal - metrics.financial.depreciaçãoMensal).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
+                                    <div className="pt-4 border-t border-slate-50 flex justify-between items-center bg-slate-50 p-4 rounded-xl">
+                                        <span className="text-sm font-black text-slate-900 uppercase text-[10px]">Ponto de Equilíbrio (Breakeven)</span>
+                                        <span className="text-lg font-black text-brand-primary">{metrics.financial.breakEvenAlunos} <span className="text-[10px] font-bold">alunos</span></span>
                                     </div>
                                 </div>
 
-                                <div className="bg-brand-dark rounded-2xl p-6 text-white flex flex-col justify-center space-y-6 shadow-2xl relative overflow-hidden group">
+                                <div className="bg-slate-900 rounded-2xl p-6 text-white flex flex-col justify-center space-y-6 shadow-2xl relative overflow-hidden group">
                                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                                         <Target size={120} />
                                     </div>
                                     <div className="text-center space-y-1 relative z-10">
-                                        <div className="text-[10px] font-bold text-brand-secondary uppercase tracking-widest">Margem Líquida Real</div>
-                                        <div className="text-4xl font-black text-white">{metrics.financial.margemLíquida.toFixed(1)}%</div>
-                                        <div className="text-[9px] text-slate-500 font-bold uppercase tracking-tighter">Pós-Depreciação de Hardware</div>
+                                        <div className="text-[10px] font-bold text-brand-secondary uppercase tracking-widest">Resultado Líquido Projetado</div>
+                                        <div className="text-4xl font-black text-white">R$ {metrics.financial.ebitdaReal.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</div>
+                                        <div className="text-[9px] text-slate-500 font-bold uppercase tracking-tighter">Margem Ebitda: {metrics.financial.margemEbitda.toFixed(1)}%</div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4 border-t border-white/10 pt-6 relative z-10">
                                         <div className="text-center border-r border-white/10">
-                                            <div className="text-[8px] font-bold text-white/40 uppercase mb-1 tracking-widest">Margem Contrib.</div>
-                                            <div className="text-xl font-bold">{metrics.financial.margemContribuição.toFixed(1)}%</div>
+                                            <div className="text-[8px] font-bold text-white/40 uppercase mb-1 tracking-widest">LTV Projetado</div>
+                                            <div className="text-lg font-bold">R$ {metrics.financial.ltv.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</div>
                                         </div>
                                         <div className="text-center">
-                                            <div className="text-[8px] font-bold text-white/40 uppercase mb-1 tracking-widest">Capital Giro</div>
-                                            <div className="text-lg font-bold text-brand-secondary">R$ {metrics.financial.capitalGiroNecessário.toLocaleString('pt-BR')}</div>
+                                            <div className="text-[8px] font-bold text-white/40 uppercase mb-1 tracking-widest">CAC Un.</div>
+                                            <div className="text-lg font-bold text-brand-secondary">R$ {metrics.financial.cac.toLocaleString('pt-BR')}</div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                        </Card>
+                    )}
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-50 pt-8">
-                                <ResultTab label="Payback (Meses)" value={metrics.financial.paybackMonths.toFixed(1)} icon={Clock} color="rose" benchmark={metrics.financial.paybackMonths < 12 ? 'Best-in-Class' : 'Tier 1'} />
-                                <ResultTab label="LTV/CAC" value={`${metrics.financial.ltvCacRatio.toFixed(1)}x`} icon={Shield} color="orange" benchmark={metrics.financial.ltvCacRatio > 3 ? 'SaaS Gold' : 'Healthy'} />
-                                <ResultTab label="Rentab. Ativos" value={`${metrics.financial.rentabilidade.toFixed(1)}%`} color="emerald" icon={TrendingUp} />
+                    {activeTab === 'proposal' && (
+                        <Card className="space-y-8 animate-in fade-in zoom-in-95 duration-300 bg-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)]">
+                            <div className="flex justify-between items-center border-b border-slate-50 pb-6">
+                                <div className="space-y-1">
+                                    <h3 className="font-black text-brand-dark uppercase text-xs tracking-widest">Gerador de Proposta Comercial</h3>
+                                    <p className="text-[10px] text-slate-400 font-bold">Simulação de Preço baseada em Custo Real + Mark-up</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-black text-brand-primary uppercase">Mark-up Alvo:</span>
+                                    <div className="flex bg-slate-100 p-1 rounded-lg gap-1 border border-slate-200">
+                                        {[20, 35, 50, 70].map(m => (
+                                            <button
+                                                key={m}
+                                                onClick={() => setMargemAlvo(m)}
+                                                className={`px-3 py-1 rounded text-[10px] font-black transition-all ${margemAlvo === m ? 'bg-brand-primary text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+                                            >
+                                                {m}%
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                <div className="space-y-6">
+                                    <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
+                                        <div className="text-[10px] font-black text-slate-800 uppercase tracking-widest border-b border-slate-200 pb-2">Resumo da Oferta</div>
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-xs text-slate-500 font-bold uppercase">Base de Alunos</span>
+                                                <span className="text-sm font-black text-slate-800">{targetScale.toLocaleString()} un</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-xs text-slate-500 font-bold uppercase">Custo OpEx/Aluno</span>
+                                                <span className="text-sm font-black text-slate-800">R$ {(metrics.financial.opexTotal / targetScale).toFixed(2)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center pt-2 border-t border-slate-200">
+                                                <span className="text-xs font-black text-brand-primary uppercase">Mark-up Aplicado</span>
+                                                <span className="text-sm font-black text-brand-primary">+{margemAlvo}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-6 bg-brand-primary/5 rounded-2xl border border-brand-primary/10 space-y-4">
+                                        <div className="text-[10px] font-black text-brand-primary uppercase tracking-widest">Consumo de Combustível (Logístico)</div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <div className="text-[8px] font-bold text-slate-400 uppercase">Diário</div>
+                                                <div className="text-md font-black text-slate-700">R$ {metrics.financial.combustívelFrequência.diário.toFixed(2)}</div>
+                                            </div>
+                                            <div>
+                                                <div className="text-[8px] font-bold text-slate-400 uppercase">Semanal</div>
+                                                <div className="text-md font-black text-slate-700">R$ {metrics.financial.combustívelFrequência.semanal.toFixed(2)}</div>
+                                            </div>
+                                            <div>
+                                                <div className="text-[8px] font-bold text-slate-400 uppercase">Quinzenal</div>
+                                                <div className="text-md font-black text-slate-700">R$ {metrics.financial.combustívelFrequência.quinzenal.toFixed(2)}</div>
+                                            </div>
+                                            <div>
+                                                <div className="text-[8px] font-bold text-slate-400 uppercase">Mensal</div>
+                                                <div className="text-md font-black text-slate-700">R$ {metrics.financial.combustívelFrequência.mensal.toFixed(2)}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col justify-center items-center p-8 bg-slate-900 rounded-[32px] text-white shadow-3xl border border-slate-800 relative group overflow-hidden">
+                                    <Sparkles className="absolute top-6 left-6 text-brand-secondary/40 animate-pulse" size={40} />
+                                    <div className="text-[10px] font-black text-brand-secondary uppercase tracking-[0.2em] mb-4">Valor Sugerido do SaaS</div>
+                                    <div className="text-6xl font-black text-white tracking-tighter mb-2 group-hover:scale-105 transition-transform duration-500">
+                                        <span className="text-2xl align-top mr-1">R$</span>
+                                        {proposalPrice.toFixed(2)}
+                                    </div>
+                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-8">Por Aluno / Mês</div>
+
+                                    <div className="w-full space-y-4">
+                                        <button onClick={() => setTicketManual(proposalPrice)} className="w-full py-4 bg-brand-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-brand-light shadow-[0_0_20px_rgba(var(--brand-primary-rgb),0.3)] transition-all active:scale-95">
+                                            Adotar este Preço
+                                        </button>
+                                        <div className="text-[8px] text-white/30 text-center uppercase font-bold px-4">
+                                            Este valor cobre OpEx, Impostos ({fiscal.iss + fiscal.pisCofins}%) e garante {margemAlvo}% de margem bruta.
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </Card>
                     )}
