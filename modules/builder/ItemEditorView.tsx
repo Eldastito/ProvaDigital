@@ -1,5 +1,5 @@
 import React from 'react';
-import { Save, ArrowRight } from 'lucide-react';
+import { Save, ArrowRight, ShoppingBag } from 'lucide-react';
 import { useItemEditor } from './hooks/useItemEditor';
 import { EditorHeader } from './components/editor/EditorHeader';
 import { AuditReportView } from './components/editor/AuditReportView';
@@ -101,6 +101,25 @@ export const ItemEditorView = () => {
                         />
 
                         <TRIParamsEditor form={form} setForm={setForm} />
+
+                        {/* Marketplace & Sharing (Sprint 6) */}
+                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-100">
+                                    <ShoppingBag size={20} className="text-brand-primary" />
+                                </div>
+                                <div>
+                                    <div className="font-bold text-slate-800 text-sm">Publicar no Marketplace</div>
+                                    <p className="text-[10px] text-slate-500">Torna este item visível e reutilizável por outros professores da rede.</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setForm({ ...form, isPublic: !form.isPublic })}
+                                className={`w-12 h-6 rounded-full transition-colors relative ${form.isPublic ? 'bg-brand-primary' : 'bg-slate-300'}`}
+                            >
+                                <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${form.isPublic ? 'left-7' : 'left-1'}`} />
+                            </button>
+                        </div>
                     </div>
                 ) : (
                     // AI Mode

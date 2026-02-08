@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Award, Trophy, Users, School, MapPin, ChevronRight, X, Filter } from 'lucide-react';
+import { Award, Trophy, Users, School, MapPin, ChevronRight, X, Filter, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { AppState, UserRole } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
 
@@ -10,16 +10,16 @@ interface GlobalRankingViewProps {
 }
 
 export const GlobalRankingView = ({ state, onClose }: GlobalRankingViewProps) => {
-    const analytics = new AnalyticsService(state);
+    const analytics = new AnalyticsService();
     const { currentUser } = state;
-    
+
     // Filtros
     const [selectedSchool, setSelectedSchool] = useState<string>(currentUser?.schoolId || 'ALL');
     const [selectedClass, setSelectedClass] = useState<string>('ALL');
 
     const isTenantAdmin = currentUser?.role === UserRole.TENANT_ADMIN || currentUser?.role === UserRole.SUPER_ADMIN;
     const availableSchools = isTenantAdmin ? state.schools : state.schools.filter(s => s.id === currentUser?.schoolId);
-    
+
     const availableClasses = state.classes.filter(c => selectedSchool === 'ALL' ? true : c.schoolId === selectedSchool);
 
     // Processamento de Dados
@@ -34,7 +34,7 @@ export const GlobalRankingView = ({ state, onClose }: GlobalRankingViewProps) =>
         const stats = analytics.getStudentStats(student.id);
         const school = state.schools.find(s => s.id === student.schoolId);
         const sClass = state.classes.find(c => c.id === student.classId);
-        
+
         // Encontrar professores da turma
         const teachers = state.users.filter(u => u.role === UserRole.PROFESSOR && u.classIds?.includes(student.classId));
 
@@ -51,26 +51,26 @@ export const GlobalRankingView = ({ state, onClose }: GlobalRankingViewProps) =>
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col border border-slate-200">
-                
+
                 {/* Header */}
                 <div className="p-6 bg-[#0f1d2e] text-white rounded-t-2xl flex justify-between items-start">
                     <div>
                         <h2 className="text-2xl font-bold flex items-center gap-3">
-                            <Trophy className="text-yellow-400" size={32}/> Ranking Acadêmico
+                            <Trophy className="text-yellow-400" size={32} /> Ranking Acadêmico
                         </h2>
                         <p className="text-slate-400 text-sm mt-1">Visualização consolidada de desempenho de alunos (IDG - Índice Global).</p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition"><X size={24}/></button>
+                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition"><X size={24} /></button>
                 </div>
 
                 {/* Filters */}
                 <div className="p-4 bg-slate-50 border-b border-slate-200 flex gap-4 items-center flex-wrap">
                     <div className="flex items-center gap-2 text-slate-500 text-sm font-bold uppercase">
-                        <Filter size={16}/> Filtros:
+                        <Filter size={16} /> Filtros:
                     </div>
-                    
+
                     {isTenantAdmin && (
-                        <select 
+                        <select
                             className="border rounded-lg p-2 text-sm bg-white min-w-[200px]"
                             value={selectedSchool}
                             onChange={(e) => { setSelectedSchool(e.target.value); setSelectedClass('ALL'); }}
@@ -80,7 +80,7 @@ export const GlobalRankingView = ({ state, onClose }: GlobalRankingViewProps) =>
                         </select>
                     )}
 
-                    <select 
+                    <select
                         className="border rounded-lg p-2 text-sm bg-white min-w-[150px]"
                         value={selectedClass}
                         onChange={(e) => setSelectedClass(e.target.value)}
@@ -102,6 +102,7 @@ export const GlobalRankingView = ({ state, onClose }: GlobalRankingViewProps) =>
                                 <th className="p-4 text-center w-16">Pos.</th>
                                 <th className="p-4">Aluno</th>
                                 <th className="p-4">IDG (Nota Global)</th>
+                                <th className="p-4">vs Média Rede</th>
                                 <th className="p-4">Escola / Turma</th>
                                 <th className="p-4">Professores Responsáveis</th>
                             </tr>
@@ -110,12 +111,11 @@ export const GlobalRankingView = ({ state, onClose }: GlobalRankingViewProps) =>
                             {rankedStudents.map((student, idx) => (
                                 <tr key={student.id} className="hover:bg-slate-50 transition group">
                                     <td className="p-4 text-center">
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold mx-auto ${
-                                            idx === 0 ? 'bg-yellow-400 text-white shadow-md scale-110' : 
-                                            idx === 1 ? 'bg-slate-400 text-white' : 
-                                            idx === 2 ? 'bg-amber-600 text-white' : 
-                                            'bg-slate-100 text-slate-500'
-                                        }`}>
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold mx-auto ${idx === 0 ? 'bg-yellow-400 text-white shadow-md scale-110' :
+                                            idx === 1 ? 'bg-slate-400 text-white' :
+                                                idx === 2 ? 'bg-amber-600 text-white' :
+                                                    'bg-slate-100 text-slate-500'
+                                            }`}>
                                             {idx + 1}
                                         </div>
                                     </td>
@@ -125,6 +125,19 @@ export const GlobalRankingView = ({ state, onClose }: GlobalRankingViewProps) =>
                                             {student.score.toFixed(1)}
                                         </span>
                                         <span className="text-[10px] text-slate-400 block">max 10+</span>
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="flex items-center gap-1">
+                                            {student.score > 6.8 ? (
+                                                <div className="flex items-center gap-1 text-emerald-600 font-bold text-xs bg-emerald-50 px-2 py-1 rounded-full">
+                                                    <ArrowUpRight size={12} /> +{(student.score - 6.8).toFixed(1)}
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-1 text-rose-600 font-bold text-xs bg-rose-50 px-2 py-1 rounded-full">
+                                                    <ArrowDownRight size={12} /> {(student.score - 6.8).toFixed(1)}
+                                                </div>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="p-4">
                                         <div className="text-xs font-bold text-slate-700">{student.schoolName}</div>

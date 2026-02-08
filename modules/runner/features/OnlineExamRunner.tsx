@@ -11,7 +11,8 @@ import { RichTextRenderer } from '../../../components/RichTextRenderer';
 import { DrawingCanvas } from './DrawingCanvas';
 import { offlineCacheService } from '../../../services/offlineCacheService';
 import { registerCachedExam } from '../../../services/offlineDb';
-import { DownloadCloud, CloudCheck } from 'lucide-react'; // Some extra icons
+import { ReportingService } from '../../../services/reportingService';
+import { DownloadCloud, CloudCheck, Download, Trophy, Target } from 'lucide-react'; // Some extra icons
 
 interface OnlineExamRunnerProps {
     examId: string;
@@ -62,6 +63,11 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
     const [isOfflineReady, setIsOfflineReady] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloadProgress, setDownloadProgress] = useState(0);
+
+    // Completion State
+    const [isCompleted, setIsCompleted] = useState(false);
+    const [generatedPlan, setGeneratedPlan] = useState<any>(null);
+    const [finalGrading, setFinalGrading] = useState<any>(null);
 
     useEffect(() => {
         const checkOffline = async () => {
@@ -417,7 +423,8 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                 exam!,
                 studentAnswers,
                 'online', // Modo online - permite IA Gemini para dissertativas
-                true // Conexão disponível
+                navigator.onLine, // Usar status real de conexão
+                activeExamItems // Passar pool local para evitar Supabase no loop
             );
 
             console.log('✅ Correção concluída:', gradingResult);
@@ -460,18 +467,24 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                     // Salvar no Store (usando getState para acessar a action recém-criada)
                     // @ts-ignore - Action injetada dinamicamente
                     useAppStore.getState().addStudyPlan(studyPlan);
+                    setGeneratedPlan(studyPlan);
 
                     // Notificar usuário (Gamificação)
                     const totalReward = studyPlan.tasks.reduce((acc, t) => acc + (t.rewardSafe || 0), 0);
-                    alert(`⚠️ Atenção: Detectamos algumas dificuldades.\n\n📚 Um Plano de Recuperação Personalizado foi gerado para você!\n\nComplete as tarefas para ganhar +${totalReward} OwlCoins! 🦉`);
+                    // alert(`⚠️ Atenção: Detectamos algumas dificuldades.\n\n📚 Um Plano de Recuperação Personalizado foi gerado para você!\n\nComplete as tarefas para ganhar +${totalReward} OwlCoins! 🦉`);
                 }
+
+                setFinalGrading(gradingResult);
+                setIsCompleted(true);
             } catch (recoveryError) {
                 console.error("Erro no ciclo de recuperação:", recoveryError);
+                setFinalGrading(gradingResult);
+                setIsCompleted(true);
             }
             // ---------------------------------------------------
 
-            // Retornar respostas corrigidas
-            onComplete(gradingResult.answers);
+            // Retornar respostas corrigidas (Removido daqui para esperar o review do aluno)
+            // onComplete(gradingResult.answers);
         } catch (error) {
             console.error('Erro na correção automática, ativando resiliência offline...', error);
 
@@ -587,6 +600,96 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
     }, [currentQuestionIndex, a11y.textToSpeech, a11y.readingSpeed, currentItem]);
 
     // --- GUARDS / RENDER MODALS ---
+    // --- GUARDS / RENDER MODALS ---
+    if (isCompleted && finalGrading) {
+        return (
+            <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/95 backdrop-blur-sm no-zoom ${getFontClass()}`}>
+                <div className="max-w-4xl w-full bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+                    <div className="md:flex h-full">
+                        {/* Left Side: Summary */}
+                        <div className="md:w-1/3 bg-brand-dark p-8 text-white flex flex-col justify-center items-center text-center">
+                            <div className="mb-6 p-4 bg-white/10 rounded-full animate-bounce">
+                                <Trophy size={48} className="text-yellow-400" />
+                            </div>
+                            <h2 className="text-2xl font-black mb-2">Prova Finalizada!</h2>
+                            <p className="text-slate-400 text-sm mb-8">Sua proficiência foi calculada com sucesso.</p>
+
+                            <div className="space-y-4 w-full">
+                                <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Nota Final</div>
+                                    <div className="text-4xl font-black text-white">{finalGrading.totalScore.toFixed(1)} <span className="text-lg text-slate-500">/ {finalGrading.maxScore}</span></div>
+                                </div>
+                                <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Aproveitamento</div>
+                                    <div className="text-2xl font-black text-emerald-400">{((finalGrading.totalScore / finalGrading.maxScore) * 100).toFixed(0)}%</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right Side: Remediation / Study Plan */}
+                        <div className="md:w-2/3 p-8 bg-white dark:bg-slate-800">
+                            {generatedPlan ? (
+                                <div className="h-full flex flex-col">
+                                    <h3 className="text-xl font-bold flex items-center gap-2 mb-4 text-slate-800 dark:text-white">
+                                        <Target className="text-amber-500" /> Plano de Recuperação IA
+                                    </h3>
+                                    <div className="p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800 rounded-2xl mb-6">
+                                        <p className="text-sm text-amber-900 dark:text-amber-200 leading-relaxed font-medium">
+                                            Identificamos algumas lacunas em seu roteiro de aprendizagem. Para ajudar você a alcançar seus objetivos, geramos um plano de reforço personalizado.
+                                        </p>
+                                    </div>
+
+                                    <div className="flex-1 space-y-3 overflow-y-auto max-h-[300px] mb-6 pr-2 custom-scrollbar">
+                                        {generatedPlan.tasks.map((task: any, idx: number) => (
+                                            <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-100 dark:border-slate-700 flex justify-between items-center group">
+                                                <div className="flex-1">
+                                                    <div className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">Tarefa {idx + 1}</div>
+                                                    <div className="font-bold text-slate-800 dark:text-slate-200">{task.title}</div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-xs font-black text-brand-primary">+{task.rewardSafe || 0} 🦉</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="flex gap-4 mt-auto">
+                                        <button
+                                            onClick={() => ReportingService.exportStudyPlan(state.currentUser?.name || 'Estudante', generatedPlan)}
+                                            className="flex-1 py-4 bg-slate-800 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-700 transition-all shadow-lg"
+                                        >
+                                            <Download size={20} /> Baixar PDF do Plano
+                                        </button>
+                                        <button
+                                            onClick={() => onComplete(finalGrading.answers)}
+                                            className="px-8 py-4 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-500 transition-all shadow-lg"
+                                        >
+                                            Sair da Prova
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="h-full flex flex-col items-center justify-center text-center">
+                                    <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-6 text-emerald-600">
+                                        <CheckCircle size={40} />
+                                    </div>
+                                    <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">Desempenho Excelente!</h3>
+                                    <p className="text-slate-500 dark:text-slate-400 mb-8">Você demonstrou domínio dos conteúdos. Não foi necessário gerar um plano de reforço no momento.</p>
+                                    <button
+                                        onClick={() => onComplete(finalGrading.answers)}
+                                        className="px-12 py-4 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-500 transition-all shadow-xl"
+                                    >
+                                        Concluir Avaliação
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     if (!exam) return <div className="p-8 text-center no-zoom">Prova não encontrada.</div>;
 
     if (isAdaptive && showAdaptiveIntro && !isRestored) {

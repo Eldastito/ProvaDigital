@@ -1,19 +1,35 @@
 
-import React, { useState } from 'react';
-import { Users, TrendingUp, AlertTriangle, Calendar, Printer, School, GraduationCap, ClipboardList, ArrowDownRight, ArrowUpRight, Package, Check, X, Bus, Shield, Snowflake, Award, BarChart2, LayoutGrid, Edit, Trophy, Target, Activity, ShieldAlert, Zap } from 'lucide-react';
-import { RiskLevel } from '../../types';
+import React, { useState, useEffect } from 'react';
+import { Users, TrendingUp, AlertTriangle, Calendar, Printer, School, GraduationCap, ClipboardList, ArrowDownRight, ArrowUpRight, Package, Check, X, Bus, Shield, Snowflake, Award, BarChart2, LayoutGrid, Edit, Trophy, Target, Activity, ShieldAlert, Zap, Globe } from 'lucide-react';
+import { RiskLevel, TenantType } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
+import { ReportingService } from '../../services/reportingService';
 import { GlobalRankingView } from './GlobalRankingView';
 import { useAppStore } from '../../store/useAppStore';
+import { Download } from 'lucide-react';
 
 export const SchoolPrincipalDashboard = () => {
     const state = useAppStore();
     const { currentUser } = state;
-    const analytics = new AnalyticsService(state);
+    const analytics = new AnalyticsService();
     const schoolId = currentUser?.schoolId;
     const school = state.schools.find(s => s.id === schoolId);
     const [tab, setTab] = useState<'PERFORMANCE' | 'INFRASTRUCTURE'>('PERFORMANCE');
     const [showRanking, setShowRanking] = useState(false);
+    const [benchmarking, setBenchmarking] = useState<any>(null);
+    const [retentionData, setRetentionData] = useState<any>(null);
+
+    const schoolTenant = state.tenants.find(t => t.id === school?.tenantId);
+    const isPrivate = schoolTenant?.type === TenantType.PRIVATE;
+
+    useEffect(() => {
+        if (schoolId) {
+            analytics.getBenchmarkingData(schoolId).then(data => setBenchmarking(data));
+            if (isPrivate) {
+                analytics.getRetentionData(schoolId).then(data => setRetentionData(data));
+            }
+        }
+    }, [schoolId, isPrivate]);
 
     // Filtrar dados da escola
     const schoolStudents = state.students.filter(s => s.schoolId === schoolId);
@@ -104,6 +120,22 @@ export const SchoolPrincipalDashboard = () => {
                     <button onClick={() => setShowRanking(true)} className="bg-amber-100 text-amber-800 px-6 py-3 rounded-lg font-bold flex items-center gap-2 hover:bg-amber-200 shadow-sm border border-amber-200">
                         <Trophy size={20} /> Ranking Escolar
                     </button>
+                    <button
+                        onClick={() => {
+                            const data = classPerformance.map(cls => ({
+                                Turma: cls.name,
+                                Serie: cls.series,
+                                Turno: cls.shift,
+                                Alunos: cls.studentCount,
+                                'Média IDG': cls.avg.toFixed(2),
+                                'Alunos em Risco': cls.riskCount
+                            }));
+                            ReportingService.exportToExcel(data, `Desempenho_Turmas_${school?.name.replace(/\s+/g, '_')}`);
+                        }}
+                        className="bg-emerald-600 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 hover:bg-emerald-500 shadow-lg"
+                    >
+                        <Download size={20} /> Excel
+                    </button>
                     <button onClick={handlePrint} className="bg-slate-800 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 hover:bg-slate-700 shadow-lg">
                         <Printer size={20} /> Relatório de Gestão
                     </button>
@@ -160,6 +192,173 @@ export const SchoolPrincipalDashboard = () => {
                                 {integrityPercentage.toFixed(0)}%
                             </div>
                             <div className="text-xs text-slate-400 mt-2">Provas sem violações ({fraudAttempts} incidentes)</div>
+                        </div>
+                    </div>
+
+                    {/* Benchmarking & Alerts */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Benchmarking Card */}
+                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                            <div>
+                                <div className="flex justify-between items-start mb-4">
+                                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                                        <Globe size={18} className="text-blue-500" /> Comparativo de Rede
+                                    </h3>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">v3.1 Beta</span>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-end">
+                                        <span className="text-sm text-slate-500">Média da Unidade</span>
+                                        <span className="text-2xl font-black text-slate-800">{totalAvg.toFixed(1)}</span>
+                                    </div>
+
+                                    {benchmarking && (
+                                        <>
+                                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                                                <div
+                                                    className="h-full bg-blue-500 transition-all duration-1000"
+                                                    style={{ width: `${(totalAvg / 10) * 100}%` }}
+                                                />
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4 pt-2">
+                                                <div className="p-3 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                                    <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Média Rede</span>
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="font-bold text-slate-700">{benchmarking.networkAvg}</span>
+                                                        {benchmarking.isAboveNetwork ? (
+                                                            <ArrowUpRight size={14} className="text-emerald-500" />
+                                                        ) : (
+                                                            <ArrowDownRight size={14} className="text-rose-500" />
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="p-3 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                                    <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Média Est.</span>
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="font-bold text-slate-700">{benchmarking.stateAvg}</span>
+                                                        {benchmarking.isAboveState ? (
+                                                            <ArrowUpRight size={14} className="text-emerald-500" />
+                                                        ) : (
+                                                            <ArrowDownRight size={14} className="text-rose-500" />
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className={`mt-4 p-3 rounded-lg text-xs font-medium flex items-center gap-2 ${benchmarking.isAboveNetwork ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+                                                {benchmarking.isAboveNetwork ? (
+                                                    <>
+                                                        <Check size={14} />
+                                                        Sua escola está {(totalAvg - benchmarking.networkAvg).toFixed(1)} pts acima da rede.
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <AlertTriangle size={14} />
+                                                        Abaixo da média da rede em {(benchmarking.networkAvg - totalAvg).toFixed(1)} pts.
+                                                    </>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => setShowRanking(true)}
+                                className="mt-6 w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-xs font-bold transition-colors border border-slate-200 flex items-center justify-center gap-2"
+                            >
+                                Ver Ranking Completo <Trophy size={14} />
+                            </button>
+                        </div>
+
+                        {/* Indicadores do Setor Privado (v3.1) */}
+                        {isPrivate && retentionData && (
+                            <div className="bg-white p-6 rounded-2xl border border-amber-200 shadow-sm bg-gradient-to-br from-white to-amber-50/20">
+                                <div className="flex justify-between items-start mb-4">
+                                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                                        <TrendingUp size={18} className="text-amber-500" /> Retenção & LTV
+                                    </h3>
+                                    <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded uppercase tracking-wider">Gestão Privada</span>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="text-center p-3 bg-white rounded-xl border border-slate-100">
+                                        <div className="text-2xl font-black text-slate-800">{retentionData.retentionRate}%</div>
+                                        <div className="text-[10px] text-slate-400 font-bold uppercase mt-1">Taxa Retenção</div>
+                                    </div>
+                                    <div className="text-center p-3 bg-white rounded-xl border border-slate-100">
+                                        <div className="text-2xl font-black text-rose-500">{retentionData.churnRate}%</div>
+                                        <div className="text-[10px] text-slate-400 font-bold uppercase mt-1">Churn Anual</div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-6 space-y-3">
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="text-slate-500 font-medium">NPS de Pais</span>
+                                        <div className="flex items-center gap-1 text-amber-500">
+                                            <Award size={14} />
+                                            <span className="font-bold">{retentionData.satisfactionScore} / 5.0</span>
+                                        </div>
+                                    </div>
+                                    <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                                        <div className="h-full bg-amber-400" style={{ width: `${(retentionData.satisfactionScore / 5) * 100}%` }}></div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-6 flex justify-between items-center p-3 bg-slate-900 rounded-xl text-white">
+                                    <div>
+                                        <div className="text-[10px] opacity-70 font-bold uppercase">LTV Projetado</div>
+                                        <div className="text-lg font-black text-amber-400">R$ {retentionData.projectedLTV.toLocaleString()}</div>
+                                    </div>
+                                    <div className="text-[10px] bg-white/20 px-2 py-1 rounded font-bold uppercase">Meta: +8%</div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Alerta de Risco (Exaustivo) */}
+                        <div className="lg:col-span-2 bg-rose-50 p-6 rounded-2xl border border-rose-100 shadow-sm relative overflow-hidden">
+                            <div className="relative z-10">
+                                <h3 className="font-bold text-rose-800 flex items-center gap-2 mb-4">
+                                    <ShieldAlert size={18} /> Alerta de Evasão & Risco
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <div className="text-4xl font-black text-rose-600 mb-1">{riskCount}</div>
+                                        <div className="text-xs font-bold text-rose-800 uppercase tracking-wider mb-4">Alunos em Risco Crítico</div>
+                                        <p className="text-sm text-rose-900/70 leading-relaxed mb-4">
+                                            Identificamos uma correlação direta entre o comparecimento abaixo de 75% e a queda no IDG nas turmas de 9º Ano.
+                                        </p>
+                                        <button className="px-4 py-2 bg-rose-600 text-white rounded-lg text-xs font-bold hover:bg-rose-700 transition shadow-lg shadow-rose-200">
+                                            Gerar Plano de Intervenção
+                                        </button>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div className="bg-white/60 p-3 rounded-xl border border-rose-200">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="text-xs font-bold text-rose-900">Turmas Pior Desempenho</span>
+                                                <span className="text-[10px] text-rose-500">v3.1</span>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {classPerformance.slice(-2).map(c => (
+                                                    <div key={c.id} className="flex items-center justify-between text-xs">
+                                                        <span className="text-slate-600">{c.name}</span>
+                                                        <span className="font-bold text-rose-600">{c.avg.toFixed(1)}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="bg-amber-500/10 p-3 rounded-xl border border-amber-200">
+                                            <div className="text-[10px] font-bold text-amber-700 uppercase mb-1">Sugestão da IA</div>
+                                            <p className="text-[11px] text-amber-900 leading-tight">
+                                                Agendar reforço para tópicos de 'Funções' para as turmas B e D.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <ShieldAlert className="absolute -bottom-8 -right-8 text-rose-500/10" size={200} />
                         </div>
                     </div>
 

@@ -4,6 +4,8 @@ import { TrendingUp, Users, ShieldAlert, Zap, School, MapPin, Globe, Cloud, File
 import { AppState, TenantType, UserRole } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
 import { AnalyticsService } from '../../services/analyticsService';
+import { ReportingService } from '../../services/reportingService';
+import { Download } from 'lucide-react';
 
 import { GlobalRankingView } from './GlobalRankingView';
 import { GeoMap } from './GeoMap';
@@ -254,7 +256,24 @@ export const NetworkDashboardView = () => {
                             <option>3º Ano Médio</option>
                         </select>
                     </div>
-                    <button className="bg-white border border-slate-300 text-slate-700 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold shadow-sm hover:bg-slate-50 whitespace-nowrap">
+                    <button
+                        onClick={() => {
+                            const data = mapPoints.map(p => ({
+                                Regiao: p.label,
+                                Status: p.status,
+                                'Média IDG': p.value.toFixed(2),
+                                'Risco': p.status === 'CRITICAL' ? 'Alto' : p.status === 'WARNING' ? 'Médio' : 'Baixo'
+                            }));
+                            ReportingService.exportToExcel(data, `Relatorio_Rede_${new Date().toISOString().split('T')[0]}`);
+                        }}
+                        className="bg-emerald-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold shadow-sm hover:bg-emerald-500 flex items-center gap-2"
+                    >
+                        <Download size={14} /> Excel
+                    </button>
+                    <button
+                        onClick={() => window.print()}
+                        className="bg-white border border-slate-300 text-slate-700 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold shadow-sm hover:bg-slate-50 whitespace-nowrap"
+                    >
                         Exportar PDF
                     </button>
                 </div>

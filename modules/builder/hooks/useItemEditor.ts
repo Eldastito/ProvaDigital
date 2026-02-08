@@ -57,6 +57,7 @@ export const useItemEditor = () => {
         };
         multimedia: { type: 'IMAGE' | 'VIDEO' | 'AUDIO', url: string, description?: string }[];
         offlineKeywords?: { required: string; optional: string };
+        isPublic: boolean;
     }>({
         statement: '',
         subject: '',
@@ -69,7 +70,8 @@ export const useItemEditor = () => {
         minLines: '',
         maxLines: '',
         showWordCount: false,
-        multimedia: []
+        multimedia: [],
+        isPublic: false
     });
 
     const [alternatives, setAlternatives] = useState([{ text: '', isCorrect: false }, { text: '', isCorrect: false }]);
@@ -419,10 +421,11 @@ export const useItemEditor = () => {
             minLines: form.minLines ? parseInt(form.minLines) : undefined,
             maxLines: form.maxLines ? parseInt(form.maxLines) : undefined,
             showWordCount: form.showWordCount,
-            triParams: form.triParams,
+            triParams: form.triParams as any, // Cast temporário para compatibilidade de enum BloomTaxonomy
             isAccessible: (form as any).isAccessible || false,
             accessibilityInstructions: (form as any).accessibilityInstructions || '',
             multimedia: form.multimedia || [],
+            isPublic: form.isPublic,
             usageCount: 0,
             lifecycleStatus: ItemLifecycleStatus.APPROVED,
             createdAt: new Date().toISOString()

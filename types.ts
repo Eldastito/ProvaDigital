@@ -263,6 +263,7 @@ export interface ItemAlternative {
 
 export interface Item {
   id: string;
+  isPublic?: boolean; // Novo campo para Marketplace (Sprint 6)
   tenantId: string;
   schoolId?: string;
   ownerId: string;

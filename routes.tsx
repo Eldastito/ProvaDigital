@@ -50,6 +50,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { ReportGeneratorView } from './modules/reports/ReportGeneratorView';
 import { LiveDashboard } from './modules/runner/professor/LiveDashboard';
 import { ProfessorApp } from './modules/runner/student-app/ProfessorApp';
+import { MarketplaceView } from './modules/marketplace/MarketplaceView';
 
 // Helper for Role-based Dashboard
 const ConditionalDashboard = () => {
@@ -144,6 +145,10 @@ export const appRoutes: RouteObject[] = [
             {
                 path: 'analytics',
                 element: <AnalyticsDashboard />
+            },
+            {
+                path: 'marketplace',
+                element: <MarketplaceView />
             },
             {
                 path: 'study-plans',

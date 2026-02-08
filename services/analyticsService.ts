@@ -174,6 +174,58 @@ export class AnalyticsService {
             { label: 'Ciências', value: 6.9, color: '#10b981' }
         ];
     }
+
+    /**
+     * Métricas de Benchmarking (v3.1)
+     * Compara uma escola com a média da rede
+     */
+    async getBenchmarkingData(schoolId: string) {
+        // Simulando dados de rede vs escola
+        // No futuro, isso faria uma agregação no Postgres
+        const networkAvg = 6.8;
+        const stateAvg = 7.1;
+        const nationalAvg = 6.5;
+
+        // Média da escola específica (Baseada no ID para consistência)
+        const pseudoRandom = (seed: string) => {
+            let val = 0;
+            for (let j = 0; j < seed.length; j++) val += seed.charCodeAt(j);
+            return val;
+        };
+        const schoolSeed = pseudoRandom(schoolId);
+        const schoolAvg = (schoolSeed % 30) / 10 + 5.5; // 5.5 - 8.5
+
+        return {
+            schoolAvg,
+            networkAvg,
+            stateAvg,
+            nationalAvg,
+            diffNetwork: schoolAvg - networkAvg,
+            diffState: schoolAvg - stateAvg,
+            isAboveNetwork: schoolAvg > networkAvg,
+            isAboveState: schoolAvg > stateAvg
+        };
+    }
+
+    /**
+     * Métricas de Retenção e Churn (Foco Privado v3.1)
+     */
+    async getRetentionData(schoolId: string) {
+        // Mock de dados de retenção anual
+        return {
+            retentionRate: 94.5,
+            churnRate: 5.5,
+            projectedLTV: 45000, // Reais
+            satisfactionScore: 4.8, // 0-5 (NPS Pais)
+            riskOfExit: 12, // Qtd alunos com pendência ou baixa atividade
+            history: [
+                { month: 'Set', rate: 92 },
+                { month: 'Out', rate: 93 },
+                { month: 'Nov', rate: 95 },
+                { month: 'Dez', rate: 94.5 }
+            ]
+        };
+    }
 }
 
 export const analyticsService = new AnalyticsService();

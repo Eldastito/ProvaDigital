@@ -32,7 +32,8 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
             <button
                 onClick={() => setIsOpen(true)}
                 className="fixed bottom-24 right-4 bg-brand-primary text-white p-3 rounded-full shadow-xl hover:bg-brand-dark transition-all z-[40] group animate-in slide-in-from-bottom-4 opacity-90 hover:opacity-100"
-                title="Opções de Acessibilidade"
+                title="Abrir Opções de Acessibilidade"
+                aria-label="Abrir configurações de acessibilidade"
             >
                 <Settings size={24} className="group-hover:rotate-90 transition-transform duration-500" />
             </button>
@@ -40,16 +41,24 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
     }
 
     return (
-        <div className={`fixed bottom-24 right-4 w-80 rounded-2xl shadow-xl border p-6 z-[50] animate-in slide-in-from-bottom-4 fade-in transition-colors duration-300 ${config.theme === 'high-contrast'
-            ? 'bg-black border-yellow-400 text-yellow-400'
-            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white'
-            }`}>
+        <div
+            role="dialog"
+            aria-labelledby="a11y-title"
+            className={`fixed bottom-24 right-4 w-80 rounded-2xl shadow-xl border p-6 z-[50] animate-in slide-in-from-bottom-4 fade-in transition-colors duration-300 ${config.theme === 'high-contrast'
+                ? 'bg-black border-yellow-400 text-yellow-400'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white'
+                }`}>
             <div className="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
-                <h3 className={`font-bold flex items-center gap-2 ${config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-800 dark:text-white'}`}>
+                <h3 id="a11y-title" className={`font-bold flex items-center gap-2 ${config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-800 dark:text-white'}`}>
                     <Settings size={18} className={config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-brand-primary'} />
                     Acessibilidade
                 </h3>
-                <button onClick={() => setIsOpen(false)} className={`hover:scale-110 transition-transform ${config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'}`}>
+                <button
+                    onClick={() => setIsOpen(false)}
+                    className={`hover:scale-110 transition-transform ${config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'}`}
+                    aria-label="Fechar configurações"
+                    title="Fechar"
+                >
                     <X size={20} />
                 </button>
             </div>
@@ -58,7 +67,7 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
 
                 {/* 1. Tamanho da Fonte */}
                 <div className="space-y-2">
-                    <label className={`text-[11px] font-black uppercase flex items-center gap-2 tracking-wider ${config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-700 dark:text-slate-200'
+                    <label htmlFor="zoom-slider" className={`text-[11px] font-black uppercase flex items-center gap-2 tracking-wider ${config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-700 dark:text-slate-200'
                         }`}>
                         <Type size={14} className={config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-brand-primary'} /> Tamanho do Texto
                     </label>
@@ -66,15 +75,19 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                         <button
                             onClick={() => update('fontSize', Math.max(80, config.fontSize - 10))}
                             className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded transition flex-1 flex justify-center"
+                            aria-label="Diminuir texto"
+                            title="Diminuir"
                         >
                             <ZoomOut size={18} />
                         </button>
-                        <span className="font-mono font-bold text-slate-700 dark:text-slate-200 w-12 text-center text-sm">
+                        <span className="font-mono font-bold text-slate-700 dark:text-slate-200 w-12 text-center text-sm" aria-live="polite">
                             {config.fontSize}%
                         </span>
                         <button
                             onClick={() => update('fontSize', Math.min(200, config.fontSize + 10))}
                             className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded transition flex-1 flex justify-center"
+                            aria-label="Aumentar texto"
+                            title="Aumentar"
                         >
                             <ZoomIn size={18} />
                         </button>
@@ -83,13 +96,15 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
 
                 <div className="space-y-2">
                     <label className={`text-[11px] font-black uppercase tracking-wider ${isHighContrast ? 'text-yellow-400' : 'text-slate-700 dark:text-slate-200'}`}>Tipografia</label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-2" role="group" aria-label="Seleção de Fonte">
                         {(['sans', 'serif', 'dyslexic'] as FontType[]).map((type) => (
                             <button
                                 key={type}
                                 onClick={() => update('fontType', type)}
                                 className={`p-2 text-xs rounded border transition-all ${getBtnBase(config.fontType === type)} ${type === 'serif' ? 'font-serif' : ''} ${type === 'dyslexic' ? 'font-dyslexic' : ''}`}
                                 style={type === 'dyslexic' ? { fontFamily: 'OpenDyslexic, sans-serif' } : {}}
+                                aria-pressed={config.fontType === type}
+                                aria-label={`Fonte ${type === 'sans' ? 'Sem Serifa' : type === 'serif' ? 'Com Serifa' : 'Especial para Dislexia'}`}
                             >
                                 {type === 'sans' ? 'Padrão' : type === 'serif' ? 'Serifa' : 'Dislexia'}
                             </button>
@@ -103,9 +118,11 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                         }`}>
                         <Sun size={14} className={config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-brand-primary'} /> Contraste & Tema
                     </label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2" role="group" aria-label="Seleção de Tema">
                         <button
                             onClick={() => update('theme', 'light')}
+                            aria-pressed={config.theme === 'light'}
+                            aria-label="Tema Claro"
                             className={`p-2 text-xs rounded border flex items-center gap-2 transition-all ${config.theme === 'light'
                                 ? 'bg-emerald-100 text-emerald-800 border-emerald-500 font-bold'
                                 : (isHighContrast ? 'bg-black text-yellow-400 border-yellow-400' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50')
@@ -115,6 +132,8 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                         </button>
                         <button
                             onClick={() => update('theme', 'dark')}
+                            aria-pressed={config.theme === 'dark'}
+                            aria-label="Tema Escuro"
                             className={`p-2 text-xs rounded border flex items-center gap-2 transition-all ${config.theme === 'dark'
                                 ? 'bg-slate-700 text-white border-slate-400 font-bold shadow-inner'
                                 : (isHighContrast ? 'bg-black text-yellow-400 border-yellow-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200')
@@ -124,6 +143,8 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                         </button>
                         <button
                             onClick={() => update('theme', 'sepia')}
+                            aria-pressed={config.theme === 'sepia'}
+                            aria-label="Tema Sépia"
                             className={`p-2 text-xs font-bold rounded border flex items-center gap-2 transition-all ${config.theme === 'sepia'
                                 ? 'bg-[#f4e4bc] text-[#4f3e1e] border-[#d8c8a0]'
                                 : (isHighContrast ? 'bg-black text-yellow-400 border-yellow-400' : 'bg-[#fff8e1] dark:bg-[#2d2a23] text-[#4f3e1e] dark:text-[#d8c8a0] border-slate-200 dark:border-[#4f3e1e] hover:bg-[#fff0c0]')
@@ -133,6 +154,8 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                         </button>
                         <button
                             onClick={() => update('theme', 'high-contrast')}
+                            aria-pressed={config.theme === 'high-contrast'}
+                            aria-label="Alto Contraste Amarelo"
                             className={`p-2 text-xs rounded border flex items-center gap-2 font-black transition-all ${config.theme === 'high-contrast'
                                 ? 'bg-yellow-400 text-black border-yellow-400 ring-2 ring-yellow-400 ring-offset-1 dark:ring-offset-slate-900 shadow-lg'
                                 : 'bg-black text-yellow-400 border-yellow-400 hover:bg-yellow-900/20'
@@ -145,15 +168,17 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
 
                 {/* 4. Altura da Linha */}
                 <div className="space-y-2">
-                    <label className={`text-[11px] font-black uppercase flex items-center gap-2 tracking-wider ${config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-700 dark:text-slate-200'
+                    <label htmlFor="line-height-range" className={`text-[11px] font-black uppercase flex items-center gap-2 tracking-wider ${config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-700 dark:text-slate-200'
                         }`}>
                         <Move size={14} className={config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-brand-primary'} /> Altura da Linha
                     </label>
                     <input
+                        id="line-height-range"
                         type="range"
                         min="1"
                         max="2.5"
                         step="0.1"
+                        aria-label="Ajustar altura da linha"
                         value={config.lineHeight}
                         onChange={(e) => update('lineHeight', parseFloat(e.target.value))}
                         className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${isHighContrast ? 'bg-yellow-400 accent-black' : 'bg-slate-200 dark:bg-slate-700'}`}
@@ -162,15 +187,17 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
 
                 {/* 5. Espaçamento entre Letras */}
                 <div className="space-y-2">
-                    <label className={`text-[11px] font-black uppercase flex items-center gap-2 tracking-wider ${config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-700 dark:text-slate-200'
+                    <label htmlFor="letter-spacing-range" className={`text-[11px] font-black uppercase flex items-center gap-2 tracking-wider ${config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-700 dark:text-slate-200'
                         }`}>
                         <Type size={14} className={config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-brand-primary'} /> Espaçamento entre Letras
                     </label>
                     <input
+                        id="letter-spacing-range"
                         type="range"
                         min="0"
                         max="5"
                         step="0.5"
+                        aria-label="Ajustar espaçamento entre letras"
                         value={config.letterSpacing}
                         onChange={(e) => update('letterSpacing', parseFloat(e.target.value))}
                         className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${isHighContrast ? 'bg-yellow-400 accent-black' : 'bg-slate-200 dark:bg-slate-700'}`}
@@ -186,6 +213,8 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                         </div>
                         <button
                             onClick={() => update('focusMode', !config.focusMode)}
+                            aria-pressed={config.focusMode}
+                            aria-label="Ativar Modo Foco"
                             className={`w-12 h-6 rounded-full transition-colors relative ${config.focusMode ? 'bg-brand-primary' : 'bg-slate-300'}`}
                         >
                             <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${config.focusMode ? 'left-7' : 'left-1'}`} />
@@ -199,6 +228,8 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                         </div>
                         <button
                             onClick={() => update('hideTimer', !config.hideTimer)}
+                            aria-pressed={!config.hideTimer}
+                            aria-label="Mostrar cronômetro"
                             className={`w-12 h-6 rounded-full transition-colors relative ${!config.hideTimer ? 'bg-brand-primary' : 'bg-slate-300'}`}
                         >
                             <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${!config.hideTimer ? 'left-7' : 'left-1'}`} />
@@ -212,6 +243,8 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                         </div>
                         <button
                             onClick={() => update('textToSpeech', !config.textToSpeech)}
+                            aria-pressed={config.textToSpeech}
+                            aria-label="Ativar Leitor de Tela"
                             className={`w-12 h-6 rounded-full transition-colors relative ${config.textToSpeech ? 'bg-brand-primary' : 'bg-slate-300'}`}
                         >
                             <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${config.textToSpeech ? 'left-7' : 'left-1'}`} />
@@ -226,6 +259,8 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                         <button
                             onClick={() => update('showLibrasWindow', !config.showLibrasWindow)}
                             disabled={!config.librasVideoUrl}
+                            aria-pressed={config.showLibrasWindow}
+                            aria-label="Ativar Janela de Libras"
                             className={`w-12 h-6 rounded-full transition-colors relative ${config.showLibrasWindow ? 'bg-brand-primary' : (config.librasVideoUrl ? 'bg-slate-300' : 'bg-slate-100 opacity-50 cursor-not-allowed')}`}
                             title={!config.librasVideoUrl ? "Nenhuma tradução disponível para esta questão" : "Ativar Tradução em Libras"}
                         >
@@ -240,7 +275,7 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                         }`}>
                         <PenTool size={14} className={config.theme === 'high-contrast' ? 'text-yellow-400' : 'text-brand-primary'} /> Ferramentas de Desenho
                     </label>
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="grid grid-cols-4 gap-2" role="group" aria-label="Ferramentas Pedagógicas">
                         {[
                             { id: 'pen', icon: PenTool, label: 'Caneta' },
                             { id: 'highlighter', icon: Highlighter, label: 'Marca-t' },
@@ -255,6 +290,8 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                                     : getBtnBase(false)
                                     }`}
                                 title={tool.label}
+                                aria-label={tool.label}
+                                aria-pressed={tool.id === 'scratchpad' ? config.showScratchpad : config.penMode === tool.id}
                             >
                                 <tool.icon size={16} />
                                 <span className="text-[10px]">{tool.label}</span>
@@ -268,7 +305,7 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                             <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
                                 <Palette size={10} /> Cor {config.penMode === 'pen' ? 'da Caneta' : 'do Marca-texto'}
                             </label>
-                            <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-2 rounded-lg">
+                            <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-2 rounded-lg" role="group" aria-label="Seleção de Cor">
                                 {(config.penMode === 'pen'
                                     ? [
                                         '#3b82f6', // azul
@@ -291,6 +328,8 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                                             : 'border-white dark:border-slate-700 hover:scale-105'
                                             }`}
                                         style={{ backgroundColor: color }}
+                                        aria-label={`Cor ${color}`}
+                                        aria-pressed={(config.penMode === 'pen' ? config.penColor : config.markerColor) === color}
                                     />
                                 ))}
                             </div>
@@ -300,13 +339,15 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
                     {/* Espessura do traço / Borracha */}
                     {config.penMode !== 'none' && (
                         <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase">
+                            <label htmlFor="thickness-range" className="text-[10px] font-bold text-slate-400 uppercase">
                                 Espessura {config.penMode === 'eraser' ? 'da Borracha' : 'do Traço'}
                             </label>
                             <input
+                                id="thickness-range"
                                 type="range"
                                 min={config.penMode === 'eraser' ? 5 : 1}
                                 max={config.penMode === 'eraser' ? 100 : 10}
+                                aria-label="Ajustar espessura da ferramenta"
                                 value={config.penMode === 'eraser' ? config.eraserSize : config.strokeSize}
                                 onChange={(e) => update(config.penMode === 'eraser' ? 'eraserSize' : 'strokeSize', parseInt(e.target.value))}
                                 className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer"
@@ -319,3 +360,4 @@ export const AccessibilityToolbar = ({ config, onChange }: AccessibilityToolbarP
         </div>
     );
 };
+

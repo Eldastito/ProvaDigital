@@ -39,13 +39,15 @@ export class AutoGradingService {
      * @param answers - Respostas do aluno
      * @param mode - Modo de aplicação (offline/online/demo)
      * @param isConnected - Se há conexão internet disponível
+     * @param itemPool - Pool de itens já carregados (opcional, essencial para offline real)
      * @returns Resultado da correção com notas
      */
     static async gradeFullExam(
         exam: Exam,
         answers: StudentAnswer[],
         mode: 'offline' | 'online' | 'demo',
-        isConnected = false
+        isConnected = false,
+        itemPool: Item[] = []
     ): Promise<GradingResult> {
         const results: StudentAnswer[] = [];
         let totalScore = 0;
@@ -57,7 +59,32 @@ export class AutoGradingService {
 
         // Itera sobre todas as questões da prova
         for (const itemConfig of exam.items) {
-            const item = await this.getItemById(itemConfig.itemId);
+            // Prioriza buscar do pool (Offline-First)
+            let item = itemPool.find(i => i.id === itemConfig.itemId);
+
+            // Fallback para Supabase se não estiver no pool (apenas se online)
+            if (!item && isConnected) {
+                try {
+                    item = await this.getItemById(itemConfig.itemId);
+                } catch (err) {
+                    console.error(`[Grading] Falha ao recuperar item ${itemConfig.itemId} via rede:`, err);
+                }
+            }
+
+            if (!item) {
+                console.warn(`[Grading] Item ${itemConfig.itemId} não encontrado no pool nem via rede.`);
+                results.push({
+                    itemId: itemConfig.itemId,
+                    selectedAlternativeId: null,
+                    text: null,
+                    isCorrect: false,
+                    scoreObtained: 0,
+                    gradingMethod: 'NOT_ANSWERED',
+                    essayFeedback: 'Item indisponível para correção automática'
+                });
+                continue;
+            }
+
             const answer = answersMap.get(item.id);
 
             if (!answer) {
