@@ -12,6 +12,7 @@ import { useAppStore } from '../../../store/useAppStore';
 import { getRealLogisticsDemand } from '../../../utils/logisticsEngine';
 import { analyticsService } from '../../../services/analyticsService';
 import { AITutorDrawer } from './AITutorDrawer';
+import { FinancialEducationModal } from './FinancialEducationModal';
 import { KPI_KNOWLEDGE_BASE } from '../../../utils/kpiKnowledgeBase';
 
 const Card = ({ children, className = "" }: any) => (
@@ -141,6 +142,7 @@ export const BusinessCalculator = () => {
     // LOGÍSTICA & DEPRECIAÇÃO (Novo)
     const [simultaneidade, setSimultaneidade] = useState(3); // Default: 3 professores simultâneos
     const [mesesDepreciacao, setMesesDepreciacao] = useState(36); // Default: 36 meses
+    const [showEducationModal, setShowEducationModal] = useState(false);
 
     // Sales & Customers state
     const [cac, setCac] = useState(2500);
@@ -252,6 +254,7 @@ export const BusinessCalculator = () => {
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto pb-20">
+            <FinancialEducationModal isOpen={showEducationModal} onClose={() => setShowEducationModal(false)} />
             <AITutorDrawer
                 isOpen={!!tutorKpi}
                 onClose={() => setTutorKpi(null)}
@@ -413,7 +416,13 @@ export const BusinessCalculator = () => {
                         <Card className="space-y-8 animate-in fade-in zoom-in-95 duration-300">
                             <div className="flex justify-between items-center border-b border-slate-50 pb-4">
                                 <h3 className="font-black text-brand-dark uppercase text-[10px] tracking-widest flex items-center gap-2"><Layers size={16} className="text-brand-primary" /> DRE Consolidado (TCO Real)</h3>
-                                <div className="text-[10px] font-bold text-slate-400">Total Cost of Ownership</div>
+                                <button
+                                    onClick={() => setShowEducationModal(true)}
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-blue-100 transition-colors border border-blue-100"
+                                >
+                                    <MessageSquare size={14} />
+                                    Entenda os Números
+                                </button>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
