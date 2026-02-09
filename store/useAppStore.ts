@@ -488,7 +488,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
                     subject: e.subject,
                     status: e.status,
                     items: e.items_config,
-                    classIds: e.class_ids,
+                    classIds: e.class_ids || [],
                     model: e.model || 'SOMATIVO',
                     durationMinutes: e.duration_minutes || 60,
                     targetQuestionCount: e.target_question_count || 10,

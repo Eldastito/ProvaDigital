@@ -194,13 +194,16 @@ export const calculateBatchRisk = (students: Student[], state: AppState): RiskAs
     const uniqueClassIds = Array.from(new Set(students.map(s => s.classId)));
 
     uniqueClassIds.forEach(classId => {
-        // Conta provas ativas/concluídas/publicadas vinculadas a esta turma
-        const examCount = state.exams.filter(e =>
-            e.classIds.includes(classId) &&
-            e.status !== 'DRAFT' // Ignora rascunhos
-        ).length;
+        if (!classId) return;
 
-        // Fallback para 1 para evitar divisão por zero se não houver provas
+        // Conta provas vinculadas a esta turma com segurança total
+        const examCount = (state.exams || []).filter(e => {
+            if (!e) return false;
+            // Garante que classIds seja tratado como array, lidando com nulo/indefinido
+            const ids = e.classIds || [];
+            return Array.isArray(ids) && ids.includes(classId) && e.status !== 'DRAFT';
+        }).length;
+
         classExamCounts.set(classId, Math.max(1, examCount));
     });
 
