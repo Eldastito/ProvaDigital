@@ -203,12 +203,35 @@ export const createIntervention = async (
     if (USE_SUPABASE) {
         const { data, error } = await supabase
             .from('interventions')
-            .insert([newIntervention])
+            .insert([{
+                id: newIntervention.id,
+                alert_id: newIntervention.alertId,
+                action: newIntervention.action,
+                description: newIntervention.description,
+                responsible_id: newIntervention.responsibleId,
+                responsible_name: newIntervention.responsibleName,
+                target: newIntervention.target,
+                priority: newIntervention.priority,
+                scheduled_date: newIntervention.scheduledDate,
+                completed_at: newIntervention.completedAt,
+                status: newIntervention.status,
+                notes: newIntervention.notes,
+                created_at: newIntervention.createdAt
+            }])
             .select()
             .single();
 
         if (error) throw error;
-        return data;
+        // Mapeia de volta para o tipo da interface se necessário
+        return {
+            ...data,
+            alertId: data.alert_id,
+            responsibleId: data.responsible_id,
+            responsibleName: data.responsible_name,
+            scheduledDate: data.scheduled_date,
+            completedAt: data.completed_at,
+            createdAt: data.created_at
+        };
     } else {
         // Mock
         mockInterventions.push(newIntervention);
@@ -284,12 +307,28 @@ export const createNotification = async (
     if (USE_SUPABASE) {
         const { data, error } = await supabase
             .from('notifications')
-            .insert([newNotification])
+            .insert([{
+                id: newNotification.id,
+                user_id: newNotification.userId,
+                type: newNotification.type,
+                title: newNotification.title,
+                message: newNotification.message,
+                data: newNotification.data,
+                read: newNotification.read,
+                created_at: newNotification.createdAt,
+                expires_at: newNotification.expiresAt
+            }])
             .select()
             .single();
 
         if (error) throw error;
-        return data;
+        return {
+            ...data,
+            userId: data.user_id,
+            createdAt: data.created_at,
+            readAt: data.read_at,
+            expiresAt: data.expires_at
+        };
     } else {
         // Mock
         mockNotifications.push(newNotification);
