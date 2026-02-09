@@ -7,7 +7,8 @@ import {
     ItemLifecycleStatus, ExamVersion, ExamVariant, Tenant, School, SchoolClass,
     UserProfileExtended, ExamRegistration, RegistrationStatus,
     ExamAttempt, ExamAttemptEvent, AuditLog, ArcadeGame, ExamVariantOverride,
-    LiveQuizSession, LiveQuizParticipant, LiveQuizResult
+    LiveQuizSession, LiveQuizParticipant, LiveQuizResult,
+    LogisticsSuitcase, SuitcaseStatus, TabletLogistics, LogisticsAuditEntry
 } from '../types';
 import { uuidv4 } from '../utils/helpers';
 import { INITIAL_TENANTS, INITIAL_SCHOOLS, INITIAL_CLASSES, INITIAL_USERS, INITIAL_ITEMS, INITIAL_STUDENTS, INITIAL_RESULTS, INITIAL_EXAMS, INITIAL_REGISTRATIONS, INITIAL_ANNOUNCEMENTS, INITIAL_MESSAGES, INITIAL_LESSON_PLANS, INITIAL_STUDY_PLANS, INITIAL_STUDENT_PROFILES, INITIAL_USER_PROFILES, INITIAL_SETTINGS, INITIAL_GAMIFIED_EVENTS } from '../utils/mockData';
@@ -192,6 +193,12 @@ interface AppActions {
 
     // --- PHASE 9: AI REFINEMENTS ---
     updatePedagogicalFeedback: (resultId: string, feedback: string) => Promise<void>;
+
+    // --- LOGISTICS ACTIONS ---
+    addLogisticsSuitcase: (suitcase: LogisticsSuitcase) => Promise<void>;
+    updateSuitcaseStatus: (id: string, status: SuitcaseStatus) => Promise<void>;
+    logTabletMovement: (serialId: string, suitcaseId: string, action: 'CHECK_IN' | 'CHECK_OUT', actorId: string) => Promise<void>;
+    loadLogisticsData: () => Promise<void>;
 }
 
 export type AppStore = AppState & AppActions;
@@ -321,6 +328,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
     itemGenerationBatches: [],
     activeBatchId: null,
     examVersions: [],
+    logisticsSuitcases: [],
+    logisticsTablets: [],
+    logisticsAudit: [],
 
 
 
@@ -1964,6 +1974,41 @@ export const useAppStore = create<AppStore>((set, get) => ({
         } catch (e) {
             console.error("Error updating pedagogical feedback:", e);
         }
+    },
+
+    // --- LOGISTICS ACTIONS implementation ---
+    addLogisticsSuitcase: async (suitcase) => {
+        set(state => ({ logisticsSuitcases: [suitcase, ...state.logisticsSuitcases] }));
+    },
+    updateSuitcaseStatus: async (id, status) => {
+        set(state => ({
+            logisticsSuitcases: state.logisticsSuitcases.map(s =>
+                s.id === id ? { ...s, status, lastUpdatedAt: new Date().toISOString() } : s
+            )
+        }));
+    },
+    logTabletMovement: async (serialId, suitcaseId, action, actorId) => {
+        const entry: LogisticsAuditEntry = {
+            id: uuidv4(),
+            suitcaseId,
+            tabletSerial: serialId,
+            action,
+            actorId,
+            timestamp: new Date().toISOString()
+        };
+        set(state => ({
+            logisticsAudit: [entry, ...state.logisticsAudit],
+            logisticsTablets: state.logisticsTablets.map(t =>
+                t.serialId === serialId ? {
+                    ...t,
+                    status: action === 'CHECK_OUT' ? 'IN_USE' : 'RETURNED',
+                    currentSuitcaseId: action === 'CHECK_OUT' ? suitcaseId : undefined
+                } : t
+            )
+        }));
+    },
+    loadLogisticsData: async () => {
+        console.log("🚚 Dados logísticos simulados carregados.");
     },
 
     getRecommendedVariant: async (studentId, versionId) => {

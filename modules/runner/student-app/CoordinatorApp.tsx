@@ -86,7 +86,7 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
         };
 
         // 3. Generate QR
-        const chunks = QRDataTransfer.compressAndChunk(payload);
+        const chunks = await QRDataTransfer.compressAndChunk(payload);
         setQrChunks(chunks);
         setSelectedClassId(classId);
         setView('DISTRIBUTE_QR');

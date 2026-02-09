@@ -9,7 +9,7 @@
  * 2. Identifica turnos (manhã/tarde/noite)
  * 3. Calcula PICO de alunos por turno
  * 4. Verifica se há intervalo mínimo (1h) para reutilização
- * 5. Adiciona reserva técnica (20% alunos, 10% infra)
+ * 5. Adiciona reserva técnica (15% alunos e infra)
  */
 
 export interface ExamSchedule {
@@ -261,7 +261,7 @@ export class TabletOptimizationService {
      * Calcula tablets de alunos com reserva técnica (20%)
      */
     private static calculateStudentTablets(peakStudents: number): number {
-        return Math.ceil(peakStudents * 1.20);
+        return Math.ceil(peakStudents * 1.15);
     }
 
     /**
@@ -274,10 +274,10 @@ export class TabletOptimizationService {
         const simultaneousExams = canReuse ? 1 : this.findMaxSimultaneous(exams);
 
         return {
-            router: Math.ceil(simultaneousExams * 1.10),
-            professor: Math.ceil(simultaneousExams * 1.10),
-            coordinator: Math.ceil(1 * 1.10), // 1 por escola, sempre
-            total: Math.ceil(simultaneousExams * 1.10) * 2 + Math.ceil(1 * 1.10)
+            router: Math.ceil(simultaneousExams * 1.15),
+            professor: Math.ceil(simultaneousExams * 1.15),
+            coordinator: Math.ceil(1 * 1.15), // 1 por escola, sempre
+            total: Math.ceil(simultaneousExams * 1.15) * 2 + Math.ceil(1 * 1.15)
         };
     }
 
@@ -321,7 +321,7 @@ export class TabletOptimizationService {
      * Calcula total sem otimização
      */
     private static calculateWithoutOptimization(studentCount: number): number {
-        const students = Math.ceil(studentCount * 1.20);
+        const students = Math.ceil(studentCount * 1.15);
         const infra = 1 + 1 + 1; // Router + Professor + Coordenador
         return students + infra;
     }

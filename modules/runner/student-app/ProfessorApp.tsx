@@ -125,7 +125,7 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
         return () => clearInterval(interval);
     }, [view, qrChunks, attendanceQrChunks]);
 
-    const handleDeliverToStudent = (studentId: string) => {
+    const handleDeliverToStudent = async (studentId: string) => {
         const student = classData.students.find((s: any) => s.id === studentId);
         if (!student) return;
 
@@ -139,7 +139,7 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
             eventId: `evt_${classData.classId}_${new Date().toISOString().split('T')[0]} ` // Event ID para controlar sessão
         };
 
-        const chunks = QRDataTransfer.compressAndChunk(payload);
+        const chunks = await QRDataTransfer.compressAndChunk(payload);
         setQrChunks(chunks);
         setSelectedStudentId(studentId);
         setView('DISTRIBUTE_STUDENT_QR');
@@ -161,7 +161,7 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
         return { present: presentCount, absent: absentCount, surplus: absentCount };
     };
 
-    const handleFinalizeAttendance = () => {
+    const handleFinalizeAttendance = async () => {
         const { present, absent, surplus } = getStats();
         if (!confirm(`Confirmar chamada ? `)) return;
         setAttendanceLocked(true);
@@ -174,7 +174,7 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
             absentCount: absent,
             surplusTablets: surplus
         };
-        const chunks = QRDataTransfer.compressAndChunk(report);
+        const chunks = await QRDataTransfer.compressAndChunk(report);
         setAttendanceQrChunks(chunks);
     };
 

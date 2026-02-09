@@ -137,7 +137,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
 
             // 4. Tentar reassemblar se completo
             if (newChunks.size === chunk.total) {
-                const reassembled = QRDataTransfer.tryReassemble(newChunks, chunk.total);
+                const reassembled = await QRDataTransfer.tryReassemble(newChunks, chunk.total);
 
                 if (!reassembled) {
                     throw new Error('Erro ao reassemblar chunks');
@@ -235,7 +235,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
 
             // Gerar QR Code consolidado
             const qrData = JSON.stringify(signedBatch);
-            const chunks = QRDataTransfer.compressAndChunk(qrData);
+            const chunks = await QRDataTransfer.compressAndChunk(qrData);
 
             // Por simplicidade, usar apenas primeiro chunk (ou implementar carousel)
             setConsolidatedQR(chunks[0]);

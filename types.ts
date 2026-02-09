@@ -480,10 +480,13 @@ export interface ExamRegistration {
 export interface StudentAnswer {
   itemId: string;
   selectedAlternativeId: string | null;
-  text?: string; // For Essay answers
+  text?: string; // For Essay answers (Legacy)
+  essayText?: string; // Explicit field for essays
   isCorrect: boolean;
   scoreObtained: number;
-  essayFeedback?: string;
+  essayFeedback?: string; // Legacy feedback
+  aiFeedback?: string; // AI-generated feedback
+  professorFeedback?: string; // Human teacher feedback
   gradingMethod?: 'OFFLINE_OBJECTIVE' | 'OFFLINE_PATTERN' | 'ONLINE_AI' | 'MANUAL_REQUIRED' | 'NOT_ANSWERED';
   needsHumanReview?: boolean; // Flag para correção manual posterior
 }
@@ -801,6 +804,46 @@ export interface ExamEvent {
   stats: { expected: number, present: number };
 }
 
+// --- LOGISTICS & INDUSTRIAL FLOW (NEW) ---
+
+export type SuitcaseStatus = 'PREPARING' | 'READY' | 'IN_TRANSIT' | 'AT_SCHOOL' | 'RETURNED' | 'MAINTENANCE';
+
+export interface TabletLogistics {
+  id: string;
+  serialId: string;
+  model: string;
+  status: 'IDLE' | 'LOADING' | 'IN_SUITCASE' | 'IN_USE' | 'RETURNED' | 'FAULTY';
+  currentSuitcaseId?: string;
+  lastSyncAt: string;
+  batteryLevel?: number;
+  assignedEventId?: string;
+}
+
+export interface LogisticsSuitcase {
+  id: string;
+  tag: string; // Ex: MALA-001
+  schoolId: string;
+  tenantId: string;
+  targetEventIds: string[];
+  status: SuitcaseStatus;
+  tablets: string[]; // Serial IDs
+  expectedTabletCount: number;
+  actualTabletCount: number;
+  responsibleId?: string;
+  lastUpdatedAt: string;
+  createdAt?: string;
+}
+
+export interface LogisticsAuditEntry {
+  id: string;
+  suitcaseId?: string;
+  tabletSerial?: string;
+  action: 'CHECK_OUT' | 'CHECK_IN' | 'LOAD' | 'REPAIR' | 'WIPE';
+  actorId: string;
+  timestamp: string;
+  details?: string;
+}
+
 export interface EncryptedPackage {
   iv: string;
   data: string;
@@ -952,6 +995,10 @@ export interface AppState {
   auditLogs: AuditLog[];
   liveAlerts: any[]; // Phase 5: Live Monitoring
   realtimeChannel: RealtimeChannel | null;
+  // Logistics Extensions
+  logisticsSuitcases: LogisticsSuitcase[];
+  logisticsTablets: TabletLogistics[];
+  logisticsAudit: LogisticsAuditEntry[];
 }
 
 // ============================================
@@ -1070,3 +1117,4 @@ export interface ArcadeGame {
   tenantId?: string;
   createdAt: string;
 }
+
