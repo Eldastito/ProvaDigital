@@ -458,9 +458,9 @@ const StudentRiskCard: React.FC<{
 
                             {/* EVASION BADGE */}
                             <span className={`ml-2 px-2 py-0.5 text-[10px] uppercase font-bold tracking-wide rounded border ${assessment.evasionProbability === 'CRITICA' ? 'bg-purple-100 text-purple-700 border-purple-200' :
-                                    assessment.evasionProbability === 'ALTA' ? 'bg-red-100 text-red-700 border-red-200' :
-                                        assessment.evasionProbability === 'MEDIA' ? 'bg-orange-100 text-orange-700 border-orange-200' :
-                                            'bg-slate-100 text-slate-500 border-slate-200'
+                                assessment.evasionProbability === 'ALTA' ? 'bg-red-100 text-red-700 border-red-200' :
+                                    assessment.evasionProbability === 'MEDIA' ? 'bg-orange-100 text-orange-700 border-orange-200' :
+                                        'bg-slate-100 text-slate-500 border-slate-200'
                                 }`}>
                                 EVASÃO: {assessment.evasionProbability}
                             </span>
@@ -485,7 +485,7 @@ const StudentRiskCard: React.FC<{
                                 Fatores de Risco Identificados
                             </h4>
                             <div className="space-y-3">
-                                {assessment.factors.map((factor, idx) => (
+                                {assessment.factors?.map((factor, idx) => (
                                     <div key={idx} className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                                         <div className="flex items-start justify-between mb-2">
                                             <div className="flex-1">
@@ -525,7 +525,7 @@ const StudentRiskCard: React.FC<{
                                 Intervenções Sugeridas (Prioridade)
                             </h4>
                             <div className="space-y-3">
-                                {assessment.interventions.map((intervention, idx) => (
+                                {assessment.interventions?.map((intervention, idx) => (
                                     <div key={idx} className={`p - 4 rounded - lg border - 2 ${intervention.priority === 'URGENT' ? 'bg-red-50 border-red-300' :
                                         intervention.priority === 'HIGH' ? 'bg-orange-50 border-orange-300' :
                                             'bg-blue-50 border-blue-300'
