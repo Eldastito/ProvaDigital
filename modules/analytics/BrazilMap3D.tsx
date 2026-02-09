@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Center, Text, Float, Stars, Environment, Html } from '@react-three/drei';
+import { OrbitControls, Center, Text, Float, Stars, Environment, Html, Edges } from '@react-three/drei';
 import * as THREE from 'three';
 // @ts-ignore
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader';
@@ -28,7 +28,7 @@ const MAP_HEIGHT = 650;
 const EXTRUDE_DEPTH = 10;
 
 // --- Colors ---
-const COLOR_STATE_DEFAULT = '#334155'; // Slate-700 (Lighter for visibility)
+const COLOR_STATE_DEFAULT = '#334155'; // Slate-700
 const COLOR_STATE_HOVER = '#475569';   // Slate-600
 const COLOR_STATE_ACTIVE = '#1e293b';  // Slate-800
 const COLOR_STROKE = '#94a3b8';        // Slate-400
@@ -45,13 +45,15 @@ const StateMesh = ({ uf, pathData, isHovered, onHover, onClick }: any) => {
     const shape = useMemo(() => {
         try {
             const loader = new SVGLoader();
-            // SVGLoader.parse expects a valid SVG XML string, not just path data
-            const svgString = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 612 650"><path d="${pathData}" /></svg>`;
+            // Add explicit width/height to ensure units are treated correctly if that's a factor
+            const svgString = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 612 650" width="612" height="650"><path d="${pathData}" /></svg>`;
             const data = loader.parse(svgString);
 
             if (!data.paths || data.paths.length === 0) {
                 console.warn(`No path parsed for UF: ${uf}`);
-                return null;
+                // Fallback to simple path wrap if extended one fails
+                const fallbackShapes = new SVGLoader().parse(`<svg><path d="${pathData}"/></svg>`).paths[0]?.toShapes(true);
+                return fallbackShapes && fallbackShapes[0] ? fallbackShapes[0] : null;
             }
 
             const path = data.paths[0];
@@ -64,8 +66,6 @@ const StateMesh = ({ uf, pathData, isHovered, onHover, onClick }: any) => {
     }, [pathData, uf]);
 
     if (!shape) return null;
-
-    // Spring-like hover animation (simple lerp in useFrame could be added for smoothness)
 
     return (
         <mesh
@@ -80,40 +80,27 @@ const StateMesh = ({ uf, pathData, isHovered, onHover, onClick }: any) => {
             onPointerOut={() => onHover(null)}
             position={[0, 0, isHovered ? 5 : 0]} // "Lift" effect
         >
-            <extrudeGeometry args={[shape, { depth: EXTRUDE_DEPTH, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.5, bevelSegments: 2 }]} />
+            <extrudeGeometry args={[shape, { depth: EXTRUDE_DEPTH, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0, bevelSegments: 2 }]} />
             <meshStandardMaterial
                 color={isHovered ? COLOR_STATE_HOVER : COLOR_STATE_DEFAULT}
                 roughness={0.4}
                 metalness={0.3}
                 side={THREE.DoubleSide}
             />
-            {/* Outline edge hack or wireframe could go here, but simple is better for perf */}
+            <Edges
+                threshold={15}
+                color={COLOR_STROKE}
+            />
         </mesh>
     );
 };
 
 const DataOrb = ({ point }: { point: DataPoint }) => {
-    // Coordinate mapping:
-    // SVG X (0-612) -> 3D X
-    // SVG Y (0-650) -> 3D Y (Inverted because SVG Y is down)
-
-    const x = point.x * (MAP_WIDTH / 100);
-    const y = (100 - point.y) * (MAP_HEIGHT / 100); // Invert Y percent before scaling? No, logic depends on how SVG coords work. 
-    // SVG Y=0 is top. Three Y=0 is center (usually) but here we are drawing in SVG coords.
-    // In SVGLoader, Y is usually inverted relative to Three.js Y. 
-    // Let's assume we maintain the SVG coordinate system grouping and just flip the whole group or camera.
-    // Actually, `SVGLoader` usually creates shapes where +Y is DOWN if not handled. 
-    // But `toShapes` creates standard 2D shapes.
-    // Let's stick to the raw map coordinates. SVG Path data usually has Y growing downwards.
-    // DataPoints are 0-100% relative to the box. 0,0 is Top-Left.
-    // So x = point.x * W / 100. y = point.y * H / 100.
-
     const posX = (point.x / 100) * MAP_WIDTH;
     const posY = (point.y / 100) * MAP_HEIGHT;
 
-    // We need to match the SVG geometry. SVG paths Y grows DOWN.
-    // In Three.js, we usually want Y UP. 
-    // We will render the map with scale={[1, -1, 1]} to flip Y, matching SVG.
+    // We render the map with scale={[1, -1, 1]} to flip Y.
+    // Coordinates match SVG (0,0 top-left).
 
     const color = STATUS_COLORS[point.status];
     const meshRef = useRef<THREE.Mesh>(null);
@@ -139,7 +126,6 @@ const DataOrb = ({ point }: { point: DataPoint }) => {
                 <pointLight color={color} intensity={1} distance={50} decay={2} />
             </Float>
 
-            {/* Html Tooltip or Label could go here */}
             {point.status === 'CRITICAL' && (
                 <Html position={[0, 15, 0]} center pointerEvents="none">
                     <div className="px-2 py-1 bg-rose-500/90 text-white text-[10px] font-bold rounded shadow-lg backdrop-blur whitespace-nowrap">
@@ -162,7 +148,7 @@ export const BrazilMap3D = ({ dataPoints, onSelect }: BrazilMap3DProps) => {
                 <p className="text-emerald-400 text-xs font-mono">LIVE MONITORING</p>
             </div>
 
-            <Canvas camera={{ position: [300, 300, 600], fov: 45 }}>
+            <Canvas camera={{ position: [300, 400, 800], fov: 45 }}>
                 <color attach="background" args={['#0f172a']} />
                 <Stars radius={300} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
 
@@ -171,7 +157,6 @@ export const BrazilMap3D = ({ dataPoints, onSelect }: BrazilMap3DProps) => {
                     enableZoom={true}
                     minDistance={200}
                     maxDistance={1200}
-                    // Limit angles to keep map viewable
                     maxPolarAngle={Math.PI / 2.2}
                 />
 
@@ -180,7 +165,13 @@ export const BrazilMap3D = ({ dataPoints, onSelect }: BrazilMap3DProps) => {
                 <pointLight position={[-100, -100, 200]} intensity={0.5} color="#blue" />
 
                 <group position={[-MAP_WIDTH / 2, MAP_HEIGHT / 2, 0]} scale={[1, -1, 1]}>
-                    {/* Map States */} <mesh position={[0, 0, -1]}> <planeGeometry args={[MAP_WIDTH, MAP_HEIGHT]} /> <meshBasicMaterial transparent opacity={0} /> </mesh>
+                    {/* Invisible Plane for simplified raycasting/centering reference if needed */}
+                    <mesh position={[MAP_WIDTH / 2, MAP_HEIGHT / 2, -1]}>
+                        <planeGeometry args={[MAP_WIDTH, MAP_HEIGHT]} />
+                        <meshBasicMaterial transparent opacity={0} />
+                    </mesh>
+
+                    {/* Map States */}
                     {Object.entries(BRAZIL_STATES).map(([uf, path]) => (
                         <StateMesh
                             key={uf}
