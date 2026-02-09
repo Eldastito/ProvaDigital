@@ -9,7 +9,6 @@ import { Download } from 'lucide-react';
 
 import { GlobalRankingView } from './GlobalRankingView';
 import { GeoMap } from './GeoMap';
-import { BrazilMap3D } from './BrazilMap3D';
 import { AuditLogView } from '../admin/components/AuditLogView';
 
 export const NetworkDashboardView = () => {
@@ -312,7 +311,7 @@ export const NetworkDashboardView = () => {
                     {/* THE MAP - 3D VERSION */}
                     <div className="flex-1 rounded-2xl shadow-lg border border-slate-700 relative overflow-hidden min-h-[500px] bg-[#0f172a]">
                         <div className="absolute top-4 right-4 z-10 bg-slate-900/80 backdrop-blur px-3 py-1 rounded text-xs font-bold text-slate-400 uppercase shadow-sm border border-slate-700 flex items-center gap-2">
-                            <MapPin size={12} /> Brasil 3D
+                            <MapPin size={12} /> Brasil 2D
                         </div>
 
                         {/* RANKING MODAL */}
@@ -350,7 +349,8 @@ export const NetworkDashboardView = () => {
                         )}
 
                         <div className="w-full h-full rounded-xl overflow-hidden">
-                            <BrazilMap3D
+                            <GeoMap
+                                level={dashboardLevel}
                                 dataPoints={mapPoints as any}
                                 onSelect={(id) => {
                                     const normalizedId = id.toLowerCase();
