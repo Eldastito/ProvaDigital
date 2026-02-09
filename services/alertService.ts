@@ -87,8 +87,8 @@ export const saveRiskAlert = async (assessment: RiskAssessment): Promise<RiskAle
         classId: assessment.classId,
         riskLevel: assessment.riskLevel,
         riskScore: assessment.riskScore,
-        factors: assessment.factors,
-        interventions: assessment.interventions,
+        factors: assessment.factors || [],
+        interventions: assessment.interventions || [],
         status: 'ACTIVE',
         createdAt: new Date().toISOString()
     };
@@ -112,8 +112,22 @@ export const saveRiskAlert = async (assessment: RiskAssessment): Promise<RiskAle
             .select()
             .single();
 
-        if (error) throw error;
-        return data;
+        if (error) {
+            console.error('❌ Supabase Save Alert Error:', error);
+            throw error;
+        }
+
+        // Mapeia de volta para camelCase para não quebrar o frontend
+        return {
+            ...data,
+            studentId: data.student_id,
+            studentName: data.student_name,
+            schoolId: data.school_id,
+            classId: data.class_id,
+            riskLevel: data.risk_level,
+            riskScore: data.risk_score,
+            createdAt: data.created_at
+        };
     } else {
         // Mock: Verifica se já existe alerta ativo para este aluno
         const existingIndex = mockAlerts.findIndex(
