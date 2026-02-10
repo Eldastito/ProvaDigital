@@ -391,20 +391,22 @@ REQUISITOS:
         Atue como um Mestre de RPG Educacional (Game Master).
         Crie uma aventura RÁPIDA (Micro-Learning) sobre: "${topic}" para nível: ${grade}.
         
-        REGRAS RIGIDAS DE FORMATAÇÃO:
-        1. Título: MÁXIMO 80 caracteres. Curto e épico. SEM TAGS ou LISTAS DE PALAVRAS-CHAVE.
-        2. Intro: MÁXIMO 10 parágrafos.
-        3. Opções: Exatamente 3 opções.
+        REGRAS RÍGIDAS DE SEGURANÇA E FORMATAÇÃO:
+        1. Título: MÁXIMO 50 caracteres (ex: "O Desafio Socrático").
+        2. NÃO gere listas de antônimos, sinônimos, ou repetições de "É e não é". Vá direto para a história.
+        3. Intro: Máximo 3 parágrafos curtos. Foco na ambientação e no tema ${topic}.
+        4. Challenge: Uma pergunta clara que exija aplicação do conhecimento.
+        5. Options: Exatamente 3 opções curtas e objetivas.
         
-        EVITE ALUCINAÇÕES: Não gere listas de olimpíadas, keywords ou textos repetitivos.
+        PROIBIDO: Qualquer forma de loop textual, poesia repetitiva ou listas de palavras-chave técnicas no título ou na intro.
         
         RETORNE JSON PURO:
         {
-            "title": "Título Curto da Aventura",
-            "intro": "Contexto narrativo imersivo...",
-            "challenge": "A pergunta/problema a ser resolvido...",
+            "title": "Título Curto",
+            "intro": "Contexto narrativo...",
+            "challenge": "A pergunta...",
             "options": [
-                { "text": "Ação A", "isCorrect": boolean, "outcome": "Consequência da ação..." }
+                { "text": "Ação", "isCorrect": boolean, "outcome": "Resultado..." }
             ]
         }
     `
