@@ -411,10 +411,10 @@ const StatCard = ({ title, value, subtitle, icon: Icon, color, alert }: any) => 
     };
 
     return (
-        <div className={`bg - white p - 6 rounded - xl border - 2 ${alert ? borderClasses[color as keyof typeof borderClasses] : 'border-slate-200'} shadow - sm`}>
+        <div className={`bg-white p-6 rounded-xl border-2 ${alert ? borderClasses[color as keyof typeof borderClasses] : 'border-slate-200'} shadow-sm`}>
             <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-medium text-slate-600">{title}</span>
-                <div className={`p - 2 rounded - lg ${colorClasses[color as keyof typeof colorClasses]} `}>
+                <div className={`p-2 rounded-lg ${colorClasses[color as keyof typeof colorClasses]}`}>
                     <Icon size={20} />
                 </div>
             </div>
@@ -457,7 +457,7 @@ const StudentRiskCard: React.FC<{
     };
 
     return (
-        <div className={`border - l - 4 ${riskColor[assessment.riskLevel]} `}>
+        <div className={`border-l-4 ${riskColor[assessment.riskLevel]}`}>
             <div className="p-6">
                 {/* Header do Card */}
                 <div className="flex items-start justify-between">
@@ -466,7 +466,7 @@ const StudentRiskCard: React.FC<{
                             <h3 className="text-lg font-semibold text-slate-800">
                                 {assessment.studentName}
                             </h3>
-                            <span className={`px - 3 py - 1 rounded - full text - xs font - medium ${riskBadge[assessment.riskLevel]} `}>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${riskBadge[assessment.riskLevel]}`}>
                                 {riskLabel[assessment.riskLevel]}
                             </span>
                         </div>
@@ -512,7 +512,7 @@ const StudentRiskCard: React.FC<{
                                                     Valor atual: <strong>{factor.value}</strong> (Limiar: {factor.threshold})
                                                 </div>
                                             </div>
-                                            <span className={`px - 2 py - 1 rounded text - xs font - medium ${factor.severity === 'HIGH' ? 'bg-red-100 text-red-700' :
+                                            <span className={`px-2 py-1 rounded text-xs font-medium ${factor.severity === 'HIGH' ? 'bg-red-100 text-red-700' :
                                                 factor.severity === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
                                                     'bg-blue-100 text-blue-700'
                                                 } `}>
@@ -544,14 +544,14 @@ const StudentRiskCard: React.FC<{
                             </h4>
                             <div className="space-y-3">
                                 {assessment.interventions?.map((intervention, idx) => (
-                                    <div key={idx} className={`p - 4 rounded - lg border - 2 ${intervention.priority === 'URGENT' ? 'bg-red-50 border-red-300' :
+                                    <div key={idx} className={`p-4 rounded-lg border-2 ${intervention.priority === 'URGENT' ? 'bg-red-50 border-red-300' :
                                         intervention.priority === 'HIGH' ? 'bg-orange-50 border-orange-300' :
                                             'bg-blue-50 border-blue-300'
                                         } `}>
                                         <div className="flex items-start justify-between mb-2">
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2">
-                                                    <span className={`px - 2 py - 1 rounded text - xs font - bold ${intervention.priority === 'URGENT' ? 'bg-red-600 text-white' :
+                                                    <span className={`px-2 py-1 rounded text-xs font-bold ${intervention.priority === 'URGENT' ? 'bg-red-600 text-white' :
                                                         intervention.priority === 'HIGH' ? 'bg-orange-600 text-white' :
                                                             'bg-blue-600 text-white'
                                                         } `}>
