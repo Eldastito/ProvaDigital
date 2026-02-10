@@ -125,17 +125,22 @@ export const GeoMap = ({ level, dataPoints, onSelect }: GeoMapProps) => {
                     {/* Camada interativa invisível para detecção de cliques nos estados (Nível Federal) */}
                     {level === 'FEDERAL' && (
                         <g>
-                            {Object.entries(BRAZIL_STATES).map(([uf, path]) => (
-                                <path
-                                    key={uf}
-                                    id={uf}
-                                    d={path}
-                                    fill="transparent"
-                                    stroke="transparent"
-                                    className="cursor-pointer"
-                                    onClick={() => onSelect && onSelect(uf.toLowerCase())}
-                                />
-                            ))}
+                            {Object.entries(BRAZIL_STATES)
+                                .filter(([uf, path]) => {
+                                    // Validate SVG path: must start with M or m (moveto command)
+                                    return path && typeof path === 'string' && /^[Mm]/.test(path.trim());
+                                })
+                                .map(([uf, path]) => (
+                                    <path
+                                        key={uf}
+                                        id={uf}
+                                        d={path}
+                                        fill="transparent"
+                                        stroke="transparent"
+                                        className="cursor-pointer"
+                                        onClick={() => onSelect && onSelect(uf.toLowerCase())}
+                                    />
+                                ))}
                         </g>
                     )}
 
