@@ -49,11 +49,19 @@ export const RichTextRenderer = ({ content, className = '', onLibrasDetected }: 
         processed = processed.replace(/\[libras\]([\s\S]*?)\[\/libras\]/gi, '');
 
         // 0.1 Extract Multimedia Tags (NEW)
-        // Image [img]url[/img]
-        processed = processed.replace(/\[img\]([\s\S]*?)\[\/img\]/g, (match, url) => {
+        // Image [img alt="..."]url[/img]
+        processed = processed.replace(/\[img(?:\s+alt="([^"]*)")?\]([\s\S]*?)\[\/img\]/g, (match, altText, url) => {
+            const description = altText || "Imagem sem descrição acessível";
+            const isMissingAlt = !altText;
+
             return pushPlaceholder(
-                `<div class="my-4 flex justify-center">
-                    <img src="${url.trim()}" class="max-w-full rounded-lg shadow-md border border-slate-200" alt="Imagem da questão" onerror="this.style.display='none'" />
+                `<div class="my-4 flex flex-col items-center">
+                    <img src="${url.trim()}" 
+                         class="max-w-full rounded-lg shadow-md border ${isMissingAlt ? 'border-amber-400' : 'border-slate-200'}" 
+                         alt="${description}" 
+                         title="${description}"
+                         onerror="this.style.display='none'" />
+                    ${isMissingAlt ? '<span class="text-[10px] text-amber-600 font-bold mt-1 uppercase tracking-tight">⚠️ Falta Alt-Text</span>' : ''}
                 </div>`
             );
         });
