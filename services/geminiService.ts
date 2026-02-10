@@ -1084,6 +1084,15 @@ export const generateJustification = async (statement: string, correct: string):
     return callGeminiAPI<string>(prompt, undefined);
 };
 
+export const generateDistractors = async (statement: string, correct: string): Promise<string[]> => {
+    const prompt = PROMPTS.GENERATE_DISTRACTORS(statement, correct);
+    const schema = {
+        type: Type.ARRAY,
+        items: { type: Type.STRING }
+    };
+    return callGeminiAPI<string[]>(prompt, schema);
+};
+
 export const variateItem = async (itemJson: string): Promise<GeneratedQuestion> => {
     const prompt = PROMPTS.CLONE_AND_VARIATE(itemJson);
     const schema = {
