@@ -282,6 +282,7 @@ export const ExamBasicInfo = ({
                     <select className="w-full border rounded-lg p-2 bg-slate-50" value={config.model} onChange={e => setConfig({ ...config, model: e.target.value as ExamModel })}>
                         <option value="SOMATIVO">Somativo (Nota)</option>
                         <option value="ADAPTADO">Adaptado (Flexível)</option>
+                        <option value="OCDE_PISA">Padrão OCDE (PISA)</option>
                     </select>
                 </div>
                 <div className="flex items-end">

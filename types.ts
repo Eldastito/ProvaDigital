@@ -84,6 +84,14 @@ export enum ItemOrigin {
   IA = 'IA'
 }
 
+export enum LiteracyDomain {
+  READING = 'LEITURA',
+  MATHEMATICS = 'MATEMATICA',
+  SCIENCE = 'CIENCIAS',
+  FINANCIAL = 'FINANCEIRA',
+  CREATIVE_THINKING = 'PENSAMENTO_CRIATIVO'
+}
+
 export enum ItemLifecycleStatus {
   DRAFT = 'DRAFT',
   APPROVED = 'APPROVED',
@@ -288,10 +296,17 @@ export interface Item {
   origin: ItemOrigin;
   tags: string[];
   bnccCode?: string;
+  literacyDomain?: LiteracyDomain; // Metadado OCDE/PISA
   minLines?: number;
   maxLines?: number;
   showWordCount?: boolean;
   triParams?: {
+    calibrationStatus?: 'MODEL_ESTIMATED' | 'DATA_CALIBRATED' | 'FLAGGED';
+    calibrationMetadata?: {
+      sampleSize?: number;
+      standardError?: number;
+      lastCalibratedAt?: string;
+    };
     difficulty: number; // b parameter
     discrimination: number; // a parameter
     guessing: number; // c parameter
@@ -341,7 +356,8 @@ export interface ItemVersion {
 
 export enum ExamModel {
   SOMATIVO = 'SOMATIVO',
-  ADAPTADO = 'ADAPTADO'
+  ADAPTADO = 'ADAPTADO',
+  OCDE_PISA = 'OCDE_PISA'
 }
 
 export enum ExamStatus {
@@ -389,6 +405,7 @@ export interface Exam {
   shuffleItems?: boolean; // Embaralhamento randômico anti-cola
   printConfig?: PrintConfig; // Phase 10: Print settings
   maxScore: number; // Max possible score
+  isOfficialStandard?: boolean; // Flag para avaliações regulatórias/internacionais
   createdAt: string;
   scheduledDate?: string;
 }

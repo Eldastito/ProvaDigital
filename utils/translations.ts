@@ -1,4 +1,4 @@
-import { ExamStatus, RiskLevel, QuestionType, GamifiedEventStatus, UserRole, DifficultyLevel } from '../types';
+import { ExamStatus, RiskLevel, QuestionType, GamifiedEventStatus, UserRole, DifficultyLevel, LiteracyDomain } from '../types';
 
 export const translateDifficultyLevel = (level: DifficultyLevel): string => {
     const map: Record<DifficultyLevel, string> = {
@@ -7,6 +7,17 @@ export const translateDifficultyLevel = (level: DifficultyLevel): string => {
         [DifficultyLevel.HARD]: 'Difícil',
     };
     return map[level] || level;
+};
+
+export const translateLiteracyDomain = (domain: LiteracyDomain): string => {
+    const map: Record<LiteracyDomain, string> = {
+        [LiteracyDomain.READING]: 'Leitura',
+        [LiteracyDomain.MATHEMATICS]: 'Matemática',
+        [LiteracyDomain.SCIENCE]: 'Ciências',
+        [LiteracyDomain.FINANCIAL]: 'Educação Financeira',
+        [LiteracyDomain.CREATIVE_THINKING]: 'Pensamento Criativo',
+    };
+    return map[domain] || domain;
 };
 
 export const translateExamStatus = (status: ExamStatus): string => {

@@ -131,11 +131,16 @@ export class CATEngine {
 
         if (availableItems.length === 0) return null;
 
-        // Adiciona um pouco de aleatoriedade (Exposure Control) para não repetir sempre as mesmas questões
-        // Seleciona os top 3 melhores e escolhe um aleatório entre eles
+        // Adiciona um pouco de aleatoriedade (Exposure Control) 
+        // PRIORIZAÇÃO: Itens com status 'DATA_CALIBRATED' ganham um peso extra de informação
         const rankedItems = availableItems.sort((a, b) => {
-            const infoA = this.calculateItemInformation(currentTheta, a);
-            const infoB = this.calculateItemInformation(currentTheta, b);
+            let infoA = this.calculateItemInformation(currentTheta, a);
+            let infoB = this.calculateItemInformation(currentTheta, b);
+
+            // Peso de confiança científica: CALIBRADOS > MODEL_ESTIMATED
+            if (a.triParams?.calibrationStatus === 'DATA_CALIBRATED') infoA *= 1.2;
+            if (b.triParams?.calibrationStatus === 'DATA_CALIBRATED') infoB *= 1.2;
+
             return infoB - infoA; // Decrescente
         });
 

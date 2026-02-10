@@ -94,7 +94,8 @@ export const ExamBuilderView = () => {
                 createdAt: new Date().toISOString(),
                 triParams: {
                     ...q.triParams,
-                    bloomTaxonomy: q.triParams?.bloomTaxonomy as any
+                    bloomTaxonomy: q.triParams?.bloomTaxonomy as any,
+                    cognitiveAxis: q.triParams?.cognitiveAxis as any
                 }
             }));
 
@@ -253,6 +254,7 @@ export const ExamBuilderView = () => {
                             onStepChange={setStep}
                             loadGenerationBatches={state.loadGenerationBatches} setShowBatchHistory={setShowBatchHistory}
                             currentBatchId={currentBatchId}
+                            examModel={config.model}
                         />
                     )
                 )}

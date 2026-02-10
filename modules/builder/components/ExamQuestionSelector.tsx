@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Brain, Search, FileUp, Plus, Tablet, ChevronLeft, ArrowRight, ShieldCheck, ChevronRight, Loader2, Sparkles, Check, Trash2 } from 'lucide-react';
-import { Item, ItemLifecycleStatus, ItemOrigin, DifficultyLevel } from '../../../types';
+import { Item, ItemLifecycleStatus, ItemOrigin, DifficultyLevel, ExamModel, LiteracyDomain } from '../../../types';
 import { Badge } from '../../../components/ui/Badge';
-import { translateDifficultyLevel } from '../../../utils/translations';
+import { translateDifficultyLevel, translateLiteracyDomain } from '../../../utils/translations';
 import { normalizeString } from '../../../utils/helpers';
 
 interface ExamQuestionSelectorProps {
@@ -25,18 +25,21 @@ interface ExamQuestionSelectorProps {
     loadGenerationBatches?: () => void;
     setShowBatchHistory?: (show: boolean) => void;
     currentBatchId?: string | null;
+    examModel?: ExamModel;
 }
 
 export const ExamQuestionSelector = ({
     builderMode, items, selectedItems, toggleItem, config, coverConfig,
     selectionDiagnosis, smartCriteria, isFillingGaps, onGapGeneration,
     onImportClick, onRecommendationsClick, showRecommendations,
-    onSave, onReviewIA, onStepChange, loadGenerationBatches, setShowBatchHistory, currentBatchId
+    onSave, onReviewIA, onStepChange, loadGenerationBatches, setShowBatchHistory, currentBatchId,
+    examModel
 }: ExamQuestionSelectorProps) => {
 
     const [filter, setFilter] = useState('');
     const [difficultyFilter, setDifficultyFilter] = useState<DifficultyLevel | 'ALL'>('ALL');
     const [statusFilter, setStatusFilter] = useState<'APPROVED' | 'DRAFT' | 'ALL'>('ALL');
+    const [literacyFilter, setLiteracyFilter] = useState<LiteracyDomain | 'ALL'>('ALL');
     const [previewIndex, setPreviewIndex] = useState(0);
 
     const filteredAvailableItems = items.filter(i => {
@@ -49,6 +52,7 @@ export const ExamQuestionSelector = ({
         const matchesDiff = difficultyFilter === 'ALL' || i.difficulty === difficultyFilter;
         const matchesStatus = statusFilter === 'ALL' ||
             (statusFilter === 'APPROVED' ? i.lifecycleStatus === ItemLifecycleStatus.APPROVED : i.lifecycleStatus === ItemLifecycleStatus.DRAFT);
+        const matchesLiteracy = literacyFilter === 'ALL' || i.literacyDomain === literacyFilter;
         const notSelected = !selectedItems.find(s => s.id === i.id);
 
         const distributionSubjects = coverConfig.sections
@@ -64,7 +68,7 @@ export const ExamQuestionSelector = ({
         const matchesConfigSubject = allowedSubjects.size === 0 ||
             Array.from(allowedSubjects).some(allowed => itemSubjectNorm.includes(allowed) || allowed.includes(itemSubjectNorm));
 
-        return matchesSearch && matchesDiff && matchesStatus && notSelected && matchesConfigSubject;
+        return matchesSearch && matchesDiff && matchesStatus && matchesLiteracy && notSelected && matchesConfigSubject;
     });
 
     const currentPreviewItem = selectedItems[previewIndex];
@@ -133,11 +137,30 @@ export const ExamQuestionSelector = ({
                     <h3 className="font-bold text-slate-800">
                         {builderMode === 'SMART' ? 'Questões Selecionadas Automaticamente' : 'Banco de Itens Disponível'}
                     </h3>
+
+                    {/* OECD Literacy Domains - Only visible if OCDE model */}
+                    {examModel === ExamModel.OCDE_PISA && (
+                        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar bg-indigo-50/50 p-2 rounded-lg border border-indigo-100">
+                            <span className="text-[9px] font-black text-indigo-400 uppercase self-center px-2">Domínios OCDE:</span>
+                            <button
+                                onClick={() => setLiteracyFilter('ALL')}
+                                className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${literacyFilter === 'ALL' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-400 border-indigo-200'}`}
+                            >TODOS</button>
+                            {Object.values(LiteracyDomain).map(l => (
+                                <button
+                                    key={l}
+                                    onClick={() => setLiteracyFilter(l)}
+                                    className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${literacyFilter === l ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-indigo-400 border-indigo-200'}`}
+                                >{translateLiteracyDomain(l)}</button>
+                            ))}
+                        </div>
+                    )}
+
                     <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                         <button
                             onClick={() => setDifficultyFilter('ALL')}
                             className={`px-3 py-1 rounded-full text-[10px] font-bold border transition ${difficultyFilter === 'ALL' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200'}`}
-                        >TODOS</button>
+                        >DIFICULDADE: TODOS</button>
                         {Object.values(DifficultyLevel).map(d => (
                             <button
                                 key={d}

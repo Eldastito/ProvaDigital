@@ -24,11 +24,13 @@ import {
     Shield
 } from 'lucide-react';
 
+import { PsychometricCuradoriaView } from './PsychometricCuradoriaView';
+
 export const PsychometricCommitteeDashboard = () => {
     const [pools, setPools] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedPool, setSelectedPool] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'AUDIT' | 'LGPD'>('OVERVIEW');
+    const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'AUDIT' | 'LGPD' | 'CURADORIA'>('OVERVIEW');
 
     // Mock data para demonstração da trajetória adaptativa (Fase VII)
     const mockTrajectory = [
@@ -167,6 +169,12 @@ export const PsychometricCommitteeDashboard = () => {
                                     Soberania & Auditabilidade
                                 </button>
                                 <button
+                                    onClick={() => setActiveTab('CURADORIA')}
+                                    className={`pb-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'CURADORIA' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                                >
+                                    Curadoria & TRI
+                                </button>
+                                <button
                                     onClick={() => setActiveTab('LGPD')}
                                     className={`pb-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'LGPD' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                                 >
@@ -251,6 +259,10 @@ export const PsychometricCommitteeDashboard = () => {
                                                 </button>
                                             </div>
                                         </div>
+                                    </div>
+                                ) : activeTab === 'CURADORIA' ? (
+                                    <div className="h-[600px] -mx-8 -mb-8">
+                                        <PsychometricCuradoriaView />
                                     </div>
                                 ) : (
                                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">

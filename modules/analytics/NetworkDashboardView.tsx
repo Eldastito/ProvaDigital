@@ -11,6 +11,7 @@ import { GlobalRankingView } from './GlobalRankingView';
 import { GeoMap } from './GeoMap';
 import { AuditLogView } from '../admin/components/AuditLogView';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
+import { OECDPortalView } from './OECDPortalView';
 
 export const NetworkDashboardView = () => {
     const state = useAppStore();
@@ -35,7 +36,7 @@ export const NetworkDashboardView = () => {
     const [showSyncModal, setShowSyncModal] = useState(false);
     const [selectedRegion, setSelectedRegion] = useState<string | null>(null); // Filtro pelo mapa
     const [selectedState, setSelectedState] = useState<string | null>(null); // Estado para o modal de Ranking
-    const [viewMode, setViewMode] = useState<'DASHBOARD' | 'GOVERNANCE'>('DASHBOARD');
+    const [viewMode, setViewMode] = useState<'DASHBOARD' | 'GOVERNANCE' | 'OECD_PORTAL'>('DASHBOARD');
     const [chartMode, setChartMode] = useState<'IDEB' | 'PISA'>('IDEB');
 
     // ... (Map logic remains)
@@ -60,6 +61,10 @@ export const NetworkDashboardView = () => {
                 </div>
             </div>
         );
+    }
+
+    if (viewMode === 'OECD_PORTAL') {
+        return <OECDPortalView onBack={() => setViewMode('DASHBOARD')} />;
     }
 
 
@@ -290,6 +295,12 @@ export const NetworkDashboardView = () => {
                 </div>
 
                 <div className="flex w-full sm:w-auto gap-2 md:gap-3">
+                    <button
+                        onClick={() => setViewMode('OECD_PORTAL')}
+                        className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition shadow-sm"
+                    >
+                        <Globe size={16} className="text-indigo-600" /> Portal OCDE
+                    </button>
                     <button
                         onClick={() => setViewMode('GOVERNANCE')}
                         className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition shadow-sm"
