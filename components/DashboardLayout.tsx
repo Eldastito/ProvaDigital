@@ -239,9 +239,7 @@ export const DashboardLayout = () => {
                             <NavItem icon={Calendar} label="Diário de Classe" active={path === '/class-diary'} onClick={() => navigate('/class-diary')} />
 
                             {/* Sprint 0 Features for Professors */}
-                            {canView('SCHEDULING') && (
-                                <NavItem icon={CalendarCheck} label="Agendamento" active={path === '/agendamento'} onClick={() => navigate('/agendamento')} />
-                            )}
+
                             {canView('COMMAND_CENTER') && (
                                 <NavItem icon={Activity} label="Painel de Controle" active={path === '/central-comando'} onClick={() => navigate('/central-comando')} />
                             )}
