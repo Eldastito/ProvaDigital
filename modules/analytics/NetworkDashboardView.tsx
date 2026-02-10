@@ -34,6 +34,7 @@ export const NetworkDashboardView = () => {
     const [selectedRegion, setSelectedRegion] = useState<string | null>(null); // Filtro pelo mapa
     const [selectedState, setSelectedState] = useState<string | null>(null); // Estado para o modal de Ranking
     const [viewMode, setViewMode] = useState<'DASHBOARD' | 'GOVERNANCE'>('DASHBOARD');
+    const [chartMode, setChartMode] = useState<'IDEB' | 'PISA'>('IDEB');
 
     // ... (Map logic remains)
 
@@ -127,7 +128,9 @@ export const NetworkDashboardView = () => {
 
     // --- GRÁFICO 1: PROJEÇÃO IDEB (SVG Line Chart) ---
     // Simula dados históricos + projeção
-    const idebData = [
+    // --- GRÁFICO 1: PROJEÇÃO (SVG Line Chart) ---
+    // Simula dados históricos + projeção (IDEB vs PISA mapping)
+    const idebDataRaw = [
         { year: '2020', value: 4.8 },
         { year: '2021', value: 5.1 },
         { year: '2022', value: 5.3 },
@@ -136,17 +139,34 @@ export const NetworkDashboardView = () => {
         { year: '2025', value: 6.8 }, // Projeção
     ];
 
+    const chartData = useMemo(() => {
+        if (chartMode === 'IDEB') return idebDataRaw;
+        // PISA Mapping: PISA = (IDEB * 35) + 320 (Realistic simulation for Brazil context)
+        return idebDataRaw.map(d => ({
+            ...d,
+            value: Math.round((d.value * 35) + 320)
+        }));
+    }, [chartMode]);
+
     const renderLineChart = () => {
         const height = 150;
         const width = 300;
         const padding = 20;
-        const maxY = 8;
+        const isPisa = chartMode === 'PISA';
+        const maxY = isPisa ? 650 : 8;
+        const minY = isPisa ? 300 : 0;
 
-        const points = idebData.map((d, i) => {
-            const x = padding + (i / (idebData.length - 1)) * (width - 2 * padding);
-            const y = height - padding - (d.value / maxY) * (height - 2 * padding);
+        const points = chartData.map((d, i) => {
+            const x = padding + (i / (chartData.length - 1)) * (width - 2 * padding);
+            const y = height - padding - ((d.value - minY) / (maxY - minY)) * (height - 2 * padding);
             return `${x},${y}`;
         }).join(' ');
+
+        // Benchmarks PISA (OECD)
+        const benchmarks = [
+            { label: 'OCDE Mat', value: 472, color: '#3b82f6' },
+            { label: 'OCDE Leit', value: 476, color: '#10b981' }
+        ];
 
         return (
             <div className="w-full h-48 relative">
@@ -154,25 +174,36 @@ export const NetworkDashboardView = () => {
                     {/* Gradient Definition */}
                     <defs>
                         <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.5" />
-                            <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
+                            <stop offset="0%" stopColor={isPisa ? "#8b5cf6" : "#f59e0b"} stopOpacity="0.5" />
+                            <stop offset="100%" stopColor={isPisa ? "#8b5cf6" : "#f59e0b"} stopOpacity="0" />
                         </linearGradient>
                     </defs>
+
+                    {/* Benchmark Lines (PISA only) */}
+                    {isPisa && benchmarks.map((b, i) => {
+                        const y = height - padding - ((b.value - minY) / (maxY - minY)) * (height - 2 * padding);
+                        return (
+                            <g key={i}>
+                                <line x1={padding} y1={y} x2={width - padding} y2={y} stroke={b.color} strokeWidth="1" strokeDasharray="4" />
+                                <text x={width - padding + 2} y={y + 3} fontSize="7" fill={b.color} fontWeight="bold">{b.label}</text>
+                            </g>
+                        );
+                    })}
 
                     {/* Area Fill */}
                     <path d={`M ${points} L ${width - padding},${height - padding} L ${padding},${height - padding} Z`} fill="url(#lineGradient)" />
 
                     {/* Line */}
-                    <polyline points={points} fill="none" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-lg" />
+                    <polyline points={points} fill="none" stroke={isPisa ? "#8b5cf6" : "#f59e0b"} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-lg" />
 
                     {/* Dots */}
-                    {idebData.map((d, i) => {
-                        const x = padding + (i / (idebData.length - 1)) * (width - 2 * padding);
-                        const y = height - padding - (d.value / maxY) * (height - 2 * padding);
+                    {chartData.map((d, i) => {
+                        const x = padding + (i / (chartData.length - 1)) * (width - 2 * padding);
+                        const y = height - padding - ((d.value - minY) / (maxY - minY)) * (height - 2 * padding);
                         return (
                             <g key={i} className="group">
-                                <circle cx={x} cy={y} r="4" fill="#fff" stroke="#f59e0b" strokeWidth="2" className="group-hover:r-6 transition-all cursor-pointer" />
-                                <text x={x} y={y - 12} textAnchor="middle" fontSize="10" fill="#64748b" fontWeight="bold">{d.value}</text>
+                                <circle cx={x} cy={y} r="4" fill="#fff" stroke={isPisa ? "#8b5cf6" : "#f59e0b"} strokeWidth="2" className="group-hover:r-6 transition-all cursor-pointer" />
+                                <text x={x} y={y - 12} textAnchor="middle" fontSize="9" fill="#64748b" fontWeight="bold">{d.value}</text>
                                 <text x={x} y={height + 10} textAnchor="middle" fontSize="10" fill="#94a3b8">{d.year}</text>
                             </g>
                         );
@@ -370,17 +401,35 @@ export const NetworkDashboardView = () => {
                 {/* DIREITA: PAINEL DE INDICADORES (4 Cols) */}
                 <div className="col-span-12 lg:col-span-5 xl:col-span-4 space-y-6">
 
-                    {/* CHART 1: PROJEÇÃO IDEB */}
+                    {/* CHART 1: PROJEÇÃO IDEB / PISA */}
                     <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                <TrendingUp className="text-amber-500" /> Projeção IDEB da Rede
+                                <TrendingUp className={chartMode === 'PISA' ? "text-purple-500" : "text-amber-500"} />
+                                {chartMode === 'IDEB' ? 'Projeção IDEB da Rede' : 'Simulação PISA (Consolidado)'}
                             </h3>
-                            <button className="text-xs text-slate-400 hover:text-brand-primary"><Filter size={14} /></button>
+                            <div className="flex bg-slate-100 p-1 rounded-lg">
+                                <button
+                                    onClick={() => setChartMode('IDEB')}
+                                    className={`px-3 py-1 text-[10px] font-bold rounded-md transition ${chartMode === 'IDEB' ? 'bg-white shadow-sm text-amber-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    IDEB
+                                </button>
+                                <button
+                                    onClick={() => setChartMode('PISA')}
+                                    className={`px-3 py-1 text-[10px] font-bold rounded-md transition ${chartMode === 'PISA' ? 'bg-white shadow-sm text-purple-600' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    PISA
+                                </button>
+                            </div>
                         </div>
                         {renderLineChart()}
-                        <div className="mt-4 text-xs text-slate-500 text-center bg-amber-50 p-2 rounded border border-amber-100">
-                            Meta 2025: <strong>7.0</strong> (Necessário +0.2 pontos)
+                        <div className={`mt-4 text-xs text-center p-2 rounded border ${chartMode === 'PISA' ? 'bg-purple-50 text-purple-700 border-purple-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
+                            {chartMode === 'IDEB' ? (
+                                <>Meta 2025: <strong>7.0</strong> (Necessário +0.2 pontos)</>
+                            ) : (
+                                <>Projeção PISA 2025: <strong>558 pts</strong> (Média Brasil 2022: 379-418)</>
+                            )}
                         </div>
                     </div>
 
