@@ -474,7 +474,7 @@ export const processSchoolRiskAlerts = async (
             // Lógica Específica de Evasão
             if (assessment.evasionProbability === 'CRITICA' || assessment.evasionProbability === 'ALTA') {
                 title = `🚨 ALERTA DE EVASÃO: ${assessment.studentName}`;
-                message = `Risco de Evasão ${assessment.evasionProbability}. Assiduidade: ${assessment.simulatedAttendance}%. Intervenção Imediata Necessária!`;
+                message = `Risco de Evasão ${assessment.evasionProbability}. Assiduidade: ${assessment.attendance}%. Intervenção Imediata Necessária!`;
 
                 // Simulação de envio de SMS/Email
                 console.log(`[MOCK EMAIL/SMS] Enviando alerta de Evasão para Pais e Direção: ${assessment.studentName}`);

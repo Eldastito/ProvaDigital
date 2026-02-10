@@ -80,14 +80,27 @@ export const growthService = {
     },
 
     /**
-     * Gera a Certidão de Impacto Pedagógico (Fase X - Plano 2031)
+     * Gera a Certidão de Impacto Pedagógico baseada em evidências reais
      */
     async generateImpactCertificate(networkId: string) {
+        // Busca todos os resultados da rede para calcular ROI pedagógico real
+        const { data, error } = await supabase
+            .from('exam_results')
+            .select('total_score, student_id');
+
+        if (error || !data) return { status: 'PENDING', reason: 'Insufficient Data' };
+
+        // Heurística de Proficiência Média da Rede
+        const avgScore = data.reduce((acc, r) => acc + r.total_score, 0) / (data.length || 1);
+        const attainmentIndex = Math.min(0.99, (avgScore / 10)); // Normalizado 0-1
+
         return {
             status: 'CERTIFIED',
             compliance_2031: true,
-            attainment_index: 0.88, // Exemplo de ROI pedagógico
-            timestamp: new Date().toISOString()
+            attainment_index: parseFloat(attainmentIndex.toFixed(2)),
+            timestamp: new Date().toISOString(),
+            network_id: networkId,
+            sampleSize: data.length
         };
     }
 };

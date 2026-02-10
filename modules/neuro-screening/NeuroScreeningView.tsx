@@ -216,8 +216,19 @@ const ScreeningCard = ({ type, title, desc, profile, onRun, onViewReport }: { ty
                         <h4 className="font-bold text-lg text-slate-800">{title}</h4>
                         <p className="text-sm text-slate-500 mt-1 max-w-xl">{desc}</p>
                         {result && (
-                            <div className="mt-3 text-xs font-bold text-emerald-700 bg-white inline-block px-3 py-1 rounded border border-emerald-100">
-                                Relatório Gerado em {new Date(result.date).toLocaleDateString()}
+                            <div className="mt-3 flex gap-2">
+                                <div className="text-xs font-bold text-emerald-700 bg-white inline-block px-3 py-1 rounded border border-emerald-100">
+                                    Relatório Gerado em {new Date(result.date).toLocaleDateString()}
+                                </div>
+                                {result.validatedBy ? (
+                                    <div className="text-xs font-bold text-blue-700 bg-blue-50 inline-block px-3 py-1 rounded border border-blue-100">
+                                        Validado por: {result.validatedBy}
+                                    </div>
+                                ) : (
+                                    <div className="text-xs font-bold text-amber-700 bg-amber-50 inline-block px-3 py-1 rounded border border-amber-100 flex items-center gap-1">
+                                        <AlertTriangle size={12} /> Aguardando Validação Clínica
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

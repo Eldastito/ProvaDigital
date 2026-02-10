@@ -205,10 +205,11 @@ interface AppActions {
 export type AppStore = AppState & AppActions;
 
 // Check if mock data should be used
-// const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true';
-const USE_MOCK_DATA = false; // Forced to FALSE per user request
+const PRODUCTION_MODE = import.meta.env.VITE_PRODUCTION_MODE === 'true';
+const USE_MOCK_DATA = !PRODUCTION_MODE && import.meta.env.VITE_USE_MOCK_DATA === 'true';
 
-console.log('🎲 Mock Data Mode:', USE_MOCK_DATA ? 'ENABLED (using mock data)' : 'DISABLED (Supabase only)');
+console.log('🚀 Mode:', PRODUCTION_MODE ? 'PRODUCTION (Real Data Only)' : 'DEVELOPMENT');
+console.log('🎲 Mock Data:', USE_MOCK_DATA ? 'ENABLED' : 'DISABLED');
 
 // Helper for Auto-Adaptation (Module Scope)
 const checkAndTriggerAdaptation = async (exam: Exam, classIds: string[], state: AppState, actions: AppActions) => {
@@ -458,20 +459,20 @@ export const useAppStore = create<AppStore>((set, get) => ({
                     usageCount: 0,
                     createdAt: i.created_at
                 }));
-                // Mescla com mocks, usando Map para garantir que DB sobrescreva estado local/parcial
+                // Mescla com mocks se não estiver em produção
                 set(state => {
-                    // Start with DB items
                     const itemMap = new Map(formattedItems.map(i => [i.id, i]));
 
-                    // Inject Premium Demo Items (if not present)
-                    const demoItems = INITIAL_ITEMS.filter(i =>
-                        i.id.startsWith('sim_') || i.tags?.some(t => t.startsWith('TRI_'))
-                    );
-                    demoItems.forEach(item => {
-                        if (!itemMap.has(item.id)) {
-                            itemMap.set(item.id, item);
-                        }
-                    });
+                    if (!PRODUCTION_MODE) {
+                        const demoItems = INITIAL_ITEMS.filter(i =>
+                            i.id.startsWith('sim_') || i.tags?.some(t => t.startsWith('TRI_'))
+                        );
+                        demoItems.forEach(item => {
+                            if (!itemMap.has(item.id)) {
+                                itemMap.set(item.id, item);
+                            }
+                        });
+                    }
 
                     return { items: Array.from(itemMap.values()) };
                 });
@@ -500,13 +501,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 set(state => {
                     const existingIds = new Set(state.exams.map(x => x.id));
 
-                    // Inject Premium Demo Exams
-                    const demoExams = INITIAL_EXAMS.filter(e =>
-                        e.id === 'e_adapt_1' || e.id === 'e_sim_1'
-                    );
-                    const allNewExams = [...formattedExams, ...demoExams];
+                    if (!PRODUCTION_MODE) {
+                        const demoExams = INITIAL_EXAMS.filter(e =>
+                            e.id === 'e_adapt_1' || e.id === 'e_sim_1'
+                        );
+                        const allNewExams = [...formattedExams, ...demoExams];
+                        const newExams = allNewExams.filter((x: any) => !existingIds.has(x.id));
+                        return { exams: [...state.exams, ...newExams] };
+                    }
 
-                    const newExams = allNewExams.filter((x: any) => !existingIds.has(x.id));
+                    const newExams = formattedExams.filter((x: any) => !existingIds.has(x.id));
                     return { exams: [...state.exams, ...newExams] };
                 });
             }

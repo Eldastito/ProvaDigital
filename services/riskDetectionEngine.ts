@@ -21,8 +21,8 @@ export interface RiskAssessment {
     riskScore: number; // 0 a 100
     riskLevel: RiskLevel;
     factors: RiskFactor[];
-    interventions?: any[]; // Added to match AlertService expectation
-    simulatedAttendance: number; // Porcentagem de presença (0-100)
+    interventions?: any[];
+    attendance: number; // Porcentagem de presença (0-100)
     evasionProbability: 'BAIXA' | 'MEDIA' | 'ALTA' | 'CRITICA';
     generatedAt: string;         // Restaurado
     predictedScore?: number;    // Novo: Predição da nota do próximo bimestre
@@ -163,7 +163,7 @@ export const calculateRiskScore = (student: Student, results: ExamResult[], clas
         riskScore: Math.min(riskScore, 100),
         riskLevel,
         factors,
-        simulatedAttendance: attendance,
+        attendance: attendance, // Nome limpo para produção
         evasionProbability: evasionProb,
         generatedAt: new Date().toISOString()
     };

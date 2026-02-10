@@ -21,14 +21,39 @@ export const getRecommendedItems = async (
     state: AppState
 ): Promise<RecommendedItem[]> => {
 
-    // 1. Identify "Weak Spots" (Mock logic for now, would analyze state.results)
-    // Real logic: Filter results by subject/grade -> find topics with avg score < 6.0
-    const weakSpots = [
-        { topic: 'Equações de 1º Grau', bncc: 'EF07MA18', reason: 'Turma com 40% de erro neste tópico na última prova.' },
-        { topic: 'Interpretação de Texto', bncc: 'EF69LP03', reason: 'Histórico de dificuldade em inferência.' }
-    ];
+    // 1. Identify "Weak Spots" - Real Analysis of results
+    const subjectResults = state.results.filter(r => {
+        const exam = state.exams.find(e => e.id === r.examId);
+        return exam?.subject === request.subject;
+    });
 
-    const targetSpot = weakSpots[0]; // Pick top priority
+    // Mapear média por BNCC
+    const bnccPerformances = new Map<string, { total: number, count: number }>();
+    subjectResults.forEach(res => {
+        res.answers.forEach((ans: any) => {
+            const item = state.items.find(i => i.id === ans.itemId);
+            if (item?.bnccCode) {
+                const current = bnccPerformances.get(item.bnccCode) || { total: 0, count: 0 };
+                bnccPerformances.set(item.bnccCode, {
+                    total: current.total + (ans.isCorrect ? 1 : 0),
+                    count: current.count + 1
+                });
+            }
+        });
+    });
+
+    const weakSpots = Array.from(bnccPerformances.entries())
+        .map(([bncc, stats]) => ({
+            bncc,
+            avg: stats.total / stats.count,
+            count: stats.count
+        }))
+        .filter(s => s.avg < 0.6 && s.count >= 2) // Pelo menos 2 tentativas e média < 60%
+        .sort((a, b) => a.avg - b.avg);
+
+    const targetSpot = weakSpots.length > 0
+        ? { bncc: weakSpots[0].bncc, topic: `Reforço Habilidade ${weakSpots[0].bncc}`, reason: `Turma com ${(weakSpots[0].avg * 100).toFixed(0)}% de acerto nesta habilidade.` }
+        : { bncc: 'BNCC_GERAL', topic: request.subject, reason: 'Manutenção de performance.' };
 
     // 2. Generate content using Gemini
     // We construct a prompt context based on the weak spot

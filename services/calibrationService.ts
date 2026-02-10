@@ -1,13 +1,30 @@
 import { Item, LiteracyDomain } from '../types';
 
 export const CalibrationService = {
-    /**
-     * Simula a calibração de itens usando um motor TRI.
-     * Na vida real, isso enviaria dados de respostas para um backend Python/R.
-     */
     calibrateItems: async (items: Item[]): Promise<Item[]> => {
-        // Simulando delay de processamento estatístico
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        const IRT_ENGINE_URL = import.meta.env.VITE_IRT_ENGINE_URL;
+
+        if (IRT_ENGINE_URL) {
+            console.log('📡 Usando motor IRT real em:', IRT_ENGINE_URL);
+            try {
+                // Exemplo de integração real com R-IRT ou Python Backend
+                const response = await fetch(`${IRT_ENGINE_URL}/calibrate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items })
+                });
+
+                if (response.ok) {
+                    const calibratedData = await response.json();
+                    return calibratedData.items; // Backend deve retornar itens com triParams atualizados
+                }
+            } catch (err) {
+                console.warn('⚠️ Falha ao conectar com motor TRI real. Usando fallback de simulação.', err);
+            }
+        }
+
+        // --- FALLBACK: Simulação de processamento estatístico (Desenvolvimento/MVP) ---
+        await new Promise(resolve => setTimeout(resolve, 800));
 
         return items.map(item => {
             if (!item.triParams) return item;

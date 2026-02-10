@@ -15,19 +15,28 @@ export const VocationalCompassView = () => {
     const { currentUser, results, userProfiles } = useAppStore();
 
     // 1. Calculate Real Academic Performance
+    // 1. Calculate Real Academic Performance
     const studentResults = results.filter(r => r.studentId === currentUser?.id);
-    const subjects = [...new Set(studentResults.map(r => {
-        // Find exam metadata to get subject (Assuming exam details are joined or reachable)
-        // For now, we'll try to extract subject from exam variant or use a mock subject distribution if missing
-        return "Geral";
-    }))];
 
-    // Calculate stats
-    const averageScore = studentResults.length > 0
-        ? (studentResults.reduce((acc, curr) => acc + curr.totalScore, 0) / studentResults.length).toFixed(1)
-        : "N/A";
+    // Map subjects based on exams taken
+    const subjects = Array.from(new Set(studentResults.map(r => {
+        const exam = useAppStore.getState().exams.find(e => e.id === r.examId);
+        return exam?.subject || "Geral";
+    })));
 
-    const statsSummary = `Média Geral: ${averageScore}. Provas Realizadas: ${studentResults.length}.`;
+    // Calculate detailed stats by subject for IA context
+    const performanceBySubject = subjects.map(s => {
+        const relevant = studentResults.filter(r => {
+            const exam = useAppStore.getState().exams.find(e => e.id === r.examId);
+            return exam?.subject === s;
+        });
+        const avg = relevant.reduce((acc, curr) => acc + curr.totalScore, 0) / (relevant.length || 1);
+        return `${s}: ${avg.toFixed(1)}`;
+    }).join(", ");
+
+    const statsSummary = studentResults.length > 0
+        ? `Desempenho por Disciplina: ${performanceBySubject}. Total de Avaliações: ${studentResults.length}.`
+        : "Nenhum histórico acadêmico disponível ainda.";
 
     // 2. Fetch User Profile & Assessments (DISC, Learning Style)
     const userProfile = userProfiles.find(p => p.userId === currentUser?.id);

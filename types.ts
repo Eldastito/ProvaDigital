@@ -147,6 +147,7 @@ export interface AssessmentResult {
   report: string;
   strengths: string[];
   weaknesses: string[];
+  validatedBy?: string; // NOVO: Profissional que validou a triagem (Hardening)
 }
 
 export interface AcademicAchievement {

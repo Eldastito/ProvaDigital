@@ -59,6 +59,15 @@ export const operationalHealthService = {
      */
     logRecoveryEvent: async (sessionId: string, success: boolean) => {
         console.info(`[Fase VIII] Evento de Recuperação para Sessão ${sessionId}: ${success ? 'SUCESSO' : 'FALHA'}`);
-        // Futura integração com o canal de incidentes
+
+        try {
+            await supabase.from('operational_telemetry').insert([{
+                event_type: 'SESSION_RECOVERY',
+                is_success: success,
+                metadata: { session_id: sessionId }
+            }]);
+        } catch (err) {
+            console.warn('⚠️ Falha ao sincronizar evento de recuperação:', err);
+        }
     }
 };
