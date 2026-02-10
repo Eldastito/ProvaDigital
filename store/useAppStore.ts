@@ -347,11 +347,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
     setOwlTutorContext: (ctx) => set({ owlTutorContext: ctx }),
 
     setCurrentUser: (user) => {
-        // AUTO-UPGRADE: Se o e-mail for do usuário mestre, garantir perfil SYSTEM_ADMIN
-        if (user && user.email === 'eldastito@gmail.com') {
-            user.role = UserRole.SYSTEM_ADMIN;
-        }
-
         set((state) => {
             // Se o usuário for o mesmo, não reseta a seleção do filho para evitar loop de UI
             const isSameUser = state.currentUser?.id === user?.id;
