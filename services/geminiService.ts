@@ -900,8 +900,6 @@ const schema = {
     type: Type.ARRAY,
     items: { type: Type.STRING }
 };
-return callGeminiAPI<string[]>(prompt, schema);
-};
 
 export const generateCouncilMinutes = async (transcription: string, context: string): Promise<CouncilMinutes> => {
     const prompt = (PROMPTS as any).COUNCIL_MINUTES(transcription, context);
