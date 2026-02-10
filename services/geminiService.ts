@@ -4,6 +4,7 @@ import { QuestionType, DifficultyLevel, AssessmentType, VocationalProfile, Bloom
 
 // --- Configuration ---
 const DEFAULT_MODEL = 'gemini-2.5-flash';
+const PROMPT_VERSION = '1.2.0-governance';
 
 // --- Prompts ---
 const PROMPTS = {
@@ -377,6 +378,9 @@ export interface GeneratedQuestion {
         bloomTaxonomy: string;
         cognitiveAxis: string;
     };
+    // Metadata for Governance
+    aiModel?: string;
+    promptVersion?: string;
 }
 
 export interface EssayGrade {
@@ -688,8 +692,14 @@ export const generateQuestionsFromText = async (
     // No production fallback for generating questions
     const res = await callGeminiAPI<SchemaResponse>(prompt, schema);
 
-    // Ensure we return an array
-    return Array.isArray(res.questions) ? res.questions : [res as any];
+    // Ensure we return an array and inject governance metadata
+    const questions = Array.isArray(res.questions) ? res.questions : [res as any];
+
+    return questions.map(q => ({
+        ...q,
+        aiModel: DEFAULT_MODEL,
+        promptVersion: PROMPT_VERSION
+    }));
 };
 
 export const gradeEssayAnswer = async (

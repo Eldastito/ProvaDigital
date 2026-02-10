@@ -271,6 +271,8 @@ export const useItemEditor = () => {
                     bnccCode: g.bnccCode,
                     usageCount: 0,
                     generationBatchId: batchId,
+                    aiModelId: g.aiModel,
+                    aiPromptVersion: g.promptVersion,
                     lifecycleStatus: ItemLifecycleStatus.DRAFT,
                     createdAt: new Date().toISOString()
                 }));

@@ -454,6 +454,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
                     isAccessible: i.is_accessible,
                     accessibilityInstructions: i.accessibility_instructions,
                     multimedia: i.multimedia || [],
+                    aiModelId: i.ai_model_id,
+                    aiPromptVersion: i.ai_prompt_version,
+                    aiGenerationSettings: i.ai_generation_settings,
+                    reviewerId: i.reviewer_id,
+                    reviewedAt: i.reviewed_at,
                     usageCount: 0,
                     createdAt: i.created_at
                 }));
@@ -594,6 +599,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 is_accessible: item.isAccessible || false,
                 accessibility_instructions: item.accessibilityInstructions || '',
                 multimedia: item.multimedia || [],
+                ai_model_id: item.aiModelId,
+                ai_prompt_version: item.aiPromptVersion,
+                ai_generation_settings: item.aiGenerationSettings,
+                reviewer_id: item.reviewerId,
+                reviewed_at: item.reviewedAt,
                 created_at: item.createdAt
             });
 

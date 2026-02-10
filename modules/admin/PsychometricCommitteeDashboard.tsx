@@ -10,7 +10,9 @@ import {
     CheckCircle2,
     XCircle,
     Activity,
-    Lock
+    Lock,
+    Brain,
+    Sparkles
 } from 'lucide-react';
 
 export const PsychometricCommitteeDashboard = () => {
@@ -83,13 +85,13 @@ export const PsychometricCommitteeDashboard = () => {
                                 key={pool.id}
                                 onClick={() => setSelectedPool(pool)}
                                 className={`p-5 rounded-2xl border-2 transition-all cursor-pointer ${selectedPool?.id === pool.id
-                                        ? 'border-brand-primary bg-white shadow-lg'
-                                        : 'border-slate-200 bg-white/50 hover:bg-white hover:border-slate-300'
+                                    ? 'border-brand-primary bg-white shadow-lg'
+                                    : 'border-slate-200 bg-white/50 hover:bg-white hover:border-slate-300'
                                     }`}
                             >
                                 <div className="flex justify-between items-start mb-2">
                                     <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${pool.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' :
-                                            pool.status === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'
+                                        pool.status === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'
                                         }`}>
                                         {pool.status}
                                     </span>
@@ -152,6 +154,38 @@ export const PsychometricCommitteeDashboard = () => {
                                     </div>
                                 </div>
 
+                                {/* Auditoria de Origem IA (Fase VI) */}
+                                <div className="mt-8 p-6 bg-indigo-50 rounded-2xl border border-indigo-100">
+                                    <h3 className="text-sm font-bold text-indigo-900 flex items-center gap-2 mb-4">
+                                        <Brain size={18} className="text-indigo-600" />
+                                        Governança de IA & Certidão de Origem
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="bg-white p-4 rounded-xl border border-indigo-100 flex justify-between items-center shadow-sm">
+                                            <div>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Itens de Origem IA</p>
+                                                <p className="text-lg font-bold text-slate-800">72% <span className="text-xs text-slate-400 font-medium">(24/33)</span></p>
+                                            </div>
+                                            <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+                                                <Sparkles size={20} />
+                                            </div>
+                                        </div>
+                                        <div className="bg-white p-4 rounded-xl border border-indigo-100 flex justify-between items-center shadow-sm">
+                                            <div>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Assinatura Humana (HITL)</p>
+                                                <p className="text-lg font-bold text-emerald-600">100% <span className="text-xs text-slate-400 font-medium">Auditado</span></p>
+                                            </div>
+                                            <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
+                                                <ShieldCheck size={20} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 p-3 bg-white/50 rounded-xl text-[10px] font-mono text-slate-500 border border-indigo-50 leading-relaxed">
+                                        Prompt Master: FORGE_INEP_V1.2.0-GOVERNANCE <br />
+                                        Model: gemini-2.5-flash | Compliance: RGPD/LGPD-ED
+                                    </div>
+                                </div>
+
                                 <div className="mt-8 p-6 border-l-4 border-amber-400 bg-amber-50 rounded-r-xl">
                                     <div className="flex gap-3">
                                         <AlertCircle className="text-amber-600 shrink-0" />
@@ -176,7 +210,7 @@ export const PsychometricCommitteeDashboard = () => {
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

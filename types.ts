@@ -315,6 +315,14 @@ export interface Item {
   generationBatchId?: string;
   lifecycleStatus?: ItemLifecycleStatus;
   currentVersionId?: string; // Phase V2: Link to official version head
+
+  // AI Governance (Phase VI)
+  aiModelId?: string;
+  aiPromptVersion?: string;
+  aiGenerationSettings?: any;
+  reviewerId?: string;
+  reviewedAt?: string;
+
   createdAt: string;
 }
 

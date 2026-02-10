@@ -30,6 +30,7 @@ export const AIQuestionGeneratorView = () => {
     const [visualSuggestions, setVisualSuggestions] = useState<Record<number, VisualSuggestion>>({});
     const [auditResults, setAuditResults] = useState<Record<number, any>>({});
     const [auditing, setAuditing] = useState(false);
+    const [approvedItems, setApprovedItems] = useState<Record<number, boolean>>({});
 
     // Persistence Logic
     useEffect(() => {
@@ -163,7 +164,11 @@ export const AIQuestionGeneratorView = () => {
                     bnccCode: g.bnccCode || config.bnccCode,
                     score: 1.0,
                     origin: ItemOrigin.IA,
-                    lifecycleStatus: ItemLifecycleStatus.DRAFT,
+                    lifecycleStatus: approvedItems[idx] ? ItemLifecycleStatus.APPROVED : ItemLifecycleStatus.DRAFT,
+                    reviewerId: approvedItems[idx] ? state.currentUser?.id : undefined,
+                    reviewedAt: approvedItems[idx] ? new Date().toISOString() : undefined,
+                    aiModelId: g.aiModel,
+                    aiPromptVersion: g.promptVersion,
                     generationBatchId: batchId || undefined,
                     createdAt: new Date().toISOString(),
                     knowledgeArea: 'Geral',
@@ -394,9 +399,14 @@ export const AIQuestionGeneratorView = () => {
                                         <div className="space-y-4">
                                             <div className="flex justify-between items-start">
                                                 <p className="font-bold text-slate-800 text-lg leading-relaxed">{item.statement}</p>
-                                                <span className="px-3 py-1 bg-slate-100 text-slate-500 text-[10px] font-black rounded-full uppercase">
-                                                    BNCC: {item.bnccCode || 'N/A'}
-                                                </span>
+                                                <div className="flex flex-col items-end gap-2 text-[10px] font-black uppercase">
+                                                    <span className="px-3 py-1 bg-slate-100 text-slate-500 rounded-full">
+                                                        BNCC: {item.bnccCode || 'N/A'}
+                                                    </span>
+                                                    <span className={`px-3 py-1 rounded-full border ${approvedItems[idx] ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200 animate-pulse'}`}>
+                                                        {approvedItems[idx] ? 'Revisado por Humano' : 'Aguardando Revisão'}
+                                                    </span>
+                                                </div>
                                             </div>
 
                                             <div className="grid grid-cols-1 gap-3 mt-6">
@@ -493,7 +503,14 @@ export const AIQuestionGeneratorView = () => {
                                         </div>
                                     )}
                                 </div>
-                                <div className="w-16 border-l flex flex-col items-center py-4 bg-slate-50">
+                                <div className="w-20 border-l flex flex-col items-center py-6 bg-slate-50 gap-4">
+                                    <button
+                                        onClick={() => setApprovedItems(prev => ({ ...prev, [idx]: !prev[idx] }))}
+                                        className={`p-3 rounded-xl transition-all ${approvedItems[idx] ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'bg-white text-slate-400 border border-slate-200 hover:border-emerald-500 hover:text-emerald-500'}`}
+                                        title={approvedItems[idx] ? "Desfazer Aprovação" : "Aprovar Item (HITL)"}
+                                    >
+                                        <CheckCircle2 size={24} />
+                                    </button>
                                     <button
                                         onClick={() => setGeneratedItems(generatedItems.filter((_, i) => i !== idx))}
                                         className="p-3 text-slate-400 hover:text-rose-500 transition"
