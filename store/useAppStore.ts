@@ -2086,16 +2086,33 @@ export const useAppStore = create<AppStore>((set, get) => ({
     },
     fetchAuditLogs: async (tenantId) => {
         try {
-            const { data } = await supabase.from('audit_logs')
+            const { data, error } = await supabase.from('audit_logs')
                 .select('*')
                 .eq('tenant_id', tenantId)
                 .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
             if (data) {
-                const logs = data as AuditLog[];
+                const logs: AuditLog[] = data.map((log: any) => ({
+                    id: log.id,
+                    tenantId: log.tenant_id,
+                    actorId: log.actor_id,
+                    actorEmail: log.actor_email,
+                    actionType: log.action_type,
+                    targetResource: log.target_resource,
+                    targetId: log.target_id,
+                    details: log.details,
+                    ipAddress: log.ip_address,
+                    userAgent: log.user_agent,
+                    createdAt: log.created_at
+                }));
                 set({ auditLogs: logs });
                 return logs;
             }
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error("Error fetching audit logs:", e);
+        }
         return [];
     },
     confirmMentorship: (reqId, pinInput) => {

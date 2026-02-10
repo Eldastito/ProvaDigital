@@ -82,30 +82,47 @@ export const AuditLogView = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {filteredLogs.map((log) => (
-                                <tr key={log.id} className="hover:bg-slate-50 transition">
-                                    <td className="p-4 text-slate-500 whitespace-nowrap flex items-center gap-2">
-                                        <Clock size={14} />
-                                        {log.createdAt ? new Date(log.createdAt).toLocaleString() : 'N/A'}
-                                    </td>
-                                    <td className="p-4 font-medium text-slate-800">
-                                        {log.actorEmail ? maskPII(log.actorEmail, 'EMAIL') : 'Sistema'}
-                                    </td>
-                                    <td className="p-4">
-                                        <span className={`px-2 py-1 rounded text-xs font-bold ${getActionColor(log.actionType || 'UNKNOWN')}`}>
-                                            {translateActionType(log.actionType || 'UNKNOWN')}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-slate-600">
-                                        {translateResource(log.targetResource || '')}
-                                    </td>
-                                    <td className="p-4">
-                                        <pre className="text-xs bg-slate-900 text-slate-300 p-2 rounded max-w-xs overflow-x-auto scrollbar-thin">
-                                            {JSON.stringify(log.details || {}, null, 2)}
-                                        </pre>
-                                    </td>
-                                </tr>
-                            ))}
+                            {filteredLogs.map((log) => {
+                                // Double safety check for React #300 prevention
+                                const actorDisplay = typeof log.actorEmail === 'string'
+                                    ? maskPII(log.actorEmail, 'EMAIL')
+                                    : 'Sistema';
+
+                                const actionDisplay = typeof log.actionType === 'string'
+                                    ? translateActionType(log.actionType)
+                                    : 'Ação Desconhecida';
+
+                                const resourceDisplay = typeof log.targetResource === 'string'
+                                    ? translateResource(log.targetResource)
+                                    : 'Recurso N/A';
+
+                                return (
+                                    <tr key={log.id} className="hover:bg-slate-50 transition">
+                                        <td className="p-4 text-slate-500 whitespace-nowrap">
+                                            <div className="flex items-center gap-2">
+                                                <Clock size={14} />
+                                                {log.createdAt ? new Date(log.createdAt).toLocaleString() : 'N/A'}
+                                            </div>
+                                        </td>
+                                        <td className="p-4 font-medium text-slate-800">
+                                            {actorDisplay}
+                                        </td>
+                                        <td className="p-4">
+                                            <span className={`px-2 py-1 rounded text-xs font-bold ${getActionColor(String(log.actionType || ''))}`}>
+                                                {actionDisplay}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-slate-600">
+                                            {resourceDisplay}
+                                        </td>
+                                        <td className="p-4">
+                                            <pre className="text-xs bg-slate-900 text-slate-300 p-2 rounded max-w-xs overflow-x-auto scrollbar-thin">
+                                                {typeof log.details === 'object' ? JSON.stringify(log.details, null, 2) : String(log.details || '{}')}
+                                            </pre>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

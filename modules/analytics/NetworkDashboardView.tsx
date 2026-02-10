@@ -10,6 +10,7 @@ import { Download } from 'lucide-react';
 import { GlobalRankingView } from './GlobalRankingView';
 import { GeoMap } from './GeoMap';
 import { AuditLogView } from '../admin/components/AuditLogView';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
 
 export const NetworkDashboardView = () => {
     const state = useAppStore();
@@ -52,7 +53,11 @@ export const NetworkDashboardView = () => {
                         <h1 className="text-xl font-bold text-slate-800">Central de Governança</h1>
                     </div>
                 </div>
-                <AuditLogView />
+                <div className="p-4 md:p-8 max-w-[1400px] mx-auto">
+                    <ErrorBoundary>
+                        <AuditLogView />
+                    </ErrorBoundary>
+                </div>
             </div>
         );
     }
