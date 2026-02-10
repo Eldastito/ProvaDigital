@@ -31,8 +31,6 @@ import { ParentsDashboardView } from './modules/parents/ParentsDashboardView';
 import { ArcadeView } from './modules/student-portal/ArcadeView';
 import { AvatarShopView } from './modules/student-portal/AvatarShopView';
 import { VocationalCompassView } from './modules/student-portal/VocationalCompassView';
-import { QuizCardsView } from './modules/student-portal/QuizCardsView';
-import { EducationalRPGView } from './modules/student-portal/EducationalRPGView';
 import { GovernanceView } from './modules/admin/components/GovernanceView';
 import { AuditLogView } from './modules/admin/components/AuditLogView';
 import { TabletLauncher } from './modules/runner/student-app/TabletLauncher';
@@ -209,14 +207,9 @@ export const appRoutes: RouteObject[] = [
             // Student specific
             { path: 'aluno', element: <StudentDashboardView /> },
             { path: 'aluno/tutor', element: <OwlTutorView /> },
-            { path: 'aluno/bussola', element: <VocationalCompassView /> },
-            { path: 'aluno/loja', element: <AvatarShopView /> },
-            { path: 'aluno/arcade', element: <ArcadeView /> },
-            { path: 'aluno/quiz-cards', element: <QuizCardsView /> },
-            { path: 'aluno/rpg-adventure', element: <EducationalRPGView /> },
-            { path: 'aluno/loja', element: <AvatarShopView /> },
             { path: 'aluno/arcade', element: <ArcadeView /> },
             { path: 'aluno/bussola', element: <VocationalCompassView /> },
+            { path: 'aluno/loja', element: <AvatarShopView /> },
             { path: 'battle-arena', element: <StudentBattleView /> },
             { path: 'survival-mode', element: <SurvivalView /> },
 

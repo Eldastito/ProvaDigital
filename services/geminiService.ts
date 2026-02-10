@@ -382,26 +382,6 @@ REQUISITOS:
             "actions": ["Ação 1", "Ação 2"],
             "confidentialNotes": "Notas sensíveis apenas para a coordenação."
         }
-    `,
-    GENERATE_FLASHCARDS: (topic: string, grade: string) => `
-        Mestre de Quiz Educacional.
-        Crie 5 Flashcards OBJETIVOS para o tópico: "${topic}" (${grade}).
-        
-        REGRAS RÍGIDAS:
-        - Frente: Pergunta ou conceito direto. MÁXIMO 100 caracteres.
-        - Verso: Resposta ou explicação resumida. MÁXIMO 200 caracteres.
-        - PROIBIDO: Não adicione tags entre parênteses, metadados, ou qualquer texto extra após a pergunta.
-        - FOCO: Apenas o conteúdo acadêmico.
-    `,
-    GENERATE_RPG_SCENARIO: (topic: string, grade: string) => `
-        Mestre de RPG Educacional.
-        Crie uma aventura curta e imersiva sobre: "${topic}" para nível: ${grade}.
-        
-        REGRAS:
-        - Vá direto para a história.
-        - Não gere listas, metadados ou explicações.
-        - Saída estritamente em JSON conforme o schema.
-        - O título e a introdução devem ser puramente narrativos.
     `
 };
 
@@ -913,72 +893,6 @@ export const generateCouncilMinutes = async (transcription: string, context: str
     };
 
     return callGeminiAPI<CouncilMinutes>(prompt, schema);
-};
-
-export const generateFlashcards = async (topic: string, grade: string): Promise<FlashcardDeck> => {
-    const prompt = (PROMPTS as any).GENERATE_FLASHCARDS(topic, grade);
-    const schema = {
-        type: Type.OBJECT,
-        properties: {
-            cards: {
-                type: Type.ARRAY,
-                description: "Lista de 5 flashcards curtos e sem metadados.",
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        front: { type: Type.STRING, description: "Frente do card (pergunta direta, máx 100 caracteres). SEM TAGS." },
-                        back: { type: Type.STRING, description: "Verso do card (resposta curta, máx 200 caracteres)." }
-                    },
-                    required: ["front", "back"]
-                }
-            }
-        }
-    };
-    return callGeminiAPI<FlashcardDeck>(prompt, schema);
-};
-
-export const generateRPGScenario = async (topic: string, grade: string): Promise<RPGScenario> => {
-    const prompt = (PROMPTS as any).GENERATE_RPG_SCENARIO(topic, grade);
-    const schema = {
-        type: Type.OBJECT,
-        properties: {
-            title: {
-                type: Type.STRING,
-                description: "Título curtíssimo e épico da aventura (máx 40 caracteres). APENAS o título, sem explicações."
-            },
-            intro: {
-                type: Type.STRING,
-                description: "Contexto narrativo imersivo de no máximo 2 parágrafos. NÃO descreva o que você está fazendo, apenas narre."
-            },
-            challenge: {
-                type: Type.STRING,
-                description: "O problema ou mistério técnico/acadêmico que o jogador deve resolver agora."
-            },
-            options: {
-                type: Type.ARRAY,
-                description: "Exatamente 3 opções de escolha.",
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        text: { type: Type.STRING, description: "Ação que o jogador pode tomar." },
-                        isCorrect: { type: Type.BOOLEAN, description: "Verdadeiro se esta for a resposta correta para o desafio pedagógico." },
-                        outcome: { type: Type.STRING, description: "O que acontece após a escolha. Curto e direto." }
-                    },
-                    required: ["text", "isCorrect", "outcome"]
-                }
-            }
-        },
-        required: ["title", "intro", "challenge", "options"]
-    };
-    const result = await callGeminiAPI<RPGScenario>(prompt, schema);
-
-    // Safety check for malformed AI response
-    if (!result.options || !Array.isArray(result.options)) {
-        console.warn('RPG Scenario generated without options, using fallback.');
-        result.options = [];
-    }
-
-    return result;
 };
 
 export const suggestBNCC = async (statement: string): Promise<{ code: string; reason: string }> => {
