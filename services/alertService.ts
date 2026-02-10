@@ -114,6 +114,10 @@ export const saveRiskAlert = async (assessment: RiskAssessment): Promise<RiskAle
 
         if (error) {
             console.error('❌ Supabase Save Alert Error:', error);
+            console.error('Message:', error.message);
+            console.error('Details:', error.details);
+            console.error('Hint:', error.hint);
+            console.error('Code:', error.code);
             throw error;
         }
 

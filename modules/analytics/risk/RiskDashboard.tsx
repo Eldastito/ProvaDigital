@@ -174,6 +174,18 @@ export const RiskDashboard = () => {
         }
     };
 
+    const handleAlertParents = async (assessment: RiskAssessment) => {
+        alert(`📣 Notificação enviada para os responsáveis de ${assessment.studentName}.`);
+    };
+
+    const handleScheduleMeeting = (assessment: RiskAssessment) => {
+        alert(`📅 Interface de agendamento aberta para ${assessment.studentName}.`);
+    };
+
+    const handleCreateIntervention = (assessment: RiskAssessment) => {
+        alert(`📝 Iniciando criação de plano de intervenção para ${assessment.studentName}.`);
+    };
+
     if (!currentUser) return null;
 
     return (
@@ -370,6 +382,9 @@ export const RiskDashboard = () => {
                                 onToggle={() => setExpandedStudent(
                                     expandedStudent === risk.studentId ? null : risk.studentId
                                 )}
+                                onAlertParents={handleAlertParents}
+                                onScheduleMeeting={handleScheduleMeeting}
+                                onCreatePlan={handleCreateIntervention}
                             />
                         ))}
                     </div>
@@ -416,7 +431,10 @@ const StudentRiskCard: React.FC<{
     assessment: RiskAssessment;
     isExpanded: boolean;
     onToggle: () => void;
-}> = ({ assessment, isExpanded, onToggle }) => {
+    onAlertParents: (a: RiskAssessment) => void;
+    onScheduleMeeting: (a: RiskAssessment) => void;
+    onCreatePlan: (a: RiskAssessment) => void;
+}> = ({ assessment, isExpanded, onToggle, onAlertParents, onScheduleMeeting, onCreatePlan }) => {
     const { classes } = useSafeAppStore();
     const studentClass = classes.find(c => c.id === assessment.classId);
 
@@ -566,17 +584,25 @@ const StudentRiskCard: React.FC<{
                             </div>
                         </div>
 
-                        {/* Ações Rápidas */}
                         <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-200">
-                            <button className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-dark transition">
+                            <button
+                                onClick={() => onAlertParents(assessment)}
+                                className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-dark transition"
+                            >
                                 <MessageCircle size={16} />
                                 Alertar Pais
                             </button>
-                            <button className="flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition">
+                            <button
+                                onClick={() => onScheduleMeeting(assessment)}
+                                className="flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition"
+                            >
                                 <Calendar size={16} />
                                 Agendar Reunião
                             </button>
-                            <button className="flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition">
+                            <button
+                                onClick={() => onCreatePlan(assessment)}
+                                className="flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition"
+                            >
                                 <FileText size={16} />
                                 Criar Plano de Intervenção
                             </button>
