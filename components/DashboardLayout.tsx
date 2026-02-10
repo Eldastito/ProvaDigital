@@ -109,7 +109,7 @@ export const DashboardLayout = () => {
 
     return (
         <div className="flex h-screen bg-[#f8fafc] overflow-hidden font-sans">
-            <aside className={`${sidebarOpen ? 'w-64' : 'w-0'} bg-brand-dark border-r border-[#1e3a8a] flex-shrink-0 transition-all duration-300 flex flex-col shadow-xl`}>
+            <aside className={`${sidebarOpen ? 'w-64' : 'w-0'} bg-brand-dark border-r border-[#1e3a8a] flex-shrink-0 transition-all duration-300 flex flex-col shadow-xl overflow-hidden`}>
                 <div className="h-20 border-b border-[#1e3a8a] flex items-center justify-center gap-3 overflow-hidden px-4">
                     <div className="w-8 h-8 bg-brand-secondary rounded-lg flex items-center justify-center text-white font-bold flex-shrink-0 shadow-lg shadow-brand-secondary/20">E</div>
                     <div className={`${!sidebarOpen && 'opacity-0'} transition-opacity duration-200`}>

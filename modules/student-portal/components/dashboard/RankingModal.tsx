@@ -135,7 +135,7 @@ export const RankingModal: React.FC<RankingModalProps> = ({
                                 <div className="font-bold text-slate-700">Na Turma</div>
                                 <div className="text-xs text-slate-400">Entre {ranks.totalClass} alunos</div>
                             </div>
-                            <div className={'text-2xl font - black ' + (rankingMode === 'XP' ? 'text-amber-600' : 'text-brand-primary') + ' '}>#{ranks.classRank}</div>
+                            <div className={'text-2xl font-black ' + (rankingMode === 'XP' ? 'text-amber-600' : 'text-brand-primary') + ' '}>#{ranks.classRank}</div>
                         </div>
 
                         <div className="flex items-center justify-between p-4 bg-white shadow-sm rounded-xl border border-slate-200">
@@ -143,7 +143,7 @@ export const RankingModal: React.FC<RankingModalProps> = ({
                                 <div className="font-bold text-slate-700">Na Escola</div>
                                 <div className="text-xs text-slate-400">Entre {ranks.totalSchool} alunos</div>
                             </div>
-                            <div className={'text-2xl font - black ' + (rankingMode === 'XP' ? 'text-amber-700' : 'text-brand-secondary') + ' '}>#{ranks.schoolRank}</div>
+                            <div className={'text-2xl font-black ' + (rankingMode === 'XP' ? 'text-amber-700' : 'text-brand-secondary') + ' '}>#{ranks.schoolRank}</div>
                         </div>
                     </div>
 
