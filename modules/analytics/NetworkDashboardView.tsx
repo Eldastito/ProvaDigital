@@ -5,7 +5,7 @@ import { TrendingUp, Users, ShieldAlert, Zap, School, MapPin, Globe, Cloud, File
 import { AppState, TenantType, UserRole } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
 import { AnalyticsService } from '../../services/analyticsService';
-import { ReportingService } from '../../services/reportingService';
+import { reportingService } from '../../services/reportingService';
 import { Download } from 'lucide-react';
 
 import { GlobalRankingView } from './GlobalRankingView';
@@ -327,7 +327,15 @@ export const NetworkDashboardView = () => {
                                 'Média IDG': p.value.toFixed(2),
                                 'Risco': p.status === 'CRITICAL' ? 'Alto' : p.status === 'WARNING' ? 'Médio' : 'Baixo'
                             }));
-                            ReportingService.exportToExcel(data, `Relatorio_Rede_${new Date().toISOString().split('T')[0]}`);
+                            ReportingService.generateExcelExport(data, `Relatorio_Rede_${new Date().toISOString().split('T')[0]}`)
+                                .then(blob => {
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `Relatorio_Rede_${new Date().toISOString().split('T')[0]}.xlsx`;
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                });
                         }}
                         className="bg-emerald-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold shadow-sm hover:bg-emerald-500 flex items-center gap-2"
                     >
