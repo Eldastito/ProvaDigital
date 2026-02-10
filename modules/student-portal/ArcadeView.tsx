@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Gamepad2, Search, ExternalLink, Play, ArrowLeft, Swords, Shield } from 'lucide-react';
+import { Gamepad2, Search, ExternalLink, Play, ArrowLeft, Swords, Shield, Zap, Map } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
 
@@ -98,6 +98,48 @@ export const ArcadeView = () => {
 
                 {/* 1. SPECIAL MODES (Moved from Sidebar) */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                    {/* RPG Adventure Card */}
+                    <div onClick={() => navigate('/aluno/rpg-adventure')} className="cursor-pointer group relative h-48 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all hover:-translate-y-1">
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-teal-600"></div>
+                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+
+                        <div className="relative h-full p-8 flex flex-col justify-center items-start z-10">
+                            <div className="bg-white/10 backdrop-blur rounded p-2 mb-4 text-white">
+                                <Map size={32} />
+                            </div>
+                            <h2 className="text-3xl font-black italic text-white mb-2">RPG Adventure</h2>
+                            <p className="text-emerald-100 font-medium">Aprenda vivendo a história!</p>
+
+                            <div className="absolute bottom-6 right-8 opacity-0 group-hover:opacity-100 transform translate-x-4 group-hover:translate-x-0 transition-all duration-300">
+                                <span className="bg-white text-emerald-600 px-4 py-2 rounded-lg font-bold text-sm shadow-lg flex items-center gap-2">
+                                    Iniciar <Play size={14} fill="currentColor" />
+                                </span>
+                            </div>
+                        </div>
+                        <Map size={200} className="absolute -right-10 -bottom-10 text-white opacity-10 transform rotate-12" />
+                    </div>
+
+                    {/* Quiz Cards Card */}
+                    <div onClick={() => navigate('/aluno/quiz-cards')} className="cursor-pointer group relative h-48 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all hover:-translate-y-1">
+                        <div className="absolute inset-0 bg-gradient-to-r from-violet-600 to-fuchsia-600"></div>
+                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+
+                        <div className="relative h-full p-8 flex flex-col justify-center items-start z-10">
+                            <div className="bg-white/10 backdrop-blur rounded p-2 mb-4 text-white">
+                                <Zap size={32} />
+                            </div>
+                            <h2 className="text-3xl font-black italic text-white mb-2">Quiz Cards</h2>
+                            <p className="text-violet-100 font-medium">Revisão rápida e dinâmica.</p>
+
+                            <div className="absolute bottom-6 right-8 opacity-0 group-hover:opacity-100 transform translate-x-4 group-hover:translate-x-0 transition-all duration-300">
+                                <span className="bg-white text-violet-600 px-4 py-2 rounded-lg font-bold text-sm shadow-lg flex items-center gap-2">
+                                    Jogar <Play size={14} fill="currentColor" />
+                                </span>
+                            </div>
+                        </div>
+                        <Zap size={200} className="absolute -right-10 -bottom-10 text-white opacity-10 transform -rotate-12" />
+                    </div>
+
                     {/* Battle Arena Card */}
                     <div onClick={() => navigate('/battle-arena')} className="cursor-pointer group relative h-48 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all hover:-translate-y-1">
                         <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-red-600"></div>
@@ -212,6 +254,6 @@ export const ArcadeView = () => {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };

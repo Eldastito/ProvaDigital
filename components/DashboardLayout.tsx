@@ -5,8 +5,6 @@ import {
     LogOut, Menu, ChevronRight, Tablet, PieChart, MessageCircle,
     Printer, Compass, Globe,
     PenTool, Target, UserCircle, Shield, Stethoscope, Map, Home, ChevronDown, Swords, Flame, Trophy, Cast, Calendar, Gamepad2, BarChart, Activity, CalendarCheck, Bot,
-    Zap,
-    Sword,
     Gamepad as Arcade,
     TrendingUp
 } from 'lucide-react';
@@ -171,8 +169,6 @@ export const DashboardLayout = () => {
                             <NavItem icon={LayoutDashboard} label="Meu Desempenho" active={path === '/aluno'} onClick={() => navigate('/aluno')} />
                             <NavItem icon={Target} label="Plano de Estudos" active={path === '/study-plans'} onClick={() => navigate('/study-plans')} />
                             <NavItem icon={Arcade} label="Games Arcade" active={path === '/aluno/arcade'} onClick={() => navigate('/aluno/arcade')} />
-                            <NavItem icon={Zap} label="Quiz Cards" active={path === '/aluno/quiz-cards'} onClick={() => navigate('/aluno/quiz-cards')} />
-                            <NavItem icon={Sword} label="RPG Educacional" active={path === '/aluno/rpg-adventure'} onClick={() => navigate('/aluno/rpg-adventure')} />
                             <NavItem icon={Bot} label="Corujão Tutor" active={path === '/aluno/tutor'} onClick={() => navigate('/aluno/tutor')} />
                             <NavItem icon={Compass} label="Bússola do Futuro" active={path === '/aluno/bussola'} onClick={() => navigate('/aluno/bussola')} />
                             <NavItem icon={Trophy} label="Loja de Avatares" active={path === '/aluno/loja'} onClick={() => navigate('/aluno/loja')} />
