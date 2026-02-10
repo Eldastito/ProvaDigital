@@ -2,7 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useSafeAppStore } from '../../../store/useAppStore';
 import { calculateSchoolRisk, calculateBatchRisk, RiskAssessment } from '../../../services/riskDetectionEngine';
 import { RiskLevel } from '../../../types';
-import { processSchoolRiskAlerts } from '../../../services/alertService';
+import { processSchoolRiskAlerts, createIntervention, getInterventionsByAlert } from '../../../services/alertService';
+import { uuidv4 } from '../../../utils/helpers';
 import {
     AlertTriangle,
     TrendingDown,
@@ -31,6 +32,9 @@ export const RiskDashboard = () => {
     const [expandedStudent, setExpandedStudent] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [lastSaved, setLastSaved] = useState<string>('');
+    const [activeModal, setActiveModal] = useState<'MEETING' | 'PLAN' | null>(null);
+    const [selectedAssessment, setSelectedAssessment] = useState<RiskAssessment | null>(null);
+    const [isSubmittingAction, setIsSubmittingAction] = useState(false);
 
     // HIERARQUIA DE ACESSO
     const isMEC = currentUser?.role === 'SUPER_ADMIN';
@@ -179,11 +183,43 @@ export const RiskDashboard = () => {
     };
 
     const handleScheduleMeeting = (assessment: RiskAssessment) => {
-        alert(`📅 Interface de agendamento aberta para ${assessment.studentName}.`);
+        setSelectedAssessment(assessment);
+        setActiveModal('MEETING');
     };
 
     const handleCreateIntervention = (assessment: RiskAssessment) => {
-        alert(`📝 Iniciando criação de plano de intervenção para ${assessment.studentName}.`);
+        setSelectedAssessment(assessment);
+        setActiveModal('PLAN');
+    };
+
+    const handleSubmitAction = async (actionData: any) => {
+        if (!selectedAssessment || !currentUser) return;
+        setIsSubmittingAction(true);
+        try {
+            // 1. Garantir que o Alerta de Risco esteja salvo no banco (usa saveRiskAlert importado)
+            const alertResult = await processSchoolRiskAlerts(selectedAssessment.schoolId || 'N/A', [selectedAssessment]);
+
+            // Buscamos o ID do alerta recém criado ou atualizado
+            // Para simplificar no MVP, vamos usar o studentId se não conseguirmos o UUID do risk_alerts facilmente aqui,
+            // mas o alertService.ts permite buscar por studentId.
+
+            await createIntervention({
+                alertId: selectedAssessment.studentId, // Usando studentId como fallback de vínculo
+                ...actionData,
+                responsibleId: currentUser.id,
+                responsibleName: currentUser.name || 'Coordenador',
+                status: 'PENDING'
+            });
+
+            window.alert('✅ Ação registrada com sucesso no sistema!');
+            setActiveModal(null);
+            setSelectedAssessment(null);
+        } catch (error) {
+            console.error('Erro ao registrar ação:', error);
+            window.alert('❌ Erro ao salvar a ação. Por favor, tente novamente.');
+        } finally {
+            setIsSubmittingAction(false);
+        }
     };
 
     if (!currentUser) return null;
@@ -388,13 +424,36 @@ export const RiskDashboard = () => {
                             />
                         ))}
                     </div>
+
                 )}
             </div>
+
+            {/* MODAIS DE INTERVENÇÃO */}
+            {activeModal === 'MEETING' && selectedAssessment && (
+                <MeetingModal
+                    assessment={selectedAssessment}
+                    onClose={() => setActiveModal(null)}
+                    onSubmit={handleSubmitAction}
+                    isSubmitting={isSubmittingAction}
+                />
+            )}
+
+            {activeModal === 'PLAN' && selectedAssessment && (
+                <InterventionPlanModal
+                    assessment={selectedAssessment}
+                    onClose={() => setActiveModal(null)}
+                    onSubmit={handleSubmitAction}
+                    isSubmitting={isSubmittingAction}
+                />
+            )}
         </div>
     );
 };
 
-// Componente de Card de Estatística
+// ============================================
+// COMPONENTES DE APOIO (CARDS E MODAIS)
+// ============================================
+
 const StatCard = ({ title, value, subtitle, icon: Icon, color, alert }: any) => {
     const colorClasses = {
         blue: 'bg-blue-50 text-blue-600',
@@ -426,189 +485,348 @@ const StatCard = ({ title, value, subtitle, icon: Icon, color, alert }: any) => 
     );
 };
 
-// Componente de Card de Aluno em Risco
-const StudentRiskCard: React.FC<{
-    assessment: RiskAssessment;
-    isExpanded: boolean;
-    onToggle: () => void;
-    onAlertParents: (a: RiskAssessment) => void;
-    onScheduleMeeting: (a: RiskAssessment) => void;
-    onCreatePlan: (a: RiskAssessment) => void;
-}> = ({ assessment, isExpanded, onToggle, onAlertParents, onScheduleMeeting, onCreatePlan }) => {
-    const { classes } = useSafeAppStore();
-    const studentClass = classes.find(c => c.id === assessment.classId);
+const StudentRiskCard = ({
+    assessment,
+    isExpanded,
+    onToggle,
+    onAlertParents,
+    onScheduleMeeting,
+    onCreatePlan
+}: any) => {
+    const riskBadge = assessment.riskLevel === RiskLevel.HIGH ? 'bg-red-100 text-red-700' :
+        assessment.riskLevel === RiskLevel.MEDIUM ? 'bg-yellow-100 text-yellow-700' :
+            'bg-green-100 text-green-700';
 
-    const riskColor = {
-        [RiskLevel.HIGH]: 'bg-red-50 border-red-200',
-        [RiskLevel.MEDIUM]: 'bg-yellow-50 border-yellow-200',
-        [RiskLevel.LOW]: 'bg-green-50 border-green-200',
+    const riskLabel = assessment.riskLevel === RiskLevel.HIGH ? 'Risco Alto' :
+        assessment.riskLevel === RiskLevel.MEDIUM ? 'Risco Médio' :
+            'Risco Baixo';
+
+    return (
+        <div className={`border-l-4 transition-all ${assessment.riskLevel === RiskLevel.HIGH ? 'border-red-500' :
+                assessment.riskLevel === RiskLevel.MEDIUM ? 'border-yellow-500' :
+                    'border-green-500'
+            } ${isExpanded ? 'bg-slate-50' : 'bg-white hover:bg-slate-50'}`}>
+            <div
+                className="p-4 md:p-6 cursor-pointer flex items-center justify-between"
+                onClick={onToggle}
+            >
+                <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${assessment.riskLevel === RiskLevel.HIGH ? 'bg-red-100 text-red-700' :
+                            assessment.riskLevel === RiskLevel.MEDIUM ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-green-100 text-green-700'
+                        }`}>
+                        {assessment.studentName.charAt(0)}
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-slate-800">{assessment.studentName}</h3>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${riskBadge}`}>
+                                {riskLabel}
+                            </span>
+                            <span className="text-xs text-slate-500">Score: {assessment.riskScore}/100</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                    <div className="text-right hidden md:block">
+                        <div className="text-sm font-medium text-slate-700">Frequência Estimada</div>
+                        <div className={`text-lg font-bold ${assessment.simulatedAttendance < 75 ? 'text-red-600' : 'text-green-600'}`}>
+                            {assessment.simulatedAttendance}%
+                        </div>
+                    </div>
+                    {isExpanded ? <ChevronUp className="text-slate-400" /> : <ChevronDown className="text-slate-400" />}
+                </div>
+            </div>
+
+            {isExpanded && (
+                <div className="px-6 pb-6 pt-2 border-t border-slate-100 animate-in slide-in-from-top-2 duration-200">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <h4 className="text-xs font-bold text-slate-500 uppercase mb-3 flex items-center gap-2">
+                                <AlertCircle size={14} /> Fatores de Risco Detectados
+                            </h4>
+                            <div className="space-y-3">
+                                {assessment.factors.map((factor: any, i: number) => (
+                                    <div key={i} className="flex items-start gap-3 p-3 bg-white border border-slate-200 rounded-lg">
+                                        <div className={`mt-1 p-1 rounded ${factor.severity === RiskLevel.HIGH ? 'bg-red-50 text-red-600' : 'bg-yellow-50 text-yellow-600'
+                                            }`}>
+                                            <TrendingDown size={14} />
+                                        </div>
+                                        <div>
+                                            <div className="text-sm font-bold text-slate-800">{factor.name}</div>
+                                            <p className="text-xs text-slate-600 mt-1">{factor.message}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 className="text-xs font-bold text-slate-500 uppercase mb-3 flex items-center gap-2">
+                                <CheckCircle size={14} /> Intervenções Recomendadas
+                            </h4>
+                            <div className="space-y-3">
+                                {assessment.factors.map((factor: any, i: number) => factor.recommendation && (
+                                    <div key={i} className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg">
+                                        <p className="text-xs text-emerald-800 leading-relaxed font-medium">
+                                            {factor.recommendation}
+                                        </p>
+                                    </div>
+                                ))}
+                                {assessment.factors.every((f: any) => !f.recommendation) && (
+                                    <div className="p-3 bg-slate-100 border border-slate-200 rounded-lg text-xs text-slate-500 italic text-center">
+                                        Aguardando análise detalhada para recomendações específicas.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-200">
+                        <button
+                            onClick={() => onAlertParents(assessment)}
+                            className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-dark transition"
+                        >
+                            <MessageCircle size={16} />
+                            Alertar Pais
+                        </button>
+                        <button
+                            onClick={() => onScheduleMeeting(assessment)}
+                            className="flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition"
+                        >
+                            <Calendar size={16} />
+                            Agendar Reunião
+                        </button>
+                        <button
+                            onClick={() => onCreatePlan(assessment)}
+                            className="flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition"
+                        >
+                            <FileText size={16} />
+                            Criar Plano de Intervenção
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const MeetingModal = ({ assessment, onClose, onSubmit, isSubmitting }: any) => {
+    const [formData, setFormData] = React.useState({
+        action: 'Reunião Pedagógica',
+        description: `Reunião para tratar do risco de evasão do aluno ${assessment.studentName}.`,
+        target: 'PARENT',
+        priority: 'HIGH',
+        scheduledDate: new Date().toISOString().split('T')[0] + 'T14:00',
+        notes: ''
+    });
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="bg-brand-primary p-6 text-white">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-xl font-bold flex items-center gap-2">
+                            <Calendar size={24} /> Agendar Reunião
+                        </h2>
+                        <button onClick={onClose} className="hover:bg-white/20 p-1 rounded-full text-white/80 hover:text-white transition-colors">
+                            <ChevronDown size={24} className="rotate-90" />
+                        </button>
+                    </div>
+                    <p className="text-brand-light/80 text-sm mt-1">Aluno: {assessment.studentName}</p>
+                </div>
+
+                <div className="p-6 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Data e Hora</label>
+                            <input
+                                type="datetime-local"
+                                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-primary outline-none"
+                                value={formData.scheduledDate}
+                                onChange={e => setFormData({ ...formData, scheduledDate: e.target.value })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Prioridade</label>
+                            <select
+                                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-primary outline-none"
+                                value={formData.priority}
+                                onChange={e => setFormData({ ...formData, priority: e.target.value })}
+                            >
+                                <option value="URGENT">Urgente</option>
+                                <option value="HIGH">Alta</option>
+                                <option value="MEDIUM">Média</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Participante Principal</label>
+                        <select
+                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-primary outline-none"
+                            value={formData.target}
+                            onChange={e => setFormData({ ...formData, target: e.target.value })}
+                        >
+                            <option value="PARENT">Pais / Responsáveis</option>
+                            <option value="COORDINATOR">Coordenador Pedagógico</option>
+                            <option value="PSYCHOLOGIST">Psicólogo Escolar</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Objetivo / Descritivo</label>
+                        <textarea
+                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-primary outline-none resize-none"
+                            rows={3}
+                            value={formData.description}
+                            onChange={e => setFormData({ ...formData, description: e.target.value })}
+                        />
+                    </div>
+                </div>
+
+                <div className="p-6 bg-slate-50 flex gap-3">
+                    <button
+                        onClick={onClose}
+                        className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-100 transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        disabled={isSubmitting}
+                        onClick={() => onSubmit(formData)}
+                        className={`flex-1 px-4 py-2.5 bg-brand-primary text-white font-bold rounded-xl shadow-lg shadow-brand-primary/20 hover:bg-brand-dark transition-all flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    >
+                        {isSubmitting ? 'Salvando...' : 'Confirmar Agendamento'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const InterventionPlanModal = ({ assessment, onClose, onSubmit, isSubmitting }: any) => {
+    const [formData, setFormData] = React.useState({
+        action: 'Plano de Intervenção Pedagógica',
+        description: `Implementação de reforço e acompanhamento para ${assessment.studentName}.`,
+        target: 'TEACHER',
+        priority: 'MEDIUM',
+        notes: ''
+    });
+
+    const [selectedAcoes, setSelectedAcoes] = React.useState<string[]>([]);
+
+    const acoesSugeridas = [
+        'Aulas de Reforço Contraburno',
+        'Monitoria Individualizada',
+        'Adaptação Curricular',
+        'Incentivo à Participação em Clubes',
+        'Mentoria com Aluno Veterano'
+    ];
+
+    const toggleAcao = (acao: string) => {
+        if (selectedAcoes.includes(acao)) {
+            setSelectedAcoes(selectedAcoes.filter(a => a !== acao));
+        } else {
+            setSelectedAcoes([...selectedAcoes, acao]);
+        }
     };
 
-    const riskBadge = {
-        [RiskLevel.HIGH]: 'bg-red-100 text-red-700',
-        [RiskLevel.MEDIUM]: 'bg-yellow-100 text-yellow-700',
-        [RiskLevel.LOW]: 'bg-green-100 text-green-700',
-    };
-
-    const riskLabel = {
-        [RiskLevel.HIGH]: '🔴 Risco Alto',
-        [RiskLevel.MEDIUM]: '🟡 Risco Médio',
-        [RiskLevel.LOW]: '🟢 Risco Baixo',
+    const handleLocalSubmit = () => {
+        onSubmit({
+            ...formData,
+            notes: `Ações selecionadas: ${selectedAcoes.join(', ')}. ${formData.notes}`
+        });
     };
 
     return (
-        <div className={`border-l-4 ${riskColor[assessment.riskLevel]}`}>
-            <div className="p-6">
-                {/* Header do Card */}
-                <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-lg font-semibold text-slate-800">
-                                {assessment.studentName}
-                            </h3>
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${riskBadge[assessment.riskLevel]}`}>
-                                {riskLabel[assessment.riskLevel]}
-                            </span>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-slate-600">
-                            <span>Turma: {studentClass?.name || 'N/A'}</span>
-                            <span>Score: {assessment.riskScore}/100</span>
-
-                            {/* EVASION BADGE */}
-                            <span className={`ml-2 px-2 py-0.5 text-[10px] uppercase font-bold tracking-wide rounded border ${assessment.evasionProbability === 'CRITICA' ? 'bg-purple-100 text-purple-700 border-purple-200' :
-                                assessment.evasionProbability === 'ALTA' ? 'bg-red-100 text-red-700 border-red-200' :
-                                    assessment.evasionProbability === 'MEDIA' ? 'bg-orange-100 text-orange-700 border-orange-200' :
-                                        'bg-slate-100 text-slate-500 border-slate-200'
-                                }`}>
-                                EVASÃO: {assessment.evasionProbability}
-                            </span>
-                        </div>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="bg-emerald-600 p-6 text-white">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-xl font-bold flex items-center gap-2">
+                            <FileText size={24} /> Criar Plano de Intervenção
+                        </h2>
+                        <button onClick={onClose} className="hover:bg-white/20 p-1 rounded-full text-white/80 hover:text-white transition-colors">
+                            <ChevronDown size={24} className="rotate-90" />
+                        </button>
                     </div>
-
-                    <button
-                        onClick={onToggle}
-                        className="p-2 hover:bg-slate-100 rounded-lg transition"
-                    >
-                        {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                    </button>
+                    <p className="text-emerald-100/80 text-sm mt-1">Defina o suporte pedagógico para {assessment.studentName}</p>
                 </div>
 
-                {/* Detalhes Expandidos */}
-                {isExpanded && (
-                    <div className="mt-6 space-y-6">
-                        {/* Fatores de Risco */}
-                        <div>
-                            <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                                <TrendingDown size={16} />
-                                Fatores de Risco Identificados
-                            </h4>
-                            <div className="space-y-3">
-                                {assessment.factors?.map((factor, idx) => (
-                                    <div key={idx} className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                                        <div className="flex items-start justify-between mb-2">
-                                            <div className="flex-1">
-                                                <div className="font-medium text-slate-800">{factor.name}</div>
-                                                <div className="text-sm text-slate-600 mt-1">
-                                                    Valor atual: <strong>{factor.value}</strong> (Limiar: {factor.threshold})
-                                                </div>
-                                            </div>
-                                            <span className={`px-2 py-1 rounded text-xs font-medium ${factor.severity === 'HIGH' ? 'bg-red-100 text-red-700' :
-                                                factor.severity === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
-                                                    'bg-blue-100 text-blue-700'
-                                                } `}>
-                                                {factor.severity}
-                                            </span>
-                                        </div>
-
-                                        {/* Evidências */}
-                                        {factor.evidence.length > 0 && (
-                                            <div className="mt-2 text-sm text-slate-600">
-                                                <strong>Evidências:</strong>
-                                                <ul className="list-disc list-inside mt-1 space-y-1">
-                                                    {factor.evidence.map((ev, i) => (
-                                                        <li key={i}>{ev}</li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Intervenções Sugeridas */}
-                        <div>
-                            <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                                <FileText size={16} />
-                                Intervenções Sugeridas (Prioridade)
-                            </h4>
-                            <div className="space-y-3">
-                                {assessment.interventions?.map((intervention, idx) => (
-                                    <div key={idx} className={`p-4 rounded-lg border-2 ${intervention.priority === 'URGENT' ? 'bg-red-50 border-red-300' :
-                                        intervention.priority === 'HIGH' ? 'bg-orange-50 border-orange-300' :
-                                            'bg-blue-50 border-blue-300'
-                                        } `}>
-                                        <div className="flex items-start justify-between mb-2">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`px-2 py-1 rounded text-xs font-bold ${intervention.priority === 'URGENT' ? 'bg-red-600 text-white' :
-                                                        intervention.priority === 'HIGH' ? 'bg-orange-600 text-white' :
-                                                            'bg-blue-600 text-white'
-                                                        } `}>
-                                                        {intervention.priority}
-                                                    </span>
-                                                    <span className="font-semibold text-slate-800">{intervention.action}</span>
-                                                </div>
-                                                <div className="text-sm text-slate-600 mt-2">{intervention.description}</div>
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
-                                            <div>
-                                                <span className="text-slate-600">Responsável:</span>
-                                                <span className="ml-2 font-medium text-slate-800">{intervention.target}</span>
-                                            </div>
-                                            {intervention.deadline && (
-                                                <div>
-                                                    <span className="text-slate-600">Prazo:</span>
-                                                    <span className="ml-2 font-medium text-slate-800">{intervention.deadline}</span>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div className="mt-2 text-xs text-slate-600 italic">
-                                            💡 {intervention.expectedImpact}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-200">
-                            <button
-                                onClick={() => onAlertParents(assessment)}
-                                className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-dark transition"
-                            >
-                                <MessageCircle size={16} />
-                                Alertar Pais
-                            </button>
-                            <button
-                                onClick={() => onScheduleMeeting(assessment)}
-                                className="flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition"
-                            >
-                                <Calendar size={16} />
-                                Agendar Reunião
-                            </button>
-                            <button
-                                onClick={() => onCreatePlan(assessment)}
-                                className="flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition"
-                            >
-                                <FileText size={16} />
-                                Criar Plano de Intervenção
-                            </button>
+                <div className="p-6 space-y-6">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-3">Selecione as Ações Estratégicas</label>
+                        <div className="flex flex-wrap gap-2">
+                            {acoesSugeridas.map(acao => (
+                                <button
+                                    key={acao}
+                                    onClick={() => toggleAcao(acao)}
+                                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border-2 ${selectedAcoes.includes(acao)
+                                        ? 'bg-emerald-50 border-emerald-500 text-emerald-700'
+                                        : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                                >
+                                    {acao}
+                                </button>
+                            ))}
                         </div>
                     </div>
-                )}
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Responsável pela Execução</label>
+                            <select
+                                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                                value={formData.target}
+                                onChange={e => setFormData({ ...formData, target: e.target.value as any })}
+                            >
+                                <option value="TEACHER">Professor Regente</option>
+                                <option value="COORDINATOR">Coordenador</option>
+                                <option value="STUDENT">O Próprio Aluno</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Impacto Esperado</label>
+                            <select
+                                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                                value={formData.priority}
+                                onChange={e => setFormData({ ...formData, priority: e.target.value as any })}
+                            >
+                                <option value="HIGH">Alto</option>
+                                <option value="MEDIUM">Médio</option>
+                                <option value="LOW">Baixo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Observações Adicionais</label>
+                        <textarea
+                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none resize-none"
+                            rows={3}
+                            placeholder="Descreva metas específicas ou detalhes do acompanhamento..."
+                            value={formData.notes}
+                            onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                        />
+                    </div>
+                </div>
+
+                <div className="p-6 bg-slate-50 flex gap-3">
+                    <button
+                        onClick={onClose}
+                        className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-100 transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        disabled={isSubmitting || selectedAcoes.length === 0}
+                        onClick={handleLocalSubmit}
+                        className={`flex-1 px-4 py-2.5 bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 ${(isSubmitting || selectedAcoes.length === 0) ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    >
+                        {isSubmitting ? 'Salvando...' : 'Ativar Plano'}
+                    </button>
+                </div>
             </div>
         </div>
     );
