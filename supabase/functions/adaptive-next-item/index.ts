@@ -146,10 +146,19 @@ serve(async (req) => {
             return theta;
         }
 
+        const estimateSEE = (resps: ItemResponse[], theta: number): number => {
+            let totalInfo = 0;
+            for (const r of resps) {
+                totalInfo += calculateItemInformation(theta, { tri_params: r });
+            }
+            return totalInfo > 0 ? 1 / Math.sqrt(totalInfo) : 1.0;
+        }
+
         // --- MATH END ---
 
         // 6. Execute Math
         const newTheta = estimateTheta(responses, 0); // Always recalculate full history for security
+        const currentSEE = estimateSEE(responses, newTheta);
 
         // 7. Select Next Item
         const usedIds = responses.map(r => r.itemId)
@@ -162,7 +171,14 @@ serve(async (req) => {
         let nextItem = null
         let finished = false
 
-        if (availableItems.length === 0) {
+        // STOPPING RULES
+        // 1. No more items available
+        // 2. SEE threshold reached (e.g., 0.3 for Diagnostic, 0.45 for Formative)
+        // 3. Minimum items reached (optional, for robustness)
+        const SEE_THRESHOLD = 0.3; // Configurable per exam in the future
+        const MIN_ITEMS = 5;
+
+        if (availableItems.length === 0 || (currentSEE <= SEE_THRESHOLD && responses.length >= MIN_ITEMS)) {
             finished = true
         } else {
             // Max Info Strategy
@@ -176,16 +192,13 @@ serve(async (req) => {
         }
 
         // 8. Return Result (Securely)
-        // We expect the client to fetch the full item details (statement, alts) via a separate standardized call 
-        // OR we can return the minimal ID here and let the client component load it.
-        // For this architecture, returning the ID is safer and cleaner.
-
         return new Response(
             JSON.stringify({
                 nextItemId: nextItem ? nextItem.id : null,
                 currentTheta: newTheta,
+                currentSEE: currentSEE,
                 finished,
-                debugInfo: { itemCount: responses.length, theta: newTheta } // Remove in prod
+                debugInfo: { itemCount: responses.length, theta: newTheta, see: currentSEE }
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
