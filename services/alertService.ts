@@ -97,6 +97,7 @@ export const saveRiskAlert = async (assessment: RiskAssessment): Promise<RiskAle
         const { data, error } = await supabase
             .from('risk_alerts')
             .insert([{
+                id: alert.id,
                 student_id: alert.studentId,
                 student_name: alert.studentName,
                 school_id: alert.schoolId,
@@ -105,7 +106,8 @@ export const saveRiskAlert = async (assessment: RiskAssessment): Promise<RiskAle
                 risk_score: alert.riskScore,
                 factors: alert.factors,
                 interventions: alert.interventions,
-                status: alert.status
+                status: alert.status,
+                created_at: alert.createdAt
             }])
             .select()
             .single();
