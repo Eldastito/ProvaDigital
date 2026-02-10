@@ -6,7 +6,15 @@ ALTER TABLE items ADD COLUMN IF NOT EXISTS scale_version TEXT DEFAULT 'v1';
 ALTER TABLE items ADD COLUMN IF NOT EXISTS is_anchor BOOLEAN DEFAULT false;
 
 -- 2. Evolução da Tabela Item Pools
--- Adicionando status de aprovação para o Comitê
+-- Primeiro criamos a tabela se não existir
+CREATE TABLE IF NOT EXISTS item_pools (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    description TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- Primeiro criamos o tipo se não existir
 DO $$ 
 BEGIN
