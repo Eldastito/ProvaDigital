@@ -388,20 +388,23 @@ REQUISITOS:
         Retorne JSON: { "cards": [{ "front": "Pergunta/Conceito", "back": "Resposta/Explicação" }] }
     `,
     GENERATE_RPG_SCENARIO: (topic: string, grade: string) => `
-        Crie um cenário de RPG Educacional curto e imersivo sobre: "${topic}" para alunos de ${grade}.
+        Atue como um Mestre de RPG Educacional (Game Master).
+        Crie uma aventura RÁPIDA (Micro-Learning) sobre: "${topic}" para nível: ${grade}.
         
-        ESTRUTURA:
-        1. Contexto Narrativo (Intro): Uma situação problema envolvente.
-        2. Desafio: O que o aluno precisa resolver usando conhecimentos do tópico.
-        3. Opções: 3 caminhos possíveis, onde apenas um é cientificamente/historicamente correto.
-
-        RETORNE JSON:
+        REGRAS RIGIDAS DE FORMATAÇÃO:
+        1. Título: MÁXIMO 80 caracteres. Curto e épico. SEM TAGS ou LISTAS DE PALAVRAS-CHAVE.
+        2. Intro: MÁXIMO 10 parágrafos.
+        3. Opções: Exatamente 3 opções.
+        
+        EVITE ALUCINAÇÕES: Não gere listas de olimpíadas, keywords ou textos repetitivos.
+        
+        RETORNE JSON PURO:
         {
-            "title": "Titulo da Aventura",
-            "intro": "Texto narrativo...",
-            "challenge": "A pergunta/problema...",
+            "title": "Título Curto da Aventura",
+            "intro": "Contexto narrativo imersivo...",
+            "challenge": "A pergunta/problema a ser resolvido...",
             "options": [
-                { "text": "Opção A", "isCorrect": boolean, "outcome": "O que acontece se escolher isso..." }
+                { "text": "Ação A", "isCorrect": boolean, "outcome": "Consequência da ação..." }
             ]
         }
     `
