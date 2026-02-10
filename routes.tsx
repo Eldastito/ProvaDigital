@@ -30,7 +30,11 @@ import { ProfessorDashboardView } from './modules/professor/ProfessorDashboardVi
 import { ParentsDashboardView } from './modules/parents/ParentsDashboardView';
 import { ArcadeView } from './modules/student-portal/ArcadeView';
 import { AvatarShopView } from './modules/student-portal/AvatarShopView';
+import { ArcadeView } from './modules/student-portal/ArcadeView';
+import { AvatarShopView } from './modules/student-portal/AvatarShopView';
 import { VocationalCompassView } from './modules/student-portal/VocationalCompassView';
+import { QuizCardsView } from './modules/student-portal/QuizCardsView';
+import { EducationalRPGView } from './modules/student-portal/EducationalRPGView';
 import { GovernanceView } from './modules/admin/components/GovernanceView';
 import { AuditLogView } from './modules/admin/components/AuditLogView';
 import { TabletLauncher } from './modules/runner/student-app/TabletLauncher';
@@ -47,6 +51,7 @@ import { AnalyticsDashboard } from './modules/analytics/AnalyticsDashboard';
 import { AIQuestionGeneratorView } from './modules/builder/AIQuestionGeneratorView';
 import { ExamScheduler } from './modules/coordinator/ExamScheduler';
 import { CommandCenter } from './modules/coordinator/CommandCenter';
+import { ClassCouncilView } from './modules/coordinator/ClassCouncilView';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ReportGeneratorView } from './modules/reports/ReportGeneratorView';
 import { LiveDashboard } from './modules/runner/professor/LiveDashboard';
@@ -143,6 +148,10 @@ export const appRoutes: RouteObject[] = [
             { path: 'admin/tenants', element: <SaaSControlPanelView /> }, // Por enquanto usando a mesma visão consolidada
             { path: 'admin/metrics', element: <SaaSControlPanelView /> }, // Por enquanto usando a mesma visão consolidada
             { path: 'risk-dashboard', element: <RiskDashboard /> },
+            { path: 'admin/governance', element: <GovernanceView /> },
+
+            // COORDENAÇÃO & CONSELHO
+            { path: 'coordinator/council', element: <ClassCouncilView /> },
             // Removed legacy analytics/SchoolDashboardView in favor of PerformanceAnalyticsDashboard below
 
             {
@@ -196,6 +205,11 @@ export const appRoutes: RouteObject[] = [
             // Student specific
             { path: 'aluno', element: <StudentDashboardView /> },
             { path: 'aluno/tutor', element: <OwlTutorView /> },
+            { path: 'aluno/bussola', element: <VocationalCompassView /> },
+            { path: 'aluno/loja', element: <AvatarShopView /> },
+            { path: 'aluno/arcade', element: <ArcadeView /> },
+            { path: 'aluno/quiz-cards', element: <QuizCardsView /> },
+            { path: 'aluno/rpg-adventure', element: <EducationalRPGView /> },
             { path: 'aluno/loja', element: <AvatarShopView /> },
             { path: 'aluno/arcade', element: <ArcadeView /> },
             { path: 'aluno/bussola', element: <VocationalCompassView /> },

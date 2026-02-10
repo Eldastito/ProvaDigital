@@ -3,7 +3,7 @@ import { Calendar, CheckSquare, Plus, BookOpen, Target, Brain, User as UserIcon,
 import { AppState, User, UserRole, LessonPlan, StudyPlan, QuestionType } from '../../types';
 import { uuidv4 } from '../../utils/helpers';
 import { AnalyticsService } from '../../services/analyticsService';
-import { generateStudyPlanSuggestions } from '../../services/geminiService';
+import { generateStudyPlanSuggestions, generateLessonPlanSuggestions } from '../../services/geminiService';
 import { useAppStore } from '../../store/useAppStore';
 
 interface StudyPlansViewProps {
@@ -201,6 +201,39 @@ export const StudyPlansView = () => {
         addLessonPlan(newPlan);
         setIsLessonFormOpen(false);
         setLpForm({ classId: '', topic: '', objectives: '', content: '' });
+    };
+
+    const handleGenerateLessonAI = async () => {
+        if (!lpForm.classId || !lpForm.topic) return alert('Selecione uma turma e defina um tópico para a IA começar.');
+
+        setAiLoading(true);
+        try {
+            const cls = state.classes.find(c => c.id === lpForm.classId);
+            const grade = cls ? cls.series : 'Ensino Fundamental';
+            const subject = 'Geral'; // No store, geralmente vem do contexto do professor
+
+            const suggestion = await generateLessonPlanSuggestions(subject, grade, lpForm.topic);
+
+            // Formatando o conteúdo gerado
+            let formattedContent = `Visão Geral:\n${suggestion.overview}\n\n`;
+            formattedContent += `Habilidades BNCC:\n${suggestion.bnccCodes.join(', ')}\n\n`;
+            formattedContent += suggestion.weeks.map(w => (
+                `Semana ${w.week}: ${w.theme}\n` +
+                `🎯 Objetivo: ${w.objective}\n` +
+                `🏃 Atividade: ${w.activity}\n`
+            )).join('\n');
+
+            setLpForm(prev => ({
+                ...prev,
+                objectives: suggestion.bnccCodes.join(', '),
+                content: formattedContent
+            }));
+        } catch (error) {
+            console.error(error);
+            alert("Erro ao gerar plano. Verifique a conexão.");
+        } finally {
+            setAiLoading(false);
+        }
     };
 
     const handleCreateStudyPlan = () => {
@@ -720,6 +753,15 @@ export const StudyPlansView = () => {
                                     className="w-full p-3 border border-slate-300 rounded-lg"
                                 />
                             </div>
+
+                            <button
+                                onClick={handleGenerateLessonAI}
+                                disabled={aiLoading}
+                                className="w-full py-2 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg font-bold text-xs flex items-center justify-center gap-2 hover:bg-purple-100 transition"
+                            >
+                                {aiLoading ? <span className="animate-spin">⏳</span> : <Sparkles size={14} />}
+                                {aiLoading ? 'Processando com IA...' : 'Estruturar Aula e BNCC com IA 🦉'}
+                            </button>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Objetivos</label>
                                 <textarea

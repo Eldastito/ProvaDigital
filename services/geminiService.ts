@@ -359,6 +359,51 @@ REQUISITOS:
             "aiInsight": string,
             "recommendedIntervention": string
         }
+    `,
+    COUNCIL_MINUTES: (transcription: string, context: string) => `
+        Você é um Secretário Acadêmico Especialista em Conselhos de Classe.
+        Sua tarefa é gerar uma ATA FORMAL E EXECUTIVA com base na transcrição da reunião de conselho.
+
+        CONTEXTO DO ALUNO:
+        ${context}
+
+        TRANSCRIÇÃO DA REUNIÃO (Áudio Bruto):
+        "${transcription}"
+
+        OBJETIVO:
+        1. Identificar a Decisão Final (Aprovado, Retido, Conselho, Recuperação).
+        2. Sintetizar os pontos principais discutidos (Pedagógico e Comportamental).
+        3. Listar os encaminhamentos definidos (O que será feito?).
+
+        RETORNE EM JSON:
+        {
+            "decision": "APROVADO" | "RETIDO" | "CONSELHO" | "RECUPERACAO",
+            "summary": "Resumo formal e impessoal do que foi discutido.",
+            "actions": ["Ação 1", "Ação 2"],
+            "confidentialNotes": "Notas sensíveis apenas para a coordenação."
+        }
+    `,
+    GENERATE_FLASHCARDS: (topic: string, grade: string) => `
+        Crie 5 Flashcards de Estudo para o tópico: "${topic}" (${grade}).
+        Retorne JSON: { "cards": [{ "front": "Pergunta/Conceito", "back": "Resposta/Explicação" }] }
+    `,
+    GENERATE_RPG_SCENARIO: (topic: string, grade: string) => `
+        Crie um cenário de RPG Educacional curto e imersivo sobre: "${topic}" para alunos de ${grade}.
+        
+        ESTRUTURA:
+        1. Contexto Narrativo (Intro): Uma situação problema envolvente.
+        2. Desafio: O que o aluno precisa resolver usando conhecimentos do tópico.
+        3. Opções: 3 caminhos possíveis, onde apenas um é cientificamente/historicamente correto.
+
+        RETORNE JSON:
+        {
+            "title": "Titulo da Aventura",
+            "intro": "Texto narrativo...",
+            "challenge": "A pergunta/problema...",
+            "options": [
+                { "text": "Opção A", "isCorrect": boolean, "outcome": "O que acontece se escolher isso..." }
+            ]
+        }
     `
 };
 
@@ -407,6 +452,17 @@ export interface StudyPlanSuggestion {
     tasks: string[];
 }
 
+export interface LessonPlanSuggestion {
+    bnccCodes: string[];
+    overview: string;
+    weeks: {
+        week: number;
+        theme: string;
+        objective: string;
+        activity: string;
+    }[];
+}
+
 export interface AssessmentReport {
     resultType: string;
     report: string;
@@ -427,6 +483,24 @@ export interface VisualSuggestion {
     description: string;
     pedagogicalValue: string;
     imageGeneratorPrompt: string;
+}
+
+export interface CouncilMinutes {
+    decision: 'APROVADO' | 'RETIDO' | 'CONSELHO' | 'RECUPERACAO';
+    summary: string;
+    actions: string[];
+    confidentialNotes: string;
+}
+
+export interface FlashcardDeck {
+    cards: { front: string; back: string }[];
+}
+
+export interface RPGScenario {
+    title: string;
+    intro: string;
+    challenge: string;
+    options: { text: string; isCorrect: boolean; outcome: string }[];
 }
 
 // ... (Inside Exported Services)
@@ -764,6 +838,37 @@ export const generateStudyPlanSuggestions = async (
     return callGeminiAPI<StudyPlanSuggestion>(prompt, schema);
 };
 
+export const generateLessonPlanSuggestions = async (
+    subject: string,
+    grade: string,
+    topic: string
+): Promise<LessonPlanSuggestion> => {
+
+    const prompt = PROMPTS.GENERATE_SYLLABUS(subject, grade, topic);
+
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            bnccCodes: { type: Type.ARRAY, items: { type: Type.STRING } },
+            overview: { type: Type.STRING },
+            weeks: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        week: { type: Type.NUMBER },
+                        theme: { type: Type.STRING },
+                        objective: { type: Type.STRING },
+                        activity: { type: Type.STRING }
+                    }
+                }
+            }
+        }
+    };
+
+    return callGeminiAPI<LessonPlanSuggestion>(prompt, schema);
+};
+
 export const generateAssessmentReport = async (
     userName: string,
     testType: AssessmentType,
@@ -791,373 +896,433 @@ export const improveItemStatement = async (statement: string): Promise<string> =
     return callGeminiAPI<string>(prompt, undefined);
 };
 
-export const generateDistractors = async (statement: string, correct: string): Promise<string[]> => {
-    const prompt = PROMPTS.GENERATE_DISTRACTORS(statement, correct);
-    const schema = {
-        type: Type.ARRAY,
-        items: { type: Type.STRING }
-    };
-    return callGeminiAPI<string[]>(prompt, schema);
+const schema = {
+    type: Type.ARRAY,
+    items: { type: Type.STRING }
+};
+return callGeminiAPI<string[]>(prompt, schema);
 };
 
-export const suggestBNCC = async (statement: string): Promise<{ code: string; reason: string }> => {
-    const prompt = PROMPTS.SUGGEST_BNCC(statement);
+export const generateCouncilMinutes = async (transcription: string, context: string): Promise<CouncilMinutes> => {
+    const prompt = (PROMPTS as any).COUNCIL_MINUTES(transcription, context);
+
     const schema = {
         type: Type.OBJECT,
         properties: {
-            code: { type: Type.STRING },
-            reason: { type: Type.STRING }
+            decision: { type: Type.STRING, enum: ["APROVADO", "RETIDO", "CONSELHO", "RECUPERACAO"] },
+            summary: { type: Type.STRING },
+            actions: { type: Type.ARRAY, items: { type: Type.STRING } },
+            confidentialNotes: { type: Type.STRING }
         }
     };
-    return callGeminiAPI<{ code: string; reason: string }>(prompt, schema);
+
+    return callGeminiAPI<CouncilMinutes>(prompt, schema);
 };
 
-/**
- * OCR Inteligente: Converte imagem em questão estruturada
- */
-export async function extractItemFromImage(base64Image: string): Promise<GeneratedQuestion | null> {
-    return extractItemsFromMultipleImages([base64Image]).then(items => items.length > 0 ? items[0] : null);
-}
-
-/**
- * Extração Multimodal: Converte múltiplas imagens (capítulos, fotos, apostilas) em banco de questões
- */
-export async function extractItemsFromMultipleImages(base64Images: string[]): Promise<GeneratedQuestion[]> {
-    const apiKey = getApiKey();
-    if (!apiKey || base64Images.length === 0) return [];
-
-    try {
-        const ai = new GoogleGenAI({ apiKey });
-        const parts: any[] = [{ text: (PROMPTS as any).EXTRACT_ITEM_FROM_IMAGE() }];
-
-        base64Images.forEach(img => {
-            parts.push({
-                inlineData: {
-                    data: img.split(',')[1],
-                    mimeType: "image/jpeg"
-                }
-            });
-        });
-
-        const contents = [{ role: 'user', parts }];
-
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: contents,
-            config: {
-                responseMimeType: "application/json",
-                // Aumentamos o limite para suportar mais questões
-                responseSchema: {
+export const generateFlashcards = async (topic: string, grade: string): Promise<FlashcardDeck> => {
+    const prompt = (PROMPTS as any).GENERATE_FLASHCARDS(topic, grade);
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            cards: {
+                type: Type.ARRAY,
+                items: {
                     type: Type.OBJECT,
                     properties: {
-                        questions: {
-                            type: Type.ARRAY,
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    statement: { type: Type.STRING },
-                                    alternatives: {
-                                        type: Type.ARRAY,
-                                        items: {
-                                            type: Type.OBJECT,
-                                            properties: {
-                                                text: { type: Type.STRING },
-                                                isCorrect: { type: Type.BOOLEAN }
+                        front: { type: Type.STRING },
+                        back: { type: Type.STRING }
+                    }
+                }
+            }
+        }
+    };
+    return callGeminiAPI<FlashcardDeck>(prompt, schema);
+};
+
+export const generateRPGScenario = async (topic: string, grade: string): Promise<RPGScenario> => {
+    const prompt = (PROMPTS as any).GENERATE_RPG_SCENARIO(topic, grade);
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            title: { type: Type.STRING },
+            intro: { type: Type.STRING },
+            challenge: { type: Type.STRING },
+            options: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        text: { type: Type.STRING },
+                        isCorrect: { type: Type.BOOLEAN },
+                        outcome: { type: Type.STRING }
+                    }
+                }
+            }
+        }
+    };
+    return callGeminiAPI<RPGScenario>(prompt, schema);
+};
+
+export const suggestBNCC = async (statement: string): Promise<{ code: string; reason: string }> => {
+
+    export const suggestBNCC = async (statement: string): Promise<{ code: string; reason: string }> => {
+        const prompt = PROMPTS.SUGGEST_BNCC(statement);
+        const schema = {
+            type: Type.OBJECT,
+            properties: {
+                code: { type: Type.STRING },
+                reason: { type: Type.STRING }
+            }
+        };
+        return callGeminiAPI<{ code: string; reason: string }>(prompt, schema);
+    };
+
+    /**
+     * OCR Inteligente: Converte imagem em questão estruturada
+     */
+    export async function extractItemFromImage(base64Image: string): Promise<GeneratedQuestion | null> {
+        return extractItemsFromMultipleImages([base64Image]).then(items => items.length > 0 ? items[0] : null);
+    }
+
+    /**
+     * Extração Multimodal: Converte múltiplas imagens (capítulos, fotos, apostilas) em banco de questões
+     */
+    export async function extractItemsFromMultipleImages(base64Images: string[]): Promise<GeneratedQuestion[]> {
+        const apiKey = getApiKey();
+        if (!apiKey || base64Images.length === 0) return [];
+
+        try {
+            const ai = new GoogleGenAI({ apiKey });
+            const parts: any[] = [{ text: (PROMPTS as any).EXTRACT_ITEM_FROM_IMAGE() }];
+
+            base64Images.forEach(img => {
+                parts.push({
+                    inlineData: {
+                        data: img.split(',')[1],
+                        mimeType: "image/jpeg"
+                    }
+                });
+            });
+
+            const contents = [{ role: 'user', parts }];
+
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: contents,
+                config: {
+                    responseMimeType: "application/json",
+                    // Aumentamos o limite para suportar mais questões
+                    responseSchema: {
+                        type: Type.OBJECT,
+                        properties: {
+                            questions: {
+                                type: Type.ARRAY,
+                                items: {
+                                    type: Type.OBJECT,
+                                    properties: {
+                                        statement: { type: Type.STRING },
+                                        alternatives: {
+                                            type: Type.ARRAY,
+                                            items: {
+                                                type: Type.OBJECT,
+                                                properties: {
+                                                    text: { type: Type.STRING },
+                                                    isCorrect: { type: Type.BOOLEAN }
+                                                }
                                             }
-                                        }
-                                    },
-                                    justification: { type: Type.STRING },
-                                    difficulty: { type: Type.STRING },
-                                    bnccCode: { type: Type.STRING }
+                                        },
+                                        justification: { type: Type.STRING },
+                                        difficulty: { type: Type.STRING },
+                                        bnccCode: { type: Type.STRING }
+                                    }
                                 }
                             }
                         }
                     }
                 }
+            });
+
+            let text = "";
+            if (typeof (response as any).text === 'function') {
+                text = (response as any).text();
+            } else if (response.candidates && response.candidates[0]?.content?.parts?.[0]?.text) {
+                text = response.candidates[0].content.parts[0].text;
             }
-        });
 
-        let text = "";
-        if (typeof (response as any).text === 'function') {
-            text = (response as any).text();
-        } else if (response.candidates && response.candidates[0]?.content?.parts?.[0]?.text) {
-            text = response.candidates[0].content.parts[0].text;
+            const data = JSON.parse(text.replace(/```json\n?|```/g, '')) as { questions: GeneratedQuestion[] };
+            return data.questions || [];
+        } catch (error) {
+            console.error("AI Error (Multimodal extraction):", error);
+            return [];
         }
-
-        const data = JSON.parse(text.replace(/```json\n?|```/g, '')) as { questions: GeneratedQuestion[] };
-        return data.questions || [];
-    } catch (error) {
-        console.error("AI Error (Multimodal extraction):", error);
-        return [];
     }
-}
 
-/**
- * Auditoria Pedagógica: Analisa a qualidade técnica e pedagógica do item
- */
-export async function auditPedagogicalItem(itemJson: string): Promise<{
-    score: number;
-    pros: string[];
-    improvements: string[];
-    bnccVerdict: string;
-    bloomLevel: string;
-} | null> {
-    const prompt = (PROMPTS as any).AUDIT_ITEM(itemJson);
-    const schema = {
-        type: Type.OBJECT,
-        properties: {
-            score: { type: Type.NUMBER },
-            pros: { type: Type.ARRAY, items: { type: Type.STRING } },
-            improvements: { type: Type.ARRAY, items: { type: Type.STRING } },
-            bnccVerdict: { type: Type.STRING },
-            bloomLevel: { type: Type.STRING }
-        },
-        required: ["score", "pros", "improvements", "bnccVerdict", "bloomLevel"]
-    };
-
-    return callGeminiAPI<any>(prompt, schema);
-}
-
-export const generateJustification = async (statement: string, correct: string): Promise<string> => {
-    const prompt = PROMPTS.GENERATE_JUSTIFICATION(statement, correct);
-    return callGeminiAPI<string>(prompt, undefined);
-};
-
-export const variateItem = async (itemJson: string): Promise<GeneratedQuestion> => {
-    const prompt = PROMPTS.CLONE_AND_VARIATE(itemJson);
-    const schema = {
-        type: Type.OBJECT,
-        properties: {
-            statement: { type: Type.STRING },
-            alternatives: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        text: { type: Type.STRING },
-                        isCorrect: { type: Type.BOOLEAN }
-                    }
-                }
+    /**
+     * Auditoria Pedagógica: Analisa a qualidade técnica e pedagógica do item
+     */
+    export async function auditPedagogicalItem(itemJson: string): Promise<{
+        score: number;
+        pros: string[];
+        improvements: string[];
+        bnccVerdict: string;
+        bloomLevel: string;
+    } | null> {
+        const prompt = (PROMPTS as any).AUDIT_ITEM(itemJson);
+        const schema = {
+            type: Type.OBJECT,
+            properties: {
+                score: { type: Type.NUMBER },
+                pros: { type: Type.ARRAY, items: { type: Type.STRING } },
+                improvements: { type: Type.ARRAY, items: { type: Type.STRING } },
+                bnccVerdict: { type: Type.STRING },
+                bloomLevel: { type: Type.STRING }
             },
-            justification: { type: Type.STRING },
-            difficulty: { type: Type.STRING },
-            bnccCode: { type: Type.STRING },
-            triParams: {
-                type: Type.OBJECT,
-                properties: {
-                    difficulty: { type: Type.NUMBER },
-                    discrimination: { type: Type.NUMBER },
-                    guessing: { type: Type.NUMBER },
-                    bloomTaxonomy: { type: Type.STRING }
-                }
-            }
-        },
-        required: ["statement", "alternatives", "justification"]
-    };
-    return callGeminiAPI<GeneratedQuestion>(prompt, schema);
-};
+            required: ["score", "pros", "improvements", "bnccVerdict", "bloomLevel"]
+        };
 
-export const adaptItemForAccessibility = async (itemJson: string, profile: 'TEA' | 'TDAH' | 'VISUAL' | 'GERAL'): Promise<GeneratedQuestion & { isAccessible: boolean; accessibilityInstructions: string }> => {
-    const prompt = PROMPTS.ADAPT_FOR_ACCESSIBILITY(itemJson, profile);
-    const schema = {
-        type: Type.OBJECT,
-        properties: {
-            statement: { type: Type.STRING },
-            alternatives: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        text: { type: Type.STRING },
-                        isCorrect: { type: Type.BOOLEAN }
+        return callGeminiAPI<any>(prompt, schema);
+    }
+
+    export const generateJustification = async (statement: string, correct: string): Promise<string> => {
+        const prompt = PROMPTS.GENERATE_JUSTIFICATION(statement, correct);
+        return callGeminiAPI<string>(prompt, undefined);
+    };
+
+    export const variateItem = async (itemJson: string): Promise<GeneratedQuestion> => {
+        const prompt = PROMPTS.CLONE_AND_VARIATE(itemJson);
+        const schema = {
+            type: Type.OBJECT,
+            properties: {
+                statement: { type: Type.STRING },
+                alternatives: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            text: { type: Type.STRING },
+                            isCorrect: { type: Type.BOOLEAN }
+                        }
                     }
-                }
-            },
-            isAccessible: { type: Type.BOOLEAN },
-            accessibilityInstructions: { type: Type.STRING },
-            difficulty: { type: Type.STRING },
-            bnccCode: { type: Type.STRING }
-        },
-        required: ["statement", "alternatives", "isAccessible", "accessibilityInstructions"]
-    };
-    return callGeminiAPI<any>(prompt, schema);
-}
-
-// --- NEW FEATURES: AI CONTENT PIPELINE ---
-
-export interface Syllabus {
-    bnccCodes: string[];
-    overview: string;
-    weeks: {
-        week: number;
-        theme: string;
-        objective: string;
-        activity: string;
-    }[];
-}
-
-export interface TextAsset {
-    title: string;
-    body: string;
-    source: string;
-    readingTime: string;
-}
-
-export const generateSyllabus = async (subject: string, grade: string, topic: string): Promise<Syllabus> => {
-    const prompt = (PROMPTS as any).GENERATE_SYLLABUS(subject, grade, topic);
-    const schema = {
-        type: Type.OBJECT,
-        properties: {
-            bnccCodes: { type: Type.ARRAY, items: { type: Type.STRING } },
-            overview: { type: Type.STRING },
-            weeks: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        week: { type: Type.NUMBER },
-                        theme: { type: Type.STRING },
-                        objective: { type: Type.STRING },
-                        activity: { type: Type.STRING }
-                    }
-                }
-            }
-        },
-        required: ["bnccCodes", "weeks"]
-    };
-
-    return callGeminiAPI<Syllabus>(prompt, schema);
-};
-
-export const generateTextAsset = async (theme: string, genre: string): Promise<TextAsset> => {
-    const prompt = (PROMPTS as any).GENERATE_TEXT_ASSET(theme, genre);
-    const schema = {
-        type: Type.OBJECT,
-        properties: {
-            title: { type: Type.STRING },
-            body: { type: Type.STRING },
-            source: { type: Type.STRING },
-            readingTime: { type: Type.STRING }
-        },
-        required: ["title", "body"]
-    };
-
-    return callGeminiAPI<TextAsset>(prompt, schema);
-};
-
-// --- Internal Mock Generator (Fallback) ---
-const mockGenerate = (qty: number, type: QuestionType, diff: DifficultyLevel): GeneratedQuestion[] => {
-    return Array.from({ length: qty }).map((_, i) => ({
-        statement: `(Mock AI) Questão ${i + 1} gerada localmente sobre o tema (Modo Offline). Dificuldade: ${diff}.`,
-        alternatives: [
-            { text: "Alternativa A (Correta)", isCorrect: true },
-            { text: "Alternativa B (Distrator)", isCorrect: false },
-            { text: "Alternativa C (Distrator)", isCorrect: false },
-            { text: "Alternativa D (Distrator)", isCorrect: false },
-            { text: "Alternativa E (Distrator)", isCorrect: false },
-        ],
-        justification: "Esta é a justificativa padrão para o modo offline, detalhando por que a A está correta e por que as outras opções servem como distratores pedagógicos.",
-        difficulty: diff,
-        bnccCode: "EF00MOCK",
-        triParams: {
-            difficulty: diff === 'DIFICIL' ? 2 : diff === 'MEDIO' ? 0 : -2,
-            discrimination: 1.5,
-            guessing: 0.2,
-            bloomTaxonomy: "Compreensão",
-            cognitiveAxis: "COMPREENDER_FENOMENOS"
-        }
-    }));
-};
-export const reviewExamAdvanced = async (items: any[]): Promise<any> => {
-    console.log("[GeminiService] Iniciando revisão avançada (vSchema-Literal-Fixed)");
-    const prompt = PROMPTS.REVIEW_EXAM(JSON.stringify(items));
-    const schema = {
-        type: "object",
-        properties: {
-            stages: {
-                type: "object",
-                properties: {
-                    structural: { type: "object", properties: { status: { type: "string" }, feedback: { type: "string" } }, required: ["status", "feedback"] },
-                    pedagogical: { type: "object", properties: { status: { type: "string" }, feedback: { type: "string" } }, required: ["status", "feedback"] },
-                    accessibility: { type: "object", properties: { status: { type: "string" }, feedback: { type: "string" } }, required: ["status", "feedback"] },
-                    textual: { type: "object", properties: { status: { type: "string" }, feedback: { type: "string" } }, required: ["status", "feedback"] },
-                    anticheat: { type: "object", properties: { status: { type: "string" }, feedback: { type: "string" } }, required: ["status", "feedback"] },
-                    tri: { type: "object", properties: { status: { type: "string" }, feedback: { type: "string" } }, required: ["status", "feedback"] }
                 },
-                required: ["structural", "pedagogical", "accessibility", "textual", "anticheat", "tri"]
-            },
-            overallScore: { type: "number" },
-            polishedItems: {
-                type: "array",
-                items: {
-                    type: "object",
+                justification: { type: Type.STRING },
+                difficulty: { type: Type.STRING },
+                bnccCode: { type: Type.STRING },
+                triParams: {
+                    type: Type.OBJECT,
                     properties: {
-                        id: { type: "string" },
-                        statement: { type: "string" },
-                        alternatives: {
-                            type: "array",
-                            items: {
-                                type: "object",
-                                properties: {
-                                    text: { type: "string" },
-                                    isCorrect: { type: "boolean" }
-                                },
-                                required: ["text", "isCorrect"]
-                            }
-                        }
-                    },
-                    required: ["id", "statement", "alternatives"]
+                        difficulty: { type: Type.NUMBER },
+                        discrimination: { type: Type.NUMBER },
+                        guessing: { type: Type.NUMBER },
+                        bloomTaxonomy: { type: Type.STRING }
+                    }
                 }
             },
-            variantsSuggested: {
-                type: "array",
-                items: {
-                    type: "object",
-                    properties: {
-                        originalItemId: { type: "string" },
-                        newStatement: { type: "string" },
-                        newAlternatives: {
-                            type: "array",
-                            items: {
-                                type: "object",
-                                properties: {
-                                    text: { type: "string" },
-                                    isCorrect: { type: "boolean" }
-                                },
-                                required: ["text", "isCorrect"]
-                            }
-                        }
-                    },
-                    required: ["originalItemId", "newStatement", "newAlternatives"]
-                }
-            },
-            itemsToRemove: {
-                type: "array",
-                items: { type: "string" }
-            }
-        },
-        required: ["stages", "overallScore", "polishedItems", "variantsSuggested", "itemsToRemove"]
+            required: ["statement", "alternatives", "justification"]
+        };
+        return callGeminiAPI<GeneratedQuestion>(prompt, schema);
     };
 
-    return callGeminiAPI<any>(prompt, schema);
-};
+    export const adaptItemForAccessibility = async (itemJson: string, profile: 'TEA' | 'TDAH' | 'VISUAL' | 'GERAL'): Promise<GeneratedQuestion & { isAccessible: boolean; accessibilityInstructions: string }> => {
+        const prompt = PROMPTS.ADAPT_FOR_ACCESSIBILITY(itemJson, profile);
+        const schema = {
+            type: Type.OBJECT,
+            properties: {
+                statement: { type: Type.STRING },
+                alternatives: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            text: { type: Type.STRING },
+                            isCorrect: { type: Type.BOOLEAN }
+                        }
+                    }
+                },
+                isAccessible: { type: Type.BOOLEAN },
+                accessibilityInstructions: { type: Type.STRING },
+                difficulty: { type: Type.STRING },
+                bnccCode: { type: Type.STRING }
+            },
+            required: ["statement", "alternatives", "isAccessible", "accessibilityInstructions"]
+        };
+        return callGeminiAPI<any>(prompt, schema);
+    }
 
-// --- Phase 9: Pedagogical Report Generation ---
-export const generatePedagogicalReport = async (
-    studentName: string,
-    examTitle: string,
-    totalScore: number,
-    maxScore: number,
-    correctCount: number,
-    totalCount: number,
-    subjectBreakdown: { subject: string; correct: number; total: number }[]
-): Promise<string> => {
-    const percentage = Math.round((totalScore / maxScore) * 100);
-    const subjectSummary = subjectBreakdown
-        .map(s => `${s.subject}: ${s.correct}/${s.total} acertos`)
-        .join(', ');
+    // --- NEW FEATURES: AI CONTENT PIPELINE ---
 
-    const prompt = `
+    export interface Syllabus {
+        bnccCodes: string[];
+        overview: string;
+        weeks: {
+            week: number;
+            theme: string;
+            objective: string;
+            activity: string;
+        }[];
+    }
+
+    export interface TextAsset {
+        title: string;
+        body: string;
+        source: string;
+        readingTime: string;
+    }
+
+    export const generateSyllabus = async (subject: string, grade: string, topic: string): Promise<Syllabus> => {
+        const prompt = (PROMPTS as any).GENERATE_SYLLABUS(subject, grade, topic);
+        const schema = {
+            type: Type.OBJECT,
+            properties: {
+                bnccCodes: { type: Type.ARRAY, items: { type: Type.STRING } },
+                overview: { type: Type.STRING },
+                weeks: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            week: { type: Type.NUMBER },
+                            theme: { type: Type.STRING },
+                            objective: { type: Type.STRING },
+                            activity: { type: Type.STRING }
+                        }
+                    }
+                }
+            },
+            required: ["bnccCodes", "weeks"]
+        };
+
+        return callGeminiAPI<Syllabus>(prompt, schema);
+    };
+
+    export const generateTextAsset = async (theme: string, genre: string): Promise<TextAsset> => {
+        const prompt = (PROMPTS as any).GENERATE_TEXT_ASSET(theme, genre);
+        const schema = {
+            type: Type.OBJECT,
+            properties: {
+                title: { type: Type.STRING },
+                body: { type: Type.STRING },
+                source: { type: Type.STRING },
+                readingTime: { type: Type.STRING }
+            },
+            required: ["title", "body"]
+        };
+
+        return callGeminiAPI<TextAsset>(prompt, schema);
+    };
+
+    // --- Internal Mock Generator (Fallback) ---
+    const mockGenerate = (qty: number, type: QuestionType, diff: DifficultyLevel): GeneratedQuestion[] => {
+        return Array.from({ length: qty }).map((_, i) => ({
+            statement: `(Mock AI) Questão ${i + 1} gerada localmente sobre o tema (Modo Offline). Dificuldade: ${diff}.`,
+            alternatives: [
+                { text: "Alternativa A (Correta)", isCorrect: true },
+                { text: "Alternativa B (Distrator)", isCorrect: false },
+                { text: "Alternativa C (Distrator)", isCorrect: false },
+                { text: "Alternativa D (Distrator)", isCorrect: false },
+                { text: "Alternativa E (Distrator)", isCorrect: false },
+            ],
+            justification: "Esta é a justificativa padrão para o modo offline, detalhando por que a A está correta e por que as outras opções servem como distratores pedagógicos.",
+            difficulty: diff,
+            bnccCode: "EF00MOCK",
+            triParams: {
+                difficulty: diff === 'DIFICIL' ? 2 : diff === 'MEDIO' ? 0 : -2,
+                discrimination: 1.5,
+                guessing: 0.2,
+                bloomTaxonomy: "Compreensão",
+                cognitiveAxis: "COMPREENDER_FENOMENOS"
+            }
+        }));
+    };
+    export const reviewExamAdvanced = async (items: any[]): Promise<any> => {
+        console.log("[GeminiService] Iniciando revisão avançada (vSchema-Literal-Fixed)");
+        const prompt = PROMPTS.REVIEW_EXAM(JSON.stringify(items));
+        const schema = {
+            type: "object",
+            properties: {
+                stages: {
+                    type: "object",
+                    properties: {
+                        structural: { type: "object", properties: { status: { type: "string" }, feedback: { type: "string" } }, required: ["status", "feedback"] },
+                        pedagogical: { type: "object", properties: { status: { type: "string" }, feedback: { type: "string" } }, required: ["status", "feedback"] },
+                        accessibility: { type: "object", properties: { status: { type: "string" }, feedback: { type: "string" } }, required: ["status", "feedback"] },
+                        textual: { type: "object", properties: { status: { type: "string" }, feedback: { type: "string" } }, required: ["status", "feedback"] },
+                        anticheat: { type: "object", properties: { status: { type: "string" }, feedback: { type: "string" } }, required: ["status", "feedback"] },
+                        tri: { type: "object", properties: { status: { type: "string" }, feedback: { type: "string" } }, required: ["status", "feedback"] }
+                    },
+                    required: ["structural", "pedagogical", "accessibility", "textual", "anticheat", "tri"]
+                },
+                overallScore: { type: "number" },
+                polishedItems: {
+                    type: "array",
+                    items: {
+                        type: "object",
+                        properties: {
+                            id: { type: "string" },
+                            statement: { type: "string" },
+                            alternatives: {
+                                type: "array",
+                                items: {
+                                    type: "object",
+                                    properties: {
+                                        text: { type: "string" },
+                                        isCorrect: { type: "boolean" }
+                                    },
+                                    required: ["text", "isCorrect"]
+                                }
+                            }
+                        },
+                        required: ["id", "statement", "alternatives"]
+                    }
+                },
+                variantsSuggested: {
+                    type: "array",
+                    items: {
+                        type: "object",
+                        properties: {
+                            originalItemId: { type: "string" },
+                            newStatement: { type: "string" },
+                            newAlternatives: {
+                                type: "array",
+                                items: {
+                                    type: "object",
+                                    properties: {
+                                        text: { type: "string" },
+                                        isCorrect: { type: "boolean" }
+                                    },
+                                    required: ["text", "isCorrect"]
+                                }
+                            }
+                        },
+                        required: ["originalItemId", "newStatement", "newAlternatives"]
+                    }
+                },
+                itemsToRemove: {
+                    type: "array",
+                    items: { type: "string" }
+                }
+            },
+            required: ["stages", "overallScore", "polishedItems", "variantsSuggested", "itemsToRemove"]
+        };
+
+        return callGeminiAPI<any>(prompt, schema);
+    };
+
+    // --- Phase 9: Pedagogical Report Generation ---
+    export const generatePedagogicalReport = async (
+        studentName: string,
+        examTitle: string,
+        totalScore: number,
+        maxScore: number,
+        correctCount: number,
+        totalCount: number,
+        subjectBreakdown: { subject: string; correct: number; total: number }[]
+    ): Promise<string> => {
+        const percentage = Math.round((totalScore / maxScore) * 100);
+        const subjectSummary = subjectBreakdown
+            .map(s => `${s.subject}: ${s.correct}/${s.total} acertos`)
+            .join(', ');
+
+        const prompt = `
         Você é um Tutor Pedagógico IA especializado em feedback construtivo e motivacional.
         
         CONTEXTO:
@@ -1187,172 +1352,172 @@ export const generatePedagogicalReport = async (
         - Retorne APENAS o texto formatado em Markdown, sem blocos de código (fences) ou introduções.
     `;
 
-    const apiKey = getApiKey();
-    if (!apiKey) {
-        throw new Error("Chave da API Gemini não encontrada. Não é possível gerar o relatório pedagógico.");
-    }
+        const apiKey = getApiKey();
+        if (!apiKey) {
+            throw new Error("Chave da API Gemini não encontrada. Não é possível gerar o relatório pedagógico.");
+        }
 
-    const ai = new GoogleGenAI({ apiKey });
-    const response = await ai.models.generateContent({
-        model: DEFAULT_MODEL,
-        contents: [{ role: 'user', parts: [{ text: prompt }] }]
-    });
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.generateContent({
+            model: DEFAULT_MODEL,
+            contents: [{ role: 'user', parts: [{ text: prompt }] }]
+        });
 
-    let text = "";
-    if (typeof response.text === 'string') {
-        text = response.text;
-    } else if (typeof (response as any).text === 'function') {
-        text = (response as any).text();
-    } else if (response.candidates && response.candidates[0]?.content?.parts?.[0]?.text) {
-        text = response.candidates[0].content.parts[0].text;
-    }
+        let text = "";
+        if (typeof response.text === 'string') {
+            text = response.text;
+        } else if (typeof (response as any).text === 'function') {
+            text = (response as any).text();
+        } else if (response.candidates && response.candidates[0]?.content?.parts?.[0]?.text) {
+            text = response.candidates[0].content.parts[0].text;
+        }
 
-    if (!text) {
-        throw new Error("Falha ao gerar o relatório pedagógico: A IA retornou uma resposta vazia.");
-    }
+        if (!text) {
+            throw new Error("Falha ao gerar o relatório pedagógico: A IA retornou uma resposta vazia.");
+        }
 
-    return text.trim();
-};
+        return text.trim();
+    };
 
-/**
- * Gera uma proposta de redação completa com texto motivador e critérios.
- */
-export const generateEssayQuestion = async (
-    subject: string,
-    theme: string
-): Promise<GeneratedEssay> => {
-    const prompt = PROMPTS.GENERATE_ESSAY(subject, theme);
-    const schema = {
-        type: Type.OBJECT,
-        properties: {
-            title: { type: Type.STRING },
-            motivationalText: { type: Type.STRING },
-            instruction: { type: Type.STRING },
-            criteria: {
-                type: Type.ARRAY,
-                items: {
+    /**
+     * Gera uma proposta de redação completa com texto motivador e critérios.
+     */
+    export const generateEssayQuestion = async (
+        subject: string,
+        theme: string
+    ): Promise<GeneratedEssay> => {
+        const prompt = PROMPTS.GENERATE_ESSAY(subject, theme);
+        const schema = {
+            type: Type.OBJECT,
+            properties: {
+                title: { type: Type.STRING },
+                motivationalText: { type: Type.STRING },
+                instruction: { type: Type.STRING },
+                criteria: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            name: { type: Type.STRING },
+                            description: { type: Type.STRING },
+                            maxPoints: { type: Type.NUMBER }
+                        }
+                    }
+                },
+                bnccCode: { type: Type.STRING }
+            },
+            required: ["title", "motivationalText", "instruction", "criteria"]
+        };
+
+        return callGeminiAPI<GeneratedEssay>(prompt, schema);
+    };
+
+    /**
+     * Sugere um recurso visual (gráfico, mapa, etc) para uma questão.
+     */
+    export const generateVisualSuggestion = async (
+        context: string
+    ): Promise<VisualSuggestion> => {
+        const prompt = PROMPTS.GENERATE_MULTIMODAL_DESCRIPTION(context);
+        const schema = {
+            type: Type.OBJECT,
+            properties: {
+                visualType: { type: Type.STRING },
+                description: { type: Type.STRING },
+                pedagogicalValue: { type: Type.STRING },
+                imageGeneratorPrompt: { type: Type.STRING }
+            },
+            required: ["visualType", "description", "imageGeneratorPrompt"]
+        };
+
+        return callGeminiAPI<VisualSuggestion>(prompt, schema);
+    };
+
+    /**
+     * Bússola Vocacional: Gera análise de carreira e Ikigai (Start with Why)
+     */
+    export async function generateVocationalAnalysis(
+        gradesSummary: string,
+        assessmentResults: string,
+        studentInterests: string
+    ): Promise<VocationalProfile | null> {
+        const prompt = (PROMPTS as any).VOCATIONAL_ANALYSIS(gradesSummary, assessmentResults, studentInterests);
+
+        // Schema must match VocationalProfile exactly
+        const schema = {
+            type: Type.OBJECT,
+            properties: {
+                discArchetype: { type: Type.STRING },
+                dominantIntelligences: { type: Type.ARRAY, items: { type: Type.STRING } },
+                purposeStatement: { type: Type.STRING },
+                ikigai: {
                     type: Type.OBJECT,
                     properties: {
-                        name: { type: Type.STRING },
-                        description: { type: Type.STRING },
-                        maxPoints: { type: Type.NUMBER }
+                        love: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        goodAt: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        paidFor: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        needs: { type: Type.ARRAY, items: { type: Type.STRING } }
+                    }
+                },
+                careerMatches: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            id: { type: Type.STRING },
+                            title: { type: Type.STRING },
+                            matchScore: { type: Type.NUMBER },
+                            description: { type: Type.STRING },
+                            salaryRange: { type: Type.STRING },
+                            requiredSkills: { type: Type.ARRAY, items: { type: Type.STRING } },
+                            whyThisFits: { type: Type.STRING },
+                            educationalPath: { type: Type.ARRAY, items: { type: Type.STRING } }
+                        }
                     }
                 }
             },
-            bnccCode: { type: Type.STRING }
-        },
-        required: ["title", "motivationalText", "instruction", "criteria"]
-    };
+            required: ["discArchetype", "ikigai", "careerMatches", "purposeStatement"]
+        };
 
-    return callGeminiAPI<GeneratedEssay>(prompt, schema);
-};
+        const result = await callGeminiAPI<any>(prompt, schema);
 
-/**
- * Sugere um recurso visual (gráfico, mapa, etc) para uma questão.
- */
-export const generateVisualSuggestion = async (
-    context: string
-): Promise<VisualSuggestion> => {
-    const prompt = PROMPTS.GENERATE_MULTIMODAL_DESCRIPTION(context);
-    const schema = {
-        type: Type.OBJECT,
-        properties: {
-            visualType: { type: Type.STRING },
-            description: { type: Type.STRING },
-            pedagogicalValue: { type: Type.STRING },
-            imageGeneratorPrompt: { type: Type.STRING }
-        },
-        required: ["visualType", "description", "imageGeneratorPrompt"]
-    };
-
-    return callGeminiAPI<VisualSuggestion>(prompt, schema);
-};
-
-/**
- * Bússola Vocacional: Gera análise de carreira e Ikigai (Start with Why)
- */
-export async function generateVocationalAnalysis(
-    gradesSummary: string,
-    assessmentResults: string,
-    studentInterests: string
-): Promise<VocationalProfile | null> {
-    const prompt = (PROMPTS as any).VOCATIONAL_ANALYSIS(gradesSummary, assessmentResults, studentInterests);
-
-    // Schema must match VocationalProfile exactly
-    const schema = {
-        type: Type.OBJECT,
-        properties: {
-            discArchetype: { type: Type.STRING },
-            dominantIntelligences: { type: Type.ARRAY, items: { type: Type.STRING } },
-            purposeStatement: { type: Type.STRING },
-            ikigai: {
-                type: Type.OBJECT,
-                properties: {
-                    love: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    goodAt: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    paidFor: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    needs: { type: Type.ARRAY, items: { type: Type.STRING } }
-                }
-            },
-            careerMatches: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        id: { type: Type.STRING },
-                        title: { type: Type.STRING },
-                        matchScore: { type: Type.NUMBER },
-                        description: { type: Type.STRING },
-                        salaryRange: { type: Type.STRING },
-                        requiredSkills: { type: Type.ARRAY, items: { type: Type.STRING } },
-                        whyThisFits: { type: Type.STRING },
-                        educationalPath: { type: Type.ARRAY, items: { type: Type.STRING } }
-                    }
-                }
-            }
-        },
-        required: ["discArchetype", "ikigai", "careerMatches", "purposeStatement"]
-    };
-
-    const result = await callGeminiAPI<any>(prompt, schema);
-
-    return {
-        ...result,
-        studentId: "generated",
-        generatedAt: new Date().toISOString()
-    };
-}
-
-/**
- * Predição de Sucesso/Risco do Aluno (v4.0)
- */
-export async function predictStudentOutcome(studentHistory: any): Promise<{
-    predictedScore: number;
-    evasionRiskProbability: number;
-    trend: 'UP' | 'DOWN' | 'STABLE';
-    criticalAlerts: string[];
-    aiInsight: string;
-    recommendedIntervention: string;
-} | null> {
-    const prompt = (PROMPTS as any).PREDICT_STUDENT_OUTCOME(JSON.stringify(studentHistory));
-
-    const schema = {
-        type: Type.OBJECT,
-        properties: {
-            predictedScore: { type: Type.NUMBER },
-            evasionRiskProbability: { type: Type.NUMBER },
-            trend: { type: Type.STRING, enum: ["UP", "DOWN", "STABLE"] },
-            criticalAlerts: { type: Type.ARRAY, items: { type: Type.STRING } },
-            aiInsight: { type: Type.STRING },
-            recommendedIntervention: { type: Type.STRING }
-        },
-        required: ["predictedScore", "evasionRiskProbability", "trend", "aiInsight", "recommendedIntervention"]
-    };
-
-    try {
-        return callGeminiAPI<any>(prompt, schema);
-    } catch (error) {
-        console.error("AI Error (Prediction):", error);
-        return null;
+        return {
+            ...result,
+            studentId: "generated",
+            generatedAt: new Date().toISOString()
+        };
     }
-}
+
+    /**
+     * Predição de Sucesso/Risco do Aluno (v4.0)
+     */
+    export async function predictStudentOutcome(studentHistory: any): Promise<{
+        predictedScore: number;
+        evasionRiskProbability: number;
+        trend: 'UP' | 'DOWN' | 'STABLE';
+        criticalAlerts: string[];
+        aiInsight: string;
+        recommendedIntervention: string;
+    } | null> {
+        const prompt = (PROMPTS as any).PREDICT_STUDENT_OUTCOME(JSON.stringify(studentHistory));
+
+        const schema = {
+            type: Type.OBJECT,
+            properties: {
+                predictedScore: { type: Type.NUMBER },
+                evasionRiskProbability: { type: Type.NUMBER },
+                trend: { type: Type.STRING, enum: ["UP", "DOWN", "STABLE"] },
+                criticalAlerts: { type: Type.ARRAY, items: { type: Type.STRING } },
+                aiInsight: { type: Type.STRING },
+                recommendedIntervention: { type: Type.STRING }
+            },
+            required: ["predictedScore", "evasionRiskProbability", "trend", "aiInsight", "recommendedIntervention"]
+        };
+
+        try {
+            return callGeminiAPI<any>(prompt, schema);
+        } catch (error) {
+            console.error("AI Error (Prediction):", error);
+            return null;
+        }
+    }
