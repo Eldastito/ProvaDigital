@@ -160,7 +160,7 @@ export const NetworkDashboardView = () => {
                     </defs>
 
                     {/* Area Fill */}
-                    <path d={`${points} L ${width - padding},${height - padding} L ${padding},${height - padding} Z`} fill="url(#lineGradient)" />
+                    <path d={`M ${points} L ${width - padding},${height - padding} L ${padding},${height - padding} Z`} fill="url(#lineGradient)" />
 
                     {/* Line */}
                     <polyline points={points} fill="none" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-lg" />
