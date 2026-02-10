@@ -388,27 +388,14 @@ REQUISITOS:
         Retorne JSON: { "cards": [{ "front": "Pergunta/Conceito", "back": "Resposta/Explicação" }] }
     `,
     GENERATE_RPG_SCENARIO: (topic: string, grade: string) => `
-        Atue como um Mestre de RPG Educacional (Game Master).
-        Crie uma aventura RÁPIDA (Micro-Learning) sobre: "${topic}" para nível: ${grade}.
+        Mestre de RPG Educacional.
+        Crie uma aventura curta e imersiva sobre: "${topic}" para nível: ${grade}.
         
-        REGRAS RÍGIDAS DE SEGURANÇA E FORMATAÇÃO:
-        1. Título: MÁXIMO 50 caracteres (ex: "O Desafio Socrático").
-        2. NÃO gere listas de antônimos, sinônimos, ou repetições de "É e não é". Vá direto para a história.
-        3. Intro: Máximo 3 parágrafos curtos. Foco na ambientação e no tema ${topic}.
-        4. Challenge: Uma pergunta clara que exija aplicação do conhecimento.
-        5. Options: Exatamente 3 opções curtas e objetivas.
-        
-        PROIBIDO: Qualquer forma de loop textual, poesia repetitiva ou listas de palavras-chave técnicas no título ou na intro.
-        
-        RETORNE JSON PURO:
-        {
-            "title": "Título Curto",
-            "intro": "Contexto narrativo...",
-            "challenge": "A pergunta...",
-            "options": [
-                { "text": "Ação", "isCorrect": boolean, "outcome": "Resultado..." }
-            ]
-        }
+        REGRAS:
+        - Vá direto para a história.
+        - Não gere listas, metadados ou explicações.
+        - Saída estritamente em JSON conforme o schema.
+        - O título e a introdução devem ser puramente narrativos.
     `
 };
 
@@ -947,21 +934,33 @@ export const generateRPGScenario = async (topic: string, grade: string): Promise
     const schema = {
         type: Type.OBJECT,
         properties: {
-            title: { type: Type.STRING },
-            intro: { type: Type.STRING },
-            challenge: { type: Type.STRING },
+            title: {
+                type: Type.STRING,
+                description: "Título curtíssimo e épico da aventura (máx 40 caracteres). APENAS o título, sem explicações."
+            },
+            intro: {
+                type: Type.STRING,
+                description: "Contexto narrativo imersivo de no máximo 2 parágrafos. NÃO descreva o que você está fazendo, apenas narre."
+            },
+            challenge: {
+                type: Type.STRING,
+                description: "O problema ou mistério técnico/acadêmico que o jogador deve resolver agora."
+            },
             options: {
                 type: Type.ARRAY,
+                description: "Exatamente 3 opções de escolha.",
                 items: {
                     type: Type.OBJECT,
                     properties: {
-                        text: { type: Type.STRING },
-                        isCorrect: { type: Type.BOOLEAN },
-                        outcome: { type: Type.STRING }
-                    }
+                        text: { type: Type.STRING, description: "Ação que o jogador pode tomar." },
+                        isCorrect: { type: Type.BOOLEAN, description: "Verdadeiro se esta for a resposta correta para o desafio pedagógico." },
+                        outcome: { type: Type.STRING, description: "O que acontece após a escolha. Curto e direto." }
+                    },
+                    required: ["text", "isCorrect", "outcome"]
                 }
             }
-        }
+        },
+        required: ["title", "intro", "challenge", "options"]
     };
     const result = await callGeminiAPI<RPGScenario>(prompt, schema);
 
