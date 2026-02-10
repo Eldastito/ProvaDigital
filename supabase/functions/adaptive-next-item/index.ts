@@ -60,10 +60,9 @@ serve(async (req) => {
         const itemIds = configItems.map((c: any) => c.itemId)
 
         // Fetch actual Item Parameters from DB
-        // SECURITY: We only select fields needed for calculation, no sensitive data like 'isCorrect' or 'teacherNotes'
         const { data: itemBank, error: bankError } = await supabaseClient
             .from('items')
-            .select('id, tri_params, type') // Minimal fields
+            .select('id, tri_params, type, is_anchor, scale_version') // Added is_anchor and scale_version
             .in('id', itemIds)
 
         if (bankError || !itemBank) throw new Error("Item Bank fetch failed")
@@ -163,32 +162,48 @@ serve(async (req) => {
         // 7. Select Next Item
         const usedIds = responses.map(r => r.itemId)
 
+        // FILTER: Only items from the current scale version (defaults to v1)
+        const SCALE_VERSION = 'v1';
+
         const availableItems = itemBank.filter((i: any) =>
             !usedIds.includes(i.id) &&
-            i.tri_params
+            i.tri_params &&
+            (i.scale_version === SCALE_VERSION || !i.scale_version)
         )
 
         let nextItem = null
         let finished = false
 
         // STOPPING RULES
-        // 1. No more items available
-        // 2. SEE threshold reached (e.g., 0.3 for Diagnostic, 0.45 for Formative)
-        // 3. Minimum items reached (optional, for robustness)
-        const SEE_THRESHOLD = 0.3; // Configurable per exam in the future
+        const SEE_THRESHOLD = 0.3;
         const MIN_ITEMS = 5;
 
         if (availableItems.length === 0 || (currentSEE <= SEE_THRESHOLD && responses.length >= MIN_ITEMS)) {
             finished = true
         } else {
-            // Max Info Strategy
-            const rankedItems = availableItems.sort((a: any, b: any) => {
-                const infoA = calculateItemInformation(newTheta, a);
-                const infoB = calculateItemInformation(newTheta, b);
-                return infoB - infoA;
-            });
-            const top = rankedItems.slice(0, 3)
-            nextItem = top[Math.floor(Math.random() * top.length)]
+            // STRATEGY: Prioritize Anchors in the first N steps to ensure linkage (Equating)
+            const ANCHOR_THRESHOLD = 3;
+            const availableAnchors = availableItems.filter(i => i.is_anchor);
+
+            if (responses.length < ANCHOR_THRESHOLD && availableAnchors.length > 0) {
+                // Select anchor with Max Info
+                const rankedAnchors = availableAnchors.sort((a: any, b: any) => {
+                    const infoA = calculateItemInformation(newTheta, a);
+                    const infoB = calculateItemInformation(newTheta, b);
+                    return infoB - infoA;
+                });
+                nextItem = rankedAnchors[0];
+            } else {
+                // Max Info Strategy for general items
+                const rankedItems = availableItems.sort((a: any, b: any) => {
+                    const infoA = calculateItemInformation(newTheta, a);
+                    const infoB = calculateItemInformation(newTheta, b);
+                    return infoB - infoA;
+                });
+                // Randomize between top 3 for exposure control
+                const top = rankedItems.slice(0, 3)
+                nextItem = top[Math.floor(Math.random() * top.length)]
+            }
         }
 
         // 8. Return Result (Securely)
