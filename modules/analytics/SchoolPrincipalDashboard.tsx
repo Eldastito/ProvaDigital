@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Users, TrendingUp, AlertTriangle, Calendar, Printer, School, GraduationCap, ClipboardList, ArrowDownRight, ArrowUpRight, Package, Check, X, Bus, Shield, Snowflake, Award, BarChart2, LayoutGrid, Edit, Trophy, Target, Activity, ShieldAlert, Zap, Globe } from 'lucide-react';
 import { RiskLevel, TenantType } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
-import { ReportingService } from '../../services/reportingService';
+import { reportingService } from '../../services/reportingService';
 import { GlobalRankingView } from './GlobalRankingView';
 import { useAppStore } from '../../store/useAppStore';
 import { Download } from 'lucide-react';
@@ -130,7 +130,15 @@ export const SchoolPrincipalDashboard = () => {
                                 'Média IDG': cls.avg.toFixed(2),
                                 'Alunos em Risco': cls.riskCount
                             }));
-                            ReportingService.exportToExcel(data, `Desempenho_Turmas_${school?.name.replace(/\s+/g, '_')}`);
+                            reportingService.generateExcelExport(data, `Desempenho_Turmas_${school?.name.replace(/\s+/g, '_')}`)
+                                .then(blob => {
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `Desempenho_Turmas_${school?.name.replace(/\s+/g, '_')}.xlsx`;
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                });
                         }}
                         className="bg-emerald-600 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 hover:bg-emerald-500 shadow-lg"
                     >

@@ -11,7 +11,7 @@ import { RichTextRenderer } from '../../../components/RichTextRenderer';
 import { DrawingCanvas } from './DrawingCanvas';
 import { offlineCacheService } from '../../../services/offlineCacheService';
 import { registerCachedExam } from '../../../services/offlineDb';
-import { ReportingService } from '../../../services/reportingService';
+import { reportingService } from '../../../services/reportingService';
 import { DownloadCloud, CloudCheck, Download, Trophy, Target } from 'lucide-react'; // Some extra icons
 
 interface OnlineExamRunnerProps {
@@ -655,7 +655,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
 
                                     <div className="flex gap-4 mt-auto">
                                         <button
-                                            onClick={() => ReportingService.exportStudyPlan(state.currentUser?.name || 'Estudante', generatedPlan)}
+                                            onClick={() => reportingService.exportStudyPlan(state.currentUser?.name || 'Estudante', generatedPlan)}
                                             className="flex-1 py-4 bg-slate-800 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-700 transition-all shadow-lg"
                                         >
                                             <Download size={20} /> Baixar PDF do Plano
