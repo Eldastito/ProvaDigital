@@ -58,6 +58,7 @@ import { ProfessorApp } from './modules/runner/student-app/ProfessorApp';
 import { MarketplaceView } from './modules/marketplace/MarketplaceView';
 import { MultimodalLabView } from './modules/builder/MultimodalLabView';
 import { PredictiveRiskDashboard } from './modules/analytics/PredictiveRiskDashboard';
+import { PredictiveDashboardView } from './modules/analytics/PredictiveDashboardView';
 
 // Helper for Role-based Dashboard
 const ConditionalDashboard = () => {
@@ -164,6 +165,10 @@ export const appRoutes: RouteObject[] = [
             {
                 path: 'predictive-risk',
                 element: <PredictiveRiskDashboard />
+            },
+            {
+                path: 'advanced-analytics',
+                element: <PredictiveDashboardView />
             },
             {
                 path: 'marketplace',

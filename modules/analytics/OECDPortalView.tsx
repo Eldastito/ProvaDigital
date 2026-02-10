@@ -69,7 +69,15 @@ export const OECDPortalView = ({ onBack }: { onBack: () => void }) => {
                                             </div>
                                             <div className="flex gap-2">
                                                 <button className="p-2 text-slate-400 hover:text-brand-primary transition"><Download size={18} /></button>
-                                                <button className="bg-brand-primary text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg shadow-brand-primary/20 hover:scale-105 transition flex items-center gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        if (window.confirm(`Deseja distribuir "${exam.title}" para toda a rede? Esta ação é irreversível.`)) {
+                                                            state.distributeOECDExam(exam.id);
+                                                            alert('Ação de distribuição iniciada com sucesso.');
+                                                        }
+                                                    }}
+                                                    className="bg-brand-primary text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg shadow-brand-primary/20 hover:scale-105 transition flex items-center gap-2"
+                                                >
                                                     Distribuir à Rede <ArrowRight size={14} />
                                                 </button>
                                             </div>

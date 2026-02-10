@@ -236,6 +236,7 @@ export interface School {
   id: string;
   tenantId: string;
   name: string;
+  city?: string;
   inep: string;
   resources?: SchoolResources;
 }

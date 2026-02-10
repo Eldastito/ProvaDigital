@@ -7,7 +7,8 @@ import {
     PenTool, Target, UserCircle, Shield, Stethoscope, Map, Home, ChevronDown, Swords, Flame, Trophy, Cast, Calendar, Gamepad2, BarChart, Activity, CalendarCheck, Bot,
     Zap,
     Sword,
-    Gamepad as Arcade
+    Gamepad as Arcade,
+    TrendingUp
 } from 'lucide-react';
 import { useSafeAppStore } from '../store/useAppStore';
 import { UserRole, TenantType, ExamModel } from '../types';
@@ -201,6 +202,7 @@ export const DashboardLayout = () => {
 
                             <div className="px-4 pt-4 pb-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Gestão & BI</div>
                             <NavItem icon={BarChart} label="Analytics" active={path === '/analytics'} onClick={() => navigate('/analytics')} />
+                            <NavItem icon={TrendingUp} label="Analytics Avançado & DL" active={path === '/advanced-analytics'} onClick={() => navigate('/advanced-analytics')} />
                             <NavItem icon={MessageCircle} label="Comunicação" active={path === '/communication'} onClick={() => navigate('/communication')} />
                             <NavItem icon={Users} label="Gestão de Rede" active={path.includes('/admin/gestao')} onClick={() => navigate('/admin/gestao')} />
                             <NavItem icon={Globe} label="Portal OCDE" active={path === '/oecd-portal'} onClick={() => navigate('/oecd-portal')} />

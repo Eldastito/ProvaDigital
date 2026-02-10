@@ -174,6 +174,7 @@ interface AppActions {
 
     // --- PHASE 6: ARCADE GAMES ---
     loadArcadeGames: () => Promise<void>;
+    distributeOECDExam: (examId: string) => Promise<void>;
     addArcadeGame: (game: ArcadeGame) => Promise<void>;
     updateArcadeGame: (game: ArcadeGame) => Promise<void>;
     deleteArcadeGame: (id: string) => Promise<void>;
@@ -775,7 +776,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
         const updatedItems = get().items.map(i => ids.includes(i.id)
             ? { ...i, tags: Array.from(new Set([...(i.tags || []), tag])) }
             : i);
-
         const previousItems = get().items;
         set({ items: updatedItems });
 
@@ -843,6 +843,30 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
         } finally {
             // Cleanup or final logs if needed
+        }
+    },
+
+    distributeOECDExam: async (examId: string) => {
+        try {
+            const { error } = await supabase
+                .from('exams')
+                .update({
+                    status: 'PUBLISHED',
+                    is_official_standard: true
+                })
+                .eq('id', examId);
+
+            if (error) throw error;
+
+            set(state => ({
+                exams: state.exams.map(e =>
+                    e.id === examId ? { ...e, status: ExamStatus.PUBLISHED, isOfficialStandard: true } : e
+                )
+            }));
+            console.log('✅ Exam distributed to network:', examId);
+        } catch (e) {
+            console.error('Failed to distribute exam:', e);
+            throw e;
         }
     },
 
