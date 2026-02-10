@@ -3,10 +3,12 @@ import { useSafeAppStore } from '../../../store/useAppStore';
 import { calculateSchoolRisk, calculateBatchRisk, RiskAssessment } from '../../../services/riskDetectionEngine';
 import { RiskLevel } from '../../../types';
 import { processSchoolRiskAlerts, createIntervention, getInterventionsByAlert } from '../../../services/alertService';
+import { growthService, GrowthMetric } from '../../../services/growthService';
 import { uuidv4 } from '../../../utils/helpers';
 import {
     AlertTriangle,
     TrendingDown,
+    TrendingUp,
     Users,
     Filter,
     ChevronDown,
@@ -485,6 +487,43 @@ const StatCard = ({ title, value, subtitle, icon: Icon, color, alert }: any) => 
     );
 };
 
+const GrowthIndicator = ({ studentId }: { studentId: string }) => {
+    const [growth, setGrowth] = useState<GrowthMetric | null>(null);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        const fetchGrowth = async () => {
+            setLoading(true);
+            try {
+                // No MVP, comparamos os dois últimos exames conhecidos
+                // Mock ids para demonstração se não houver exames reais no contexto local
+                const metric = await growthService.calculateStudentGrowth(studentId, 'baseline', 'followup');
+                setGrowth(metric);
+            } catch (e) {
+                console.error('Growth fetch error', e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchGrowth();
+    }, [studentId]);
+
+    if (loading) return <div className="animate-pulse h-4 w-12 bg-slate-200 rounded"></div>;
+    if (!growth) return null;
+
+    const isPositive = growth.deltaTheta > 0;
+
+    return (
+        <div className="flex flex-col items-end">
+            <div className="text-sm font-medium text-slate-700">Crescimento (Δθ)</div>
+            <div className={`text-lg font-bold flex items-center gap-1 ${isPositive ? 'text-emerald-600' : 'text-amber-600'}`}>
+                {isPositive ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                {growth.deltaTheta > 0 ? '+' : ''}{growth.deltaTheta.toFixed(2)}
+            </div>
+        </div>
+    );
+};
+
 const StudentRiskCard = ({
     assessment,
     isExpanded,
@@ -503,8 +542,8 @@ const StudentRiskCard = ({
 
     return (
         <div className={`border-l-4 transition-all ${assessment.riskLevel === RiskLevel.HIGH ? 'border-red-500' :
-                assessment.riskLevel === RiskLevel.MEDIUM ? 'border-yellow-500' :
-                    'border-green-500'
+            assessment.riskLevel === RiskLevel.MEDIUM ? 'border-yellow-500' :
+                'border-green-500'
             } ${isExpanded ? 'bg-slate-50' : 'bg-white hover:bg-slate-50'}`}>
             <div
                 className="p-4 md:p-6 cursor-pointer flex items-center justify-between"
@@ -512,8 +551,8 @@ const StudentRiskCard = ({
             >
                 <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${assessment.riskLevel === RiskLevel.HIGH ? 'bg-red-100 text-red-700' :
-                            assessment.riskLevel === RiskLevel.MEDIUM ? 'bg-yellow-100 text-yellow-700' :
-                                'bg-green-100 text-green-700'
+                        assessment.riskLevel === RiskLevel.MEDIUM ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-green-100 text-green-700'
                         }`}>
                         {assessment.studentName.charAt(0)}
                     </div>
@@ -529,6 +568,9 @@ const StudentRiskCard = ({
                 </div>
 
                 <div className="flex items-center gap-4">
+                    <div className="text-right hidden md:block">
+                        <GrowthIndicator studentId={assessment.studentId} />
+                    </div>
                     <div className="text-right hidden md:block">
                         <div className="text-sm font-medium text-slate-700">Frequência Estimada</div>
                         <div className={`text-lg font-bold ${assessment.simulatedAttendance < 75 ? 'text-red-600' : 'text-green-600'}`}>
