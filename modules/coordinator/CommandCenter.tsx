@@ -9,9 +9,10 @@ import React, { useState, useEffect } from 'react';
 import {
     Activity, Users, AlertTriangle, Clock, Play, Pause,
     Plus, MessageSquare, StopCircle, RefreshCw, Eye,
-    TrendingUp, Wifi, WifiOff, Search, Filter, X
+    TrendingUp, Wifi, WifiOff, Search, Filter, X, ShieldAlert, Zap
 } from 'lucide-react';
 import { commandCenterService, ExamSession } from '../../services/commandCenterService';
+import { operationalHealthService } from '../../services/operationalHealthService';
 import { MetricsCard } from '../../components/Metrics/MetricsCard';
 import { useNavigate } from 'react-router-dom';
 import { MeshRouterPanel } from '../runner/professor/MeshRouterPanel';
@@ -267,6 +268,37 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({ onClose }) => {
                     color={globalStats.totalViolations > 10 ? 'red' : 'yellow'}
                     subtitle="Total detectadas"
                 />
+
+                {/* MÉTRICAS DE SLO - FASE VIII (Resiliência Operacional) */}
+                <div className="bg-slate-900 rounded-2xl p-4 text-white shadow-xl shadow-slate-900/20 col-span-2 md:col-span-1 border border-white/10">
+                    <div className="flex justify-between items-start mb-2">
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">SLO: Latência Sync (P95)</p>
+                            <p className="text-xl font-bold text-blue-400">{operationalHealthService.getLocalHealthMetrics().p95Latency}ms</p>
+                        </div>
+                        <div className="p-2 bg-blue-500/20 rounded-lg text-blue-400">
+                            <Zap size={18} />
+                        </div>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-1 mt-2">
+                        <div className="bg-blue-400 h-full rounded-full" style={{ width: '85%' }}></div>
+                    </div>
+                </div>
+
+                <div className="bg-slate-900 rounded-2xl p-4 text-white shadow-xl shadow-slate-900/20 col-span-2 md:col-span-1 border border-white/10">
+                    <div className="flex justify-between items-start mb-2">
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">SLO: Success Rate</p>
+                            <p className="text-xl font-bold text-emerald-400">{operationalHealthService.getLocalHealthMetrics().successRate}%</p>
+                        </div>
+                        <div className="p-2 bg-emerald-500/20 rounded-lg text-emerald-400">
+                            <ShieldAlert size={18} />
+                        </div>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-1 mt-2">
+                        <div className="bg-emerald-400 h-full rounded-full" style={{ width: `${operationalHealthService.getLocalHealthMetrics().successRate}%` }}></div>
+                    </div>
+                </div>
             </div>
 
             {/* Filtros */}
