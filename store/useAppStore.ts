@@ -2347,6 +2347,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
                     createdAt: g.created_at
                 }));
 
+                // SHIM: Custom Images provided by User
+                games.forEach(g => {
+                    if (g.title.toLowerCase().includes('game quizz') || g.title.toLowerCase().includes('quiz master')) {
+                        g.thumbnailUrl = '/assets/images/quiz-master.jpg';
+                    }
+                    if (g.title.toLowerCase().includes('silabajoy')) {
+                        g.thumbnailUrl = '/assets/images/silabajoy.jpg';
+                    }
+                });
+
                 set(state => {
                     const existingIds = new Set(state.arcadeGames.map(g => g.id));
                     const newGames = games.filter(g => !existingIds.has(g.id));
