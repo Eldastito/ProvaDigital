@@ -19,7 +19,7 @@ export const EducationalRPGView: React.FC = () => {
         setSelectedOption(null);
 
         try {
-            const grade = currentUser?.classId ? 'Série Atual' : 'Ensino Médio';
+            const grade = currentUser?.classIds?.length ? 'Série Atual' : 'Ensino Médio';
             const adventure = await generateRPGScenario(topic, grade);
             setScenario(adventure);
         } catch (e) {
@@ -31,7 +31,7 @@ export const EducationalRPGView: React.FC = () => {
     };
 
     const handleChoice = (index: number) => {
-        if (!scenario) return;
+        if (!scenario || !scenario.options || !scenario.options[index]) return;
         setSelectedOption(index);
         const choice = scenario.options[index];
 
@@ -124,20 +124,32 @@ export const EducationalRPGView: React.FC = () => {
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                {scenario.options.map((opt, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => handleChoice(idx)}
-                                        className="w-full text-left p-5 rounded-xl bg-slate-800 border-2 border-slate-700 hover:border-amber-500 hover:bg-slate-750 transition group"
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center font-bold text-slate-400 group-hover:bg-amber-500 group-hover:text-amber-900 transition">
-                                                {String.fromCharCode(65 + idx)}
+                                {scenario.options && scenario.options.length > 0 ? (
+                                    scenario.options.map((opt, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => handleChoice(idx)}
+                                            className="w-full text-left p-5 rounded-xl bg-slate-800 border-2 border-slate-700 hover:border-amber-500 hover:bg-slate-750 transition group"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center font-bold text-slate-400 group-hover:bg-amber-500 group-hover:text-amber-900 transition">
+                                                    {String.fromCharCode(65 + idx)}
+                                                </div>
+                                                <span className="text-lg">{opt.text}</span>
                                             </div>
-                                            <span className="text-lg">{opt.text}</span>
-                                        </div>
-                                    </button>
-                                ))}
+                                        </button>
+                                    ))
+                                ) : (
+                                    <div className="p-4 bg-red-900/20 border border-red-500/30 rounded-lg text-red-200 text-center">
+                                        Erro ao carregar opções. Tente gerar uma nova aventura.
+                                        <button
+                                            onClick={() => setScenario(null)}
+                                            className="block mx-auto mt-2 text-sm underline hover:text-white"
+                                        >
+                                            Voltar
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

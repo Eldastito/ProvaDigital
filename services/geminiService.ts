@@ -958,7 +958,15 @@ export const generateRPGScenario = async (topic: string, grade: string): Promise
             }
         }
     };
-    return callGeminiAPI<RPGScenario>(prompt, schema);
+    const result = await callGeminiAPI<RPGScenario>(prompt, schema);
+
+    // Safety check for malformed AI response
+    if (!result.options || !Array.isArray(result.options)) {
+        console.warn('RPG Scenario generated without options, using fallback.');
+        result.options = [];
+    }
+
+    return result;
 };
 
 export const suggestBNCC = async (statement: string): Promise<{ code: string; reason: string }> => {
