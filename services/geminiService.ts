@@ -3,8 +3,8 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { QuestionType, DifficultyLevel, AssessmentType, VocationalProfile, BloomTaxonomy, CognitiveAxis } from "../types";
 
 // --- Configuration ---
-const DEFAULT_MODEL = 'gemini-2.5-flash';
-const PROMPT_VERSION = '1.2.0-governance';
+const DEFAULT_MODEL = 'gemini-1.5-flash';
+const PROMPT_VERSION = '1.2.1-stability-fix';
 
 // --- Prompts ---
 const PROMPTS = {
@@ -384,8 +384,14 @@ REQUISITOS:
         }
     `,
     GENERATE_FLASHCARDS: (topic: string, grade: string) => `
-        Crie 5 Flashcards de Estudo para o tópico: "${topic}" (${grade}).
-        Retorne JSON: { "cards": [{ "front": "Pergunta/Conceito", "back": "Resposta/Explicação" }] }
+        Mestre de Quiz Educacional.
+        Crie 5 Flashcards OBJETIVOS para o tópico: "${topic}" (${grade}).
+        
+        REGRAS RÍGIDAS:
+        - Frente: Pergunta ou conceito direto. MÁXIMO 100 caracteres.
+        - Verso: Resposta ou explicação resumida. MÁXIMO 200 caracteres.
+        - PROIBIDO: Não adicione tags entre parênteses, metadados, ou qualquer texto extra após a pergunta.
+        - FOCO: Apenas o conteúdo acadêmico.
     `,
     GENERATE_RPG_SCENARIO: (topic: string, grade: string) => `
         Mestre de RPG Educacional.
@@ -600,7 +606,7 @@ async function callGeminiAPI<T>(
             });
 
             const config: any = {
-                temperature: 0.7,
+                temperature: 0.2, // Reduzido de 0.7 para maior estabilidade em JSON
                 maxOutputTokens: 16384
             };
 
@@ -916,12 +922,14 @@ export const generateFlashcards = async (topic: string, grade: string): Promise<
         properties: {
             cards: {
                 type: Type.ARRAY,
+                description: "Lista de 5 flashcards curtos e sem metadados.",
                 items: {
                     type: Type.OBJECT,
                     properties: {
-                        front: { type: Type.STRING },
-                        back: { type: Type.STRING }
-                    }
+                        front: { type: Type.STRING, description: "Frente do card (pergunta direta, máx 100 caracteres). SEM TAGS." },
+                        back: { type: Type.STRING, description: "Verso do card (resposta curta, máx 200 caracteres)." }
+                    },
+                    required: ["front", "back"]
                 }
             }
         }
@@ -1015,7 +1023,7 @@ export async function extractItemsFromMultipleImages(base64Images: string[]): Pr
         const contents = [{ role: 'user', parts }];
 
         const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            model: DEFAULT_MODEL,
             contents: contents,
             config: {
                 responseMimeType: "application/json",

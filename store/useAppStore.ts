@@ -2395,7 +2395,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 // SHIM: Custom Images provided by User
                 games.forEach(g => {
                     if (g.title.toLowerCase().includes('game quizz') || g.title.toLowerCase().includes('quiz master')) {
-                        g.thumbnailUrl = '/assets/images/quiz-master.jpg';
+                        g.thumbnailUrl = 'https://images.unsplash.com/photo-1606326666490-45757474e788?w=800&auto=format&fit=crop&q=60';
                     }
                     if (g.title.toLowerCase().includes('silabajoy')) {
                         g.thumbnailUrl = '/assets/images/silabajoy.jpg';
