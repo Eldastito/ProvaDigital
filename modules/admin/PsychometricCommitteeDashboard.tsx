@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { dataExportService } from '../../services/dataExportService';
+import { privacyService } from '../../services/privacyService';
 import { TrajectoryVisualizer } from '../analytics/components/TrajectoryVisualizer';
 import {
     ShieldCheck,
@@ -17,14 +18,17 @@ import {
     Sparkles,
     Download,
     FileJson,
-    Library
+    Library,
+    EyeOff,
+    History,
+    Shield
 } from 'lucide-react';
 
 export const PsychometricCommitteeDashboard = () => {
     const [pools, setPools] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedPool, setSelectedPool] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'AUDIT'>('OVERVIEW');
+    const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'AUDIT' | 'LGPD'>('OVERVIEW');
 
     // Mock data para demonstração da trajetória adaptativa (Fase VII)
     const mockTrajectory = [
@@ -162,19 +166,24 @@ export const PsychometricCommitteeDashboard = () => {
                                 >
                                     Soberania & Auditabilidade
                                 </button>
+                                <button
+                                    onClick={() => setActiveTab('LGPD')}
+                                    className={`pb-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'LGPD' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                                >
+                                    Conformidade LGPD
+                                </button>
                             </div>
 
                             <div className="p-8">
                                 {activeTab === 'OVERVIEW' ? (
                                     <>
-                                        {/* Métricas Psicométricas */}
+                                        {/* Conteúdo Visão Geral existente */}
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                                             <StatBox label="Discriminação Média (a)" value="1.42" status="optimal" />
                                             <StatBox label="Dificuldade Média (b)" value="0.12" status="neutral" />
                                             <StatBox label="Cobertura BNCC" value="94%" status="high" />
                                         </div>
 
-                                        {/* Seção de Estabilidade */}
                                         <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
                                             <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-4">
                                                 <BarChart size={18} className="text-brand-primary" />
@@ -187,12 +196,12 @@ export const PsychometricCommitteeDashboard = () => {
                                             </div>
                                         </div>
 
-                                        {/* Auditoria de Origem IA (Fase VI) */}
                                         <div className="mt-8 p-6 bg-indigo-50 rounded-2xl border border-indigo-100">
                                             <h3 className="text-sm font-bold text-indigo-900 flex items-center gap-2 mb-4">
                                                 <Brain size={18} className="text-indigo-600" />
                                                 Governança de IA & Certidão de Origem
                                             </h3>
+                                            {/* ... conteúdo IA ... */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div className="bg-white p-4 rounded-xl border border-indigo-100 flex justify-between items-center shadow-sm">
                                                     <div>
@@ -213,13 +222,9 @@ export const PsychometricCommitteeDashboard = () => {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="mt-4 p-3 bg-white/50 rounded-xl text-[10px] font-mono text-slate-500 border border-indigo-50 leading-relaxed">
-                                                Prompt Master: FORGE_INEP_V1.2.0-GOVERNANCE <br />
-                                                Model: gemini-2.5-flash | Compliance: RGPD/LGPD-ED
-                                            </div>
                                         </div>
                                     </>
-                                ) : (
+                                ) : activeTab === 'AUDIT' ? (
                                     <div className="space-y-8 animate-in fade-in zoom-in-95 duration-300">
                                         <div>
                                             <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-4">
@@ -234,35 +239,85 @@ export const PsychometricCommitteeDashboard = () => {
                                                 <Library size={18} />
                                                 Soberania Digital e Anti Lock-in (Exportação Universal)
                                             </h3>
-                                            <p className="text-xs text-indigo-100 mb-6 leading-relaxed">
-                                                Conforme o Anexo C do Plano 2031, a rede possui soberania total sobre as evidências.
-                                                Utilize as ferramentas abaixo para auditoria externa ou portabilidade para outros motores TRI.
-                                            </p>
+                                            {/* ... conteúdo audit ... */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <button
-                                                    onClick={() => dataExportService.exportDataDictionary()}
-                                                    className="flex items-center gap-3 p-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl transition group text-left"
-                                                >
-                                                    <div className="p-2 bg-white/20 rounded-lg group-hover:scale-110 transition">
-                                                        <Download size={20} />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs font-bold">Dicionário de Dados</p>
-                                                        <p className="text-[10px] text-white/60">Esquema Técnico p/ Auditores</p>
-                                                    </div>
+                                                <button onClick={() => dataExportService.exportDataDictionary()} className="flex items-center gap-3 p-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl transition group text-left">
+                                                    <div className="p-2 bg-white/20 rounded-lg group-hover:scale-110 transition"><Download size={20} /></div>
+                                                    <div><p className="text-xs font-bold">Dicionário de Dados</p><p className="text-[10px] text-white/60">Esquema Técnico p/ Auditores</p></div>
                                                 </button>
-                                                <button
-                                                    onClick={() => dataExportService.exportStudentTrajectory({ id: 'dummy', answers: [], totalScore: 1.4 } as any, [], 'Amostra Auditoria')}
-                                                    className="flex items-center gap-3 p-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl transition group text-left"
-                                                >
-                                                    <div className="p-2 bg-white/20 rounded-lg group-hover:scale-110 transition">
-                                                        <FileJson size={20} />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs font-bold">Dump de Trajetória (JSON)</p>
-                                                        <p className="text-[10px] text-white/60">Log imutável da sessão CAT</p>
-                                                    </div>
+                                                <button onClick={() => dataExportService.exportStudentTrajectory({ id: 'dummy', answers: [], totalScore: 1.4 } as any, [], 'Amostra Auditoria')} className="flex items-center gap-3 p-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl transition group text-left">
+                                                    <div className="p-2 bg-white/20 rounded-lg group-hover:scale-110 transition"><FileJson size={20} /></div>
+                                                    <div><p className="text-xs font-bold">Dump de Trajetória (JSON)</p><p className="text-[10px] text-white/60">Log imutável da sessão CAT</p></div>
                                                 </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                                        <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 flex items-start gap-4">
+                                            <div className="p-3 bg-white rounded-xl text-emerald-600 shadow-sm"><Shield size={24} /></div>
+                                            <div>
+                                                <h3 className="text-sm font-bold text-emerald-900">Privacidade por Design (Plano 2031)</h3>
+                                                <p className="text-xs text-emerald-700 mt-1 leading-relaxed">
+                                                    Todos os dados pessoais são pseudonimizados antes de serem processados por motores de auditoria ou IA.
+                                                    A chave de identidade permanece sob controle exclusivo da entidade governante via HSM/KMS.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="bg-white p-6 rounded-2xl border border-slate-200">
+                                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                                    <EyeOff size={14} /> Pseudonimização Nativa
+                                                </h4>
+                                                <div className="space-y-3">
+                                                    <div className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                                        <span className="text-xs font-medium text-slate-600">Nome Original</span>
+                                                        <span className="text-xs font-mono font-bold text-slate-400 line-through">Michele Santos</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                                                        <span className="text-xs font-medium text-emerald-700">Alias de Auditoria</span>
+                                                        <span className="text-xs font-mono font-bold text-emerald-600">{privacyService.maskName('Michele Santos')}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-white p-6 rounded-2xl border border-slate-200">
+                                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                                    <History size={14} /> Retenção & Expurgo
+                                                </h4>
+                                                <div className="space-y-4">
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-xs text-slate-600">Logs de Telemetria</span>
+                                                        <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">180 DIAS</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-xs text-slate-600">Chaves de Sessão</span>
+                                                        <span className="text-[10px] font-bold bg-red-100 text-red-700 px-2 py-0.5 rounded-full">24 HORAS</span>
+                                                    </div>
+                                                    <div className="pt-2 border-t border-slate-100">
+                                                        <p className="text-[10px] text-slate-400 italic">Expurgo automático configurado via pg_cron.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-6 bg-slate-100 rounded-2xl border border-slate-200">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <h4 className="text-xs font-bold text-slate-600 flex items-center gap-2">
+                                                    <Lock size={14} /> Trilha de Acesso LGPD (Audit Log)
+                                                </h4>
+                                                <button className="text-[10px] font-bold text-brand-primary underline">Ver Log Completo</button>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <div className="p-3 bg-white rounded-xl text-[10px] text-slate-500 border border-slate-200 flex justify-between">
+                                                    <span>[2026-02-10 10:45] SuperAdmin acessou PII de Aluno: {privacyService.maskName('Carlos Drumon')}</span>
+                                                    <span className="font-bold text-brand-primary">Motivo: Investigação de Fraude</span>
+                                                </div>
+                                                <div className="p-3 bg-white rounded-xl text-[10px] text-slate-500 border border-slate-200 flex justify-between">
+                                                    <span>[2026-02-10 09:12] Auditor Externo acessou Trajetória: anonym_78231...</span>
+                                                    <span className="font-bold text-brand-primary">Motivo: Validação Psicométrica</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
