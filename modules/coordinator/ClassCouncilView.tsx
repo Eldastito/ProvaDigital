@@ -2,11 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { AnalyticsService } from '../../services/analyticsService';
 import { Users, FileText, Mic, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
-import { Users, FileText, Mic, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { generateAssessmentReport, predictStudentOutcome, generateCouncilMinutes } from '../../services/geminiService';
 
 export const ClassCouncilView: React.FC = () => {
-    const { state, user } = useAppStore();
+    const state = useAppStore();
     const analytics = useMemo(() => new AnalyticsService(state), [state]);
 
     const [selectedClassId, setSelectedClassId] = useState<string>('');
@@ -193,8 +192,8 @@ export const ClassCouncilView: React.FC = () => {
                                             <div className="flex justify-between items-center mb-4 border-b pb-2">
                                                 <h3 className="font-bold text-lg text-slate-800">Ata de Deliberação</h3>
                                                 <span className={`px-3 py-1 rounded-full text-xs font-black uppercase ${aiAnalysis.minutes.decision === 'APROVADO' ? 'bg-green-100 text-green-700' :
-                                                        aiAnalysis.minutes.decision === 'RETIDO' ? 'bg-red-100 text-red-700' :
-                                                            'bg-yellow-100 text-yellow-700'
+                                                    aiAnalysis.minutes.decision === 'RETIDO' ? 'bg-red-100 text-red-700' :
+                                                        'bg-yellow-100 text-yellow-700'
                                                     }`}>
                                                     {aiAnalysis.minutes.decision}
                                                 </span>
