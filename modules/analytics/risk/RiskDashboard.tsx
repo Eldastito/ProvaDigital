@@ -228,25 +228,24 @@ export const RiskDashboard = () => {
 
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="mb-8">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            {/* Header - Refined Card Layout */}
+            <div className="mx-0 mt-2 mb-8 bg-white border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-md z-20">
+                <div className="flex items-center gap-4">
+                    <div className="bg-orange-50 p-3 rounded-xl text-orange-500">
+                        <AlertTriangle size={28} />
+                    </div>
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-bold text-brand-dark mb-2 flex items-center gap-3">
-                            <AlertTriangle className="text-orange-500" size={32} />
-                            Gestão de Risco de Evasão
-                        </h1>
-                        <p className="text-slate-600">
-                            {canViewAllSchools ? 'Visão Consolidada da Rede de Ensino' : 'Sistema de detecção precoce e intervenção'}
+                        <h1 className="text-2xl font-black text-slate-800 tracking-tight">Gestão de Risco de Evasão</h1>
+                        <p className="text-slate-500 text-sm font-medium">
+                            {canViewAllSchools ? 'Visão Consolidada da Rede de Ensino' : 'Detecção precoce e intervenção'}
                         </p>
+                        {lastSaved && (
+                            <div className="mt-1 text-[10px] text-green-600 font-bold uppercase flex items-center gap-1">
+                                <CheckCircle size={12} /> Salvo em {new Date(lastSaved).toLocaleTimeString()}
+                            </div>
+                        )}
                     </div>
                 </div>
-                {lastSaved && (
-                    <div className="mt-2 text-sm text-green-600 flex items-center gap-2">
-                        <CheckCircle size={16} />
-                        Alertas salvos em {new Date(lastSaved).toLocaleString('pt-BR')}
-                    </div>
-                )}
             </div>
 
             {/* Estatísticas */}

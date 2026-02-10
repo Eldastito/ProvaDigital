@@ -26,19 +26,20 @@ export const PredictiveRiskDashboard: React.FC = () => {
 
     return (
         <div className="p-8 space-y-8 bg-slate-50 min-h-screen">
-            <div className="flex justify-between items-start">
-                <div>
-                    <h1 className="text-3xl font-extrabold text-slate-900 flex items-center gap-3">
-                        <Brain className="text-indigo-600 w-10 h-10" />
-                        Dashboard de Predição IA
-                    </h1>
-                    <p className="text-slate-500 mt-1">Análise preditiva de retenção e sucesso acadêmico (v4.0 Alpha)</p>
-                </div>
-                <div className="flex gap-2">
-                    <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200 text-sm font-medium text-slate-600 flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        Projeção: Próximo Bimestre
+            {/* Header - Refined Card Layout */}
+            <div className="mx-0 mt-2 mb-8 bg-white border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-md z-20">
+                <div className="flex items-center gap-4">
+                    <div className="bg-indigo-50 p-3 rounded-xl text-indigo-600">
+                        <Brain size={28} />
                     </div>
+                    <div>
+                        <h1 className="text-2xl font-black text-slate-800 tracking-tight">Dashboard de Predição IA</h1>
+                        <p className="text-slate-500 text-sm font-medium">Análise preditiva de retenção e sucesso acadêmico (v4.0 Alpha)</p>
+                    </div>
+                </div>
+                <div className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 text-[10px] font-black text-slate-500 flex items-center gap-2 uppercase tracking-widest">
+                    <Calendar size={14} />
+                    Projeção: Próximo Bimestre
                 </div>
             </div>
 

@@ -17,16 +17,17 @@ export const NetworkDashboardView = () => {
 
     const { currentUser, tenants } = state;
 
-    // Identificar Nível Hierárquico (FORÇADO FEDERAL PARA CALIBRAÇÃO)
+    // Identificar Nível Hierárquico
     let dashboardLevel: 'FEDERAL' | 'STATE' | 'MUNICIPAL' = 'FEDERAL';
-    /* 
+
     const userTenant = tenants.find(t => t.id === currentUser?.tenantId);
     if (currentUser?.role === UserRole.SUPER_ADMIN || userTenant?.type === TenantType.PUBLIC_FEDERAL) {
         dashboardLevel = 'FEDERAL';
-    } else if (userTenant?.type === TenantType.PUBLIC_STATE) {
+    } else if (userTenant?.type === TenantType.PUBLIC_STATE || currentUser?.role === UserRole.STATE_ADMIN) {
         dashboardLevel = 'STATE';
+    } else {
+        dashboardLevel = 'MUNICIPAL';
     }
-    */
 
     // Estados de UI
     const [showRanking, setShowRanking] = useState(false);
@@ -256,16 +257,27 @@ export const NetworkDashboardView = () => {
     return (
         <div className="min-h-screen bg-slate-50 pb-12 font-sans">
 
-            {/* TOP BAR / FILTERS */}
-            <div className="bg-white border-b border-slate-200 sticky top-0 md:top-0 z-20 px-4 md:px-8 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+            {/* TOP BAR / FILTERS - Refined Layout */}
+            <div className="mx-4 md:mx-8 mt-6 bg-white border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-md z-20">
                 <div className="flex items-center gap-4">
-                    <div className="bg-brand-dark p-2 rounded-lg text-white">
-                        {dashboardLevel === 'FEDERAL' ? <Globe size={24} /> : <MapPin size={24} />}
+                    <div className="bg-brand-primary/10 p-3 rounded-xl text-brand-primary">
+                        {dashboardLevel === 'FEDERAL' ? <Globe size={28} /> :
+                            dashboardLevel === 'STATE' ? <MapPin size={28} /> :
+                                <School size={28} />}
                     </div>
                     <div>
-                        <h1 className="text-lg md:text-xl font-bold text-slate-800 leading-none">
-                            {dashboardLevel === 'FEDERAL' ? 'Ministério da Educação' : dashboardLevel === 'STATE' ? 'Secretaria Estadual' : 'Secretaria Municipal'}
+                        <h1 className="text-2xl font-black text-slate-800 tracking-tight">
+                            {dashboardLevel === 'FEDERAL' ? 'Monitoramento Nacional (MEC)' :
+                                dashboardLevel === 'STATE' ? 'Secretaria Estadual de Educação' :
+                                    'Secretaria Municipal de Educação'}
                         </h1>
+                        <p className="text-slate-500 text-sm font-medium flex items-center gap-1">
+                            {dashboardLevel === 'FEDERAL' ? 'Consolidado Brasil' :
+                                dashboardLevel === 'STATE' ? 'Indicadores de Rede Estadual' :
+                                    'Gestão de Rede Local'}
+                            <span className="w-1 h-1 bg-slate-300 rounded-full mx-1" />
+                            IDG em Tempo Real
+                        </p>
                         <p className="text-[10px] md:text-xs text-slate-500 font-bold uppercase tracking-wider mt-1">
                             Centro de Comando • {selectedRegion ? `Filtrado: ${selectedRegion}` : 'Visão Geral'}
                         </p>
