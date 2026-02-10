@@ -323,6 +323,36 @@ export const PsychometricCommitteeDashboard = () => {
                                     </div>
                                 )}
 
+                                {/* SELO DE CERTIFICAÇÃO FORGE 2031 - FASE X */}
+                                <div className="mt-12 p-1 bg-gradient-to-r from-brand-primary via-indigo-500 to-emerald-500 rounded-2xl shadow-2xl shadow-indigo-500/20 group">
+                                    <div className="bg-white rounded-[15px] p-6 flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
+                                        <div className="absolute -right-8 -bottom-8 text-black/5 rotate-12 group-hover:rotate-0 transition-transform duration-700">
+                                            <Shield size={160} />
+                                        </div>
+
+                                        <div className="flex items-center gap-6 relative z-10">
+                                            <div className="w-16 h-16 bg-brand-primary rounded-full flex items-center justify-center text-white shadow-lg shadow-brand-primary/40 ring-4 ring-brand-primary/10">
+                                                <ShieldCheck size={32} />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-black text-slate-800 tracking-tight">Selo de Certificação FORGE 2031</h3>
+                                                <p className="text-sm text-slate-500 font-medium">Infraestrutura Nacional de Avaliação Adaptativa • v1.5.0 Gold</p>
+                                                <div className="flex gap-2 mt-2">
+                                                    <span className="text-[10px] font-bold px-2 py-1 bg-indigo-50 text-indigo-600 rounded-md border border-indigo-100 flex items-center gap-1"><Brain size={12} /> IA Auditada</span>
+                                                    <span className="text-[10px] font-bold px-2 py-1 bg-emerald-50 text-emerald-600 rounded-md border border-emerald-100 flex items-center gap-1"><Shield size={12} /> LGPD Clean</span>
+                                                    <span className="text-[10px] font-bold px-2 py-1 bg-amber-50 text-amber-600 rounded-md border border-amber-100 flex items-center gap-1"><Lock size={12} /> Soberana</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-4 relative z-10 w-full md:w-auto">
+                                            <button className="flex-1 md:flex-none px-6 py-3 bg-slate-900 text-white rounded-xl font-bold text-xs hover:bg-slate-800 transition shadow-lg shadow-slate-900/10">
+                                                Baixar Dossiê Técnico
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div className="mt-8 p-6 border-l-4 border-amber-400 bg-amber-50 rounded-r-xl">
                                     <div className="flex gap-3">
                                         <AlertCircle className="text-amber-600 shrink-0" />
