@@ -30,8 +30,6 @@ import { ProfessorDashboardView } from './modules/professor/ProfessorDashboardVi
 import { ParentsDashboardView } from './modules/parents/ParentsDashboardView';
 import { ArcadeView } from './modules/student-portal/ArcadeView';
 import { AvatarShopView } from './modules/student-portal/AvatarShopView';
-import { ArcadeView } from './modules/student-portal/ArcadeView';
-import { AvatarShopView } from './modules/student-portal/AvatarShopView';
 import { VocationalCompassView } from './modules/student-portal/VocationalCompassView';
 import { QuizCardsView } from './modules/student-portal/QuizCardsView';
 import { EducationalRPGView } from './modules/student-portal/EducationalRPGView';
@@ -52,6 +50,7 @@ import { AIQuestionGeneratorView } from './modules/builder/AIQuestionGeneratorVi
 import { ExamScheduler } from './modules/coordinator/ExamScheduler';
 import { CommandCenter } from './modules/coordinator/CommandCenter';
 import { ClassCouncilView } from './modules/coordinator/ClassCouncilView';
+import { OECDPortalView } from './modules/analytics/OECDPortalView';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ReportGeneratorView } from './modules/reports/ReportGeneratorView';
 import { LiveDashboard } from './modules/runner/professor/LiveDashboard';
@@ -225,7 +224,8 @@ export const appRoutes: RouteObject[] = [
             { path: 'professor/logistics', element: <ProfessorApp onBack={() => window.history.back()} /> },
 
             // Utils
-            { path: 'diag-ai', element: <AIDiagnosticView /> }
+            { path: 'diag-ai', element: <AIDiagnosticView /> },
+            { path: 'oecd-portal', element: <OECDPortalView onBack={() => window.history.back()} /> }
         ]
     },
     // Full screen / No layout apps

@@ -1,5 +1,6 @@
 
 import React, { useRef, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { TrendingUp, Users, ShieldAlert, Zap, School, MapPin, Globe, Cloud, FileText, RefreshCw, BarChart2, BookOpen, AlertCircle, ArrowUpRight, Search, Filter } from 'lucide-react';
 import { AppState, TenantType, UserRole } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
@@ -15,6 +16,7 @@ import { OECDPortalView } from './OECDPortalView';
 
 export const NetworkDashboardView = () => {
     const state = useAppStore();
+    const navigate = useNavigate();
     const analytics = new AnalyticsService();
 
     const { currentUser, tenants } = state;
@@ -63,9 +65,11 @@ export const NetworkDashboardView = () => {
         );
     }
 
+    /* 
     if (viewMode === 'OECD_PORTAL') {
         return <OECDPortalView onBack={() => setViewMode('DASHBOARD')} />;
-    }
+    } 
+    */
 
 
     const mapPoints = useMemo(() => {
@@ -296,7 +300,7 @@ export const NetworkDashboardView = () => {
 
                 <div className="flex w-full sm:w-auto gap-2 md:gap-3">
                     <button
-                        onClick={() => setViewMode('OECD_PORTAL')}
+                        onClick={() => navigate('/oecd-portal')}
                         className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition shadow-sm"
                     >
                         <Globe size={16} className="text-indigo-600" /> Portal OCDE

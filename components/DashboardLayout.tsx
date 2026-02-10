@@ -3,16 +3,17 @@ import { useLocation, useNavigate, Outlet, Navigate } from 'react-router-dom';
 import {
     LayoutDashboard, BookOpen, GraduationCap, Users, FileText,
     LogOut, Menu, ChevronRight, Tablet, PieChart, MessageCircle,
-    Printer, Compass,
+    Printer, Compass, Globe,
     PenTool, Target, UserCircle, Shield, Stethoscope, Map, Home, ChevronDown, Swords, Flame, Trophy, Cast, Calendar, Gamepad2, BarChart, Activity, CalendarCheck, Bot,
     Zap,
     Sword,
     Gamepad as Arcade
 } from 'lucide-react';
 import { useSafeAppStore } from '../store/useAppStore';
-import { UserRole, TenantType } from '../types';
+import { UserRole, TenantType, ExamModel } from '../types';
 import { usePermissions } from '../hooks/usePermissions';
 import { ProfileSwitcher } from './ProfileSwitcher';
+import { OECDPortalView } from '../modules/analytics/OECDPortalView';
 import { supabase } from '../services/supabaseClient';
 
 const NavItem = ({ icon: Icon, label, active, onClick }: any) => (
@@ -202,6 +203,7 @@ export const DashboardLayout = () => {
                             <NavItem icon={BarChart} label="Analytics" active={path === '/analytics'} onClick={() => navigate('/analytics')} />
                             <NavItem icon={MessageCircle} label="Comunicação" active={path === '/communication'} onClick={() => navigate('/communication')} />
                             <NavItem icon={Users} label="Gestão de Rede" active={path.includes('/admin/gestao')} onClick={() => navigate('/admin/gestao')} />
+                            <NavItem icon={Globe} label="Portal OCDE" active={path === '/oecd-portal'} onClick={() => navigate('/oecd-portal')} />
 
                             {canView('REPORTS') && (
                                 <NavItem icon={Printer} label="Relatórios & BI" active={path === '/adm-relatorios'} onClick={() => navigate('/adm-relatorios')} />
