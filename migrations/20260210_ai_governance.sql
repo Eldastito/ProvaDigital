@@ -11,7 +11,7 @@ ALTER TABLE items ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ;
 -- 2. Tabela de Logs de Governança de IA (Auditoria de Custo e Risco)
 CREATE TABLE IF NOT EXISTS ai_generation_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    item_id UUID REFERENCES items(id),
+    item_id TEXT REFERENCES items(id),
     prompt_text TEXT NOT NULL,
     response_raw JSONB,
     token_usage_prompt INTEGER,
