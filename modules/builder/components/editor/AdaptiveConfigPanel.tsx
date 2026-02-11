@@ -1,4 +1,3 @@
-```
 import React, { useState } from 'react';
 import { Settings, Info, Zap, Award, Database, Sliders } from 'lucide-react';
 import { DifficultyLevelConfig } from '../../../../types';
@@ -78,8 +77,7 @@ export const AdaptiveConfigPanel: React.FC<AdaptiveConfigPanelProps> = ({
             bankSize: preset.bankSize,
             questionsPerStudent: preset.questionsPerStudent
         });
-        
-        // Sincronizar distribuição automaticamente
+
         if (setLevelConfigs) {
             const newDistribution = calculateDistribution(preset.bankSize);
             setLevelConfigs(newDistribution);
@@ -89,16 +87,15 @@ export const AdaptiveConfigPanel: React.FC<AdaptiveConfigPanelProps> = ({
     const handleCustomChange = (field: 'bankSize' | 'questionsPerStudent', value: number) => {
         setSelectedPreset('custom');
         setShowCustom(true);
-        
+
         const newBankSize = field === 'bankSize' ? value : bankSize;
         const newQuestionsPerStudent = field === 'questionsPerStudent' ? value : questionsPerStudent;
-        
+
         onConfigChange({
             bankSize: newBankSize,
             questionsPerStudent: newQuestionsPerStudent
         });
-        
-        // Recalcular distribuição quando banco muda
+
         if (field === 'bankSize' && setLevelConfigs) {
             const newDistribution = calculateDistribution(value);
             setLevelConfigs(newDistribution);
@@ -127,11 +124,10 @@ export const AdaptiveConfigPanel: React.FC<AdaptiveConfigPanelProps> = ({
                             key={preset.id}
                             type="button"
                             onClick={() => handlePresetSelect(preset)}
-                            className={`p - 3 border - 2 rounded - lg text - left transition - all ${
-    isSelected
-        ? 'border-brand-primary bg-brand-primary/5'
-        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-} `}
+                            className={`p-3 border-2 rounded-lg text-left transition-all ${isSelected
+                                ? 'border-brand-primary bg-brand-primary/5'
+                                : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                                }`}
                         >
                             <div className="flex items-start gap-2 mb-2">
                                 {preset.icon}
