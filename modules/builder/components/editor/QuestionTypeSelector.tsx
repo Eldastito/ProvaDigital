@@ -1,7 +1,7 @@
 import React from 'react';
 import { QuestionType, DifficultyLevel } from '../../../../types';
 import { translateQuestionType, translateDifficultyLevel } from '../../../../utils/translations';
-import { BRAZILIAN_SUBJECTS } from '../../constants';
+import { SubjectSelector } from './SubjectSelector';
 
 interface QuestionTypeSelectorProps {
     form: {
@@ -16,19 +16,11 @@ interface QuestionTypeSelectorProps {
 export const QuestionTypeSelector: React.FC<QuestionTypeSelectorProps> = ({ form, setForm, handleTypeChange }) => {
     return (
         <div className="grid grid-cols-3 gap-6">
-            <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Disciplina</label>
-                <select
-                    className="w-full border rounded-lg p-2 text-sm"
-                    value={form.subject}
-                    onChange={e => setForm({ ...form, subject: e.target.value })}
-                >
-                    <option value="">Selecione...</option>
-                    {BRAZILIAN_SUBJECTS.map(subj => (
-                        <option key={subj} value={subj}>{subj}</option>
-                    ))}
-                </select>
-            </div>
+            <SubjectSelector
+                value={form.subject}
+                onChange={(subject) => setForm({ ...form, subject })}
+                label="Disciplina"
+            />
             <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Tipo</label>
                 <select className="w-full border rounded-lg p-2 text-sm" value={form.type} onChange={e => handleTypeChange(e.target.value as QuestionType)}>

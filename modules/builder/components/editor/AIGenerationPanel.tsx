@@ -2,6 +2,7 @@ import React, { RefObject, useState } from 'react';
 import { Brain, Upload, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { DifficultyLevel, QualityStandard, DifficultyLevelConfig } from '../../../../types';
 import BNCCCodeSuggester from '../BNCCCodeSuggester';
+import { SubjectSelector } from './SubjectSelector';
 
 interface AIGenerationPanelProps {
     form: {
@@ -119,15 +120,11 @@ export const AIGenerationPanel: React.FC<AIGenerationPanelProps> = ({
                 /* MODO SIMPLES (Original) */
                 <>
                     <div className="grid grid-cols-3 gap-6">
-                        <div className="col-span-1">
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Disciplina Alvo</label>
-                            <input
-                                className="w-full border rounded-lg p-2 text-sm"
-                                value={form.subject}
-                                onChange={e => setForm({ ...form, subject: e.target.value })}
-                                placeholder="Ex: Geografia"
-                            />
-                        </div>
+                        <SubjectSelector
+                            value={form.subject}
+                            onChange={(subject) => setForm({ ...form, subject })}
+                            label="Disciplina Alvo"
+                        />
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Nível Desejado</label>
                             <select
@@ -158,24 +155,11 @@ export const AIGenerationPanel: React.FC<AIGenerationPanelProps> = ({
                 <div className="space-y-6">
                     {/* Disciplina e Tema */}
                     <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">📚 Disciplina</label>
-                            <select
-                                className="w-full border rounded-lg p-2 text-sm"
-                                value={form.subject}
-                                onChange={e => setForm({ ...form, subject: e.target.value })}
-                            >
-                                <option value="">Selecione...</option>
-                                <option value="Matemática">Matemática</option>
-                                <option value="Português">Português</option>
-                                <option value="História">História</option>
-                                <option value="Geografia">Geografia</option>
-                                <option value="Ciências">Ciências</option>
-                                <option value="Física">Física</option>
-                                <option value="Química">Química</option>
-                                <option value="Biologia">Biologia</option>
-                            </select>
-                        </div>
+                        <SubjectSelector
+                            value={form.subject}
+                            onChange={(subject) => setForm({ ...form, subject })}
+                            label="📚 Disciplina"
+                        />
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">📖 Tema</label>
                             <input
