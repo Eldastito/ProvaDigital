@@ -2403,6 +2403,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
                     if (g.title.toLowerCase().includes('silabajoy')) {
                         g.thumbnailUrl = '/assets/images/silabajoy.jpg';
                     }
+                    if (g.title.toLowerCase().includes('alfabichos') || g.title.toLowerCase().includes('alfabetização')) {
+                        g.thumbnailUrl = '/AlfaBichos Jogos de Alfabetiz.png';
+                    }
                 });
 
                 set(state => {
