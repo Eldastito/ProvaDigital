@@ -78,8 +78,8 @@ export const AdaptiveConfigPanel: React.FC<AdaptiveConfigPanelProps> = ({
             bankSize: preset.bankSize,
             questionsPerStudent: preset.questionsPerStudent
         });
-
-        // 🔥 SINCRONIZAR DISTRIBUIÇÃO AUTOMATICAMENTE
+        
+        // Sincronizar distribuição automaticamente
         if (setLevelConfigs) {
             const newDistribution = calculateDistribution(preset.bankSize);
             setLevelConfigs(newDistribution);
@@ -89,16 +89,16 @@ export const AdaptiveConfigPanel: React.FC<AdaptiveConfigPanelProps> = ({
     const handleCustomChange = (field: 'bankSize' | 'questionsPerStudent', value: number) => {
         setSelectedPreset('custom');
         setShowCustom(true);
-
+        
         const newBankSize = field === 'bankSize' ? value : bankSize;
         const newQuestionsPerStudent = field === 'questionsPerStudent' ? value : questionsPerStudent;
-
+        
         onConfigChange({
             bankSize: newBankSize,
             questionsPerStudent: newQuestionsPerStudent
         });
-
-        // 🔥 RECALCULAR DISTRIBUIÇÃO QUANDO BANCO MUDA
+        
+        // Recalcular distribuição quando banco muda
         if (field === 'bankSize' && setLevelConfigs) {
             const newDistribution = calculateDistribution(value);
             setLevelConfigs(newDistribution);
