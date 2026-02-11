@@ -34,6 +34,11 @@ interface AIGenerationPanelProps {
     setLevelConfigs: (configs: DifficultyLevelConfig[]) => void;
     generationProgress: number;
     onClearForm?: () => void;
+    // Adaptive configuration props
+    adaptiveBankSize: number;
+    setAdaptiveBankSize: (size: number) => void;
+    adaptiveQuestionsPerStudent: number;
+    setAdaptiveQuestionsPerStudent: (qty: number) => void;
 }
 
 export const AIGenerationPanel: React.FC<AIGenerationPanelProps> = ({
@@ -60,7 +65,11 @@ export const AIGenerationPanel: React.FC<AIGenerationPanelProps> = ({
     setStandards,
     levelConfigs,
     setLevelConfigs,
-    generationProgress
+    generationProgress,
+    adaptiveBankSize,
+    setAdaptiveBankSize,
+    adaptiveQuestionsPerStudent,
+    setAdaptiveQuestionsPerStudent
 }) => {
     // Remove local state declarations since they're now coming from props
     const totalQuestions = levelConfigs
@@ -211,6 +220,18 @@ export const AIGenerationPanel: React.FC<AIGenerationPanelProps> = ({
                         )}
                     </div>
 
+                    {/* Adaptive Configuration Panel */}
+                    {examType === 'ADAPTIVE' && (
+                        <AdaptiveConfigPanel
+                            bankSize={adaptiveBankSize}
+                            questionsPerStudent={adaptiveQuestionsPerStudent}
+                            onConfigChange={(config) => {
+                                setAdaptiveBankSize(config.bankSize);
+                                setAdaptiveQuestionsPerStudent(config.questionsPerStudent);
+                            }}
+                        />
+                    )}
+
                     {/* Distribuição de Dificuldade */}
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -244,7 +265,7 @@ export const AIGenerationPanel: React.FC<AIGenerationPanelProps> = ({
                         </div>
                         <div className="mt-2 text-sm font-medium text-blue-600 flex items-center gap-2">
                             <CheckCircle2 size={16} />
-                            Total: {totalQuestions} questões | {examType === 'ADAPTIVE' ? `Prova: ${Math.floor(totalQuestions / 3)} questões` : 'Prova Linear'}
+                            Total: {totalQuestions} questões | {examType === 'ADAPTIVE' ? `Banco para ${adaptiveQuestionsPerStudent} questões por aluno` : 'Prova Linear'}
                         </div>
                     </div>
 

@@ -43,6 +43,10 @@ export const useItemEditor = () => {
     const [showValidationModal, setShowValidationModal] = useState(false);
     const [coverText, setCoverText] = useState('');
 
+    // Adaptive configuration states (Gold Standard defaults)
+    const [adaptiveBankSize, setAdaptiveBankSize] = useState(() => getPersistedValue('adaptiveBankSize', 60));
+    const [adaptiveQuestionsPerStudent, setAdaptiveQuestionsPerStudent] = useState(() => getPersistedValue('adaptiveQuestionsPerStudent', 25));
+
     // Persistir estados automaticamente
     useFormPersistence('mode', mode);
     useFormPersistence('aiContext', aiContext);
@@ -53,6 +57,8 @@ export const useItemEditor = () => {
     useFormPersistence('examType', examType);
     useFormPersistence('standards', standards);
     useFormPersistence('levelConfigs', levelConfigs);
+    useFormPersistence('adaptiveBankSize', adaptiveBankSize);
+    useFormPersistence('adaptiveQuestionsPerStudent', adaptiveQuestionsPerStudent);
 
     // Flags de carregamento
     const [isImproving, setIsImproving] = useState(false);
@@ -655,6 +661,9 @@ export const useItemEditor = () => {
         levelConfigs, setLevelConfigs,
         generationProgress,
         validationResults,
+        // Adaptive configuration states
+        adaptiveBankSize, setAdaptiveBankSize,
+        adaptiveQuestionsPerStudent, setAdaptiveQuestionsPerStudent,
         // Modal states
         showValidationModal, setShowValidationModal,
         coverText,

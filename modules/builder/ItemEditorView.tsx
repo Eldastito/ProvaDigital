@@ -50,7 +50,9 @@ export const ItemEditorView = () => {
         validationResults,
         coverText,
         handleApproveValidation,
-        handleReviewQuestions,
+        // Adaptive configuration
+        adaptiveBankSize, setAdaptiveBankSize,
+        adaptiveQuestionsPerStudent, setAdaptiveQuestionsPerStudent,
         handleClearForm
     } = useItemEditor();
 
@@ -231,6 +233,10 @@ export const ItemEditorView = () => {
                                 levelConfigs={levelConfigs}
                                 setLevelConfigs={setLevelConfigs}
                                 generationProgress={generationProgress}
+                                adaptiveBankSize={adaptiveBankSize}
+                                setAdaptiveBankSize={setAdaptiveBankSize}
+                                adaptiveQuestionsPerStudent={adaptiveQuestionsPerStudent}
+                                setAdaptiveQuestionsPerStudent={setAdaptiveQuestionsPerStudent}
                                 onClearForm={handleClearForm}
                             />
                         )}
