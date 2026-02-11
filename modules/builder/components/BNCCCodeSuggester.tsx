@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { suggestBNCCCodes } from '../../../services/geminiService';
 import { BNCCCodeSuggestion } from '../../../types';
+import { useSafeAppStore } from '../../../store/useAppStore';
 
 interface BNCCCodeSuggesterProps {
     subject: string;
@@ -20,6 +21,18 @@ export default function BNCCCodeSuggester({
     const [manualCode, setManualCode] = useState('');
     const [showManualInput, setShowManualInput] = useState(false);
 
+    // Buscar contexto do usuário logado
+    const { currentUser, classes } = useSafeAppStore();
+
+    // Detectar nível de ensino baseado nas turmas disponíveis
+    const detectGradeLevel = (): string | undefined => {
+        if (!classes || classes.length === 0) return undefined;
+
+        // Pegar o series da primeira turma disponível
+        const firstClass = classes[0];
+        return firstClass.series; // Ex: "6º Ano", "1º Ano EM"
+    };
+
     // Buscar sugestões quando subject ou topic mudarem
     useEffect(() => {
         if (subject && topic && topic.length > 3) {
@@ -30,7 +43,8 @@ export default function BNCCCodeSuggester({
     const fetchSuggestions = async () => {
         setLoading(true);
         try {
-            const results = await suggestBNCCCodes(subject, topic);
+            const gradeLevel = detectGradeLevel();
+            const results = await suggestBNCCCodes(subject, topic, gradeLevel);
             setSuggestions(results);
         } catch (error) {
             console.error('Erro ao buscar sugestões BNCC:', error);
