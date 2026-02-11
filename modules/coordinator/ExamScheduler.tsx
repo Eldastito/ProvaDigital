@@ -10,6 +10,9 @@ import { Calendar, Plus, Edit2, Trash2, X, Save, AlertTriangle, Check, Clock, Us
 import { CalendarView } from '../../components/Calendar/CalendarView';
 import { schedulingService, ScheduledExam, Conflict } from '../../services/schedulingService';
 import { useSafeAppStore } from '../../store/useAppStore';
+import { AdaptiveModeSelector } from './components/AdaptiveModeSelector';
+import { AdaptiveMode, detectDeviceCapability } from '../../services/offlineAdaptiveEngine';
+import type { Exam } from '../../types';
 
 interface ExamSchedulerProps {
     onClose?: () => void;
@@ -32,9 +35,11 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
     const [scheduledTime, setScheduledTime] = useState('');
     const [duration, setDuration] = useState(60);
     const [mode, setMode] = useState<'ONLINE' | 'OFFLINE' | 'HYBRID'>('ONLINE');
+    const [adaptiveMode, setAdaptiveMode] = useState<AdaptiveMode>('LOCAL');
     const [proctoring, setProctoring] = useState(true);
     const [shuffle, setShuffle] = useState(true);
     const [allowReview, setAllowReview] = useState(false);
+    const [deviceCapability] = useState(detectDeviceCapability());
 
     // Carregar agendamentos
     useEffect(() => {
@@ -143,7 +148,8 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                     proctoring,
                     shuffle,
                     timeLimit: duration,
-                    allowReview
+                    allowReview,
+                    adaptiveMode: selectedExam?.model === 'ADAPTADO' ? adaptiveMode : undefined
                 },
                 status: 'SCHEDULED' as const,
                 createdBy: 'current-user' // TODO: pegar do auth
@@ -178,6 +184,7 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
         setProctoring(true);
         setShuffle(true);
         setAllowReview(false);
+        setAdaptiveMode('LOCAL');
         setConflicts([]);
     };
 
@@ -530,8 +537,8 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                                         type="button"
                                         onClick={() => setMode('ONLINE')}
                                         className={`p-4 rounded-xl border-2 transition flex flex-col items-center gap-2 ${mode === 'ONLINE'
-                                                ? 'border-blue-600 bg-blue-50 text-blue-900'
-                                                : 'border-slate-200 hover:border-slate-300'
+                                            ? 'border-blue-600 bg-blue-50 text-blue-900'
+                                            : 'border-slate-200 hover:border-slate-300'
                                             }`}
                                     >
                                         <Wifi size={24} />
@@ -541,8 +548,8 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                                         type="button"
                                         onClick={() => setMode('OFFLINE')}
                                         className={`p-4 rounded-xl border-2 transition flex flex-col items-center gap-2 ${mode === 'OFFLINE'
-                                                ? 'border-amber-600 bg-amber-50 text-amber-900'
-                                                : 'border-slate-200 hover:border-slate-300'
+                                            ? 'border-amber-600 bg-amber-50 text-amber-900'
+                                            : 'border-slate-200 hover:border-slate-300'
                                             }`}
                                     >
                                         <WifiOff size={24} />
@@ -552,8 +559,8 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                                         type="button"
                                         onClick={() => setMode('HYBRID')}
                                         className={`p-4 rounded-xl border-2 transition flex flex-col items-center gap-2 ${mode === 'HYBRID'
-                                                ? 'border-violet-600 bg-violet-50 text-violet-900'
-                                                : 'border-slate-200 hover:border-slate-300'
+                                            ? 'border-violet-600 bg-violet-50 text-violet-900'
+                                            : 'border-slate-200 hover:border-slate-300'
                                             }`}
                                     >
                                         <Wifi size={24} className="opacity-50" />
@@ -561,6 +568,17 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                                     </button>
                                 </div>
                             </div>
+
+                            {/* Modo Adaptativo (se prova for adaptativa) */}
+                            {selectedExamId && store.exams?.find(e => e.id === selectedExamId)?.model === 'ADAPTADO' && (
+                                <div className="border-t border-slate-200 pt-6">
+                                    <AdaptiveModeSelector
+                                        selectedMode={adaptiveMode}
+                                        onModeChange={setAdaptiveMode}
+                                        deviceCapability={deviceCapability}
+                                    />
+                                </div>
+                            )}
 
                             {/* Configurações */}
                             <div className="border-t border-slate-200 pt-6">
@@ -614,8 +632,8 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                                 onClick={handleSave}
                                 disabled={conflicts.length > 0}
                                 className={`px-6 py-3 rounded-xl transition font-semibold flex items-center gap-2 ${conflicts.length > 0
-                                        ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                                        : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'
+                                    ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                                    : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'
                                     }`}
                             >
                                 <Save size={20} />
