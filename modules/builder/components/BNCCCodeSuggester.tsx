@@ -142,10 +142,49 @@ export default function BNCCCodeSuggester({
                     ))}
                 </div>
             ) : topic.length > 3 ? (
-                <div className="text-sm text-slate-500 italic">
-                    Digite um tema para ver sugestões de códigos BNCC
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                    <div className="text-sm text-slate-600 mb-2">
+                        ℹ️ Nenhuma sugestão encontrada para "{topic}"
+                    </div>
+                    <div className="text-xs text-slate-500">
+                        Tente:
+                        <ul className="list-disc list-inside mt-1 space-y-1">
+                            <li>Usar termos mais específicos</li>
+                            <li>Verificar a disciplina selecionada</li>
+                            <li>Adicionar manualmente usando o botão acima</li>
+                        </ul>
+                    </div>
+                    <a
+                        href="http://basenacionalcomum.mec.gov.br/implementacao/praticas/caderno-de-praticas/aprofundamentos/195-codigos-de-habilidades-bncc"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 mt-3 text-xs text-blue-600 hover:text-blue-700 underline"
+                    >
+                        🔍 Buscar códigos BNCC no site oficial
+                    </a>
                 </div>
-            ) : null}
+            ) : (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="text-sm text-slate-700 font-medium mb-1">
+                        💡 Como obter sugestões de códigos BNCC:
+                    </div>
+                    <div className="text-xs text-slate-600 space-y-1">
+                        <p>1. Preencha a <strong>Disciplina</strong> acima</p>
+                        <p>2. Digite um <strong>Tema</strong> (mínimo 4 caracteres)</p>
+                        <p>3. A IA sugerirá códigos BNCC relevantes automaticamente</p>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-blue-300">
+                        <a
+                            href="http://basenacionalcomum.mec.gov.br/implementacao/praticas/caderno-de-praticas/aprofundamentos/195-codigos-de-habilidades-bncc"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-blue-700 hover:text-blue-800 underline"
+                        >
+                            🔍 Ou busque manualmente no site oficial da BNCC
+                        </a>
+                    </div>
+                </div>
+            )}
 
             {/* Códigos selecionados */}
             {selectedCodes.length > 0 && (
