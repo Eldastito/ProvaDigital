@@ -1465,67 +1465,8 @@ export async function predictStudentOutcome(studentHistory: any): Promise<{
 // NEW: Multi-Level AI Generation & Validation
 // ============================================================================
 
-/**
- * Sugere códigos BNCC baseado em disciplina e tema
- */
-export async function suggestBNCCCodes(
-    subject: string,
-    topic: string,
-    gradeLevel?: string // Ex: "6º Ano EF", "1º Ano EM"
-): Promise<{ code: string; description: string; relevanceScore: number }[]> {
-    const gradeLevelContext = gradeLevel
-        ? `\nNível de Ensino: ${gradeLevel}\nIMPORTANTE: Sugira APENAS códigos BNCC apropriados para ${gradeLevel}.`
-        : '';
-
-    const prompt = `
-        Você é um Especialista em BNCC (Base Nacional Comum Curricular).
-        
-        TAREFA: Sugira os 3-5 códigos BNCC mais relevantes para o tema abaixo.
-        
-        Disciplina: ${subject}
-        Tema: ${topic}${gradeLevelContext}
-        
-        REQUISITOS:
-        1. Identifique códigos BNCC REAIS e VÁLIDOS (ex: EF09MA09, EF67LP01, EM13MAT101)
-        2. Forneça a descrição COMPLETA da habilidade
-        3. Atribua um score de relevância (0-100) baseado no alinhamento com o tema
-        ${gradeLevel ? `4. APENAS códigos apropriados para ${gradeLevel}` : ''}
-        
-        FORMATO DOS CÓDIGOS BNCC:
-        - Ensino Fundamental Anos Iniciais (1º-5º): EF01 a EF05 (ex: EF05MA08)
-        - Ensino Fundamental Anos Finais (6º-9º): EF06 a EF09 (ex: EF09MA09)
-        - Ensino Médio (1º-3º): EM13 (ex: EM13MAT101)
-        
-        Retorne 3-5 sugestões ordenadas por relevância (maior primeiro).
-    `;
-
-    const schema = {
-        type: Type.OBJECT,
-        properties: {
-            suggestions: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        code: { type: Type.STRING, description: "Código BNCC (ex: EF09MA09)" },
-                        description: { type: Type.STRING, description: "Descrição completa da habilidade" },
-                        relevanceScore: { type: Type.NUMBER, description: "Score de relevância (0-100)" }
-                    },
-                    required: ["code", "description", "relevanceScore"]
-                }
-            }
-        },
-        required: ["suggestions"]
-    };
-
-    try {
-        const result = await callGeminiAPI<{ suggestions: any[] }>(prompt, schema);
-        return result.suggestions || [];
-    } catch (error) {
-        console.error("AI Error (BNCC Suggestion):", error);
-        return [];
-    }
-}
+// suggestBNCCCodes removed to avoid 404 errors with gemini-1.5-pro in v1beta
+// Manual search (BNCCSearchModal) is the preferred method now.
 
 /**
  * Validação Fase 1: Qualidade Técnica (Rápida)
