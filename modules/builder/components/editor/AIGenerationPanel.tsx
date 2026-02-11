@@ -3,6 +3,7 @@ import { Brain, Upload, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { DifficultyLevel, QualityStandard, DifficultyLevelConfig } from '../../../../types';
 import BNCCCodeSuggester from '../BNCCCodeSuggester';
 import { SubjectSelector } from './SubjectSelector';
+import { AdaptiveConfigPanel } from './AdaptiveConfigPanel';
 
 interface AIGenerationPanelProps {
     form: {
