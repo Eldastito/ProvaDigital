@@ -10,7 +10,7 @@ interface AdaptiveConfigPanelProps {
     setLevelConfigs?: (configs: DifficultyLevelConfig[]) => void;
 }
 
-type PresetType = 'quick' | 'standard' | 'gold' | 'complete' | 'custom';
+type PresetType = 'quick' | 'standard' | 'cat' | 'saeb' | 'complete' | 'custom';
 
 interface Preset {
     id: PresetType;
@@ -26,24 +26,33 @@ const PRESETS: Preset[] = [
     {
         id: 'quick',
         name: 'Diagnóstica Rápida',
-        icon: <Zap size={20} className="text-yellow-600" />,
+        icon: <Zap size={20} className="text-blue-500" />,
         bankSize: 20,
         questionsPerStudent: 10,
         description: 'Avaliação inicial rápida',
-        recommended: 'Diagnóstico inicial, sondagem'
+        recommended: 'Sondagem, diagnóstico inicial'
     },
     {
         id: 'standard',
         name: 'Padrão',
-        icon: <Settings size={20} className="text-blue-600" />,
+        icon: <Settings size={20} className="text-gray-500" />,
         bankSize: 30,
         questionsPerStudent: 15,
-        description: 'Provas bimestrais regulares',
-        recommended: 'Avaliações bimestrais, provas mensais'
+        description: 'Provas bimestrais',
+        recommended: 'Avaliações mensais, bimestrais'
     },
     {
-        id: 'gold',
-        name: 'Padrão Ouro',
+        id: 'cat',
+        name: 'CAT Clássico',
+        icon: <Zap size={20} className="text-purple-500" />,
+        bankSize: 60,
+        questionsPerStudent: 10,
+        description: 'Avaliação adaptativa rápida',
+        recommended: 'Diagnóstico preciso, nivelamento'
+    },
+    {
+        id: 'saeb',
+        name: 'Padrão SAEB',
         icon: <Award size={20} className="text-amber-500" />,
         bankSize: 60,
         questionsPerStudent: 25,
@@ -53,11 +62,11 @@ const PRESETS: Preset[] = [
     {
         id: 'complete',
         name: 'Banco Completo',
-        icon: <Database size={20} className="text-purple-600" />,
+        icon: <Database size={20} className="text-green-500" />,
         bankSize: 100,
         questionsPerStudent: 35,
         description: 'Avaliação anual robusta',
-        recommended: 'Avaliações anuais, banco institucional'
+        recommended: 'Avaliação anual, banco institucional'
     }
 ];
 
@@ -67,7 +76,7 @@ export const AdaptiveConfigPanel: React.FC<AdaptiveConfigPanelProps> = ({
     onConfigChange,
     setLevelConfigs
 }) => {
-    const [selectedPreset, setSelectedPreset] = useState<PresetType>('gold');
+    const [selectedPreset, setSelectedPreset] = useState<PresetType>('saeb');
     const [showCustom, setShowCustom] = useState(false);
 
     const handlePresetSelect = (preset: Preset) => {
@@ -124,19 +133,27 @@ export const AdaptiveConfigPanel: React.FC<AdaptiveConfigPanelProps> = ({
                             key={preset.id}
                             type="button"
                             onClick={() => handlePresetSelect(preset)}
-                            className={`p-3 border-2 rounded-lg text-left transition-all ${isSelected
+                            className={`p-3 border-2 rounded-lg text-left transition-all relative ${isSelected
                                 ? 'border-brand-primary bg-brand-primary/5'
                                 : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                                 }`}
                         >
+                            {/* Badge para destacar */}
+                            {(preset.id === 'cat' || preset.id === 'saeb') && (
+                                <div className="absolute -top-2 -right-2">
+                                    <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${preset.id === 'cat'
+                                            ? 'bg-purple-100 text-purple-700'
+                                            : 'bg-amber-100 text-amber-700'
+                                        }`}>
+                                        {preset.id === 'cat' ? '⚡ RÁPIDO' : '⭐ ROBUSTO'}
+                                    </div>
+                                </div>
+                            )}
                             <div className="flex items-start gap-2 mb-2">
                                 {preset.icon}
                                 <div className="flex-1">
                                     <div className="font-bold text-sm text-slate-900">
                                         {preset.name}
-                                        {preset.id === 'gold' && (
-                                            <span className="ml-1 text-amber-500">⭐</span>
-                                        )}
                                     </div>
                                     <div className="text-xs text-slate-600 mt-0.5">
                                         {preset.description}
