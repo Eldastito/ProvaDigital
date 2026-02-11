@@ -10,6 +10,7 @@ import { AnswerKeyEditor } from './components/editor/AnswerKeyEditor';
 import { AIGenerationPanel } from './components/editor/AIGenerationPanel';
 import { TRIParamsEditor } from './components/editor/TRIParamsEditor';
 import { BatchReviewPanel } from '../runner/features/BatchReviewPanel';
+import { ValidationResultsModal } from './components/ValidationResultsModal';
 
 export const ItemEditorView = () => {
     const {
@@ -35,7 +36,21 @@ export const ItemEditorView = () => {
         saveManual,
         state,
         showBatchHistory, setShowBatchHistory,
-        activeBatchId, setActiveBatchId
+        activeBatchId, setActiveBatchId,
+        // Multi-level states
+        useMultiLevel, setUseMultiLevel,
+        topic, setTopic,
+        bnccCodes, setBnccCodes,
+        examType, setExamType,
+        standards, setStandards,
+        levelConfigs, setLevelConfigs,
+        generationProgress,
+        // Modal states
+        showValidationModal, setShowValidationModal,
+        validationResults,
+        coverText,
+        handleApproveValidation,
+        handleReviewQuestions
     } = useItemEditor();
 
     return (
@@ -202,6 +217,19 @@ export const ItemEditorView = () => {
                                 handleFileUpload={handleFileUpload}
                                 handleGenerate={handleGenerate}
                                 aiLoading={aiLoading}
+                                useMultiLevel={useMultiLevel}
+                                setUseMultiLevel={setUseMultiLevel}
+                                topic={topic}
+                                setTopic={setTopic}
+                                bnccCodes={bnccCodes}
+                                setBnccCodes={setBnccCodes}
+                                examType={examType}
+                                setExamType={setExamType}
+                                standards={standards}
+                                setStandards={setStandards}
+                                levelConfigs={levelConfigs}
+                                setLevelConfigs={setLevelConfigs}
+                                generationProgress={generationProgress}
                             />
                         )}
                     </div>
@@ -227,6 +255,16 @@ export const ItemEditorView = () => {
                     </div>
                 )}
             </div>
+
+            {/* Validation Results Modal */}
+            <ValidationResultsModal
+                isOpen={showValidationModal}
+                onClose={() => setShowValidationModal(false)}
+                validationResults={validationResults}
+                coverText={coverText}
+                onApprove={handleApproveValidation}
+                onReview={handleReviewQuestions}
+            />
         </div>
     );
 };

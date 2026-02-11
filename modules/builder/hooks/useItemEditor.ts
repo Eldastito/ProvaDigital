@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import * as pdfjsLib from 'pdfjs-dist';
 import mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
-import { AppState, Item, DifficultyLevel, QuestionType, ItemOrigin, ItemLifecycleStatus, ItemGenerationBatch } from '../../../types';
-import { generateQuestionsFromText, improveItemStatement, generateDistractors, suggestBNCC, generateJustification, variateItem, adaptItemForAccessibility, extractItemFromImage, auditPedagogicalItem } from '../../../services/geminiService';
+import { AppState, Item, DifficultyLevel, QuestionType, ItemOrigin, ItemLifecycleStatus, ItemGenerationBatch, QualityStandard, DifficultyLevelConfig, DualValidationResult } from '../../../types';
+import { generateQuestionsFromText, improveItemStatement, generateDistractors, suggestBNCC, generateJustification, variateItem, adaptItemForAccessibility, extractItemFromImage, auditPedagogicalItem, validateQuestionQuality, validateQuestionStandards, generateExamCover } from '../../../services/geminiService';
 import { uuidv4 } from '../../../utils/helpers';
 import { useSafeAppStore } from '../../../store/useAppStore';
 
@@ -23,6 +23,24 @@ export const useItemEditor = () => {
     const [aiQuantity, setAiQuantity] = useState(3);
     const [aiLoading, setAiLoading] = useState(false);
     const [showBatchHistory, setShowBatchHistory] = useState(false);
+
+    // Multi-level generation states
+    const [useMultiLevel, setUseMultiLevel] = useState(false);
+    const [topic, setTopic] = useState('');
+    const [bnccCodes, setBnccCodes] = useState<string[]>([]);
+    const [examType, setExamType] = useState<'LINEAR' | 'ADAPTIVE'>('ADAPTIVE');
+    const [standards, setStandards] = useState<QualityStandard[]>(['INEP', 'BNCC']);
+    const [levelConfigs, setLevelConfigs] = useState<DifficultyLevelConfig[]>([
+        { level: 'MUITO_FACIL', quantity: 5, enabled: true, triRange: [-2.0, -1.0] },
+        { level: 'FACIL', quantity: 6, enabled: true, triRange: [-1.0, -0.5] },
+        { level: 'MEDIO', quantity: 8, enabled: true, triRange: [-0.5, 0.5] },
+        { level: 'DIFICIL', quantity: 6, enabled: true, triRange: [0.5, 1.0] },
+        { level: 'MUITO_DIFICIL', quantity: 5, enabled: true, triRange: [1.0, 2.0] }
+    ]);
+    const [generationProgress, setGenerationProgress] = useState(0);
+    const [validationResults, setValidationResults] = useState<DualValidationResult | null>(null);
+    const [showValidationModal, setShowValidationModal] = useState(false);
+    const [coverText, setCoverText] = useState('');
 
     // Flags de carregamento
     const [isImproving, setIsImproving] = useState(false);
@@ -247,53 +265,167 @@ export const useItemEditor = () => {
         }
 
         setAiLoading(true);
+        setGenerationProgress(0);
+
         try {
             const batchId = uuidv4();
-            const questions = await generateQuestionsFromText(
-                aiContext, aiQuantity, QuestionType.MULTIPLE_CHOICE, form.difficulty, form.subject || 'Geral'
-            );
+            let allItems: Item[] = [];
+            let coverText = '';
 
-            if (questions) {
-                const newItems: Item[] = questions.map(g => ({
-                    id: uuidv4(),
-                    tenantId: state.currentUser!.tenantId,
-                    ownerId: state.currentUser!.id,
-                    knowledgeArea: 'Geral',
+            if (useMultiLevel) {
+                // ============ MODO MULTI-NÍVEL ============
+                const enabledLevels = levelConfigs.filter(c => c.enabled);
+                const totalQuestions = enabledLevels.reduce((sum, c) => sum + c.quantity, 0);
+
+                if (totalQuestions === 0) {
+                    return alert('Configure pelo menos um nível de dificuldade.');
+                }
+
+                if (standards.length === 0) {
+                    return alert('Selecione pelo menos um padrão de qualidade.');
+                }
+
+                // Fase 1: Gerar questões por nível
+                for (let i = 0; i < enabledLevels.length; i++) {
+                    const level = enabledLevels[i];
+                    const questions = await generateQuestionsFromText(
+                        aiContext,
+                        level.quantity,
+                        QuestionType.MULTIPLE_CHOICE,
+                        level.level as any,
+                        form.subject || 'Geral'
+                    );
+
+                    if (questions) {
+                        const levelItems: Item[] = questions.map(g => ({
+                            id: uuidv4(),
+                            tenantId: state.currentUser!.tenantId,
+                            ownerId: state.currentUser!.id,
+                            knowledgeArea: 'Geral',
+                            subject: form.subject || 'Geral',
+                            type: QuestionType.MULTIPLE_CHOICE,
+                            statement: g.statement,
+                            alternatives: g.alternatives.map(a => ({ id: uuidv4(), ...a })),
+                            correctAnswerJustification: g.justification,
+                            difficulty: g.difficulty as DifficultyLevel,
+                            score: 1.0,
+                            origin: ItemOrigin.IA,
+                            tags: ['IA', 'Multi-Nível', level.level, ...bnccCodes],
+                            bnccCode: g.bnccCode || bnccCodes[0],
+                            usageCount: 0,
+                            generationBatchId: batchId,
+                            aiModelId: g.aiModel,
+                            aiPromptVersion: g.promptVersion,
+                            lifecycleStatus: ItemLifecycleStatus.DRAFT,
+                            createdAt: new Date().toISOString(),
+                            triParams: g.triParams as any
+                        }));
+
+                        allItems.push(...levelItems);
+                    }
+
+                    setGenerationProgress(((i + 1) / enabledLevels.length) * 50);
+                }
+
+                // Fase 2: Validação de Qualidade (rápida)
+                const qualityResult = await validateQuestionQuality(allItems);
+                setGenerationProgress(60);
+
+                // Fase 3: Validação de Padrões (detalhada)
+                const standardsResult = await validateQuestionStandards(allItems, standards);
+                setGenerationProgress(80);
+
+                // Fase 4: Gerar documentação da capa
+                const distribution = {
+                    veryEasy: levelConfigs[0].enabled ? levelConfigs[0].quantity : 0,
+                    easy: levelConfigs[1].enabled ? levelConfigs[1].quantity : 0,
+                    medium: levelConfigs[2].enabled ? levelConfigs[2].quantity : 0,
+                    hard: levelConfigs[3].enabled ? levelConfigs[3].quantity : 0,
+                    veryHard: levelConfigs[4].enabled ? levelConfigs[4].quantity : 0
+                };
+
+                coverText = await generateExamCover({
+                    examType,
                     subject: form.subject || 'Geral',
-                    type: QuestionType.MULTIPLE_CHOICE,
-                    statement: g.statement,
-                    alternatives: g.alternatives.map(a => ({ id: uuidv4(), ...a })),
-                    correctAnswerJustification: g.justification,
-                    difficulty: g.difficulty as DifficultyLevel,
-                    score: 1.0,
-                    origin: ItemOrigin.IA,
-                    tags: ['IA', 'Banco de Itens'],
-                    bnccCode: g.bnccCode,
-                    usageCount: 0,
-                    generationBatchId: batchId,
-                    aiModelId: g.aiModel,
-                    aiPromptVersion: g.promptVersion,
-                    lifecycleStatus: ItemLifecycleStatus.DRAFT,
-                    createdAt: new Date().toISOString()
-                }));
+                    topic: topic || 'Diversos',
+                    bnccCodes,
+                    questionCount: examType === 'ADAPTIVE' ? Math.floor(totalQuestions / 3) : totalQuestions,
+                    bankSize: totalQuestions,
+                    distribution,
+                    standards,
+                    validationScore: Math.round((qualityResult.skillCoverage + standardsResult.inepCompliance + standardsResult.bnccCompliance) / 3)
+                });
 
+                setGenerationProgress(90);
+
+                // Armazenar texto da capa e resultados da validação
+                setCoverText(coverText);
+                setValidationResults({
+                    phase1: qualityResult,
+                    phase2: standardsResult as any, // Cast para resolver incompatibilidade de tipo category
+                    overallScore: Math.round((qualityResult.skillCoverage + standardsResult.inepCompliance + standardsResult.bnccCompliance) / 3),
+                    approved: qualityResult.skillCoverage >= 70 && standardsResult.inepCompliance >= 70,
+                    flaggedQuestions: standardsResult.issues.filter(i => i.severity === 'HIGH').map(i => i.questionId)
+                });
+
+            } else {
+                // ============ MODO SIMPLES (Original) ============
+                const questions = await generateQuestionsFromText(
+                    aiContext, aiQuantity, QuestionType.MULTIPLE_CHOICE, form.difficulty, form.subject || 'Geral'
+                );
+
+                if (questions) {
+                    allItems = questions.map(g => ({
+                        id: uuidv4(),
+                        tenantId: state.currentUser!.tenantId,
+                        ownerId: state.currentUser!.id,
+                        knowledgeArea: 'Geral',
+                        subject: form.subject || 'Geral',
+                        type: QuestionType.MULTIPLE_CHOICE,
+                        statement: g.statement,
+                        alternatives: g.alternatives.map(a => ({ id: uuidv4(), ...a })),
+                        correctAnswerJustification: g.justification,
+                        difficulty: g.difficulty as DifficultyLevel,
+                        score: 1.0,
+                        origin: ItemOrigin.IA,
+                        tags: ['IA', 'Banco de Itens'],
+                        bnccCode: g.bnccCode,
+                        usageCount: 0,
+                        generationBatchId: batchId,
+                        aiModelId: g.aiModel,
+                        aiPromptVersion: g.promptVersion,
+                        lifecycleStatus: ItemLifecycleStatus.DRAFT,
+                        createdAt: new Date().toISOString()
+                    }));
+                }
+            }
+
+            // Salvar batch e itens
+            if (allItems.length > 0) {
                 if (state.addGenerationBatch) {
                     await state.addGenerationBatch({
                         id: batchId,
                         creatorId: state.currentUser!.id,
                         tenantId: state.currentUser!.tenantId,
                         promptContext: aiContext,
-                        totalRequested: aiQuantity,
+                        totalRequested: useMultiLevel ? allItems.length : aiQuantity,
                         createdAt: new Date().toISOString()
                     });
                 }
 
                 if (state.addItems) {
-                    await state.addItems(newItems);
+                    await state.addItems(allItems);
                 }
 
                 setActiveBatchId(batchId);
-                alert(`${newItems.length} questões geradas e salvas com sucesso.`);
+                setGenerationProgress(100);
+
+                if (useMultiLevel) {
+                    // Abrir modal de resultados ao invés de alert
+                    setShowValidationModal(true);
+                } else {
+                    alert(`${allItems.length} questões geradas e salvas com sucesso.`);
+                }
             }
         } catch (e: any) {
             console.error('AI Generation Error:', e);
@@ -301,6 +433,7 @@ export const useItemEditor = () => {
             alert(`Não foi possível salvar as questões no banco.\n\nDetalhe técnico: ${errorMsg}\n\nVerifique se você tem permissão de administrador ou se o banco de dados está acessível.`);
         } finally {
             setAiLoading(false);
+            setGenerationProgress(0);
         }
     };
 
@@ -438,6 +571,21 @@ export const useItemEditor = () => {
         navigate('/items');
     };
 
+    // Modal callbacks
+    const handleApproveValidation = () => {
+        setShowValidationModal(false);
+        alert('✅ Banco de questões aprovado e salvo com sucesso!');
+    };
+
+    const handleReviewQuestions = () => {
+        setShowValidationModal(false);
+        // Navegar para revisão do batch
+        if (activeBatchId) {
+            // O usuário já está na tela de revisão através do activeBatchId
+            alert('📝 Revise as questões sinalizadas no painel de lote.');
+        }
+    };
+
     return {
         mode, setMode,
         form, setForm,
@@ -461,6 +609,20 @@ export const useItemEditor = () => {
         saveManual,
         state,
         showBatchHistory, setShowBatchHistory,
-        activeBatchId, setActiveBatchId
+        activeBatchId, setActiveBatchId,
+        // Multi-level generation states
+        useMultiLevel, setUseMultiLevel,
+        topic, setTopic,
+        bnccCodes, setBnccCodes,
+        examType, setExamType,
+        standards, setStandards,
+        levelConfigs, setLevelConfigs,
+        generationProgress,
+        validationResults,
+        // Modal states
+        showValidationModal, setShowValidationModal,
+        coverText,
+        handleApproveValidation,
+        handleReviewQuestions
     };
 };
