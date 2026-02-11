@@ -256,14 +256,7 @@ export const useItemEditor = () => {
         }
     };
 
-    const handleSuggestBNCC = async () => {
-        if (!form.statement.trim()) return alert('O enunciado é necessário para sugerir a BNCC.');
-        setIsBNCCLoading(true);
-        const suggestion = await suggestBNCC(form.statement);
-        setForm(prev => ({ ...prev, bnccCode: suggestion.code }));
-        alert(`Sugerido: ${suggestion.code}\nMotivo: ${suggestion.reason}`);
-        setIsBNCCLoading(false);
-    };
+    // handleSuggestBNCC removed - use manual BNCC search instead
 
     const handleGenerateJustification = async () => {
         const correctAlt = alternatives.find(a => a.isCorrect && a.text.trim());
@@ -643,7 +636,6 @@ export const useItemEditor = () => {
         handleVariate, isVariating,
         handleAudit, isAuditing, auditReport, setAuditReport,
         handleAccessibility, isAdapting,
-        handleSuggestBNCC, isBNCCLoading,
         handleGenerateJustification,
         handleGenerate, aiLoading,
         handleMagicPolish,

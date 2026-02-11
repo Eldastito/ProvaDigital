@@ -1,5 +1,5 @@
 import React from 'react';
-import { Loader2, Sparkles, Brain, CheckCircle2, AlertCircle, Wand2, BookOpen } from 'lucide-react';
+import { Loader2, Sparkles, Brain, CheckCircle2, AlertCircle, BookOpen } from 'lucide-react';
 import { RichTextEditor } from '../../../../components/RichTextEditor';
 import { QuestionType } from '../../../../types';
 
@@ -8,17 +8,13 @@ interface AnswerKeyEditorProps {
     setForm: (form: any) => void;
     handleGenerateJustification: () => void;
     isImproving: boolean;
-    handleSuggestBNCC: () => void;
-    isBNCCLoading: boolean;
 }
 
 export const AnswerKeyEditor: React.FC<AnswerKeyEditorProps> = ({
     form,
     setForm,
     handleGenerateJustification,
-    isImproving,
-    handleSuggestBNCC,
-    isBNCCLoading
+    isImproving
 }) => {
     return (
         <div>
@@ -123,21 +119,12 @@ export const AnswerKeyEditor: React.FC<AnswerKeyEditorProps> = ({
                     <input className="w-full border rounded-lg p-2 text-sm" value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} placeholder="Separe por vírgulas" />
                 </div>
                 <div>
-                    <div className="flex justify-between items-center mb-1">
-                        <label className="block text-sm font-medium text-slate-700">Código BNCC</label>
-                        <button
-                            onClick={handleSuggestBNCC}
-                            disabled={isBNCCLoading}
-                            className="text-[10px] flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-100 hover:bg-blue-100 transition font-bold uppercase"
-                        >
-                            {isBNCCLoading ? <Loader2 size={10} className="animate-spin" /> : <Wand2 size={10} />}
-                            Sugerir
-                        </button>
-                    </div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Código BNCC</label>
                     <div className="relative">
                         <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                         <input className="w-full border rounded-lg pl-9 p-2 text-sm uppercase" value={form.bnccCode} onChange={e => setForm({ ...form, bnccCode: e.target.value })} placeholder="Ex: EF09HI01" />
                     </div>
+                    <p className="text-xs text-slate-500 mt-1">Use o botão "Buscar BNCC" acima para encontrar códigos</p>
                 </div>
             </div>
         </div>

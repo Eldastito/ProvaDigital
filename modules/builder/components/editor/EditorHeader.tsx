@@ -8,7 +8,6 @@ interface EditorHeaderProps {
     handleMagicPolish: () => void;
     isImproving: boolean;
     isGeneratingAlts: boolean;
-    isBNCCLoading: boolean;
     handleAudit: () => void;
     isAuditing: boolean;
     handleOCR: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -21,7 +20,6 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
     handleMagicPolish,
     isImproving,
     isGeneratingAlts,
-    isBNCCLoading,
     handleAudit,
     isAuditing,
     handleOCR,
@@ -42,11 +40,11 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                     <div className="flex gap-4">
                         <button
                             onClick={handleMagicPolish}
-                            disabled={isImproving || isGeneratingAlts || isBNCCLoading}
+                            disabled={isImproving || isGeneratingAlts}
                             className="px-4 py-1.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs font-bold flex items-center gap-2 hover:shadow-lg hover:scale-105 transition shadow-sm disabled:opacity-50"
-                            title="Aprimora enunciado, gera alternativas e sugere BNCC de uma só vez"
+                            title="Aprimora enunciado e gera alternativas de uma só vez"
                         >
-                            {isImproving || isGeneratingAlts || isBNCCLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                            {isImproving || isGeneratingAlts ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                             Polimento Mágico
                         </button>
                         <button

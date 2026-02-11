@@ -28,7 +28,6 @@ export const ItemEditorView = () => {
         handleVariate, isVariating,
         handleAudit, isAuditing, auditReport, setAuditReport,
         handleAccessibility, isAdapting,
-        handleSuggestBNCC, isBNCCLoading,
         handleGenerateJustification,
         handleGenerate, aiLoading,
         handleMagicPolish,
@@ -64,7 +63,6 @@ export const ItemEditorView = () => {
                 handleMagicPolish={handleMagicPolish}
                 isImproving={isImproving}
                 isGeneratingAlts={isGeneratingAlts}
-                isBNCCLoading={isBNCCLoading}
                 handleAudit={handleAudit}
                 isAuditing={isAuditing}
                 handleOCR={handleOCR}
@@ -114,8 +112,6 @@ export const ItemEditorView = () => {
                             setForm={setForm}
                             handleGenerateJustification={handleGenerateJustification}
                             isImproving={isImproving}
-                            handleSuggestBNCC={handleSuggestBNCC}
-                            isBNCCLoading={isBNCCLoading}
                         />
 
                         <TRIParamsEditor form={form} setForm={setForm} />
