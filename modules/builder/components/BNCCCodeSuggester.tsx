@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { Sparkles, Plus, X } from 'lucide-react';
 import { suggestBNCCCodes } from '../../../services/geminiService';
 import { BNCCCodeSuggestion } from '../../../types';
 import { useSafeAppStore } from '../../../store/useAppStore';
+import { BNCCSearchModal } from './BNCCSearchModal';
 
 interface BNCCCodeSuggesterProps {
     subject: string;
@@ -18,8 +20,9 @@ export default function BNCCCodeSuggester({
 }: BNCCCodeSuggesterProps) {
     const [suggestions, setSuggestions] = useState<BNCCCodeSuggestion[]>([]);
     const [loading, setLoading] = useState(false);
-    const [manualCode, setManualCode] = useState('');
     const [showManualInput, setShowManualInput] = useState(false);
+    const [showSearchModal, setShowSearchModal] = useState(false);
+    const [manualCode, setManualCode] = useState('');
 
     // Buscar contexto do usuário logado
     const { currentUser, classes } = useSafeAppStore();
@@ -76,13 +79,23 @@ export default function BNCCCodeSuggester({
                 <label className="block text-sm font-medium text-slate-700">
                     🎯 Habilidades BNCC
                 </label>
-                <button
-                    type="button"
-                    onClick={() => setShowManualInput(!showManualInput)}
-                    className="text-xs text-blue-600 hover:text-blue-700"
-                >
-                    + Adicionar manualmente
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setShowSearchModal(true)}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-brand-primary text-white rounded-lg text-xs font-medium hover:bg-brand-primary/90 transition-colors"
+                    >
+                        <Plus size={14} />
+                        Buscar BNCC
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setShowManualInput(!showManualInput)}
+                        className="text-xs text-blue-600 hover:text-blue-700"
+                    >
+                        + Adicionar código
+                    </button>
+                </div>
             </div>
 
             {/* Input manual */}
@@ -211,6 +224,17 @@ export default function BNCCCodeSuggester({
                     </div>
                 </div>
             )}
+
+            {/* Modal de Busca BNCC */}
+            <BNCCSearchModal
+                isOpen={showSearchModal}
+                onClose={() => setShowSearchModal(false)}
+                onSelect={(codes) => {
+                    onCodesChange([...selectedCodes, ...codes.filter(c => !selectedCodes.includes(c))]);
+                }}
+                currentSubject={subject}
+                alreadySelected={selectedCodes}
+            />
         </div>
     );
 }
