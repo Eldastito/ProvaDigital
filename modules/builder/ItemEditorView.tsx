@@ -265,14 +265,13 @@ export const ItemEditorView = () => {
             </div>
 
             {/* Validation Results Modal */}
-            <ValidationResultsModal
-                isOpen={showValidationModal}
-                onClose={() => setShowValidationModal(false)}
-                validationResults={validationResults}
-                coverText={coverText}
-                onApprove={handleApproveValidation}
-                onReview={handleReviewQuestions}
-            />
+            {showValidationModal && validationResults && (
+                <ValidationResultsModal
+                    results={validationResults}
+                    onClose={() => setShowValidationModal(false)}
+                    onApprove={handleApproveValidation}
+                />
+            )}
         </div>
     );
 };

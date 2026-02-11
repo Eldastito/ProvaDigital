@@ -229,6 +229,7 @@ export const AIGenerationPanel: React.FC<AIGenerationPanelProps> = ({
                                 setAdaptiveBankSize(config.bankSize);
                                 setAdaptiveQuestionsPerStudent(config.questionsPerStudent);
                             }}
+                            setLevelConfigs={setLevelConfigs}
                         />
                     )}
 
