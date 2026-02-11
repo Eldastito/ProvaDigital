@@ -50,7 +50,8 @@ export const ItemEditorView = () => {
         validationResults,
         coverText,
         handleApproveValidation,
-        handleReviewQuestions
+        handleReviewQuestions,
+        handleClearForm
     } = useItemEditor();
 
     return (
@@ -230,6 +231,7 @@ export const ItemEditorView = () => {
                                 levelConfigs={levelConfigs}
                                 setLevelConfigs={setLevelConfigs}
                                 generationProgress={generationProgress}
+                                onClearForm={handleClearForm}
                             />
                         )}
                     </div>

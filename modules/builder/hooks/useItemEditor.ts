@@ -7,6 +7,7 @@ import { AppState, Item, DifficultyLevel, QuestionType, ItemOrigin, ItemLifecycl
 import { generateQuestionsFromText, improveItemStatement, generateDistractors, suggestBNCC, generateJustification, variateItem, adaptItemForAccessibility, extractItemFromImage, auditPedagogicalItem, validateQuestionQuality, validateQuestionStandards, generateExamCover } from '../../../services/geminiService';
 import { uuidv4 } from '../../../utils/helpers';
 import { useSafeAppStore } from '../../../store/useAppStore';
+import { useFormPersistence, getPersistedValue, clearPersistedForm } from './useFormPersistence';
 
 // Configuração do Worker do PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.530/pdf.worker.mjs`;
@@ -16,31 +17,42 @@ export const useItemEditor = () => {
     const state = useSafeAppStore();
     const { addItem, activeBatchId, setActiveBatchId } = state;
 
-    const [mode, setMode] = useState<'MANUAL' | 'AI'>('MANUAL');
+    const [mode, setMode] = useState<'MANUAL' | 'AI'>(() => getPersistedValue('mode', 'MANUAL'));
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const [aiContext, setAiContext] = useState('');
-    const [aiQuantity, setAiQuantity] = useState(3);
+    const [aiContext, setAiContext] = useState(() => getPersistedValue('aiContext', ''));
+    const [aiQuantity, setAiQuantity] = useState(() => getPersistedValue('aiQuantity', 3));
     const [aiLoading, setAiLoading] = useState(false);
     const [showBatchHistory, setShowBatchHistory] = useState(false);
 
     // Multi-level generation states
-    const [useMultiLevel, setUseMultiLevel] = useState(false);
-    const [topic, setTopic] = useState('');
-    const [bnccCodes, setBnccCodes] = useState<string[]>([]);
-    const [examType, setExamType] = useState<'LINEAR' | 'ADAPTIVE'>('ADAPTIVE');
-    const [standards, setStandards] = useState<QualityStandard[]>(['INEP', 'BNCC']);
-    const [levelConfigs, setLevelConfigs] = useState<DifficultyLevelConfig[]>([
+    const [useMultiLevel, setUseMultiLevel] = useState(() => getPersistedValue('useMultiLevel', false));
+    const [topic, setTopic] = useState(() => getPersistedValue('topic', ''));
+    const [bnccCodes, setBnccCodes] = useState<string[]>(() => getPersistedValue('bnccCodes', []));
+    const [examType, setExamType] = useState<'LINEAR' | 'ADAPTIVE'>(() => getPersistedValue('examType', 'ADAPTIVE'));
+    const [standards, setStandards] = useState<QualityStandard[]>(() => getPersistedValue('standards', ['INEP', 'BNCC']));
+    const [levelConfigs, setLevelConfigs] = useState<DifficultyLevelConfig[]>(() => getPersistedValue('levelConfigs', [
         { level: 'MUITO_FACIL', quantity: 5, enabled: true, triRange: [-2.0, -1.0] },
         { level: 'FACIL', quantity: 6, enabled: true, triRange: [-1.0, -0.5] },
         { level: 'MEDIO', quantity: 8, enabled: true, triRange: [-0.5, 0.5] },
         { level: 'DIFICIL', quantity: 6, enabled: true, triRange: [0.5, 1.0] },
         { level: 'MUITO_DIFICIL', quantity: 5, enabled: true, triRange: [1.0, 2.0] }
-    ]);
+    ]));
     const [generationProgress, setGenerationProgress] = useState(0);
     const [validationResults, setValidationResults] = useState<DualValidationResult | null>(null);
     const [showValidationModal, setShowValidationModal] = useState(false);
     const [coverText, setCoverText] = useState('');
+
+    // Persistir estados automaticamente
+    useFormPersistence('mode', mode);
+    useFormPersistence('aiContext', aiContext);
+    useFormPersistence('aiQuantity', aiQuantity);
+    useFormPersistence('useMultiLevel', useMultiLevel);
+    useFormPersistence('topic', topic);
+    useFormPersistence('bnccCodes', bnccCodes);
+    useFormPersistence('examType', examType);
+    useFormPersistence('standards', standards);
+    useFormPersistence('levelConfigs', levelConfigs);
 
     // Flags de carregamento
     const [isImproving, setIsImproving] = useState(false);
@@ -586,6 +598,30 @@ export const useItemEditor = () => {
         }
     };
 
+    // Limpar formulário
+    const handleClearForm = () => {
+        if (confirm('Deseja limpar todos os campos do formulário?')) {
+            // Resetar estados
+            setMode('MANUAL');
+            setAiContext('');
+            setAiQuantity(3);
+            setUseMultiLevel(false);
+            setTopic('');
+            setBnccCodes([]);
+            setExamType('ADAPTIVE');
+            setStandards(['INEP', 'BNCC']);
+            setLevelConfigs([
+                { level: 'MUITO_FACIL', quantity: 5, enabled: true, triRange: [-2.0, -1.0] },
+                { level: 'FACIL', quantity: 6, enabled: true, triRange: [-1.0, -0.5] },
+                { level: 'MEDIO', quantity: 8, enabled: true, triRange: [-0.5, 0.5] },
+                { level: 'DIFICIL', quantity: 6, enabled: true, triRange: [0.5, 1.0] },
+                { level: 'MUITO_DIFICIL', quantity: 5, enabled: true, triRange: [1.0, 2.0] }
+            ]);
+            // Limpar localStorage
+            clearPersistedForm();
+        }
+    };
+
     return {
         mode, setMode,
         form, setForm,
@@ -623,6 +659,8 @@ export const useItemEditor = () => {
         showValidationModal, setShowValidationModal,
         coverText,
         handleApproveValidation,
-        handleReviewQuestions
+        handleReviewQuestions,
+        // Form utilities
+        handleClearForm
     };
 };

@@ -31,6 +31,7 @@ interface AIGenerationPanelProps {
     levelConfigs: DifficultyLevelConfig[];
     setLevelConfigs: (configs: DifficultyLevelConfig[]) => void;
     generationProgress: number;
+    onClearForm?: () => void;
 }
 
 export const AIGenerationPanel: React.FC<AIGenerationPanelProps> = ({
