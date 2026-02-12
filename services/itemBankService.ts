@@ -1,7 +1,8 @@
 import { Item } from '../types';
+import { supabase } from './supabaseClient';
 
 // Local types moved to types.ts
-import { QuestionMetadata, ItemUsageRecord } from '../types';
+import { ItemUsageRecord } from '../types';
 
 /**
  * Filtros para busca no banco de itens
@@ -15,39 +16,54 @@ export interface QuestionFilters {
 }
 
 /**
- * Serviço de gerenciamento do banco de itens
+ * Serviço de gerenciamento do banco de itens (Server-Side Sync)
+ * Agora sincronizado com Supabase para garantir inedismo entre professores/escolas
  */
 class ItemBankService {
     private usageRecords: ItemUsageRecord[] = [];
-    private readonly STORAGE_KEY = 'item_bank_usage';
+    private lastSync: number = 0;
+    private readonly SYNC_TTL = 1000 * 60 * 5; // 5 minutos de cache
 
     constructor() {
-        this.loadUsageRecords();
+        // Inicializa vazio, sync deve ser chamado explicitamente ou via lazy load
     }
 
     /**
-     * Carrega registros de uso do localStorage
+     * Sincroniza registros de uso do servidor
      */
-    private loadUsageRecords(): void {
+    async syncWithServer(schoolId: string): Promise<void> {
+        const now = Date.now();
+        if (now - this.lastSync < this.SYNC_TTL && this.usageRecords.length > 0) {
+            return; // Cache hit
+        }
+
         try {
-            const stored = localStorage.getItem(this.STORAGE_KEY);
-            if (stored) {
-                this.usageRecords = JSON.parse(stored);
+            const currentYear = new Date().getFullYear();
+            const startDate = `${currentYear}-01-01T00:00:00.000Z`;
+
+            const { data, error } = await supabase
+                .from('question_usage_logs')
+                .select('question_id, school_id, exam_id, used_at')
+                .eq('school_id', schoolId)
+                .gte('used_at', startDate);
+
+            if (error) throw error;
+
+            if (data) {
+                this.usageRecords = data.map(row => ({
+                    questionId: row.question_id,
+                    schoolId: row.school_id,
+                    examId: row.exam_id,
+                    year: new Date(row.used_at).getFullYear(),
+                    usedAt: row.used_at,
+                    studentsCount: 0 // Simplificação, count real exigiria join mais pesado
+                }));
+                this.lastSync = now;
+                console.log(`[ItemBankService] Sincronizado ${this.usageRecords.length} registros de uso para escola ${schoolId}`);
             }
         } catch (error) {
-            console.error('Erro ao carregar registros de uso:', error);
-            this.usageRecords = [];
-        }
-    }
-
-    /**
-     * Salva registros de uso no localStorage
-     */
-    private saveUsageRecords(): void {
-        try {
-            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.usageRecords));
-        } catch (error) {
-            console.error('Erro ao salvar registros de uso:', error);
+            console.error('[ItemBankService] Erro ao sincronizar registros:', error);
+            // Fallback silencioso para não travar a UI, mas loga erro
         }
     }
 
@@ -60,6 +76,7 @@ class ItemBankService {
         schoolId: string,
         currentYear: number = new Date().getFullYear()
     ): boolean {
+        // Verifica no cache local (que deve ser populado via syncWithServer nas telas de listagem)
         const wasUsedThisYear = this.usageRecords.some(
             record =>
                 record.questionId === questionId &&
@@ -71,27 +88,45 @@ class ItemBankService {
     }
 
     /**
-     * Registra o uso de uma questão
+     * Registra o uso de uma questão no Supabase
      */
-    registerQuestionUsage(
+    async registerQuestionUsage(
         questionId: string,
         schoolId: string,
         examId: string,
         studentsCount: number = 0
-    ): void {
+    ): Promise<void> {
         const currentYear = new Date().getFullYear();
+        const usedAt = new Date().toISOString();
 
+        // 1. Atualiza Cache Local Otimista
         const record: ItemUsageRecord = {
             questionId,
             schoolId,
             examId,
             year: currentYear,
-            usedAt: new Date().toISOString(),
+            usedAt,
             studentsCount
         };
-
         this.usageRecords.push(record);
-        this.saveUsageRecords();
+
+        // 2. Persiste no Supabase (Fire and Forget ou Await dependendo da criticidade)
+        try {
+            const { error } = await supabase.from('question_usage_logs').insert({
+                school_id: schoolId,
+                question_id: questionId,
+                exam_id: examId,
+                used_at: usedAt
+            });
+
+            if (error) {
+                console.error('[ItemBankService] Falha ao persistir uso no servidor:', error);
+                // Em caso de erro real, idealmente teríamos uma fila de retry (offline-first),
+                // mas para este MVP assumimos conexão estável ou erro logado.
+            }
+        } catch (err) {
+            console.error('[ItemBankService] Erro de conexão:', err);
+        }
     }
 
     /**
@@ -103,6 +138,9 @@ class ItemBankService {
         filters?: QuestionFilters
     ): Item[] {
         const currentYear = new Date().getFullYear();
+
+        // Importante: syncWithServer deve ter sido chamado antes pelo componente (useEffect)
+        // para garantir que this.usageRecords esteja atualizado.
 
         return allQuestions.filter(question => {
             // Verificar inedismo
@@ -187,20 +225,6 @@ class ItemBankService {
             used: used.length,
             new: newQuestions.length
         };
-    }
-
-    /**
-     * Limpa registros antigos (opcional - manutenção)
-     */
-    cleanOldRecords(yearsToKeep: number = 3): void {
-        const currentYear = new Date().getFullYear();
-        const cutoffYear = currentYear - yearsToKeep;
-
-        this.usageRecords = this.usageRecords.filter(
-            record => record.year >= cutoffYear
-        );
-
-        this.saveUsageRecords();
     }
 }
 

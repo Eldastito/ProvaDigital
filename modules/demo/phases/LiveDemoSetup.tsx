@@ -4,6 +4,7 @@ import { Play, Globe, Search, CheckCircle, BookOpen, Sparkles } from 'lucide-rea
 import { supabase } from '../../../services/supabaseClient';
 import { useAppStore } from '../../../store/useAppStore';
 import { uuidv4 } from '../../../utils/helpers';
+import { MOCK_TENANT_ID } from '../../../utils/mockData';
 
 interface LiveDemoSetupProps {
     onSessionCreated: (classId: string, examId: string) => void;
@@ -71,8 +72,6 @@ export const LiveDemoSetup = ({ onSessionCreated }: LiveDemoSetupProps) => {
         setLoading(true);
 
         try {
-            import { MOCK_TENANT_ID } from '../../../../utils/mockData';
-
             // ...
             const tenantId = MOCK_TENANT_ID;
             const schoolId = 's1';

@@ -1,30 +1,30 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
-import { supabase } from '../../../services/supabaseClient';
-import { AccessibilityToolbar } from './AccessibilityToolbar';
-import { SimulationRenderer } from './SimulationRenderer';
+import { Item, Exam, StudentAnswer } from '../../../types';
 import { AccessibilityConfig, DEFAULT_ACCESSIBILITY_CONFIG } from './types';
-import { ChevronLeft, ChevronRight, CheckCircle, Clock, CloudUpload, FileText, EyeOff, Minimize, Video } from 'lucide-react';
-import { Exam, Item, StudentAnswer } from '../../../types';
-import { useProctoring } from '../../../hooks/useProctoring';
+import { Loader2, AlertTriangle, Clock, CheckCircle, XCircle, HelpCircle, Trophy, Target, ChevronRight, X, ZoomIn, ZoomOut, Volume2, VolumeX, Eye, EyeOff, Monitor, Brain, FileText, Minimize, CloudUpload, ChevronLeft, Download, DownloadCloud, CloudCheck } from 'lucide-react';
+import { offlineCacheService, registerCachedExam } from '../../../services/offlineCacheService';
 import { RichTextRenderer } from '../../../components/RichTextRenderer';
+import { SimulationRenderer } from './SimulationRenderer';
 import { DrawingCanvas } from './DrawingCanvas';
-import { offlineCacheService } from '../../../services/offlineCacheService';
-import { registerCachedExam } from '../../../services/offlineDb';
+import { AccessibilityToolbar } from './AccessibilityToolbar';
+import { useProctoring } from '../../../hooks/useProctoring';
+import { supabase } from '../../../services/supabaseClient';
 import { reportingService } from '../../../services/reportingService';
-import { DownloadCloud, CloudCheck, Download, Trophy, Target } from 'lucide-react'; // Some extra icons
 
 interface OnlineExamRunnerProps {
     examId: string;
     studentId: string;
     variantId?: string;
     onExit: () => void;
-    onComplete: (answers: StudentAnswer[]) => void;
+    onComplete: (data: any) => void;
 }
 
 export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onComplete }: OnlineExamRunnerProps) => {
     const state = useAppStore();
     const [a11y, setA11y] = useState<AccessibilityConfig>(DEFAULT_ACCESSIBILITY_CONFIG);
+
+
 
     // --- EXAM DATA ---
     const exam = state.exams.find(e => e.id === examId);
@@ -68,6 +68,22 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
     const [isCompleted, setIsCompleted] = useState(false);
     const [generatedPlan, setGeneratedPlan] = useState<any>(null);
     const [finalGrading, setFinalGrading] = useState<any>(null);
+
+    // ... existing useEffects ...
+
+
+    // ... existing logic ...
+
+    // --- RENDER ---
+
+
+    // ... existing renders ...
+
+    // [MODIFIED] Final Results Screen (Clean Version - No AI Agent)
+
+    // ... rest of the component ...
+
+
 
     useEffect(() => {
         const checkOffline = async () => {
@@ -447,40 +463,8 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                Para o demo, vamos apenas atualizar o estado local se necessário.
             */
 
-            // --- AUTOMATED RECOVERY CYCLE (CLOSING THE LOOP) ---
-            try {
-                const { StudyPlanGenerator } = await import('../../../services/ai/studyPlanGenerator');
-
-                // Construct a temporary ExamResult for the generator
-                const tempResult: any = {
-                    id: attemptId || 'temp_result',
-                    examId: examId || '',
-                    studentId: studentId || 'guest',
-                    totalScore: gradingResult.totalScore,
-                    answers: gradingResult.answers,
-                    gradedAt: new Date().toISOString()
-                };
-
-                const studyPlan = StudyPlanGenerator.generate(tempResult, exam);
-
-                if (studyPlan) {
-                    // Salvar no Store (usando getState para acessar a action recém-criada)
-                    // @ts-ignore - Action injetada dinamicamente
-                    useAppStore.getState().addStudyPlan(studyPlan);
-                    setGeneratedPlan(studyPlan);
-
-                    // Notificar usuário (Gamificação)
-                    const totalReward = studyPlan.tasks.reduce((acc, t) => acc + (t.rewardSafe || 0), 0);
-                    // alert(`⚠️ Atenção: Detectamos algumas dificuldades.\n\n📚 Um Plano de Recuperação Personalizado foi gerado para você!\n\nComplete as tarefas para ganhar +${totalReward} OwlCoins! 🦉`);
-                }
-
-                setFinalGrading(gradingResult);
-                setIsCompleted(true);
-            } catch (recoveryError) {
-                console.error("Erro no ciclo de recuperação:", recoveryError);
-                setFinalGrading(gradingResult);
-                setIsCompleted(true);
-            }
+            setFinalGrading(gradingResult);
+            setIsCompleted(true);
             // ---------------------------------------------------
 
             // Retornar respostas corrigidas (Removido daqui para esperar o review do aluno)
@@ -604,85 +588,44 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
     if (isCompleted && finalGrading) {
         return (
             <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/95 backdrop-blur-sm no-zoom ${getFontClass()}`}>
-                <div className="max-w-4xl w-full bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
-                    <div className="md:flex h-full">
-                        {/* Left Side: Summary */}
-                        <div className="md:w-1/3 bg-brand-dark p-8 text-white flex flex-col justify-center items-center text-center">
-                            <div className="mb-6 p-4 bg-white/10 rounded-full animate-bounce">
-                                <Trophy size={48} className="text-yellow-400" />
-                            </div>
-                            <h2 className="text-2xl font-black mb-2">Prova Finalizada!</h2>
-                            <p className="text-slate-400 text-sm mb-8">Sua proficiência foi calculada com sucesso.</p>
+                <div className="max-w-xl w-full bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col">
+                    <div className="p-10 flex flex-col items-center justify-center text-center">
+                        <div className="inline-block p-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-full shadow-sm mb-6 border border-yellow-100 dark:border-yellow-700">
+                            <Trophy size={64} className="text-yellow-500" />
+                        </div>
 
-                            <div className="space-y-4 w-full">
-                                <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Nota Final</div>
-                                    <div className="text-4xl font-black text-white">{finalGrading.totalScore.toFixed(1)} <span className="text-lg text-slate-500">/ {finalGrading.maxScore}</span></div>
-                                </div>
-                                <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Aproveitamento</div>
-                                    <div className="text-2xl font-black text-emerald-400">{((finalGrading.totalScore / finalGrading.maxScore) * 100).toFixed(0)}%</div>
-                                </div>
+                        <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2">Prova Finalizada!</h2>
+                        <p className="text-slate-500 text-base mb-8 max-w-sm mx-auto">
+                            Parabéns por concluir. Seus dados foram salvos com sucesso.
+                        </p>
+
+                        <div className="bg-slate-50 dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-700 w-full mb-8">
+                            <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Nota Final</div>
+                            <div className="text-6xl font-black text-slate-900 dark:text-white tracking-tighter">
+                                {finalGrading.totalScore.toFixed(1)}
+                                <span className="text-2xl text-slate-400 font-normal ml-2">/ {finalGrading.maxScore}</span>
                             </div>
                         </div>
 
-                        {/* Right Side: Remediation / Study Plan */}
-                        <div className="md:w-2/3 p-8 bg-white dark:bg-slate-800">
-                            {generatedPlan ? (
-                                <div className="h-full flex flex-col">
-                                    <h3 className="text-xl font-bold flex items-center gap-2 mb-4 text-slate-800 dark:text-white">
-                                        <Target className="text-amber-500" /> Plano de Recuperação IA
-                                    </h3>
-                                    <div className="p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800 rounded-2xl mb-6">
-                                        <p className="text-sm text-amber-900 dark:text-amber-200 leading-relaxed font-medium">
-                                            Identificamos algumas lacunas em seu roteiro de aprendizagem. Para ajudar você a alcançar seus objetivos, geramos um plano de reforço personalizado.
-                                        </p>
-                                    </div>
+                        <div className="flex flex-col w-full gap-3">
+                            <button
+                                onClick={() => {
+                                    // Log de Segurança: Finalização e Desconexão
+                                    state.setCurrentUser(null);
+                                    window.location.href = '/login?reason=exam_completed';
+                                }}
+                                className="w-full py-4 bg-brand-primary text-white rounded-xl font-bold hover:bg-brand-dark transition flex items-center justify-center gap-2 shadow-lg shadow-brand-primary/20"
+                            >
+                                <Brain size={20} />
+                                Entregar Tablet e Sair
+                            </button>
 
-                                    <div className="flex-1 space-y-3 overflow-y-auto max-h-[300px] mb-6 pr-2 custom-scrollbar">
-                                        {generatedPlan.tasks.map((task: any, idx: number) => (
-                                            <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-100 dark:border-slate-700 flex justify-between items-center group">
-                                                <div className="flex-1">
-                                                    <div className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">Tarefa {idx + 1}</div>
-                                                    <div className="font-bold text-slate-800 dark:text-slate-200">{task.title}</div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <div className="text-xs font-black text-brand-primary">+{task.rewardSafe || 0} 🦉</div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    <div className="flex gap-4 mt-auto">
-                                        <button
-                                            onClick={() => reportingService.exportStudyPlan(state.currentUser?.name || 'Estudante', generatedPlan)}
-                                            className="flex-1 py-4 bg-slate-800 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-700 transition-all shadow-lg"
-                                        >
-                                            <Download size={20} /> Baixar PDF do Plano
-                                        </button>
-                                        <button
-                                            onClick={() => onComplete(finalGrading.answers)}
-                                            className="px-8 py-4 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-500 transition-all shadow-lg"
-                                        >
-                                            Sair da Prova
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="h-full flex flex-col items-center justify-center text-center">
-                                    <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-6 text-emerald-600">
-                                        <CheckCircle size={40} />
-                                    </div>
-                                    <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">Desempenho Excelente!</h3>
-                                    <p className="text-slate-500 dark:text-slate-400 mb-8">Você demonstrou domínio dos conteúdos. Não foi necessário gerar um plano de reforço no momento.</p>
-                                    <button
-                                        onClick={() => onComplete(finalGrading.answers)}
-                                        className="px-12 py-4 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-500 transition-all shadow-xl"
-                                    >
-                                        Concluir Avaliação
-                                    </button>
-                                </div>
-                            )}
+                            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700 mt-2">
+                                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed text-center">
+                                    Para sua segurança, você foi desconectado. <br />
+                                    Acesse o seu <strong>Portal do Aluno</strong> em outro dispositivo para ver a <strong>Análise Detalhada do Tutor</strong>.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>

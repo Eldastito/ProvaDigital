@@ -386,10 +386,99 @@ REQUISITOS:
             "actions": ["Ação 1", "Ação 2"],
             "confidentialNotes": "Notas sensíveis apenas para a coordenação."
         }
+    `,
+    GENERATE_PRE_EXAM_BRIEFING: (topics: string[]) => `
+        Você é um Tutor Educacional Motivacional (O Corujão 🦉).
+        O aluno está prestes a iniciar uma prova sobre: ${topics.join(', ')}.
+
+        OBJETIVO: Preparar o aluno mentalmente, reduzindo a ansiedade e ativando conhecimentos prévios, SEM DAR RESPOSTAS.
+
+        TAREFA:
+        1. Crie uma mensagem curta de encorajamento (1 frase).
+        2. Liste 3 "Pontos de Atenção" gerais para esses tópicos (ex: "Em crase, lembre-se de verificar o gênero da palavra seguinte").
+        3. Dê uma dica de gestão de tempo/estratégia de prova.
+
+        IMPORTANTE: NÃO forneça exemplos de questões ou gabaritos. O foco é estratégia e calma.
+
+        RETORNE EM JSON:
+        {
+            "motivationalQuote": "string",
+            "keyReminders": ["string", "string", "string"],
+            "strategyTip": "string"
+        }
+    `,
+    GENERATE_POST_EXAM_REVIEW: (examTitle: string, studentAnswers: any[]) => `
+        Você é um Tutor Pós-Prova (O Corujão 🦉) focado em Pedagogia do Erro.
+        O aluno acabou de finalizar a prova: "${examTitle}".
+
+        DADOS DO DESEMPENHO (JSON):
+        ${JSON.stringify(studentAnswers)}
+
+        TAREFA:
+        1. Analise os erros cometidos. Identifique se foi falta de atenção, erro conceitual ou "chute".
+        2. Para cada erro significativo, forneça uma explicação curta do PORQUÊ a resposta estava errada (Pedagogia do Erro).
+        3. Sugira 2 tópicos específicos para revisão baseados nas fraquezas mostradas.
+
+        RETORNE EM JSON:
+        {
+            "overallFeedback": "Comentário geral sobre o desempenho (encorajador mas realista)",
+            "mistakeAnalysis": [
+                { "questionId": "id", "analysis": "Por que errou?", "topicToReview": "Tópico" }
+            ],
+            "studyRecommendations": ["Tópico 1", "Tópico 2"]
+        }
+    `,
+    ANALYZE_EXAM_BALANCE: (examTitle: string, itemsJson: string) => `
+        Você é um Auditor Pedagógico Sênior (Padrão INEP/BNCC).
+    Analise o equilíbrio e a qualidade da prova "${examTitle}" baseando - se nos itens abaixo:
+
+ITENS(JSON):
+        ${itemsJson}
+
+TAREFA:
+1. Avalie o equilíbrio de Dificuldade(Muitas fáceis ? Muitas difíceis ?).
+        2. Avalie a abrangência de Habilidades(Códigos BNCC faltantes ou excessivos).
+        3. Avalie a variedade de Tipos de Questão(Muitas de múltipla escolha ? Poucas discursivas ?).
+        4. Identifique o Score Geral da prova(0 a 100).
+        
+        Gere uma lista de INSIGHTS(máximo 5) que ajudem o professor a melhorar o rigor e o equilíbrio da prova.
+        
+        RETORNE EM JSON:
+{
+    "score": number,
+        "insights": [
+            {
+                "type": "SUCCESS" | "WARNING" | "DANGER" | "INFO",
+                "title": "Título curto",
+                "message": "Explicação pedagógica",
+                "actionLabel": "Texto do botão de ação (opcional)",
+                "actionType": "BNCC" | "DIFFICULTY" | "VARIETY"(opcional)
+            }
+        ]
+}
+    `,
+    ANALYZE_RISK_DATA: (contextJson: string) => `
+        Você é um Analista de Dados Educacionais Sênior.
+        Analise os dados de risco de evasão abaixo:
+        
+        DADOS (JSON):
+        ${contextJson}
+        
+        TAREFA:
+        1. Identifique tendências críticas (vulnerabilidades, queda de frequência, etc).
+        2. Sugira 3 ações estratégicas imediatas para a gestão escolar.
+        3. Destaque os fatores mais impactantes no momento.
+        
+        RETORNE EM JSON:
+        {
+            "summary": "Resumo executivo da situação",
+            "insights": [
+                { "title": "Título", "description": "Detalhes", "impact": "HIGH" | "MEDIUM" | "LOW" }
+            ],
+            "recommendations": ["Recomendação 1", "Recomendação 2", "Recomendação 3"]
+        }
     `
 };
-
-// ... (Rest of imports and helpers remain)
 
 // --- Interfaces ---
 export interface GeneratedQuestion {
@@ -427,6 +516,12 @@ export interface BatchGradeResult {
     id: string;
     score: number;
     feedback: string;
+}
+
+export interface RiskAnalysisResponse {
+    summary: string;
+    insights: { title: string; description: string; impact: 'HIGH' | 'MEDIUM' | 'LOW' }[];
+    recommendations: string[];
 }
 
 export interface StudyPlanSuggestion {
@@ -476,6 +571,35 @@ export interface CouncilMinutes {
 
 export interface FlashcardDeck {
     cards: { front: string; back: string }[];
+}
+
+export interface PreExamBriefing {
+    motivationalQuote: string;
+    keyReminders: string[];
+    strategyTip: string;
+}
+
+export interface PostExamReview {
+    overallFeedback: string;
+    mistakeAnalysis: {
+        questionId: string;
+        analysis: string;
+        topicToReview: string;
+    }[];
+    studyRecommendations: string[];
+}
+
+export interface ExamInsight {
+    type: 'SUCCESS' | 'WARNING' | 'DANGER' | 'INFO';
+    title: string;
+    message: string;
+    actionLabel?: string;
+    actionType?: 'BNCC' | 'DIFFICULTY' | 'VARIETY';
+}
+
+export interface ExamAnalysisResponse {
+    score: number;
+    insights: ExamInsight[];
 }
 
 export interface RPGScenario {
@@ -796,9 +920,65 @@ export const askOwlTutor = async (
 
     prompt += `Aluno: ${lastUserMessage}\nCorujão:`;
 
-    const fallback = "Olá! Estou operando em modo offline no momento. Verifique sua conexão ou a chave de API para conversarmos melhor! 🦉";
-
     return callGeminiAPI<string>(prompt, undefined);
+};
+
+// --- Tutor Agent Services (Phase 2) ---
+
+export const generatePreExamBriefing = async (topics: string[]): Promise<PreExamBriefing> => {
+    const prompt = PROMPTS.GENERATE_PRE_EXAM_BRIEFING(topics);
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            motivationalQuote: { type: Type.STRING },
+            keyReminders: { type: Type.ARRAY, items: { type: Type.STRING } },
+            strategyTip: { type: Type.STRING }
+        }
+    };
+    return callGeminiAPI<PreExamBriefing>(prompt, schema);
+};
+
+export const generatePostExamReview = async (examTitle: string, studentAnswers: any[]): Promise<PostExamReview> => {
+    // Filter only wrong answers to save tokens and focus analysis
+    const mistakes = studentAnswers.filter(a => !a.isCorrect).map(a => ({
+        questionId: a.itemId,
+        selectedId: a.selectedAlternativeId,
+        wasEssay: !!a.text
+    }));
+
+    // If perfect score, return generic praise locally to save API call
+    if (mistakes.length === 0) {
+        return {
+            overallFeedback: "Desempenho perfeito! Você dominou todos os tópicos desta avaliação. Continue assim! 🦉✨",
+            mistakeAnalysis: [],
+            studyRecommendations: ["Avançar para tópicos mais complexos", "Ajudar colegas com dificuldades"]
+        };
+    }
+
+    const prompt = PROMPTS.GENERATE_POST_EXAM_REVIEW(examTitle, mistakes);
+
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            overallFeedback: { type: Type.STRING },
+            mistakeAnalysis: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        questionId: { type: Type.STRING },
+                        analysis: { type: Type.STRING },
+                        topicToReview: { type: Type.STRING }
+                    }
+                }
+            },
+            studyRecommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
+        }
+    };
+
+
+
+    return callGeminiAPI<PostExamReview>(prompt, schema);
 };
 
 export const generateStudyPlanSuggestions = async (
@@ -1813,4 +1993,100 @@ export const extractItemsFromMultipleImages = async (
         aiModel: 'gemini-1.5-flash', // Vision usually runs on Flash/Pro
         promptVersion: PROMPT_VERSION
     }));
+};
+
+export const analyzeExamBalance = async (examTitle: string, items: any[]): Promise<ExamAnalysisResponse> => {
+    const payload = JSON.stringify(items.map(i => ({
+        id: i.id,
+        statement: i.statement?.substring(0, 100),
+        difficulty: i.difficulty,
+        subject: i.subject,
+        type: i.type,
+        bncc: i.bnccCode
+    })));
+
+    const prompt = PROMPTS.ANALYZE_EXAM_BALANCE(examTitle, payload);
+
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            score: { type: Type.NUMBER },
+            insights: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        type: { type: Type.STRING, enum: ["SUCCESS", "WARNING", "DANGER", "INFO"] },
+                        title: { type: Type.STRING },
+                        message: { type: Type.STRING },
+                        actionLabel: { type: Type.STRING },
+                        actionType: { type: Type.STRING, enum: ["BNCC", "DIFFICULTY", "VARIETY"] }
+                    },
+                    required: ["type", "title", "message"]
+                }
+            }
+        },
+        required: ["score", "insights"]
+    };
+
+    try {
+        return await callGeminiAPI<ExamAnalysisResponse>(prompt, schema);
+    } catch (error) {
+        console.error("Erro ao analisar equilíbrio da prova:", error);
+        return {
+            score: 0,
+            insights: [{
+                type: 'DANGER',
+                title: 'Erro na Análise',
+                message: 'Não foi possível analisar a prova no momento.'
+            }]
+        };
+    }
+};
+
+export const analyzeRiskData = async (assessments: any[]): Promise<RiskAnalysisResponse> => {
+    const payload = JSON.stringify(assessments.map(a => ({
+        student: a.studentName,
+        riskLevel: a.riskLevel,
+        score: a.riskScore,
+        attendance: a.simulatedAttendance,
+        factors: a.factors.map((f: any) => f.name)
+    })));
+
+    const prompt = PROMPTS.ANALYZE_RISK_DATA(payload);
+
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            summary: { type: Type.STRING },
+            insights: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        title: { type: Type.STRING },
+                        description: { type: Type.STRING },
+                        impact: { type: Type.STRING, enum: ["HIGH", "MEDIUM", "LOW"] }
+                    },
+                    required: ["title", "description", "impact"]
+                }
+            },
+            recommendations: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING }
+            }
+        },
+        required: ["summary", "insights", "recommendations"]
+    };
+
+    try {
+        return await callGeminiAPI<RiskAnalysisResponse>(prompt, schema);
+    } catch (error) {
+        console.error("Erro na análise de risco IA:", error);
+        return {
+            summary: "Não foi possível gerar a análise no momento.",
+            insights: [],
+            recommendations: []
+        };
+    }
 };

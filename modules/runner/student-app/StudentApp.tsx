@@ -16,6 +16,7 @@ import { RichTextRenderer } from '../../../components/RichTextRenderer';
 import { AccessibilityToolbar } from '../features/AccessibilityToolbar';
 import { AccessibilityConfig, DEFAULT_ACCESSIBILITY_CONFIG } from '../features/types';
 import { OfflineSubmissionFlow } from '../offline/OfflineSubmissionFlow';
+import { MOCK_TENANT_ID } from '../../../utils/mockData';
 
 // === MESH NETWORK IMPORTS ===
 import { getMeshNetwork } from '../../../services/meshNetworkService';
@@ -452,9 +453,6 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                     registration_number: regNum.toString(),
                     class_id: classIdParam,
                     school_id: 's1', // Fixo demo
-                    import { MOCK_TENANT_ID } from '../../../../utils/mockData';
-
-                    // ...
                     tenant_id: MOCK_TENANT_ID // Fixo demo
                 });
 

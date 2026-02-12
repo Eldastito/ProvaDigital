@@ -9,7 +9,7 @@ import { generatePedagogicalReport } from '../../../services/geminiService';
 import { RichTextRenderer } from '../../../components/RichTextRenderer';
 
 export const ResultFeedbackView = () => {
-    const { examId } = useParams();
+    const { id: examId } = useParams();
     const navigate = useNavigate();
     const { results, exams, currentUser, items, updatePedagogicalFeedback } = useAppStore();
 

@@ -52,111 +52,113 @@ export const StudentDashboardView = () => {
     } = useStudentDashboard();
 
     return (
-        <div className="space-y-6 max-w-7xl mx-auto">
-            <DashboardHeader
-                user={user}
-                studentName={student.name}
-                isParent={isParent}
-                rankingEnabled={state.settings.rankingEnabled}
-                onShowRanking={() => setShowRankingModal(true)}
-                onShowAgenda={() => setShowAgendaModal(true)}
-            />
-
-            <EventInvitations
-                events={availableEvents}
-                onAccept={(id) => setShowEventRules(id)}
-            />
-
-            <ActiveEventsList events={myActiveEvents} />
-
-            <MentorshipBoard student={student} isParent={isParent} />
-
-            <StatsCards stats={stats} trend={trend} />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <LearningProfileCard
-                    profile={profile}
-                    extendedProfile={extendedProfile}
+        <div className="space-y-6 max-w-7xl mx-auto p-4 md:p-6 animate-in fade-in zoom-in-95 duration-500">
+            <div className="glass-effect rounded-3xl p-6 md:p-8 shadow-2xl shadow-brand-primary/10 border-white/20">
+                <DashboardHeader
+                    user={user}
+                    studentName={student.name}
                     isParent={isParent}
+                    rankingEnabled={state.settings.rankingEnabled}
+                    onShowRanking={() => setShowRankingModal(true)}
+                    onShowAgenda={() => setShowAgendaModal(true)}
                 />
 
-                <GamificationCard extendedProfile={extendedProfile} />
-            </div>
+                <EventInvitations
+                    events={availableEvents}
+                    onAccept={(id) => setShowEventRules(id)}
+                />
 
-            <DailyQuestsWidget />
+                <ActiveEventsList events={myActiveEvents} />
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="space-y-6">
-                    {/* NEW: AI Recommendations Widget */}
-                    <RecommendationsWidget results={recentResults} items={state.items} />
+                <MentorshipBoard student={student} isParent={isParent} />
 
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><TrendingUp size={18} /> Evolução de Notas</h3>
-                        <EvolutionChart data={chartData} />
+                <StatsCards stats={stats as any} trend={trend} />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <LearningProfileCard
+                        profile={profile}
+                        extendedProfile={extendedProfile}
+                        isParent={isParent}
+                    />
+
+                    <GamificationCard extendedProfile={extendedProfile} />
+                </div>
+
+                <DailyQuestsWidget />
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="space-y-6">
+                        {/* NEW: AI Recommendations Widget */}
+                        <RecommendationsWidget results={recentResults} items={state.items} />
+
+                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><TrendingUp size={18} /> Evolução de Notas</h3>
+                            <EvolutionChart data={chartData} />
+                        </div>
+
+                        <AgendaWidget
+                            monthEvents={getAllMonthEvents()}
+                            onExpand={() => setShowAgendaModal(true)}
+                        />
                     </div>
 
-                    <AgendaWidget
-                        monthEvents={getAllMonthEvents()}
-                        onExpand={() => setShowAgendaModal(true)}
-                    />
+                    <div className="lg:col-span-2 space-y-6">
+                        {/* NEW: Skills Heatmap Widget */}
+                        <SkillsHeatmapWidget results={recentResults} items={state.items} />
+
+                        <GradesHistory
+                            results={recentResults}
+                            exams={state.exams}
+                            onSelectResult={setSelectedResult}
+                        />
+
+                        <AnnouncementsWidget announcements={state.announcements} />
+                    </div>
                 </div>
 
-                <div className="lg:col-span-2 space-y-6">
-                    {/* NEW: Skills Heatmap Widget */}
-                    <SkillsHeatmapWidget results={recentResults} items={state.items} />
+                <AgendaModal
+                    isOpen={showAgendaModal}
+                    onClose={() => setShowAgendaModal(false)}
+                    currentMonth={currentMonth}
+                    onChangeMonth={changeMonth}
+                    daysInMonth={daysInMonth}
+                    firstDayOfMonth={firstDayOfMonth}
+                    getEventsForDay={getEventsForDay}
+                    getAllMonthEvents={getAllMonthEvents}
+                />
 
-                    <GradesHistory
-                        results={recentResults}
-                        exams={state.exams}
-                        onSelectResult={setSelectedResult}
-                    />
+                <EventRulesModal
+                    isOpen={!!showEventRules}
+                    eventId={showEventRules}
+                    availableEvents={availableEvents}
+                    onClose={() => setShowEventRules(null)}
+                    onAccept={handleAcceptEvent}
+                />
 
-                    <AnnouncementsWidget announcements={state.announcements} />
-                </div>
+                <RankingModal
+                    isOpen={showRankingModal}
+                    onClose={() => setShowRankingModal(false)}
+                    rankingMode={rankingMode}
+                    setRankingMode={setRankingMode}
+                    ranks={ranks}
+                    stats={{
+                        idgScore: stats.idgScore,
+                        examAverage: stats.examAverage,
+                        projectAverage: stats.projectAverage,
+                        bonusPoints: stats.bonusPoints
+                    }}
+                    settings={state.settings}
+                />
+
+                <CorrectionModal
+                    selectedResult={selectedResult}
+                    onClose={() => setSelectedResult(null)}
+                    exams={state.exams}
+                    items={state.items}
+                    isEnabled={isEnabled}
+                    setOwlTutorContext={setOwlTutorContext}
+                />
             </div>
-
-            <AgendaModal
-                isOpen={showAgendaModal}
-                onClose={() => setShowAgendaModal(false)}
-                currentMonth={currentMonth}
-                onChangeMonth={changeMonth}
-                daysInMonth={daysInMonth}
-                firstDayOfMonth={firstDayOfMonth}
-                getEventsForDay={getEventsForDay}
-                getAllMonthEvents={getAllMonthEvents}
-            />
-
-            <EventRulesModal
-                isOpen={!!showEventRules}
-                eventId={showEventRules}
-                availableEvents={availableEvents}
-                onClose={() => setShowEventRules(null)}
-                onAccept={handleAcceptEvent}
-            />
-
-            <RankingModal
-                isOpen={showRankingModal}
-                onClose={() => setShowRankingModal(false)}
-                rankingMode={rankingMode}
-                setRankingMode={setRankingMode}
-                ranks={ranks}
-                stats={{
-                    idgScore: stats.idgScore,
-                    examAverage: stats.examAverage,
-                    projectAverage: stats.projectAverage,
-                    bonusPoints: stats.bonusPoints
-                }}
-                settings={state.settings}
-            />
-
-            <CorrectionModal
-                selectedResult={selectedResult}
-                onClose={() => setSelectedResult(null)}
-                exams={state.exams}
-                items={state.items}
-                isEnabled={isEnabled}
-                setOwlTutorContext={setOwlTutorContext}
-            />
         </div>
     );
 };

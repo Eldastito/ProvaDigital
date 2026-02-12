@@ -19,8 +19,10 @@ import {
     CheckCircle,
     AlertCircle,
     Save,
-    Bell
+    Bell,
+    Brain
 } from 'lucide-react';
+import { RiskAgentAnalyst } from './components/RiskAgentAnalyst';
 
 type FilterLevel = 'ALL' | RiskLevel;
 
@@ -279,6 +281,9 @@ export const RiskDashboard = () => {
                     color="green"
                 />
             </div>
+
+            {/* AI Agent Analyst - Contextual Strategic Insights */}
+            <RiskAgentAnalyst assessments={riskAssessments} />
 
             {/* Botão de Salvar Alertas */}
             {stats.high > 0 || stats.medium > 0 ? (

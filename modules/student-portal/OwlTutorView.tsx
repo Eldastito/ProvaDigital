@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { Send, Brain, Sparkles, Bot, ShieldAlert } from 'lucide-react';
+import { useLocation, Link } from 'react-router-dom';
+import { Send, Brain, Sparkles, Bot, ShieldAlert, BookOpen, CheckCircle } from 'lucide-react';
 import { AppState, User, OwlSession, ExamStatus } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
 import { askOwlTutor } from '../../services/geminiService';
@@ -21,7 +21,7 @@ export const OwlTutorView = () => {
 
     if (!user) return null;
     const student = state.students.find(s => s.id === user.id) || state.students[0];
-    const analytics = new AnalyticsService(state);
+    const analytics = new AnalyticsService();
     const stats = analytics.getStudentStats(student.id);
 
     // Identify Active Exams (Today + Published)
@@ -104,71 +104,150 @@ export const OwlTutorView = () => {
         setLoading(false);
     };
 
+    // --- TABS STATE ---
+    const [activeTab, setActiveTab] = useState<'chat' | 'history'>('chat');
+
+    // --- HISTORY DATA ---
+    const studentResults = state.results
+        .filter(r => r.studentId === student.id)
+        .sort((a, b) => new Date(b.gradedAt).getTime() - new Date(a.gradedAt).getTime());
+
+    const getExamTitle = (examId: string) => state.exams.find(e => e.id === examId)?.title || 'Prova Removida';
+
     return (
         <div className="h-[calc(100vh-140px)] flex flex-col bg-white rounded-xl border border-brand-primary/20 shadow-lg overflow-hidden max-w-4xl mx-auto">
             {/* Header */}
-            <div className="bg-[#0f1d2e] p-4 flex items-center gap-3 text-white justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="bg-brand-secondary p-2 rounded-full">
-                        <Bot size={24} className="text-white" />
+            <div className="bg-[#0f1d2e] p-4 text-white">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-brand-secondary p-2 rounded-full">
+                            <Bot size={24} className="text-white" />
+                        </div>
+                        <div>
+                            <h2 className="font-bold flex items-center gap-2">Corujão Tutor <Sparkles size={14} className="text-yellow-400" /></h2>
+                            <p className="text-xs text-slate-400">IA Educacional Potencializada pelo Gemini</p>
+                        </div>
                     </div>
-                    <div>
-                        <h2 className="font-bold flex items-center gap-2">Corujão Tutor <Sparkles size={14} className="text-yellow-400" /></h2>
-                        <p className="text-xs text-slate-400">IA Educacional Potencializada pelo Gemini</p>
-                    </div>
+                    {forbiddenTopics.length > 0 && (
+                        <div className="flex items-center gap-2 bg-rose-500/20 px-3 py-1 rounded-lg border border-rose-500/50 text-xs text-rose-200 animate-pulse">
+                            <ShieldAlert size={14} />
+                            <span>Modo Prova Ativo</span>
+                        </div>
+                    )}
                 </div>
-                {forbiddenTopics.length > 0 && (
-                    <div className="flex items-center gap-2 bg-rose-500/20 px-3 py-1 rounded-lg border border-rose-500/50 text-xs text-rose-200 animate-pulse">
-                        <ShieldAlert size={14} />
-                        <span>Modo Prova Ativo: {forbiddenTopics.join(', ')} bloqueados.</span>
-                    </div>
-                )}
-            </div>
 
-            {/* Chat Area */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50" ref={scrollRef}>
-                {messages.map((msg, idx) => (
-                    <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${msg.role === 'user'
-                            ? 'bg-brand-primary text-white rounded-tr-none'
-                            : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none'
-                            }`}>
-                            {msg.text.split('\n').map((line, i) => (
-                                <p key={i} className="mb-1 last:mb-0">{line}</p>
-                            ))}
-                        </div>
-                    </div>
-                ))}
-                {loading && (
-                    <div className="flex justify-start">
-                        <div className="bg-white border border-slate-200 p-4 rounded-2xl rounded-tl-none flex items-center gap-2 text-slate-500 text-sm">
-                            <Brain size={16} className="animate-pulse text-brand-secondary" /> O Corujão está pensando...
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Input Area */}
-            <div className="p-4 bg-white border-t border-slate-200">
+                {/* Tabs */}
                 <div className="flex gap-2">
-                    <input
-                        type="text"
-                        className="flex-1 border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none text-slate-700"
-                        placeholder="Digite sua dúvida aqui..."
-                        value={inputText}
-                        onChange={e => setInputText(e.target.value)}
-                        onKeyPress={e => e.key === 'Enter' && handleSend()}
-                    />
                     <button
-                        onClick={handleSend}
-                        disabled={loading || !inputText.trim()}
-                        className="bg-brand-primary hover:bg-brand-dark text-white p-3 rounded-xl disabled:opacity-50 transition"
+                        onClick={() => setActiveTab('chat')}
+                        className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'chat'
+                            ? 'bg-brand-secondary text-white shadow-lg'
+                            : 'bg-white/10 text-slate-400 hover:bg-white/20'
+                            }`}
                     >
-                        <Send size={20} />
+                        <Send size={16} /> Chat Tutor
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('history')}
+                        className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'history'
+                            ? 'bg-brand-secondary text-white shadow-lg'
+                            : 'bg-white/10 text-slate-400 hover:bg-white/20'
+                            }`}
+                    >
+                        <BookOpen size={16} /> Meus Relatórios
                     </button>
                 </div>
-                <p className="text-center text-[10px] text-slate-400 mt-2">O Corujão pode cometer erros. Verifique informações importantes.</p>
             </div>
+
+            {/* Content Area */}
+            {activeTab === 'chat' ? (
+                <>
+                    {/* Chat Area */}
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50" ref={scrollRef}>
+                        {messages.map((msg, idx) => (
+                            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${msg.role === 'user'
+                                    ? 'bg-brand-primary text-white rounded-tr-none'
+                                    : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none'
+                                    }`}>
+                                    {msg.text.split('\n').map((line, i) => (
+                                        <p key={i} className="mb-1 last:mb-0">{line}</p>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                        {loading && (
+                            <div className="flex justify-start">
+                                <div className="bg-white border border-slate-200 p-4 rounded-2xl rounded-tl-none flex items-center gap-2 text-slate-500 text-sm">
+                                    <Brain size={16} className="animate-pulse text-brand-secondary" /> O Corujão está pensando...
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Input Area */}
+                    <div className="p-4 bg-white border-t border-slate-200">
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                className="flex-1 border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none text-slate-700"
+                                placeholder="Digite sua dúvida aqui..."
+                                value={inputText}
+                                onChange={e => setInputText(e.target.value)}
+                                onKeyPress={e => e.key === 'Enter' && handleSend()}
+                            />
+                            <button
+                                onClick={handleSend}
+                                disabled={loading || !inputText.trim()}
+                                className="bg-brand-primary hover:bg-brand-dark text-white p-3 rounded-xl disabled:opacity-50 transition"
+                            >
+                                <Send size={20} />
+                            </button>
+                        </div>
+                        <p className="text-center text-[10px] text-slate-400 mt-2">O Corujão pode cometer erros. Verifique informações importantes.</p>
+                    </div>
+                </>
+            ) : (
+                /* History Tab */
+                <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
+                    <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <CheckCircle size={20} className="text-emerald-500" />
+                        Provas Realizadas
+                    </h3>
+
+                    {studentResults.length === 0 ? (
+                        <div className="text-center py-12 text-slate-400">
+                            <Brain size={48} className="mx-auto mb-4 opacity-20" />
+                            <p>Você ainda não realizou nenhuma prova.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {studentResults.map(result => (
+                                <div key={result.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between hover:shadow-md transition">
+                                    <div>
+                                        <h4 className="font-bold text-slate-800">{getExamTitle(result.examId)}</h4>
+                                        <p className="text-xs text-slate-500">Concluída em {new Date(result.gradedAt).toLocaleDateString()}</p>
+                                    </div>
+                                    <div className="text-right flex items-center gap-4">
+                                        <div>
+                                            <span className="text-xs font-bold text-slate-400">NOTA</span>
+                                            <div className="text-xl font-black text-brand-primary">{result.totalScore.toFixed(1)}</div>
+                                        </div>
+                                        <Link
+                                            to={`/online-exam/results/${result.examId}`}
+                                            className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-brand-primary hover:text-white transition"
+                                            title="Ver Relatório Completo"
+                                        >
+                                            <Bot size={20} />
+                                        </Link>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
         </div>
     );
 };

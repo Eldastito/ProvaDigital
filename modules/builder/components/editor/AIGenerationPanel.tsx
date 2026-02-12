@@ -41,6 +41,7 @@ interface AIGenerationPanelProps {
     adaptiveQuestionsPerStudent: number;
     setAdaptiveQuestionsPerStudent: (qty: number) => void;
     currentMaterial?: MaterialSource | null;
+    onMaterialUploaded?: (material: MaterialSource) => void;
 }
 
 export const AIGenerationPanel: React.FC<AIGenerationPanelProps> = ({
@@ -72,7 +73,8 @@ export const AIGenerationPanel: React.FC<AIGenerationPanelProps> = ({
     setAdaptiveBankSize,
     adaptiveQuestionsPerStudent,
     setAdaptiveQuestionsPerStudent,
-    currentMaterial
+    currentMaterial,
+    onMaterialUploaded
 }) => {
     // Remove local state declarations since they're now coming from props
     const totalQuestions = levelConfigs
@@ -325,27 +327,20 @@ export const AIGenerationPanel: React.FC<AIGenerationPanelProps> = ({
                 <div className="mb-4">
                     <MaterialUploader
                         onMaterialUploaded={(material) => {
-                            // Extract just the file for the existing handler if needed, 
-                            // or ideally we expose the full material to the parent.
-                            // For now, adapting to the existing change handler pattern or calling a new prop.
-                            // Since handleFileUpload expects an event, we might need a wrapper or refactor useItemEditor.
-                            // But useItemEditor has handleFileUpload taking an event.
-                            // Let's create a synthetic event or better yet, assume we can pass the file directly if we refactor,
-                            // but for minimal breakage, we'll use a wrapper here.
+                            if (onMaterialUploaded) {
+                                onMaterialUploaded(material);
+                            } else {
+                                // Fallback for legacy behavior if prop not provided
+                                const dataTransfer = new DataTransfer();
+                                dataTransfer.items.add(material.file);
 
-                            // actually, MaterialUploader gives us the processed material object.
-                            // We should probably update useItemEditor to accept a material object or file directly.
-                            // But to simulate the event for now:
-                            const dataTransfer = new DataTransfer();
-                            dataTransfer.items.add(material.file);
-
-                            if (fileInputRef.current) {
-                                fileInputRef.current.files = dataTransfer.files;
-                                // Trigger the existing handler
-                                const event = {
-                                    target: { files: dataTransfer.files }
-                                } as React.ChangeEvent<HTMLInputElement>;
-                                handleFileUpload(event);
+                                if (fileInputRef.current) {
+                                    fileInputRef.current.files = dataTransfer.files;
+                                    const event = {
+                                        target: { files: dataTransfer.files }
+                                    } as React.ChangeEvent<HTMLInputElement>;
+                                    handleFileUpload(event);
+                                }
                             }
                         }}
                         onRemove={() => setAiContext('')}

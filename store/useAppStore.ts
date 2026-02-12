@@ -201,6 +201,9 @@ interface AppActions {
     updateSuitcaseStatus: (id: string, status: SuitcaseStatus) => Promise<void>;
     logTabletMovement: (serialId: string, suitcaseId: string, action: 'CHECK_IN' | 'CHECK_OUT', actorId: string) => Promise<void>;
     loadLogisticsData: () => Promise<void>;
+
+    // --- UI/THEME ACTIONS ---
+    toggleTheme: () => void;
 }
 
 export type AppStore = AppState & AppActions;
@@ -344,6 +347,24 @@ export const useAppStore = create<AppStore>((set, get) => ({
     hasConsented: false,
     isInitialized: false,
     auditLogs: [],
+
+    toggleTheme: () => {
+        set((state) => {
+            const newTheme = (state.settings.theme === 'light' ? 'dark' : 'light') as 'light' | 'dark';
+            const updatedSettings = { ...state.settings, theme: newTheme };
+
+            // Persist preference
+            localStorage.setItem('examepad_theme', newTheme);
+
+            // update currentUser theme too if exists
+            const updatedUser = state.currentUser ? { ...state.currentUser, theme: newTheme } : null;
+
+            return {
+                settings: updatedSettings,
+                currentUser: updatedUser
+            } as Partial<AppStore>;
+        });
+    },
 
     setHasConsented: (val) => set({ hasConsented: val }),
     setOwlTutorContext: (ctx) => set({ owlTutorContext: ctx }),

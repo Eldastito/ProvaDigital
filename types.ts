@@ -272,6 +272,7 @@ export interface User {
   status?: string;
   childrenIds?: string[]; // Array de IDs dos filhos
   specialNeeds?: string[]; // Condition codes like TEA, TDAH, DISLEXIA
+  theme?: 'light' | 'dark'; // Preferência de tema do usuário
 }
 
 export interface Student {
@@ -822,6 +823,7 @@ export interface StudentProfile {
 export interface AppSettings {
   rankingEnabled: boolean;
   rankingAnonymity: 'NOMINAL' | 'ANONIMO';
+  theme: 'light' | 'dark';
 }
 
 export type MeshRole = 'SERVER' | 'COORDINATOR' | 'PROFESSOR' | 'STUDENT' | 'UNASSIGNED';

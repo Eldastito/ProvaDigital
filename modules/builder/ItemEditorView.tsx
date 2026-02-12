@@ -54,7 +54,8 @@ export const ItemEditorView = () => {
         adaptiveBankSize, setAdaptiveBankSize,
         adaptiveQuestionsPerStudent, setAdaptiveQuestionsPerStudent,
         handleClearForm,
-        currentMaterial
+        currentMaterial,
+        handleMaterialUpload
     } = useItemEditor();
 
     return (
@@ -237,6 +238,7 @@ export const ItemEditorView = () => {
                                 setAdaptiveQuestionsPerStudent={setAdaptiveQuestionsPerStudent}
                                 onClearForm={handleClearForm}
                                 currentMaterial={currentMaterial}
+                                onMaterialUploaded={handleMaterialUpload}
                             />
                         )}
                     </div>

@@ -11,6 +11,7 @@ import { generateQuestionsFromText } from '../../services/geminiService';
 import { Loader2, FileText, Upload } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Item, QuestionType, DifficultyLevel, ItemOrigin } from '../../types';
+import { AgentCoPilotOverlay } from './components/AgentCoPilotOverlay';
 
 export const ExamBuilderView = () => {
     const {
@@ -267,6 +268,21 @@ export const ExamBuilderView = () => {
                     />
                 )}
             </div>
+
+            {/* AI Co-Pilot Overlay */}
+            {step > 1 && (
+                <AgentCoPilotOverlay
+                    examTitle={config.title}
+                    items={selectedItems}
+                    onApplyAction={(type, data) => {
+                        console.log(`Co-Pilot Action: ${type}`, data);
+                        if (type === 'BNCC_LINK' && data) {
+                            // Example: Linking BNCC to the exam configuration
+                            setConfig(prev => ({ ...prev, bnccCodes: data }));
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 };

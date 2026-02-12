@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { 
-    Search, 
-    ShieldCheck, 
-    Zap, 
-    Lock, 
-    Fingerprint, 
-    TrendingUp, 
+import {
+    Search,
+    ShieldCheck,
+    Zap,
+    Lock,
+    Fingerprint,
+    TrendingUp,
     BarChart3,
     Clock,
     UserCircle,
@@ -29,20 +29,20 @@ export const AlgorithmTransparencyPortal = () => {
         // Em prod, carregaria do banco 'audit_session_data' (hashes e trajetórias)
         setTimeout(() => {
             setAuditData({
-              sessionId: 'ses_82739410',
-              studentHash: 'user_u8172X_mask', // Pseudonimização
-              examId: 'math_diag_2031_01',
-              finalTheta: 1.42,
-              finalSEE: 0.28,
-              convergenceHash: 'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-              steps: [
-                { item: 'it_001', theta: 0.0, see: 1.0, resp: 'CORRECT' },
-                { item: 'it_052', theta: 0.8, see: 0.65, resp: 'CORRECT' },
-                { item: 'it_112', theta: 1.2, see: 0.45, resp: 'WRONG' },
-                { item: 'it_089', theta: 1.1, see: 0.38, resp: 'CORRECT' },
-                { item: 'it_095', theta: 1.3, see: 0.32, resp: 'CORRECT' },
-                { item: 'it_150', theta: 1.42, see: 0.28, resp: 'STOP' }
-              ]
+                sessionId: 'ses_82739410',
+                studentHash: 'user_u8172X_mask', // Pseudonimização
+                examId: 'math_diag_2031_01',
+                finalTheta: 1.42,
+                finalSEE: 0.28,
+                convergenceHash: 'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+                steps: [
+                    { item: 'it_001', theta: 0.0, see: 1.0, resp: 'CORRECT' },
+                    { item: 'it_052', theta: 0.8, see: 0.65, resp: 'CORRECT' },
+                    { item: 'it_112', theta: 1.2, see: 0.45, resp: 'WRONG' },
+                    { item: 'it_089', theta: 1.1, see: 0.38, resp: 'CORRECT' },
+                    { item: 'it_095', theta: 1.3, see: 0.32, resp: 'CORRECT' },
+                    { item: 'it_150', theta: 1.42, see: 0.28, resp: 'STOP' }
+                ]
             });
             setLoading(false);
         }, 800);
@@ -77,15 +77,15 @@ export const AlgorithmTransparencyPortal = () => {
                 <div className="flex gap-4">
                     <div className="relative flex-1">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
                             className="w-full pl-12 pr-4 py-4 bg-slate-100 border-none rounded-xl focus:ring-2 focus:ring-brand-primary outline-none text-slate-800 font-mono"
                             placeholder="Ex: ses_8273..."
                             value={searchId}
                             onChange={(e) => setSearchId(e.target.value)}
                         />
                     </div>
-                    <button 
+                    <button
                         onClick={handleSearch}
                         disabled={loading}
                         className="px-8 bg-brand-primary hover:bg-brand-dark text-white rounded-xl font-bold transition-all shadow-lg shadow-brand-primary/20 flex items-center gap-2"
@@ -134,23 +134,23 @@ export const AlgorithmTransparencyPortal = () => {
                                     Convergência de Proficiência
                                 </h2>
                                 <span className="text-xs bg-emerald-50 text-emerald-700 font-bold px-3 py-1 rounded-full border border-emerald-100 italic">
-                                    SEE Alvo Atingido: 0.28 <= 0.30
+                                    SEE Alvo Atingido: 0.28 {'<='} 0.30
                                 </span>
                             </div>
 
                             <div className="relative h-64 w-full bg-slate-50 rounded-xl border border-dashed border-slate-300 flex items-center justify-center overflow-hidden">
                                 {/* Visualização Simplificada da Trajetória */}
                                 <div className="absolute inset-0 flex items-end justify-between px-10 pb-10">
-                                  {auditData.steps.map((s: any, i: number) => (
-                                    <div 
-                                      key={i} 
-                                      className="flex flex-col items-center gap-2"
-                                      style={{ height: `${(s.theta + 2) * 20}%` }}
-                                    >
-                                      <div className={`w-3 rounded-full ${s.resp === 'CORRECT' ? 'bg-emerald-400' : s.resp === 'STOP' ? 'bg-brand-primary scale-125' : 'bg-red-400'}`} style={{ height: '100%', minHeight: '8px' }}></div>
-                                      <span className="text-[8px] font-bold text-slate-400">Step {i+1}</span>
-                                    </div>
-                                  ))}
+                                    {auditData.steps.map((s: any, i: number) => (
+                                        <div
+                                            key={i}
+                                            className="flex flex-col items-center gap-2"
+                                            style={{ height: `${(s.theta + 2) * 20}%` }}
+                                        >
+                                            <div className={`w-3 rounded-full ${s.resp === 'CORRECT' ? 'bg-emerald-400' : s.resp === 'STOP' ? 'bg-brand-primary scale-125' : 'bg-red-400'}`} style={{ height: '100%', minHeight: '8px' }}></div>
+                                            <span className="text-[8px] font-bold text-slate-400">Step {i + 1}</span>
+                                        </div>
+                                    ))}
                                 </div>
                                 <span className="z-10 text-slate-400 text-sm italic">Trajetória Estocástica Auditável</span>
                             </div>
@@ -158,35 +158,34 @@ export const AlgorithmTransparencyPortal = () => {
 
                         {/* Tabela de Passos */}
                         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                          <table className="w-full text-left">
-                            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">
-                              <tr>
-                                <th className="px-6 py-4 text-xs font-bold uppercase">Passo</th>
-                                <th className="px-6 py-4 text-xs font-bold uppercase">Item ID</th>
-                                <th className="px-6 py-4 text-xs font-bold uppercase">Theta Est.</th>
-                                <th className="px-6 py-4 text-xs font-bold uppercase">Precisão (SEE)</th>
-                                <th className="px-6 py-4 text-xs font-bold uppercase">Resposta</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                              {auditData.steps.map((step: any, idx: number) => (
-                                <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                                  <td className="px-6 py-4 font-bold text-slate-400">#{idx + 1}</td>
-                                  <td className="px-6 py-4 font-mono text-xs text-slate-600">{step.item}</td>
-                                  <td className="px-6 py-4 font-bold text-slate-800">{step.theta.toFixed(2)}</td>
-                                  <td className="px-6 py-4 text-slate-500">{step.see.toFixed(2)}</td>
-                                  <td className="px-6 py-4">
-                                    <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${
-                                      step.resp === 'CORRECT' ? 'bg-emerald-100 text-emerald-700' :
-                                      step.resp === 'STOP' ? 'bg-brand-dark text-white' : 'bg-red-100 text-red-700'
-                                    }`}>
-                                      {step.resp}
-                                    </span>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                            <table className="w-full text-left">
+                                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">
+                                    <tr>
+                                        <th className="px-6 py-4 text-xs font-bold uppercase">Passo</th>
+                                        <th className="px-6 py-4 text-xs font-bold uppercase">Item ID</th>
+                                        <th className="px-6 py-4 text-xs font-bold uppercase">Theta Est.</th>
+                                        <th className="px-6 py-4 text-xs font-bold uppercase">Precisão (SEE)</th>
+                                        <th className="px-6 py-4 text-xs font-bold uppercase">Resposta</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {auditData.steps.map((step: any, idx: number) => (
+                                        <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                            <td className="px-6 py-4 font-bold text-slate-400">#{idx + 1}</td>
+                                            <td className="px-6 py-4 font-mono text-xs text-slate-600">{step.item}</td>
+                                            <td className="px-6 py-4 font-bold text-slate-800">{step.theta.toFixed(2)}</td>
+                                            <td className="px-6 py-4 text-slate-500">{step.see.toFixed(2)}</td>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${step.resp === 'CORRECT' ? 'bg-emerald-100 text-emerald-700' :
+                                                        step.resp === 'STOP' ? 'bg-brand-dark text-white' : 'bg-red-100 text-red-700'
+                                                    }`}>
+                                                    {step.resp}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>

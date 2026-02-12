@@ -135,32 +135,15 @@ export const useItemEditor = () => {
 
     const [currentMaterial, setCurrentMaterial] = useState<any>(null);
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
+    const handleMaterialUpload = async (material: MaterialSource) => {
         setAiLoading(true);
         try {
-            let type: 'pdf' | 'docx' | 'xlsx' | 'txt' | 'image' = 'txt';
-
-            if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) type = 'pdf';
-            else if (file.name.endsWith('.docx') || file.type.includes('wordprocessing')) type = 'docx';
-            else if (file.name.endsWith('.xlsx') || file.type.includes('spreadsheet')) type = 'xlsx';
-            else if (file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp)$/i.test(file.name)) type = 'image';
-
-            const materialSource: MaterialSource = {
-                file,
-                type,
-                fileName: file.name,
-                fileSize: file.size,
-                uploadedAt: new Date()
-            };
-
-            const result = await processFile(materialSource);
+            // Processar arquivo
+            const result = await processFile(material);
 
             const materialInfo = {
-                fileName: file.name,
-                fileType: file.type,
+                fileName: material.fileName,
+                fileType: material.type,
                 uploadDate: new Date().toISOString(),
                 extractedText: result.extractedText
             };
@@ -168,14 +151,14 @@ export const useItemEditor = () => {
             setCurrentMaterial(materialInfo);
 
             // Se for imagem (OCR), substitui o contexto. Se for texto, anexa.
-            if (type === 'image') {
-                setAiContext(result.extractedText);
-                alert("Imagem carregada! Clique em 'Gerar' para extrair as questões via OCR.");
+            if (material.type === 'image') {
+                setAiContext(result.extractedText); // extractedText já vem com prefixo IMAGE_BASE64: se for imagem
+                // alert("Imagem carregada! Clique em 'Gerar' para extrair as questões via OCR.");
             } else {
                 setAiContext(prev => {
                     // Se o contexto anterior era uma imagem, substitui pelo novo texto
                     if (prev.startsWith('IMAGE_BASE64:')) return result.extractedText;
-                    return prev + `\n\n--- Arquivo: ${file.name} ---\n` + result.extractedText;
+                    return prev + `\n\n--- Arquivo: ${material.fileName} ---\n` + result.extractedText;
                 });
             }
         } catch (error) {
@@ -185,6 +168,28 @@ export const useItemEditor = () => {
             setAiLoading(false);
             if (fileInputRef.current) fileInputRef.current.value = "";
         }
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        let type: 'pdf' | 'docx' | 'xlsx' | 'txt' | 'image' = 'txt';
+
+        if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) type = 'pdf';
+        else if (file.name.endsWith('.docx') || file.type.includes('wordprocessing')) type = 'docx';
+        else if (file.name.endsWith('.xlsx') || file.type.includes('spreadsheet')) type = 'xlsx';
+        else if (file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp)$/i.test(file.name)) type = 'image';
+
+        const materialSource: MaterialSource = {
+            file,
+            type,
+            fileName: file.name,
+            fileSize: file.size,
+            uploadedAt: new Date()
+        };
+
+        await handleMaterialUpload(materialSource);
     };
 
     const handleImproveStatement = async () => {
@@ -735,6 +740,7 @@ export const useItemEditor = () => {
         handleReviewQuestions,
         // Form utilities
         handleClearForm,
-        currentMaterial
+        currentMaterial,
+        handleMaterialUpload
     };
 };

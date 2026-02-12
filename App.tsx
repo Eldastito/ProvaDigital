@@ -165,11 +165,23 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, [isInitialized]); // FIX: Add isInitialized dependency
 
+  // --- 4. THEME INITIALIZATION ---
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('examepad_theme') as 'light' | 'dark' | null;
+    if (savedTheme && savedTheme !== store.settings.theme) {
+      useAppStore.setState(state => ({
+        settings: { ...state.settings, theme: savedTheme }
+      }));
+    }
+  }, []);
+
   const element = useRoutes(appRoutes);
+  const currentTheme = store.settings.theme || 'light';
+  const userRoleClass = currentUser ? `role-${currentUser.role.toLowerCase()}` : '';
 
   if (authChecking) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center flex-col gap-4 bg-slate-50">
+      <div className={`flex h-screen w-screen items-center justify-center flex-col gap-4 bg-slate-50 ${currentTheme}`}>
         <div className="w-10 h-10 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
         <p className="text-slate-500 font-medium">Autenticando...</p>
       </div>
@@ -177,7 +189,7 @@ export default function App() {
   }
 
   return (
-    <>
+    <div className={`${currentTheme} ${userRoleClass} min-h-screen bg-primary transition-colors duration-300`}>
       {element}
       {!hasConsented && (
         <PrivacyPolicyModal
@@ -185,7 +197,7 @@ export default function App() {
           onReject={() => alert("O aceite é obrigatório.")}
         />
       )}
-    </>
+    </div>
   );
 }
 

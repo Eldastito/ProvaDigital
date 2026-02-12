@@ -131,4 +131,13 @@ export class OfflineCacheService {
     }
 }
 
+export const registerCachedExam = async (examId: string, title: string) => {
+    const key = 'cached_exams_index';
+    const index = JSON.parse(localStorage.getItem(key) || '[]');
+    if (!index.find((e: any) => e.id === examId)) {
+        index.push({ id: examId, title, downloadedAt: new Date().toISOString() });
+        localStorage.setItem(key, JSON.stringify(index));
+    }
+};
+
 export const offlineCacheService = OfflineCacheService.getInstance();
