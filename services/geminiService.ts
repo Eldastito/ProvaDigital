@@ -582,7 +582,8 @@ async function callGeminiAPI<T>(
     while (attempt < maxRetries) {
         try {
             const ai = new GoogleGenAI({
-                apiKey
+                apiKey,
+                apiVersion: 'v1'
             });
 
             const config: any = {
