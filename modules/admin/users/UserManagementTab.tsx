@@ -18,7 +18,7 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
     isTenantAdmin,
     schools
 }) => {
-    const { users } = useSafeAppStore();
+    const { users, classes } = useSafeAppStore();
 
     // States
     const [searchTerm, setSearchTerm] = useState('');
@@ -132,6 +132,7 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                 onSubmit={handleSubmit}
                 editingUser={editingUser}
                 availableSchools={schools}
+                availableClasses={classes} // Passing classes to modal
                 currentTenantId={currentUser.tenantId}
                 isTenantAdmin={isTenantAdmin}
             />

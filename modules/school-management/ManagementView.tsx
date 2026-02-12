@@ -44,7 +44,7 @@ export const ManagementView = () => {
                         </button>
                     )}
                     {/* Hide Add button for Schools if Director (they can only edit) */}
-                    {activeTab !== 'COMMAND_CENTER' && activeTab !== 'SETTINGS' && activeTab !== 'BATCH_IMPORT' && activeTab !== 'HIERARCHY' && activeTab !== 'USERS' && (isTenantAdmin || activeTab !== 'SCHOOLS') && (
+                    {activeTab !== 'COMMAND_CENTER' && activeTab !== 'SETTINGS' && activeTab !== 'BATCH_IMPORT' && activeTab !== 'HIERARCHY' && (isTenantAdmin || activeTab !== 'SCHOOLS') && (
                         <button onClick={() => openModal()} className="flex-1 sm:flex-none justify-center btn-gradient px-3 md:px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm text-xs md:text-sm font-medium">
                             <Plus size={18} />
                             Adicionar <span className="sm:inline">{activeTab === 'SCHOOLS' ? 'Escola' : activeTab === 'CLASSES' ? 'Turma' : activeTab === 'STUDENTS' ? 'Aluno' : 'Usuário'}</span>

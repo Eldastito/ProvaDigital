@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, UserRole, School } from '../../../types';
+import { User, UserRole, School, SchoolClass } from '../../../types';
 import { X, Check, AlertCircle } from 'lucide-react';
 import { translateUserRole } from '../../../utils/translations';
 import { userService } from '../../../services/userService';
@@ -10,6 +10,7 @@ interface UserFormModalProps {
     onSubmit: (data: any) => Promise<void>;
     editingUser?: User | null;
     availableSchools: School[];
+    availableClasses: SchoolClass[];
     currentTenantId: string;
     isTenantAdmin: boolean;
 }
@@ -20,14 +21,22 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
     onSubmit,
     editingUser,
     availableSchools,
+    availableClasses,
     currentTenantId,
     isTenantAdmin
 }) => {
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        name: string;
+        email: string;
+        role: UserRole;
+        schoolId: string;
+        classIds: string[];
+    }>({
         name: '',
         email: '',
         role: UserRole.PROFESSOR,
-        schoolId: ''
+        schoolId: '',
+        classIds: []
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -39,14 +48,16 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                     name: editingUser.name,
                     email: editingUser.email,
                     role: editingUser.role,
-                    schoolId: editingUser.schoolId || ''
+                    schoolId: editingUser.schoolId || '',
+                    classIds: editingUser.classIds || []
                 });
             } else {
                 setFormData({
                     name: '',
                     email: '',
                     role: UserRole.PROFESSOR,
-                    schoolId: ''
+                    schoolId: '',
+                    classIds: []
                 });
             }
             setError(null);
@@ -139,7 +150,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                                     required
                                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-primary outline-none bg-white"
                                     value={formData.schoolId}
-                                    onChange={e => setFormData({ ...formData, schoolId: e.target.value })}
+                                    onChange={e => setFormData({ ...formData, schoolId: e.target.value, classIds: [] })}
                                 >
                                     <option value="">Selecione...</option>
                                     {availableSchools.map(s => (
@@ -149,6 +160,36 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                             </div>
                         )}
                     </div>
+
+                    {/* Class Selection for Professors */}
+                    {formData.role === UserRole.PROFESSOR && formData.schoolId && (
+                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Turmas Associadas</label>
+                            <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto custom-scrollbar">
+                                {availableClasses.filter(c => c.schoolId === formData.schoolId).map(cls => (
+                                    <label key={cls.id} className="flex items-center gap-2 p-1 hover:bg-white rounded cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.classIds?.includes(cls.id)}
+                                            onChange={e => {
+                                                const newClassIds = e.target.checked
+                                                    ? [...(formData.classIds || []), cls.id]
+                                                    : (formData.classIds || []).filter(id => id !== cls.id);
+                                                setFormData({ ...formData, classIds: newClassIds });
+                                            }}
+                                            className="rounded text-brand-primary focus:ring-brand-primary"
+                                        />
+                                        <span className="text-sm text-slate-700 truncate" title={cls.name}>
+                                            {cls.name} <span className="text-xs text-slate-400">({cls.series})</span>
+                                        </span>
+                                    </label>
+                                ))}
+                                {availableClasses.filter(c => c.schoolId === formData.schoolId).length === 0 && (
+                                    <div className="text-xs text-slate-400 col-span-2 italic">Nenhuma turma cadastrada nesta escola.</div>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     <div className="pt-4 flex justify-end gap-3">
                         <button
