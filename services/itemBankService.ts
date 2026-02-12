@@ -1,47 +1,7 @@
 import { Item } from '../types';
 
-/**
- * Metadata de questão para rastreamento de fonte e auditoria
- */
-export interface QuestionMetadata {
-    // Fonte
-    source?: {
-        type: 'manual' | 'ai_upload' | 'ai_context' | 'ai_topic';
-        fileName?: string;
-        fileType?: string;
-        uploadDate?: Date;
-        pageRange?: string;
-        extractedContext?: string;
-    };
-
-    // Geração
-    generatedBy: 'professor' | 'ai';
-    aiModel?: string;
-    promptVersion?: string;
-    generatedAt: Date;
-
-    // Uso
-    timesUsed?: number;
-    lastUsedAt?: Date;
-    usedInExams?: Array<{
-        examId: string;
-        examName: string;
-        date: Date;
-        studentsCount: number;
-    }>;
-}
-
-/**
- * Registro de uso de questão no banco de itens
- */
-export interface ItemUsageRecord {
-    questionId: string;
-    schoolId: string;
-    examId: string;
-    year: number;
-    usedAt: Date;
-    studentsCount: number;
-}
+// Local types moved to types.ts
+import { QuestionMetadata, ItemUsageRecord } from '../types';
 
 /**
  * Filtros para busca no banco de itens
@@ -126,7 +86,7 @@ class ItemBankService {
             schoolId,
             examId,
             year: currentYear,
-            usedAt: new Date(),
+            usedAt: new Date().toISOString(),
             studentsCount
         };
 
@@ -158,9 +118,7 @@ class ItemBankService {
                     return false;
                 }
                 if (filters.bnccCodes && filters.bnccCodes.length > 0) {
-                    const hasMatchingCode = question.bnccCodes?.some(code =>
-                        filters.bnccCodes!.includes(code)
-                    );
+                    const hasMatchingCode = question.bnccCode && filters.bnccCodes.includes(question.bnccCode);
                     if (!hasMatchingCode) return false;
                 }
             }
@@ -174,10 +132,10 @@ class ItemBankService {
      */
     getQuestionStats(questionId: string, schoolId?: string): {
         timesUsed: number;
-        lastUsedAt?: Date;
+        lastUsedAt?: string;
         usedInExams: Array<{
             examId: string;
-            date: Date;
+            date: string;
             studentsCount: number;
         }>;
     } {
@@ -188,7 +146,7 @@ class ItemBankService {
         return {
             timesUsed: records.length,
             lastUsedAt: records.length > 0
-                ? new Date(Math.max(...records.map(r => new Date(r.usedAt).getTime())))
+                ? records.map(r => r.usedAt).sort().reverse()[0]
                 : undefined,
             usedInExams: records.map(r => ({
                 examId: r.examId,

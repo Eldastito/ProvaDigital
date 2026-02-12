@@ -1,34 +1,6 @@
 import React from 'react';
 import { X, FileText, Calendar, User, Cpu, BarChart3, Clock, CheckCircle2 } from 'lucide-react';
-import { Item } from '../../../types';
-
-export interface QuestionMetadata {
-    // Fonte
-    source?: {
-        type: 'manual' | 'ai_upload' | 'ai_context' | 'ai_topic';
-        fileName?: string;
-        fileType?: string;
-        uploadDate?: Date;
-        pageRange?: string;
-        extractedContext?: string;
-    };
-
-    // Geração
-    generatedBy: 'professor' | 'ai';
-    aiModel?: string;
-    promptVersion?: string;
-    generatedAt: Date;
-
-    // Uso
-    timesUsed?: number;
-    lastUsedAt?: Date;
-    usedInExams?: Array<{
-        examId: string;
-        examName: string;
-        date: Date;
-        studentsCount: number;
-    }>;
-}
+import { Item, QuestionMetadata } from '../../../types';
 
 interface QuestionAuditModalProps {
     isOpen: boolean;
@@ -232,9 +204,9 @@ export const QuestionAuditModal: React.FC<QuestionAuditModalProps> = ({
                                 <strong>Enunciado:</strong> {question.statement.substring(0, 200)}
                                 {question.statement.length > 200 && '...'}
                             </p>
-                            {question.type === 'MULTIPLE_CHOICE' && question.options && (
+                            {question.type === 'MULTIPLE_CHOICE' && question.alternatives && (
                                 <div className="text-xs text-slate-600">
-                                    <strong>Alternativas:</strong> {question.options.length} opções
+                                    <strong>Alternativas:</strong> {question.alternatives.length} opções
                                 </div>
                             )}
                             <div className="mt-2 flex gap-2 text-xs">

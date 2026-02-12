@@ -130,6 +130,9 @@ export const useItemEditor = () => {
     const handleDragOver = (e: React.DragEvent, index: number) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (draggedIdx === null || draggedIdx === index) return; const newAlts = [...alternatives]; const draggedItem = newAlts[draggedIdx]; newAlts.splice(draggedIdx, 1); newAlts.splice(index, 0, draggedItem); setAlternatives(newAlts); setDraggedIdx(index); };
     const handleDragEnd = () => { setDraggedIdx(null); };
 
+    const [currentMaterial, setCurrentMaterial] = useState<any>(null);
+
+    // handleFileUpload atualizado para rastrear material
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -137,8 +140,9 @@ export const useItemEditor = () => {
         setAiLoading(true);
         try {
             let extractedText = "";
+            const fileType = file.type || (file.name.endsWith(".pdf") ? "application/pdf" : "");
 
-            if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+            if (fileType === "application/pdf") {
                 const arrayBuffer = await file.arrayBuffer();
                 const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
                 let fullText = "";
@@ -149,11 +153,11 @@ export const useItemEditor = () => {
                     fullText += `\n--- Página ${i} ---\n${pageText}\n`;
                 }
                 extractedText = fullText;
-            } else if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || file.name.endsWith(".docx")) {
+            } else if (fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
                 const arrayBuffer = await file.arrayBuffer();
                 const result = await mammoth.extractRawText({ arrayBuffer });
                 extractedText = result.value;
-            } else if (file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || file.name.endsWith(".xlsx")) {
+            } else if (fileType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
                 const arrayBuffer = await file.arrayBuffer();
                 const workbook = XLSX.read(arrayBuffer);
                 let fullText = "";
@@ -167,6 +171,14 @@ export const useItemEditor = () => {
                 extractedText = await file.text();
             }
 
+            const materialInfo = {
+                fileName: file.name,
+                fileType: file.type,
+                uploadDate: new Date().toISOString(),
+                extractedText: extractedText
+            };
+
+            setCurrentMaterial(materialInfo);
             setAiContext(prev => prev + `\n\n--- Arquivo: ${file.name} ---\n` + extractedText);
         } catch (error) {
             console.error("Erro ao processar arquivo:", error);
@@ -256,8 +268,6 @@ export const useItemEditor = () => {
         }
     };
 
-    // handleSuggestBNCC removed - use manual BNCC search instead
-
     const handleGenerateJustification = async () => {
         const correctAlt = alternatives.find(a => a.isCorrect && a.text.trim());
         if (!correctAlt) return alert('Defina a alternativa correta primeiro.');
@@ -282,6 +292,17 @@ export const useItemEditor = () => {
             const batchId = uuidv4();
             let allItems: Item[] = [];
             let coverText = '';
+
+            // Metadados básicos de fonte
+            const sourceMetadata: any = {
+                type: currentMaterial ? 'ai_upload' : 'ai_context',
+                uploadDate: new Date().toISOString()
+            };
+
+            if (currentMaterial) {
+                sourceMetadata.fileName = currentMaterial.fileName;
+                sourceMetadata.fileType = currentMaterial.fileType;
+            }
 
             if (useMultiLevel) {
                 // ============ MODO MULTI-NÍVEL ============
@@ -329,7 +350,17 @@ export const useItemEditor = () => {
                             aiPromptVersion: g.promptVersion,
                             lifecycleStatus: ItemLifecycleStatus.DRAFT,
                             createdAt: new Date().toISOString(),
-                            triParams: g.triParams as any
+                            triParams: g.triParams as any,
+                            metadata: {
+                                source: {
+                                    ...sourceMetadata,
+                                    extractedContext: g.statement.substring(0, 500)
+                                },
+                                generatedBy: 'ai',
+                                aiModel: g.aiModel,
+                                promptVersion: g.promptVersion,
+                                generatedAt: new Date().toISOString()
+                            }
                         }));
 
                         allItems.push(...levelItems);
@@ -373,14 +404,12 @@ export const useItemEditor = () => {
                 setCoverText(coverText);
                 setValidationResults({
                     phase1: qualityResult,
-                    phase2: standardsResult as any, // Cast para resolver incompatibilidade de tipo category
+                    phase2: standardsResult as any,
                     overallScore: Math.round((qualityResult.skillCoverage + standardsResult.inepCompliance + standardsResult.bnccCompliance) / 3),
                     approved: qualityResult.skillCoverage >= 70 && standardsResult.inepCompliance >= 70,
                     flaggedQuestions: standardsResult.issues.filter(i => i.severity === 'HIGH').map(i => i.questionId)
                 });
-
             } else {
-                // ============ MODO SIMPLES (Original) ============
                 const questions = await generateQuestionsFromText(
                     aiContext, aiQuantity, QuestionType.MULTIPLE_CHOICE, form.difficulty, form.subject || 'Geral'
                 );
@@ -406,42 +435,31 @@ export const useItemEditor = () => {
                         aiModelId: g.aiModel,
                         aiPromptVersion: g.promptVersion,
                         lifecycleStatus: ItemLifecycleStatus.DRAFT,
-                        createdAt: new Date().toISOString()
+                        createdAt: new Date().toISOString(),
+                        metadata: {
+                            source: {
+                                ...sourceMetadata,
+                                extractedContext: aiContext.substring(0, 500)
+                            },
+                            generatedBy: 'ai',
+                            aiModel: g.aiModel,
+                            promptVersion: g.promptVersion,
+                            generatedAt: new Date().toISOString()
+                        }
                     }));
                 }
             }
 
-            // Salvar batch e itens
+            // Salvar
             if (allItems.length > 0) {
-                if (state.addGenerationBatch) {
-                    await state.addGenerationBatch({
-                        id: batchId,
-                        creatorId: state.currentUser!.id,
-                        tenantId: state.currentUser!.tenantId,
-                        promptContext: aiContext,
-                        totalRequested: useMultiLevel ? allItems.length : aiQuantity,
-                        createdAt: new Date().toISOString()
-                    });
-                }
-
-                if (state.addItems) {
-                    await state.addItems(allItems);
-                }
-
+                if (state.addItems) await state.addItems(allItems);
                 setActiveBatchId(batchId);
                 setGenerationProgress(100);
-
-                if (useMultiLevel) {
-                    // Abrir modal de resultados ao invés de alert
-                    setShowValidationModal(true);
-                } else {
-                    alert(`${allItems.length} questões geradas e salvas com sucesso.`);
-                }
+                if (!useMultiLevel) alert(`${allItems.length} questões geradas com metadados de auditoria.`);
             }
         } catch (e: any) {
             console.error('AI Generation Error:', e);
-            const errorMsg = e.message || "Erro desconhecido";
-            alert(`Não foi possível salvar as questões no banco.\n\nDetalhe técnico: ${errorMsg}\n\nVerifique se você tem permissão de administrador ou se o banco de dados está acessível.`);
+            alert(`Erro na geração: ${e.message}`);
         } finally {
             setAiLoading(false);
             setGenerationProgress(0);
