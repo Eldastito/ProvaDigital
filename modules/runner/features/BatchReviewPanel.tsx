@@ -48,8 +48,8 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
         if (!batchId) return;
 
         // Guard: Prevent known invalid ID "t1" from crashing RPC
-        if (batchId === 't1' || !batchId.includes('-')) {
-            alert("Erro: Lote com ID inválido (t1). Operação bloqueada.");
+        if (!batchId || !batchId.includes('-')) {
+            alert("Erro: Lote com ID inválido. Operação bloqueada.");
             return;
         }
 

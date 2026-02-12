@@ -1,10 +1,14 @@
 
 import { Tenant, School, SchoolClass, User, UserRole, Item, QuestionType, DifficultyLevel, ItemOrigin, Student, Exam, ExamModel, ExamStatus, ExamRegistration, RegistrationStatus, ExamResult, Announcement, ChatMessage, LessonPlan, StudyPlan, StudentProfile, AppSettings, RiskLevel, UserProfileExtended, AssessmentType, TenantType, GamifiedEvent, GamifiedEventStatus } from '../types';
 
+// UUIDs válidos para evitar erros de sintaxe no Banco de Dados (RPCs/Foreign Keys)
+export const MOCK_TENANT_ID = 'd5f2c7a0-9b3e-4b8a-8c9d-6e1f0a2b3c4d'; // Antigo 't1'
+export const MOCK_TENANT_ID_2 = 'a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d'; // Antigo 't2'
+
 // --- 1. TENANTS (REDES) ---
 export const INITIAL_TENANTS: Tenant[] = [
-  { id: 't1', name: 'Secretaria Mun. de Educação', type: TenantType.PUBLIC_MUNICIPAL, cnpj: '00.000.000/0001-00' },
-  { id: 't2', name: 'Secretaria Estadual de Educação', type: TenantType.PUBLIC_STATE, cnpj: '11.111.111/0001-11' },
+  { id: MOCK_TENANT_ID, name: 'Secretaria Mun. de Educação', type: TenantType.PUBLIC_MUNICIPAL, cnpj: '00.000.000/0001-00' },
+  { id: MOCK_TENANT_ID_2, name: 'Secretaria Estadual de Educação', type: TenantType.PUBLIC_STATE, cnpj: '11.111.111/0001-11' },
   { id: 't3', name: 'Ministério da Educação (MEC)', type: TenantType.PUBLIC_FEDERAL, cnpj: '22.222.222/0001-22' },
   { id: 't4', name: 'Rede Privada Elite', type: TenantType.PRIVATE, cnpj: '33.333.333/0001-33' }
 ];
@@ -12,11 +16,11 @@ export const INITIAL_TENANTS: Tenant[] = [
 // --- 2. SCHOOLS (UMA POR REDE) ---
 export const INITIAL_SCHOOLS: School[] = [
   {
-    id: 's1', tenantId: 't1', name: 'Escola Municipal Cora Coralina', inep: '12345678',
+    id: 's1', tenantId: MOCK_TENANT_ID, name: 'Escola Municipal Cora Coralina', inep: '12345678',
     resources: { funding: true, uniforms: true, textbooks: true, adminMaterials: true, extracurricular: false, internet: true, lab: false, accessibility: true, food: true, transportation: true, security: false, ac_cooling: false }
   },
   {
-    id: 's2', tenantId: 't2', name: 'Colégio Estadual Darcy Ribeiro', inep: '87654321',
+    id: 's2', tenantId: MOCK_TENANT_ID_2, name: 'Colégio Estadual Darcy Ribeiro', inep: '87654321',
     resources: { funding: true, uniforms: false, textbooks: true, adminMaterials: false, extracurricular: true, internet: true, lab: true, accessibility: true, food: true, transportation: false, security: true, ac_cooling: true }
   },
   {
@@ -39,28 +43,28 @@ export const INITIAL_CLASSES: SchoolClass[] = [
 
 // --- 4. STUDENTS (FILHOS) ---
 export const INITIAL_STUDENTS: Student[] = [
-  { id: 'st_muni', name: 'João Pedro (Muni)', registrationNumber: 'MUN-001', classId: 'c1', schoolId: 's1', tenantId: 't1' },
-  { id: 'st_state', name: 'Maria Eduarda (Est)', registrationNumber: 'EST-002', classId: 'c2', schoolId: 's2', tenantId: 't2' },
+  { id: 'st_muni', name: 'João Pedro (Muni)', registrationNumber: 'MUN-001', classId: 'c1', schoolId: 's1', tenantId: MOCK_TENANT_ID },
+  { id: 'st_state', name: 'Maria Eduarda (Est)', registrationNumber: 'EST-002', classId: 'c2', schoolId: 's2', tenantId: MOCK_TENANT_ID_2 },
   { id: 'st_fed', name: 'Pedro Henrique (Fed)', registrationNumber: 'FED-003', classId: 'c3', schoolId: 's3', tenantId: 't3' },
   { id: 'st_priv', name: 'Ana Clara (Part)', registrationNumber: 'PRI-004', classId: 'c4', schoolId: 's4', tenantId: 't4' },
   // Extras para volume
-  { id: 'st_5', name: 'Lucas Ferreira', registrationNumber: '2024005', classId: 'c1', schoolId: 's1', tenantId: 't1' },
+  { id: 'st_5', name: 'Lucas Ferreira', registrationNumber: '2024005', classId: 'c1', schoolId: 's1', tenantId: MOCK_TENANT_ID },
 ];
 
 // --- 5. USERS (PERFIS) ---
 export const INITIAL_USERS: User[] = [
-  { id: 'u1', name: 'Ana Silva', email: 'ana.prof@escola.com', role: UserRole.PROFESSOR, tenantId: 't1', schoolId: 's1', classIds: ['c1'] },
-  { id: 'u2', name: 'Carlos Souza', email: 'carlos.coord@escola.com', role: UserRole.SUPERVISOR, tenantId: 't1', schoolId: 's1' },
-  { id: 'u3', name: 'Diretora Marta', email: 'marta.dir@escola.com', role: UserRole.DIRETOR, tenantId: 't1', schoolId: 's1' },
+  { id: 'u1', name: 'Ana Silva', email: 'ana.prof@escola.com', role: UserRole.PROFESSOR, tenantId: MOCK_TENANT_ID, schoolId: 's1', classIds: ['c1'] },
+  { id: 'u2', name: 'Carlos Souza', email: 'carlos.coord@escola.com', role: UserRole.SUPERVISOR, tenantId: MOCK_TENANT_ID, schoolId: 's1' },
+  { id: 'u3', name: 'Diretora Marta', email: 'marta.dir@escola.com', role: UserRole.DIRETOR, tenantId: MOCK_TENANT_ID, schoolId: 's1' },
 
   // GESTORES DE REDE (MACRO)
   { id: 'u_mec', name: 'Ministro da Educação', email: 'ministro@mec.gov.br', role: UserRole.SUPER_ADMIN, tenantId: 't3' }, // PERFIL NACIONAL
-  { id: 'u_sec_mun', name: 'Sec. Municipal', email: 'admin@sme.gov.br', role: UserRole.TENANT_ADMIN, tenantId: 't1' },
-  { id: 'u_sec_est', name: 'Sec. Estadual', email: 'gov@estado.gov.br', role: UserRole.STATE_ADMIN, tenantId: 't2' },
-  { id: 'u_super', name: 'Super Admin', email: 'root@examepad.com', role: UserRole.SUPER_ADMIN, tenantId: 't1' },
+  { id: 'u_sec_mun', name: 'Sec. Municipal', email: 'admin@sme.gov.br', role: UserRole.TENANT_ADMIN, tenantId: MOCK_TENANT_ID },
+  { id: 'u_sec_est', name: 'Sec. Estadual', email: 'gov@estado.gov.br', role: UserRole.STATE_ADMIN, tenantId: MOCK_TENANT_ID_2 },
+  { id: 'u_super', name: 'Super Admin', email: 'root@examepad.com', role: UserRole.SUPER_ADMIN, tenantId: MOCK_TENANT_ID },
 
   // ALUNOS (LOGIN DIRETO)
-  { id: 'aluno1', name: 'João Pedro', nickname: 'JotaPê', email: 'joao.p@aluno.com', role: UserRole.ALUNO, tenantId: 't1', schoolId: 's1' },
+  { id: 'aluno1', name: 'João Pedro', nickname: 'JotaPê', email: 'joao.p@aluno.com', role: UserRole.ALUNO, tenantId: MOCK_TENANT_ID, schoolId: 's1' },
 
   // MÃE MULTI-REDE
   {
@@ -77,7 +81,7 @@ export const INITIAL_USERS: User[] = [
 // --- 6. ITEMS & EXAMS ---
 export const INITIAL_ITEMS: Item[] = [
   {
-    id: 'i1', tenantId: 't1', schoolId: 's1', ownerId: 'u1',
+    id: 'i1', tenantId: MOCK_TENANT_ID, schoolId: 's1', ownerId: 'u1',
     knowledgeArea: 'Humanas', subject: 'História', type: QuestionType.MULTIPLE_CHOICE,
     statement: 'Qual foi o principal motivo da vinda da Família Real?',
     alternatives: [{ id: 'a1', text: 'Napoleão', isCorrect: true }, { id: 'a2', text: 'Férias', isCorrect: false }],
@@ -88,24 +92,24 @@ export const INITIAL_ITEMS: Item[] = [
 
 export const INITIAL_EXAMS: Exam[] = [
   {
-    id: 'e1', tenantId: 't1', schoolId: 's1', creatorId: 'u1',
+    id: 'e1', tenantId: MOCK_TENANT_ID, schoolId: 's1', creatorId: 'u1',
     title: 'História - 9º Ano', subject: 'História', model: ExamModel.SOMATIVO, durationMinutes: 50, targetQuestionCount: 10,
     status: ExamStatus.PUBLISHED, items: [{ itemId: 'i1', order: 1 }], classIds: ['c1'], createdAt: new Date().toISOString(), scheduledDate: new Date().toISOString().split('T')[0], maxScore: 10.0
   },
   {
-    id: 'e2', tenantId: 't2', schoolId: 's2', creatorId: 'u_sec_est',
+    id: 'e2', tenantId: MOCK_TENANT_ID_2, schoolId: 's2', creatorId: 'u_sec_est',
     title: 'Simulado Estadual (SAEB)', subject: 'Português', model: ExamModel.SOMATIVO, durationMinutes: 90, targetQuestionCount: 40,
     status: ExamStatus.PUBLISHED, items: [], classIds: ['c2'], createdAt: new Date().toISOString(), scheduledDate: new Date().toISOString().split('T')[0], maxScore: 100.0
   },
   // Adding a "Trabalho" to test weighted ranking
   {
-    id: 'e3', tenantId: 't1', schoolId: 's1', creatorId: 'u1',
+    id: 'e3', tenantId: MOCK_TENANT_ID, schoolId: 's1', creatorId: 'u1',
     title: 'Trabalho de Pesquisa: Guerra Fria', subject: 'História', model: ExamModel.SOMATIVO, durationMinutes: 0, targetQuestionCount: 1,
     status: ExamStatus.PUBLISHED, items: [], classIds: ['c1'], createdAt: new Date().toISOString(), scheduledDate: new Date().toISOString().split('T')[0], maxScore: 10.0
   },
   // PROVA ADAPTATIVA (TRI)
   {
-    id: 'e_adapt_1', tenantId: 't1', schoolId: 's1', creatorId: 'u1',
+    id: 'e_adapt_1', tenantId: MOCK_TENANT_ID, schoolId: 's1', creatorId: 'u1',
     title: 'Avaliação Adaptativa Premium (Matemática)', subject: 'Matemática', model: ExamModel.ADAPTADO,
     durationMinutes: 45, targetQuestionCount: 5,
     status: ExamStatus.PUBLISHED, items: [],
@@ -113,7 +117,7 @@ export const INITIAL_EXAMS: Exam[] = [
   },
   // PROVA DE SIMULAÇÃO
   {
-    id: 'e_sim_1', tenantId: 't1', schoolId: 's1', creatorId: 'u1',
+    id: 'e_sim_1', tenantId: MOCK_TENANT_ID, schoolId: 's1', creatorId: 'u1',
     title: 'Lab. Virtual de Física', subject: 'Física', model: ExamModel.SOMATIVO,
     durationMinutes: 30, targetQuestionCount: 1,
     status: ExamStatus.PUBLISHED, items: [{ itemId: 'sim_1', order: 1 }],
@@ -173,8 +177,8 @@ export const INITIAL_RESULTS: ExamResult[] = [
 ];
 
 export const INITIAL_ANNOUNCEMENTS: Announcement[] = [
-  { id: 'anc_1', tenantId: 't1', schoolId: 's1', authorId: 'u3', title: 'Reunião Pais', content: 'Dia 20/10', type: 'EVENTO', createdAt: new Date().toISOString() },
-  { id: 'anc_2', tenantId: 't2', schoolId: 's2', authorId: 'u_sec_est', title: 'Matrículas Estaduais', content: 'Abertas', type: 'AVISO', createdAt: new Date().toISOString() }
+  { id: 'anc_1', tenantId: MOCK_TENANT_ID, schoolId: 's1', authorId: 'u3', title: 'Reunião Pais', content: 'Dia 20/10', type: 'EVENTO', createdAt: new Date().toISOString() },
+  { id: 'anc_2', tenantId: MOCK_TENANT_ID_2, schoolId: 's2', authorId: 'u_sec_est', title: 'Matrículas Estaduais', content: 'Abertas', type: 'AVISO', createdAt: new Date().toISOString() }
 ];
 
 export const INITIAL_MESSAGES: ChatMessage[] = [];

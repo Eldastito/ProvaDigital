@@ -71,7 +71,10 @@ export const LiveDemoSetup = ({ onSessionCreated }: LiveDemoSetupProps) => {
         setLoading(true);
 
         try {
-            const tenantId = 't1';
+            import { MOCK_TENANT_ID } from '../../../../utils/mockData';
+
+            // ...
+            const tenantId = MOCK_TENANT_ID;
             const schoolId = 's1';
 
             // 1. Ensure exam items are loaded

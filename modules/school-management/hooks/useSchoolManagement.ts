@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { AppState, School, SchoolClass, Student, User, UserRole, SchoolResources } from '../../../types';
 import { uuidv4 } from '../../../utils/helpers';
 import { useSafeAppStore } from '../../../store/useAppStore';
+import { MOCK_TENANT_ID } from '../../../utils/mockData';
 
 export type ManagementTab = 'SCHOOLS' | 'CLASSES' | 'STUDENTS' | 'USERS' | 'COMMAND_CENTER' | 'SETTINGS' | 'BATCH_IMPORT' | 'HIERARCHY' | 'TENANT_SETTINGS';
 
@@ -30,7 +31,7 @@ export const useSchoolManagement = () => {
     const userSchoolId = currentUser?.schoolId;
     const isTenantAdmin = currentUser?.role === UserRole.TENANT_ADMIN || currentUser?.role === UserRole.SUPER_ADMIN;
     const isDirector = currentUser?.role === UserRole.DIRETOR;
-    const currentTenantId = currentUser?.tenantId || 't1';
+    const currentTenantId = currentUser?.tenantId || MOCK_TENANT_ID;
 
     // --- DATA FILTERING (ISOLATION) ---
     const visibleSchools = isTenantAdmin ? state.schools : state.schools.filter(s => s.id === userSchoolId);

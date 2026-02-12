@@ -1,9 +1,10 @@
 import React, { RefObject, useState } from 'react';
-import { Brain, Upload, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Brain, Upload, Loader2, CheckCircle2, AlertCircle, Image as ImageIcon, X } from 'lucide-react';
 import { DifficultyLevel, QualityStandard, DifficultyLevelConfig } from '../../../../types';
 import BNCCCodeSuggester from '../BNCCCodeSuggester';
 import { SubjectSelector } from './SubjectSelector';
 import { AdaptiveConfigPanel } from './AdaptiveConfigPanel';
+import { MaterialUploader, MaterialSource } from '../MaterialUploader';
 
 interface AIGenerationPanelProps {
     form: {
@@ -39,6 +40,7 @@ interface AIGenerationPanelProps {
     setAdaptiveBankSize: (size: number) => void;
     adaptiveQuestionsPerStudent: number;
     setAdaptiveQuestionsPerStudent: (qty: number) => void;
+    currentMaterial?: MaterialSource | null;
 }
 
 export const AIGenerationPanel: React.FC<AIGenerationPanelProps> = ({
@@ -69,7 +71,8 @@ export const AIGenerationPanel: React.FC<AIGenerationPanelProps> = ({
     adaptiveBankSize,
     setAdaptiveBankSize,
     adaptiveQuestionsPerStudent,
-    setAdaptiveQuestionsPerStudent
+    setAdaptiveQuestionsPerStudent,
+    currentMaterial
 }) => {
     // Remove local state declarations since they're now coming from props
     const totalQuestions = levelConfigs
@@ -317,25 +320,64 @@ export const AIGenerationPanel: React.FC<AIGenerationPanelProps> = ({
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                     📄 Contexto Adicional (Opcional)
                 </label>
-                <textarea
-                    className="w-full border rounded-lg p-3 text-sm h-32 font-mono mb-2"
-                    value={aiContext}
-                    onChange={e => setAiContext(e.target.value)}
-                    placeholder="Cole aqui o texto ou faça upload de um arquivo para análise..."
-                />
+
+                {/* Material Uploader Integration */}
+                <div className="mb-4">
+                    <MaterialUploader
+                        onMaterialUploaded={(material) => {
+                            // Extract just the file for the existing handler if needed, 
+                            // or ideally we expose the full material to the parent.
+                            // For now, adapting to the existing change handler pattern or calling a new prop.
+                            // Since handleFileUpload expects an event, we might need a wrapper or refactor useItemEditor.
+                            // But useItemEditor has handleFileUpload taking an event.
+                            // Let's create a synthetic event or better yet, assume we can pass the file directly if we refactor,
+                            // but for minimal breakage, we'll use a wrapper here.
+
+                            // actually, MaterialUploader gives us the processed material object.
+                            // We should probably update useItemEditor to accept a material object or file directly.
+                            // But to simulate the event for now:
+                            const dataTransfer = new DataTransfer();
+                            dataTransfer.items.add(material.file);
+
+                            if (fileInputRef.current) {
+                                fileInputRef.current.files = dataTransfer.files;
+                                // Trigger the existing handler
+                                const event = {
+                                    target: { files: dataTransfer.files }
+                                } as React.ChangeEvent<HTMLInputElement>;
+                                handleFileUpload(event);
+                            }
+                        }}
+                        onRemove={() => setAiContext('')}
+                        currentMaterial={aiContext.startsWith('IMAGE_BASE64:') ? {
+                            type: 'image',
+                            fileName: 'Imagem Carregada',
+                            fileSize: 0,
+                            uploadedAt: new Date(),
+                            file: new File([], 'image.jpg') // Dummy for display if needed
+                        } : undefined} // We might need to map aiContext back to material if possible, but complex for text.
+                    // Actually, let's keep the text area for text, and Uploader for files.
+                    />
+                </div>
+
+                {!aiContext.startsWith('IMAGE_BASE64:') && (
+                    <textarea
+                        className="w-full border rounded-lg p-3 text-sm h-32 font-mono mb-2 focus:ring-2 focus:ring-brand-primary focus:border-transparent outline-none transition"
+                        value={aiContext}
+                        onChange={e => setAiContext(e.target.value)}
+                        placeholder="Ou cole aqui o texto manualmente..."
+                        disabled={aiLoading}
+                    />
+                )}
+
+                {/* Hidden input kept for ref compatibility if needed, but likely redundant with MaterialUploader */}
                 <input
                     type="file"
-                    accept=".txt,.csv,.md,.pdf,.docx,.xlsx"
+                    accept=".txt,.csv,.md,.pdf,.docx,.xlsx,.jpg,.jpeg,.png,.webp"
                     className="hidden"
                     ref={fileInputRef}
                     onChange={handleFileUpload}
                 />
-                <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-sm text-white bg-brand-primary hover:bg-sky-700 px-4 py-2 rounded-lg flex items-center gap-2 w-fit transition shadow-sm font-bold"
-                >
-                    <Upload size={16} /> Carregar PDF, Word ou Excel
-                </button>
             </div>
 
             {/* Botão de Geração */}

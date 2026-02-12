@@ -4,11 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import * as pdfjsLib from 'pdfjs-dist';
 import mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
+import { processFile } from '../../../services/fileProcessing';
 import { AppState, Item, DifficultyLevel, QuestionType, ItemOrigin, ItemLifecycleStatus, ItemGenerationBatch, QualityStandard, DifficultyLevelConfig, DualValidationResult } from '../../../types';
 import { generateQuestionsFromText, improveItemStatement, generateDistractors, suggestBNCC, generateJustification, variateItem, adaptItemForAccessibility, extractItemFromImage, extractItemsFromMultipleImages, auditPedagogicalItem, validateQuestionQuality, validateQuestionStandards, generateExamCover } from '../../../services/geminiService';
 import { uuidv4 } from '../../../utils/helpers';
 import { useSafeAppStore } from '../../../store/useAppStore';
 import { useFormPersistence, getPersistedValue, clearPersistedForm } from './useFormPersistence';
+import { MOCK_TENANT_ID } from '../../../utils/mockData';
 
 // Configuração do Worker do PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.530/pdf.worker.mjs`;
@@ -133,57 +135,52 @@ export const useItemEditor = () => {
 
     const [currentMaterial, setCurrentMaterial] = useState<any>(null);
 
-    // handleFileUpload atualizado para rastrear material
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         setAiLoading(true);
         try {
-            let extractedText = "";
-            const fileType = file.type || (file.name.endsWith(".pdf") ? "application/pdf" : "");
+            let type: 'pdf' | 'docx' | 'xlsx' | 'txt' | 'image' = 'txt';
 
-            if (fileType === "application/pdf") {
-                const arrayBuffer = await file.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-                let fullText = "";
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const content = await page.getTextContent();
-                    const pageText = content.items.map((item: any) => item.str).join(" ");
-                    fullText += `\n--- Página ${i} ---\n${pageText}\n`;
-                }
-                extractedText = fullText;
-            } else if (fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-                const arrayBuffer = await file.arrayBuffer();
-                const result = await mammoth.extractRawText({ arrayBuffer });
-                extractedText = result.value;
-            } else if (fileType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
-                const arrayBuffer = await file.arrayBuffer();
-                const workbook = XLSX.read(arrayBuffer);
-                let fullText = "";
-                workbook.SheetNames.forEach(sheetName => {
-                    const worksheet = workbook.Sheets[sheetName];
-                    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-                    fullText += `\n--- Planilha: ${sheetName} ---\n${JSON.stringify(json)}\n`;
-                });
-                extractedText = fullText;
-            } else {
-                extractedText = await file.text();
-            }
+            if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) type = 'pdf';
+            else if (file.name.endsWith('.docx') || file.type.includes('wordprocessing')) type = 'docx';
+            else if (file.name.endsWith('.xlsx') || file.type.includes('spreadsheet')) type = 'xlsx';
+            else if (file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp)$/i.test(file.name)) type = 'image';
+
+            const materialSource: MaterialSource = {
+                file,
+                type,
+                fileName: file.name,
+                fileSize: file.size,
+                uploadedAt: new Date()
+            };
+
+            const result = await processFile(materialSource);
 
             const materialInfo = {
                 fileName: file.name,
                 fileType: file.type,
                 uploadDate: new Date().toISOString(),
-                extractedText: extractedText
+                extractedText: result.extractedText
             };
 
             setCurrentMaterial(materialInfo);
-            setAiContext(prev => prev + `\n\n--- Arquivo: ${file.name} ---\n` + extractedText);
+
+            // Se for imagem (OCR), substitui o contexto. Se for texto, anexa.
+            if (type === 'image') {
+                setAiContext(result.extractedText);
+                alert("Imagem carregada! Clique em 'Gerar' para extrair as questões via OCR.");
+            } else {
+                setAiContext(prev => {
+                    // Se o contexto anterior era uma imagem, substitui pelo novo texto
+                    if (prev.startsWith('IMAGE_BASE64:')) return result.extractedText;
+                    return prev + `\n\n--- Arquivo: ${file.name} ---\n` + result.extractedText;
+                });
+            }
         } catch (error) {
             console.error("Erro ao processar arquivo:", error);
-            alert("Não foi possível ler este arquivo. Verifique o formato.");
+            alert("Não foi possível ler este arquivo. " + error);
         } finally {
             setAiLoading(false);
             if (fileInputRef.current) fileInputRef.current.value = "";
@@ -617,7 +614,7 @@ export const useItemEditor = () => {
 
         const newItem: Item = {
             id: uuidv4(),
-            tenantId: state.currentUser?.tenantId || 't1',
+            tenantId: state.currentUser?.tenantId || MOCK_TENANT_ID,
             schoolId: state.currentUser?.schoolId,
             ownerId: state.currentUser?.id || '',
             knowledgeArea: 'Geral',
@@ -737,6 +734,7 @@ export const useItemEditor = () => {
         handleApproveValidation,
         handleReviewQuestions,
         // Form utilities
-        handleClearForm
+        handleClearForm,
+        currentMaterial
     };
 };

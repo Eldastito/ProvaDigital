@@ -3,6 +3,7 @@ import { useSafeAppStore } from '../../../store/useAppStore';
 import { AnalyticsService } from '../../../services/analyticsService';
 import { UserRole, RiskLevel, Exam, ExamResult, GamifiedEventStatus } from '../../../types';
 import { useFeatureFlag } from '../../../context/FeatureFlagContext';
+import { MOCK_TENANT_ID } from '../../../../utils/mockData';
 
 export const useStudentDashboard = () => {
     const state = useSafeAppStore();
@@ -28,7 +29,7 @@ export const useStudentDashboard = () => {
         name: user.name || 'Estudante',
         email: user.email,
         role: UserRole.ALUNO,
-        tenantId: user.tenantId || 't1',
+        tenantId: user.tenantId || MOCK_TENANT_ID,
         schoolId: '',
         classId: '',
         status: 'ACTIVE',

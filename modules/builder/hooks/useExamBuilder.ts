@@ -6,6 +6,7 @@ import { uuidv4 } from '../../../utils/helpers';
 import { useSafeAppStore } from '../../../store/useAppStore';
 import { smartSelectItems, ExamCriteria } from '../../../services/examService';
 import { generateQuestionsFromText } from '../../../services/geminiService';
+import { MOCK_TENANT_ID } from '../../../utils/mockData';
 
 export const useExamBuilder = () => {
     const navigate = useNavigate();
@@ -154,7 +155,7 @@ export const useExamBuilder = () => {
 
             const newExam: Exam = {
                 id: examId,
-                tenantId: state.currentUser?.tenantId || 't1',
+                tenantId: state.currentUser?.tenantId || MOCK_TENANT_ID,
                 schoolId: state.currentUser?.schoolId || 's1',
                 creatorId: state.currentUser?.id || '',
                 title: config.title,
@@ -237,7 +238,7 @@ export const useExamBuilder = () => {
             if (generated) {
                 const newItems: Item[] = generated.map(g => ({
                     id: uuidv4(),
-                    tenantId: state.currentUser?.tenantId || 't1', ownerId: state.currentUser?.id || 'sys',
+                    tenantId: state.currentUser?.tenantId || MOCK_TENANT_ID, ownerId: state.currentUser?.id || 'sys',
                     statement: g.statement, subject: config.subject, type: QuestionType.MULTIPLE_CHOICE,
                     alternatives: g.alternatives.map(a => ({ id: uuidv4(), ...a })),
                     correctAnswerJustification: g.justification, difficulty: g.difficulty as DifficultyLevel,
@@ -247,7 +248,7 @@ export const useExamBuilder = () => {
                 }));
                 if (state.addGenerationBatch) {
                     await state.addGenerationBatch({
-                        id: batchId, creatorId: state.currentUser?.id || '', tenantId: state.currentUser?.tenantId || 't1',
+                        id: batchId, creatorId: state.currentUser?.id || '', tenantId: state.currentUser?.tenantId || MOCK_TENANT_ID,
                         promptContext, totalRequested: selectionDiagnosis.missingCount, createdAt: new Date().toISOString()
                     });
                 }
@@ -271,7 +272,7 @@ export const useExamBuilder = () => {
                 rows.forEach(row => {
                     if (!row.enunciado || !row.disciplina || !row.alternativa_a || !row.gabarito) return;
                     newItems.push({
-                        id: uuidv4(), tenantId: state.currentUser?.tenantId || 't1', ownerId: state.currentUser?.id || 'sys',
+                        id: uuidv4(), tenantId: state.currentUser?.tenantId || MOCK_TENANT_ID, ownerId: state.currentUser?.id || 'sys',
                         statement: row.enunciado, subject: row.disciplina, type: QuestionType.MULTIPLE_CHOICE,
                         difficulty: DifficultyLevel.MEDIUM,
                         alternatives: [

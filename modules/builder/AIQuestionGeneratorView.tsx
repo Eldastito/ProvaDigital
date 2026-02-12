@@ -5,6 +5,7 @@ import { generateQuestionsFromText, generateEssayQuestion, generateVisualSuggest
 import { useSafeAppStore } from '../../store/useAppStore';
 import { uuidv4 } from '../../utils/helpers';
 import { useNavigate } from 'react-router-dom';
+import { MOCK_TENANT_ID } from '../../utils/mockData';
 
 export const AIQuestionGeneratorView = () => {
     const navigate = useNavigate();
@@ -131,7 +132,7 @@ export const AIQuestionGeneratorView = () => {
                 const essay = g as GeneratedEssay;
                 return {
                     id: uuidv4(),
-                    tenantId: state.currentUser?.tenantId || 't1',
+                    tenantId: state.currentUser?.tenantId || MOCK_TENANT_ID,
                     ownerId: state.currentUser?.id || 'sys',
                     statement: `${essay.motivationalText}\n\n**Comando:** ${essay.instruction}`,
                     subject: config.subject,
@@ -152,7 +153,7 @@ export const AIQuestionGeneratorView = () => {
             } else {
                 return {
                     id: uuidv4(),
-                    tenantId: state.currentUser?.tenantId || 't1',
+                    tenantId: state.currentUser?.tenantId || MOCK_TENANT_ID,
                     ownerId: state.currentUser?.id || 'sys',
                     statement: g.statement,
                     subject: config.subject,

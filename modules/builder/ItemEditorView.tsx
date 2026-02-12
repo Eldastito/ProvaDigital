@@ -49,10 +49,12 @@ export const ItemEditorView = () => {
         validationResults,
         coverText,
         handleApproveValidation,
+        handleReviewQuestions,
         // Adaptive configuration
         adaptiveBankSize, setAdaptiveBankSize,
         adaptiveQuestionsPerStudent, setAdaptiveQuestionsPerStudent,
-        handleClearForm
+        handleClearForm,
+        currentMaterial
     } = useItemEditor();
 
     return (
@@ -234,6 +236,7 @@ export const ItemEditorView = () => {
                                 adaptiveQuestionsPerStudent={adaptiveQuestionsPerStudent}
                                 setAdaptiveQuestionsPerStudent={setAdaptiveQuestionsPerStudent}
                                 onClearForm={handleClearForm}
+                                currentMaterial={currentMaterial}
                             />
                         )}
                     </div>
@@ -260,12 +263,14 @@ export const ItemEditorView = () => {
                 )}
             </div>
 
-            {/* Validation Results Modal */}
             {showValidationModal && validationResults && (
                 <ValidationResultsModal
-                    results={validationResults}
+                    isOpen={showValidationModal}
+                    validationResults={validationResults}
+                    coverText={coverText}
                     onClose={() => setShowValidationModal(false)}
                     onApprove={handleApproveValidation}
+                    onReview={handleReviewQuestions}
                 />
             )}
         </div>

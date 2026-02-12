@@ -160,12 +160,14 @@ Critérios:
     `,
     EXTRACT_ITEM_FROM_IMAGE: () => `
         Você é um Especialista em Digitalização e Transcrição Pedagógica (Padrão INEP/ENEM).
-        Sua tarefa é ler a imagem fornecida (foto de livro, apostila ou prova) e extrair TODAS as questões de avaliação presentes.
+        Sua tarefa é ler as imagens fornecidas (fotos de livro, apostila ou prova) e extrair TODAS as questões de avaliação presentes.
 
         REQUISITOS DE EXTRAÇÃO:
-        1. TEXTO-BASE: Extraia o texto motivador ou contexto que precede a questão.
+        1. TEXTO-BASE: Extraia o texto motivador ou contexto que precede a questão. Se for um gráfico ou imagem, descreva-o entre colchetes [Descrição da Imagem: ...].
         2. ENUNCIADO: Identifique o comando da questão (pergunta ou instrução).
-        3. ALTERNATIVAS: Identifique as opções (A, B, C, D, E). Marque explicitamente a CORRETA com base no conteúdo (ou gabarito visual se houver).
+        3. ALTERNATIVAS: Identifique as opções (A, B, C, D, E). 
+           - Se a imagem tiver marcação de gabarito (x ou círculo), marque 'isCorrect: true'.
+           - Se não tiver, deduza a resposta correta pelo conteúdo.
         4. TRI: Estime os parâmetros TRI (Dificuldade b, Discriminação a, Chute c).
         5. PEDAGÓGICO: Identifique a Disciplina e sugira um código BNCC coerente.
         
@@ -910,89 +912,7 @@ export const suggestBNCC = async (statement: string): Promise<{ code: string; re
     return callGeminiAPI<{ code: string; reason: string }>(prompt, schema);
 };
 
-/**
- * OCR Inteligente: Converte imagem em questão estruturada
- */
-export async function extractItemFromImage(base64Image: string): Promise<GeneratedQuestion | null> {
-    return extractItemsFromMultipleImages([base64Image]).then(items => items.length > 0 ? items[0] : null);
-}
 
-/**
- * Extração Multimodal: Converte múltiplas imagens (capítulos, fotos, apostilas) em banco de questões
- */
-export async function extractItemsFromMultipleImages(base64Images: string[]): Promise<GeneratedQuestion[]> {
-    const apiKey = getApiKey();
-    if (!apiKey || base64Images.length === 0) return [];
-
-    try {
-        const ai = new GoogleGenAI({ apiKey });
-        const parts: any[] = [{ text: (PROMPTS as any).EXTRACT_ITEM_FROM_IMAGE() }];
-
-        base64Images.forEach(img => {
-            parts.push({
-                inlineData: {
-                    data: img.split(',')[1],
-                    mimeType: "image/jpeg"
-                }
-            });
-        });
-
-        const contents = [{ role: 'user', parts }];
-
-        const response = await ai.models.generateContent({
-            model: DEFAULT_MODEL,
-            contents: contents,
-            config: {
-                responseMimeType: "application/json",
-                // Aumentamos o limite para suportar mais questões
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        questions: {
-                            type: Type.ARRAY,
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    statement: { type: Type.STRING },
-                                    alternatives: {
-                                        type: Type.ARRAY,
-                                        items: {
-                                            type: Type.OBJECT,
-                                            properties: {
-                                                text: { type: Type.STRING },
-                                                isCorrect: { type: Type.BOOLEAN }
-                                            }
-                                        }
-                                    },
-                                    justification: { type: Type.STRING },
-                                    difficulty: { type: Type.STRING },
-                                    bnccCode: { type: Type.STRING }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
-        let text = "";
-        if (typeof (response as any).text === 'function') {
-            text = (response as any).text();
-        } else if (response.candidates && response.candidates[0]?.content?.parts?.[0]?.text) {
-            text = response.candidates[0].content.parts[0].text;
-        }
-
-        const data = JSON.parse(text) as { questions: GeneratedQuestion[] };
-        return (data.questions || []).map(q => ({
-            ...q,
-            aiModel: DEFAULT_MODEL,
-            promptVersion: PROMPT_VERSION
-        }));
-    } catch (error) {
-        console.error("AI Error (Multimodal extraction):", error);
-        return [];
-    }
-}
 
 /**
  * Auditoria Pedagógica: Analisa a qualidade técnica e pedagógica do item
@@ -1809,3 +1729,88 @@ function generateFallbackExamCover(data: {
 
     return cover;
 }
+
+
+/**
+ * OCR Inteligente: Converte imagem em questão estruturada
+ */
+export async function extractItemFromImage(base64Image: string): Promise<GeneratedQuestion | null> {
+    const items = await extractItemsFromMultipleImages([base64Image]);
+    return items.length > 0 ? items[0] : null;
+}
+
+export const extractItemsFromMultipleImages = async (
+    imagesBase64: string[]
+): Promise<GeneratedQuestion[]> => {
+
+    // Preparar conteúdo multimodal
+    const contentParts: any[] = [
+        { text: PROMPTS.EXTRACT_ITEM_FROM_IMAGE() }
+    ];
+
+    // Adicionar cada imagem como inline_data
+    imagesBase64.forEach(base64 => {
+        // Remover prefixo data:image/...;base64, se existir, para a API
+        const cleanBase64 = base64.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "");
+
+        contentParts.push({
+            inlineData: {
+                mimeType: "image/jpeg", // Assumindo JPEG ou deixando genérico se a API aceitar
+                data: cleanBase64
+            }
+        });
+    });
+
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            questions: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        statement: { type: Type.STRING },
+                        alternatives: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    text: { type: Type.STRING },
+                                    isCorrect: { type: Type.BOOLEAN }
+                                }
+                            }
+                        },
+                        justification: { type: Type.STRING },
+                        difficulty: { type: Type.STRING, enum: ["FACIL", "MEDIO", "DIFICIL"] },
+                        bnccCode: { type: Type.STRING },
+                        triParams: {
+                            type: Type.OBJECT,
+                            properties: {
+                                difficulty: { type: Type.NUMBER },
+                                discrimination: { type: Type.NUMBER },
+                                guessing: { type: Type.NUMBER },
+                                bloomTaxonomy: { type: Type.STRING },
+                                cognitiveAxis: { type: Type.STRING }
+                            }
+                        }
+                    },
+                    required: ["statement", "alternatives", "justification", "difficulty"]
+                }
+            }
+        },
+        required: ["questions"]
+    };
+
+    interface SchemaResponse { questions: GeneratedQuestion[] }
+
+    // Usar modelo Flash que tem visão e é rápido
+    const res = await callGeminiAPI<SchemaResponse>(contentParts, schema);
+
+    const questions = Array.isArray(res.questions) ? res.questions : [res as any];
+
+    return questions.map(q => ({
+        ...q,
+        aiModel: 'gemini-1.5-flash', // Vision usually runs on Flash/Pro
+        promptVersion: PROMPT_VERSION
+    }));
+};
