@@ -46,6 +46,13 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
 
     const approveAll = async () => {
         if (!batchId) return;
+
+        // Guard: Prevent known invalid ID "t1" from crashing RPC
+        if (batchId === 't1' || !batchId.includes('-')) {
+            alert("Erro: Lote com ID inválido (t1). Operação bloqueada.");
+            return;
+        }
+
         try {
             await useAppStore.getState().approveAllItemsInBatch(batchId);
             setLocalItems(prev => prev.map(i => ({ ...i, lifecycleStatus: ItemLifecycleStatus.APPROVED })));

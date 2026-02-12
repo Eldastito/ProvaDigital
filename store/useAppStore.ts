@@ -1582,6 +1582,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
     },
 
     approveAllItemsInBatch: async (batchId) => {
+        // Validation Guard: Ensure batchId is a valid UUID
+        // "t1" is a common mock tenant ID that sometimes leaks into batchId
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        if (!batchId || !uuidRegex.test(batchId)) {
+            console.warn(`⚠️ [approveAllItemsInBatch] Blocked invalid UUID: "${batchId}". This prevents RPC 400 error.`);
+            return { data: null, error: { message: "ID de lote inválido. Operação abortada." } };
+        }
+
         try {
             const { data, error } = await supabase.rpc('approve_all_items_in_batch', { p_batch_id: batchId });
             if (error) throw error;
