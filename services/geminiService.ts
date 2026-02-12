@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { QuestionType, DifficultyLevel, AssessmentType, VocationalProfile, BloomTaxonomy, CognitiveAxis } from "../types";
 
 // --- Configuration ---
-const DEFAULT_MODEL = 'gemini-1.5-flash'; // Optimized for speed and availability in v1beta
+const DEFAULT_MODEL = 'gemini-flash-latest'; // Points to the most stable Flash version
 const PROMPT_VERSION = '1.2.1-stability-fix';
 
 // --- Prompts ---
@@ -583,7 +583,7 @@ async function callGeminiAPI<T>(
         try {
             const ai = new GoogleGenAI({
                 apiKey,
-                apiVersion: 'v1'
+                apiVersion: 'v1beta'
             });
 
             const config: any = {
@@ -591,12 +591,10 @@ async function callGeminiAPI<T>(
                 maxOutputTokens: 16384
             };
 
-            /* 
             if (responseSchema) {
                 config.responseMimeType = "application/json";
                 config.responseSchema = responseSchema;
             }
-            */
 
             // NOVO SDK: contents deve ser um array de objetos
             const formattedContents = typeof contents === 'string'
