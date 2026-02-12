@@ -1,10 +1,11 @@
 import { useState, useRef } from 'react';
+import { MaterialSource } from '../components/MaterialUploader';
 import { useNavigate } from 'react-router-dom';
 import * as pdfjsLib from 'pdfjs-dist';
 import mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
 import { AppState, Item, DifficultyLevel, QuestionType, ItemOrigin, ItemLifecycleStatus, ItemGenerationBatch, QualityStandard, DifficultyLevelConfig, DualValidationResult } from '../../../types';
-import { generateQuestionsFromText, improveItemStatement, generateDistractors, suggestBNCC, generateJustification, variateItem, adaptItemForAccessibility, extractItemFromImage, auditPedagogicalItem, validateQuestionQuality, validateQuestionStandards, generateExamCover } from '../../../services/geminiService';
+import { generateQuestionsFromText, improveItemStatement, generateDistractors, suggestBNCC, generateJustification, variateItem, adaptItemForAccessibility, extractItemFromImage, extractItemsFromMultipleImages, auditPedagogicalItem, validateQuestionQuality, validateQuestionStandards, generateExamCover } from '../../../services/geminiService';
 import { uuidv4 } from '../../../utils/helpers';
 import { useSafeAppStore } from '../../../store/useAppStore';
 import { useFormPersistence, getPersistedValue, clearPersistedForm } from './useFormPersistence';
@@ -410,43 +411,83 @@ export const useItemEditor = () => {
                     flaggedQuestions: standardsResult.issues.filter(i => i.severity === 'HIGH').map(i => i.questionId)
                 });
             } else {
-                const questions = await generateQuestionsFromText(
-                    aiContext, aiQuantity, QuestionType.MULTIPLE_CHOICE, form.difficulty, form.subject || 'Geral'
-                );
+                // Fluxo simplificado ou baseado em Imagem (Vision)
+                if (aiContext.startsWith('IMAGE_BASE64:')) {
+                    const base64 = aiContext.replace('IMAGE_BASE64:', '');
+                    const questions = await extractItemsFromMultipleImages([base64]);
+                    if (questions && questions.length > 0) {
+                        allItems = questions.map(g => ({
+                            id: uuidv4(),
+                            tenantId: state.currentUser!.tenantId,
+                            ownerId: state.currentUser!.id,
+                            knowledgeArea: 'Geral',
+                            subject: form.subject || 'Geral',
+                            type: QuestionType.MULTIPLE_CHOICE,
+                            statement: g.statement,
+                            alternatives: (g.alternatives || []).map(a => ({ id: uuidv4(), ...a })),
+                            correctAnswerJustification: g.justification,
+                            difficulty: g.difficulty as DifficultyLevel,
+                            score: 1.0,
+                            origin: ItemOrigin.IA,
+                            tags: ['IA', 'OCR', 'Vision'],
+                            bnccCode: g.bnccCode,
+                            usageCount: 0,
+                            generationBatchId: batchId,
+                            aiModelId: g.aiModel,
+                            aiPromptVersion: g.promptVersion,
+                            lifecycleStatus: ItemLifecycleStatus.DRAFT,
+                            createdAt: new Date().toISOString(),
+                            metadata: {
+                                source: {
+                                    ...sourceMetadata,
+                                    extractedContext: "[Extraído via Vision OCR]"
+                                },
+                                generatedBy: 'ai',
+                                aiModel: g.aiModel,
+                                promptVersion: g.promptVersion,
+                                generatedAt: new Date().toISOString()
+                            }
+                        }));
+                    }
+                } else {
+                    const questions = await generateQuestionsFromText(
+                        aiContext, aiQuantity, QuestionType.MULTIPLE_CHOICE, form.difficulty, form.subject || 'Geral'
+                    );
 
-                if (questions) {
-                    allItems = questions.map(g => ({
-                        id: uuidv4(),
-                        tenantId: state.currentUser!.tenantId,
-                        ownerId: state.currentUser!.id,
-                        knowledgeArea: 'Geral',
-                        subject: form.subject || 'Geral',
-                        type: QuestionType.MULTIPLE_CHOICE,
-                        statement: g.statement,
-                        alternatives: g.alternatives.map(a => ({ id: uuidv4(), ...a })),
-                        correctAnswerJustification: g.justification,
-                        difficulty: g.difficulty as DifficultyLevel,
-                        score: 1.0,
-                        origin: ItemOrigin.IA,
-                        tags: ['IA', 'Banco de Itens'],
-                        bnccCode: g.bnccCode,
-                        usageCount: 0,
-                        generationBatchId: batchId,
-                        aiModelId: g.aiModel,
-                        aiPromptVersion: g.promptVersion,
-                        lifecycleStatus: ItemLifecycleStatus.DRAFT,
-                        createdAt: new Date().toISOString(),
-                        metadata: {
-                            source: {
-                                ...sourceMetadata,
-                                extractedContext: aiContext.substring(0, 500)
-                            },
-                            generatedBy: 'ai',
-                            aiModel: g.aiModel,
-                            promptVersion: g.promptVersion,
-                            generatedAt: new Date().toISOString()
-                        }
-                    }));
+                    if (questions) {
+                        allItems = questions.map(g => ({
+                            id: uuidv4(),
+                            tenantId: state.currentUser!.tenantId,
+                            ownerId: state.currentUser!.id,
+                            knowledgeArea: 'Geral',
+                            subject: form.subject || 'Geral',
+                            type: QuestionType.MULTIPLE_CHOICE,
+                            statement: g.statement,
+                            alternatives: g.alternatives.map(a => ({ id: uuidv4(), ...a })),
+                            correctAnswerJustification: g.justification,
+                            difficulty: g.difficulty as DifficultyLevel,
+                            score: 1.0,
+                            origin: ItemOrigin.IA,
+                            tags: ['IA', 'Banco de Itens'],
+                            bnccCode: g.bnccCode,
+                            usageCount: 0,
+                            generationBatchId: batchId,
+                            aiModelId: g.aiModel,
+                            aiPromptVersion: g.promptVersion,
+                            lifecycleStatus: ItemLifecycleStatus.DRAFT,
+                            createdAt: new Date().toISOString(),
+                            metadata: {
+                                source: {
+                                    ...sourceMetadata,
+                                    extractedContext: aiContext.substring(0, 500)
+                                },
+                                generatedBy: 'ai',
+                                aiModel: g.aiModel,
+                                promptVersion: g.promptVersion,
+                                generatedAt: new Date().toISOString()
+                            }
+                        }));
+                    }
                 }
             }
 

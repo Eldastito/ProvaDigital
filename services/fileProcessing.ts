@@ -1,7 +1,7 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
-import { MaterialSource } from '../components/MaterialUploader';
+import { MaterialSource } from '../modules/builder/components/MaterialUploader';
 
 // Configurar worker do PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.530/pdf.worker.mjs`;
@@ -135,17 +135,23 @@ async function processTXT(material: MaterialSource): Promise<{
 }
 
 /**
- * Processa imagem (placeholder para OCR futuro)
- * Por enquanto, retorna uma descrição básica
+ * Processa imagem e converte para Base64 para OCR
  */
 async function processImage(material: MaterialSource): Promise<{
     extractedText: string;
 }> {
-    // TODO: Implementar OCR com Gemini Vision API
-    // Por enquanto, retornamos um placeholder
-    return {
-        extractedText: `[Imagem: ${material.fileName}]\n\nNota: A IA irá analisar esta imagem diretamente para gerar as questões.`
-    };
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const base64 = reader.result as string;
+            // Retornamos o base64 no extractedText com um prefixo identificador
+            resolve({
+                extractedText: `IMAGE_BASE64:${base64}`
+            });
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(material.file);
+    });
 }
 
 /**

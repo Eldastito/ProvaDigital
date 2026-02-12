@@ -159,16 +159,18 @@ Critérios:
         Retorne apenas o texto da justificativa, sem prefixos como "Justificativa:".
     `,
     EXTRACT_ITEM_FROM_IMAGE: () => `
-        Você é um Assistente de Digitalização de Materiais Didáticos.sua tarefa é ler a imagem fornecida(foto de livro ou apostila) e extrair uma questão de avaliação completa.
+        Você é um Especialista em Digitalização e Transcrição Pedagógica (Padrão INEP/ENEM).
+        Sua tarefa é ler a imagem fornecida (foto de livro, apostila ou prova) e extrair TODAS as questões de avaliação presentes.
 
-    REQUISITOS:
-1. ENUNCIADO: Extraia o texto completo, incluindo qualquer texto - base ou comando.
-        2. ALTERNATIVAS: Identifique as opções (A a E) e qual é a correta.
-        3. TIPO: Identifique se é MULTIPLE_CHOICE ou ESSAY.
-        4. JUSTIFICATIVA: Crie uma breve explicação pedagógica se não houver uma.
-        5. DIFICULDADE: Estime como FACIL, MEDIO ou DIFICIL.
+        REQUISITOS DE EXTRAÇÃO:
+        1. TEXTO-BASE: Extraia o texto motivador ou contexto que precede a questão.
+        2. ENUNCIADO: Identifique o comando da questão (pergunta ou instrução).
+        3. ALTERNATIVAS: Identifique as opções (A, B, C, D, E). Marque explicitamente a CORRETA com base no conteúdo (ou gabarito visual se houver).
+        4. TRI: Estime os parâmetros TRI (Dificuldade b, Discriminação a, Chute c).
+        5. PEDAGÓGICO: Identifique a Disciplina e sugira um código BNCC coerente.
         
-        Retorne estritamente em JSON conforme o schema de GeneratedQuestion.
+        RETORNO (JSON OBRIGATÓRIO):
+        Retorne um objeto JSON com a chave 'questions' contendo um array de objetos, seguindo rigorosamente o schema.
     `,
     AUDIT_ITEM: (itemJson: string) => `
         Você é um Analista Pedagógico Especialista em Avaliação(INEP / BNCC). 
@@ -980,8 +982,12 @@ export async function extractItemsFromMultipleImages(base64Images: string[]): Pr
             text = response.candidates[0].content.parts[0].text;
         }
 
-        const data = JSON.parse(text.replace(/```json\n?|```/g, '')) as { questions: GeneratedQuestion[] };
-        return data.questions || [];
+        const data = JSON.parse(text) as { questions: GeneratedQuestion[] };
+        return (data.questions || []).map(q => ({
+            ...q,
+            aiModel: DEFAULT_MODEL,
+            promptVersion: PROMPT_VERSION
+        }));
     } catch (error) {
         console.error("AI Error (Multimodal extraction):", error);
         return [];
