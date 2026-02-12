@@ -251,6 +251,7 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
                         <NavItem icon={Map} label="Alocação" path="/allocation" active={currentPath === '/allocation'} onClick={() => navigate('/allocation')} collapsed={collapsed} />
                         <NavItem icon={Cast} label="Eventos" path="/gamified-events" active={currentPath === '/gamified-events'} onClick={() => navigate('/gamified-events')} collapsed={collapsed} />
                         <NavItem icon={GraduationCap} label="Ensino" path="/study-plans" active={currentPath === '/study-plans'} onClick={() => navigate('/study-plans')} collapsed={collapsed} />
+                        <NavItem icon={Users} label="Conselho Digital (IA)" path="/coordinator/council" active={currentPath === '/coordinator/council'} onClick={() => navigate('/coordinator/council')} collapsed={collapsed} />
 
                         <SectionHeader label="Estratégico" collapsed={collapsed} />
                         <NavItem icon={BarChart} label="Analytics" path="/analytics" active={currentPath === '/analytics'} onClick={() => navigate('/analytics')} collapsed={collapsed} />
@@ -300,24 +301,24 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
                             <NavItem icon={Activity} label="Painel de Controle" path="/central-comando" active={currentPath === '/central-comando'} onClick={() => navigate('/central-comando')} collapsed={collapsed} />
                         )}
 
-                        <NavItem icon={Users} label="Conselho Digital (IA)" path="/coordinator/council" active={currentPath === '/coordinator/council'} onClick={() => navigate('/coordinator/council')} collapsed={collapsed} />
-
-                        <SectionHeader label="Pedagógico" collapsed={collapsed} />
-                        <NavItem icon={FileText} label="Banco de Questões" path="/items" active={currentPath.includes('/items')} onClick={() => navigate('/items')} collapsed={collapsed} />
-                        <NavItem icon={FlaskConical} label="Lab Multimodal" path="/items/multimodal-lab" active={currentPath === '/items/multimodal-lab'} onClick={() => navigate('/items/multimodal-lab')} collapsed={collapsed} />
-                        <NavItem icon={BookOpen} label="Minhas Provas" path="/exams" active={currentPath.includes('/exams')} onClick={() => navigate('/exams')} collapsed={collapsed} />
-                        <NavItem icon={GraduationCap} label="Aplicação" path="/online-exam" active={currentPath.includes('/online-exam')} onClick={() => navigate('/online-exam')} collapsed={collapsed} />
-                        <NavItem icon={BarChart} label="Analytics" path="/analytics" active={currentPath === '/analytics'} onClick={() => navigate('/analytics')} collapsed={collapsed} />
-                        <NavItem icon={GraduationCap} label="Planos de Ensino" path="/study-plans" active={currentPath === '/study-plans'} onClick={() => navigate('/study-plans')} collapsed={collapsed} />
-
-                        <SectionHeader label="Coordenação" collapsed={collapsed} />
-                        <NavItem icon={Trophy} label="Eventos Gamificados" path="/gamified-events" active={currentPath === '/gamified-events'} onClick={() => navigate('/gamified-events')} collapsed={collapsed} />
-                        <NavItem icon={MessageCircle} label="Chat" path="/communication" active={currentPath === '/communication'} onClick={() => navigate('/communication')} collapsed={collapsed} />
-                        {canView('SCHEDULING') && (
-                            <NavItem icon={CalendarCheck} label="Agendamento" path="/agendamento" active={currentPath === '/agendamento'} onClick={() => navigate('/agendamento')} collapsed={collapsed} />
-                        )}
+                        <NavItem icon={CalendarCheck} label="Agendamento" path="/agendamento" active={currentPath === '/agendamento'} onClick={() => navigate('/agendamento')} collapsed={collapsed} />
                     </>
                 )}
+
+                <NavItem icon={FileText} label="Banco de Questões" path="/items" active={currentPath.includes('/items')} onClick={() => navigate('/items')} collapsed={collapsed} />
+                <NavItem icon={FlaskConical} label="Lab Multimodal" path="/items/multimodal-lab" active={currentPath === '/items/multimodal-lab'} onClick={() => navigate('/items/multimodal-lab')} collapsed={collapsed} />
+                <NavItem icon={BookOpen} label="Minhas Provas" path="/exams" active={currentPath.includes('/exams')} onClick={() => navigate('/exams')} collapsed={collapsed} />
+                <NavItem icon={GraduationCap} label="Aplicação" path="/online-exam" active={currentPath.includes('/online-exam')} onClick={() => navigate('/online-exam')} collapsed={collapsed} />
+                <NavItem icon={BarChart} label="Analytics" path="/analytics" active={currentPath === '/analytics'} onClick={() => navigate('/analytics')} collapsed={collapsed} />
+                <NavItem icon={GraduationCap} label="Planos de Ensino" path="/study-plans" active={currentPath === '/study-plans'} onClick={() => navigate('/study-plans')} collapsed={collapsed} />
+
+                <SectionHeader label="Coordenação" collapsed={collapsed} />
+                <NavItem icon={Trophy} label="Eventos Gamificados" path="/gamified-events" active={currentPath === '/gamified-events'} onClick={() => navigate('/gamified-events')} collapsed={collapsed} />
+                <NavItem icon={MessageCircle} label="Chat" path="/communication" active={currentPath === '/communication'} onClick={() => navigate('/communication')} collapsed={collapsed} />
+                {canView('SCHEDULING') && (
+                    <NavItem icon={CalendarCheck} label="Agendamento" path="/agendamento" active={currentPath === '/agendamento'} onClick={() => navigate('/agendamento')} collapsed={collapsed} />
+                )}
+
             </div>
 
             {/* Bottom Panel */}
@@ -353,6 +354,6 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
                     )}
                 </div>
             </div>
-        </aside>
+        </aside >
     );
 };

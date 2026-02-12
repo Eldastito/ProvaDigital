@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { useAppStore } from '../../store/useAppStore';
+import { UserRole } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
 import { Users, FileText, Mic, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { generateAssessmentReport, predictStudentOutcome, generateCouncilMinutes } from '../../services/geminiService';
 
 export const ClassCouncilView: React.FC = () => {
     const state = useAppStore();
-    const analytics = useMemo(() => new AnalyticsService(state), [state]);
+    const analytics = useMemo(() => new AnalyticsService(), []);
 
     const [selectedClassId, setSelectedClassId] = useState<string>('');
     const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
@@ -19,7 +20,7 @@ export const ClassCouncilView: React.FC = () => {
     const availableClasses = state.classes;
     const classStudents = useMemo(() => {
         if (!selectedClassId) return [];
-        return state.users.filter(u => u.role === 'STUDENT' && u.classId === selectedClassId);
+        return state.users.filter(u => u.role === UserRole.ALUNO && u.classIds?.includes(selectedClassId));
     }, [selectedClassId, state.users]);
 
     // --- ACTIONS ---
@@ -70,6 +71,30 @@ export const ClassCouncilView: React.FC = () => {
         };
 
         recognition.start();
+    };
+
+    // --- GENERATE COUNCIL MINUTES ---
+    const handleGenerateMinutes = async () => {
+        if (!transcription || !selectedStudentId) return;
+
+        setLoadingAI(true);
+        try {
+            const selectedStudent = classStudents.find(s => s.id === selectedStudentId);
+            const context = `Aluno: ${selectedStudent?.name || 'Não identificado'}\nTurma: ${availableClasses.find(c => c.id === selectedClassId)?.name || 'N/A'}`;
+
+            const minutes = await generateCouncilMinutes(transcription, context);
+
+            // Merge minutes into existing AI analysis
+            setAiAnalysis(prev => ({
+                ...prev,
+                minutes
+            }));
+        } catch (error) {
+            console.error('Erro ao gerar ata:', error);
+            alert('Erro ao gerar ata. Tente novamente.');
+        } finally {
+            setLoadingAI(false);
+        }
     };
 
     return (
