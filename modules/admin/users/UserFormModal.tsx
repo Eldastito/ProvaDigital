@@ -143,7 +143,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                             </select>
                         </div>
 
-                        {(formData.role !== UserRole.SUPER_ADMIN && formData.role !== UserRole.TENANT_ADMIN && isTenantAdmin) && (
+                        {(formData.role !== UserRole.SUPER_ADMIN && formData.role !== UserRole.TENANT_ADMIN && (isTenantAdmin || availableSchools.length > 0)) && (
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1">Escola</label>
                                 <select

@@ -169,7 +169,7 @@ export const ManagementForms = ({
                 </div>
 
                 {/* SCHOOL SELECTION (Required for non-Admin roles if Tenant Admin is creating) */}
-                {isTenantAdmin && userForm.role !== UserRole.TENANT_ADMIN && userForm.role !== UserRole.SUPER_ADMIN && (
+                {userForm.role !== UserRole.TENANT_ADMIN && userForm.role !== UserRole.SUPER_ADMIN && (isTenantAdmin || schools.length > 0) && (
                     <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Vincular à Escola</label>
                         <select
