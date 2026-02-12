@@ -4,13 +4,19 @@ import {
     LayoutDashboard, BookOpen, GraduationCap, Users, FileText,
     LogOut, Menu, ChevronRight, Tablet, PieChart, MessageCircle,
     Printer, Compass, Globe, PenTool, Target, UserCircle, Shield,
-    Stethoscope, Map, Home, ChevronDown, Swords, Flame, Trophy,
+    Stethoscope, Map, Home, ChevronDown, Flame, Trophy,
     Cast, Calendar, Gamepad2, BarChart, Activity, CalendarCheck, Bot,
     Gamepad2 as Arcade,
     Sun, Moon,
     TrendingUp,
     Settings,
-    Bird as Owl
+    Bird as Owl,
+    ShoppingBag,
+    Swords,
+    Zap,
+    FlaskConical,
+    FileUp,
+    Terminal
 } from 'lucide-react';
 import { useSafeAppStore } from '../../store/useAppStore';
 import { UserRole, TenantType } from '../../types';
@@ -195,6 +201,8 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
                         <NavItem icon={Shield} label="Central de Controle" path="/admin/saas" active={currentPath === '/admin/saas'} onClick={() => navigate('/admin/saas')} collapsed={collapsed} />
                         <NavItem icon={Users} label="Gestão de Clientes" path="/admin/tenants" active={currentPath === '/admin/tenants'} onClick={() => navigate('/admin/tenants')} collapsed={collapsed} />
                         <NavItem icon={BarChart} label="Métricas Globais" path="/admin/metrics" active={currentPath === '/admin/metrics'} onClick={() => navigate('/admin/metrics')} collapsed={collapsed} />
+                        <NavItem icon={FileUp} label="Importação" path="/admin/import" active={currentPath === '/admin/import'} onClick={() => navigate('/admin/import')} collapsed={collapsed} />
+                        <NavItem icon={Terminal} label="Diagnóstico AI" path="/diag-ai" active={currentPath === '/diag-ai'} onClick={() => navigate('/diag-ai')} collapsed={collapsed} />
                     </>
                 )}
 
@@ -204,10 +212,14 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
                         <SectionHeader label="Portal Aluno" collapsed={collapsed} />
                         <NavItem icon={LayoutDashboard} label="Meu Desempenho" path="/aluno" active={currentPath === '/aluno' || currentPath === '/dashboard'} onClick={() => navigate('/aluno')} collapsed={collapsed} />
                         <NavItem icon={Target} label="Plano de Estudos" path="/study-plans" active={currentPath === '/study-plans'} onClick={() => navigate('/study-plans')} collapsed={collapsed} />
+                        <SectionHeader label="Zona Arcade" collapsed={collapsed} />
                         <NavItem icon={Arcade} label="Games Arcade" path="/aluno/arcade" active={currentPath === '/aluno/arcade'} onClick={() => navigate('/aluno/arcade')} collapsed={collapsed} />
+                        <NavItem icon={Swords} label="Arena de Batalha" path="/battle-arena" active={currentPath === '/battle-arena'} onClick={() => navigate('/battle-arena')} collapsed={collapsed} />
+                        <NavItem icon={Zap} label="Modo Survival" path="/survival-mode" active={currentPath === '/survival-mode'} onClick={() => navigate('/survival-mode')} collapsed={collapsed} />
+                        <NavItem icon={Trophy} label="Avatar Shop" path="/aluno/loja" active={currentPath === '/aluno/loja'} onClick={() => navigate('/aluno/loja')} collapsed={collapsed} />
+                        <SectionHeader label="Ferramentas" collapsed={collapsed} />
                         <NavItem icon={Bot} label="Corujão Tutor" path="/aluno/tutor" active={currentPath === '/aluno/tutor'} onClick={() => navigate('/aluno/tutor')} collapsed={collapsed} />
                         <NavItem icon={Compass} label="Bússola" path="/aluno/bussola" active={currentPath === '/aluno/bussola'} onClick={() => navigate('/aluno/bussola')} collapsed={collapsed} />
-                        <NavItem icon={Trophy} label="Avatar Shop" path="/aluno/loja" active={currentPath === '/aluno/loja'} onClick={() => navigate('/aluno/loja')} collapsed={collapsed} />
                     </>
                 )}
 
@@ -228,6 +240,7 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
 
                         <SectionHeader label="Acadêmico" collapsed={collapsed} />
                         <NavItem icon={FileText} label="Banco de Itens" path="/items" active={currentPath.includes('/items')} onClick={() => navigate('/items')} collapsed={collapsed} />
+                        <NavItem icon={FlaskConical} label="Lab Multimodal" path="/items/multimodal-lab" active={currentPath === '/items/multimodal-lab'} onClick={() => navigate('/items/multimodal-lab')} collapsed={collapsed} />
                         <NavItem icon={BookOpen} label="Provas" path="/exams" active={currentPath.includes('/exams')} onClick={() => navigate('/exams')} collapsed={collapsed} />
                         <NavItem icon={GraduationCap} label="Aplicação" path="/online-exam" active={currentPath.includes('/online-exam')} onClick={() => navigate('/online-exam')} collapsed={collapsed} />
                         <NavItem icon={Calendar} label="Diário" path="/class-diary" active={currentPath === '/class-diary'} onClick={() => navigate('/class-diary')} collapsed={collapsed} />
@@ -239,6 +252,7 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
                         <NavItem icon={BarChart} label="Analytics" path="/analytics" active={currentPath === '/analytics'} onClick={() => navigate('/analytics')} collapsed={collapsed} />
                         <NavItem icon={TrendingUp} label="Advanced BI" path="/advanced-analytics" active={currentPath === '/advanced-analytics'} onClick={() => navigate('/advanced-analytics')} collapsed={collapsed} />
                         <NavItem icon={Globe} label="Portal OCDE" path="/oecd-portal" active={currentPath === '/oecd-portal'} onClick={() => navigate('/oecd-portal')} collapsed={collapsed} />
+                        <NavItem icon={ShoppingBag} label="Marketplace" path="/marketplace" active={currentPath === '/marketplace'} onClick={() => navigate('/marketplace')} collapsed={collapsed} />
                         {canView('REPORTS') && (
                             <NavItem icon={Printer} label="Relatórios" path="/adm-relatorios" active={currentPath === '/adm-relatorios'} onClick={() => navigate('/adm-relatorios')} collapsed={collapsed} />
                         )}
@@ -246,6 +260,7 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
 
                         <SectionHeader label="Especializado" collapsed={collapsed} />
                         <NavItem icon={Shield} label="Risco" path="/risk-dashboard" active={currentPath === '/risk-dashboard'} onClick={() => navigate('/risk-dashboard')} collapsed={collapsed} />
+                        <NavItem icon={Zap} label="Risco Preditivo" path="/predictive-risk" active={currentPath === '/predictive-risk'} onClick={() => navigate('/predictive-risk')} collapsed={collapsed} />
                         <NavItem icon={Stethoscope} label="Saúde Mental" path="/neuro-screening" active={currentPath === '/neuro-screening'} onClick={() => navigate('/neuro-screening')} collapsed={collapsed} />
                         <NavItem icon={Gamepad2} label="Arcade Gov" path="/admin/governanca" active={currentPath.includes('/admin/governanca')} onClick={() => navigate('/admin/governanca')} collapsed={collapsed} />
 
@@ -272,6 +287,7 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
                         <SectionHeader label="Sala de Aula" collapsed={collapsed} />
                         <NavItem icon={PieChart} label="Minhas Turmas" path="/dashboard" active={currentPath === '/dashboard'} onClick={() => navigate('/dashboard')} collapsed={collapsed} />
                         <NavItem icon={Calendar} label="Diário" path="/class-diary" active={currentPath === '/class-diary'} onClick={() => navigate('/class-diary')} collapsed={collapsed} />
+                        <NavItem icon={Home} label="Logística Professor" path="/professor/logistics" active={currentPath === '/professor/logistics'} onClick={() => navigate('/professor/logistics')} collapsed={collapsed} />
 
                         {canView('COMMAND_CENTER') && (
                             <NavItem icon={Activity} label="Painel de Controle" path="/central-comando" active={currentPath === '/central-comando'} onClick={() => navigate('/central-comando')} collapsed={collapsed} />
@@ -281,6 +297,7 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
 
                         <SectionHeader label="Pedagógico" collapsed={collapsed} />
                         <NavItem icon={FileText} label="Banco de Questões" path="/items" active={currentPath.includes('/items')} onClick={() => navigate('/items')} collapsed={collapsed} />
+                        <NavItem icon={FlaskConical} label="Lab Multimodal" path="/items/multimodal-lab" active={currentPath === '/items/multimodal-lab'} onClick={() => navigate('/items/multimodal-lab')} collapsed={collapsed} />
                         <NavItem icon={BookOpen} label="Minhas Provas" path="/exams" active={currentPath.includes('/exams')} onClick={() => navigate('/exams')} collapsed={collapsed} />
                         <NavItem icon={GraduationCap} label="Aplicação" path="/online-exam" active={currentPath.includes('/online-exam')} onClick={() => navigate('/online-exam')} collapsed={collapsed} />
                         <NavItem icon={BarChart} label="Analytics" path="/analytics" active={currentPath === '/analytics'} onClick={() => navigate('/analytics')} collapsed={collapsed} />
