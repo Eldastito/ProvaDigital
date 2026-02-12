@@ -13,6 +13,7 @@ export const ClassCouncilView: React.FC = () => {
     const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
     const [isRecording, setIsRecording] = useState(false);
     const [transcription, setTranscription] = useState('');
+    const [interimTranscription, setInterimTranscription] = useState('');
     const [aiAnalysis, setAiAnalysis] = useState<any>(null);
     const [loadingAI, setLoadingAI] = useState(false);
 
@@ -58,16 +59,29 @@ export const ClassCouncilView: React.FC = () => {
         recognition.lang = 'pt-BR';
 
         recognition.onstart = () => setIsRecording(true);
-        recognition.onend = () => setIsRecording(false);
+        recognition.onend = () => {
+            setIsRecording(false);
+            setInterimTranscription('');
+        };
 
         recognition.onresult = (event: any) => {
             let final = '';
+            let interim = '';
+
             for (let i = event.resultIndex; i < event.results.length; ++i) {
                 if (event.results[i].isFinal) {
                     final += event.results[i][0].transcript;
+                } else {
+                    interim += event.results[i][0].transcript;
                 }
             }
-            if (final) setTranscription(prev => prev + ' ' + final);
+
+            if (final) {
+                setTranscription(prev => prev + ' ' + final);
+                setInterimTranscription('');
+            } else {
+                setInterimTranscription(interim);
+            }
         };
 
         recognition.start();
@@ -75,7 +89,12 @@ export const ClassCouncilView: React.FC = () => {
 
     // --- GENERATE COUNCIL MINUTES ---
     const handleGenerateMinutes = async () => {
-        if (!transcription || !selectedStudentId) return;
+        if (!transcription) return;
+
+        if (!selectedStudentId) {
+            alert("Por favor, selecione um aluno na lista à esquerda para vincular esta ata.");
+            return;
+        }
 
         setLoadingAI(true);
         try {
@@ -180,77 +199,92 @@ export const ClassCouncilView: React.FC = () => {
                                         </p>
                                     </div>
                                 </div>
-
-                                {/* TRANSCRIPTION ZONE */}
-                                <div className="mt-8 pt-6 border-t border-slate-100">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h3 className="font-bold text-slate-700 flex items-center gap-2">
-                                            <Mic size={18} className={isRecording ? "text-red-500 animate-pulse" : "text-slate-400"} />
-                                            Transcrição do Conselho
-                                        </h3>
-                                        <button
-                                            onClick={startRecording}
-                                            className={`px-4 py-2 rounded-full text-sm font-bold transition flex items-center gap-2 ${isRecording ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'} `}
-                                        >
-                                            {isRecording ? '🛑 Parar Gravação' : '🎙️ Iniciar Gravação'}
-                                        </button>
-                                    </div>
-
-                                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 min-h-[100px] text-sm text-slate-600 italic">
-                                        {transcription || "O áudio capturado aparecerá aqui..."}
-                                    </div>
-
-                                    {transcription && (
-                                        <div className="mt-4 flex justify-end">
-                                            <button
-                                                onClick={handleGenerateMinutes}
-                                                disabled={loadingAI}
-                                                className="btn-primary flex items-center gap-2"
-                                            >
-                                                {loadingAI ? 'Gerando...' : <><FileText size={16} /> Gerar Ata Formal com IA</>}
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    {aiAnalysis?.minutes && (
-                                        <div className="mt-6 p-6 bg-white border border-slate-200 rounded-xl shadow-sm animate-in fade-in">
-                                            <div className="flex justify-between items-center mb-4 border-b pb-2">
-                                                <h3 className="font-bold text-lg text-slate-800">Ata de Deliberação</h3>
-                                                <span className={`px-3 py-1 rounded-full text-xs font-black uppercase ${aiAnalysis.minutes.decision === 'APROVADO' ? 'bg-green-100 text-green-700' :
-                                                    aiAnalysis.minutes.decision === 'RETIDO' ? 'bg-red-100 text-red-700' :
-                                                        'bg-yellow-100 text-yellow-700'
-                                                    }`}>
-                                                    {aiAnalysis.minutes.decision}
-                                                </span>
-                                            </div>
-                                            <p className="text-slate-600 text-sm mb-4 text-justify leading-relaxed">
-                                                {aiAnalysis.minutes.summary}
-                                            </p>
-
-                                            <div className="bg-slate-50 p-3 rounded-lg">
-                                                <strong className="text-xs text-slate-500 uppercase block mb-2">Encaminhamentos:</strong>
-                                                <ul className="list-disc pl-5 text-sm text-slate-700 space-y-1">
-                                                    {aiAnalysis.minutes.actions.map((act: string, idx: number) => (
-                                                        <li key={idx}>{act}</li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
                             </div>
                         ) : (
-                            <div className="h-full flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+                            <div className="h-64 flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
                                 {loadingAI ? (
-                                    <div className="animate-spin text-4xl">⏳</div>
+                                    <div className="animate-spin text-4xl mb-4">⏳</div>
                                 ) : (
-                                    <>
-                                        <Users size={48} className="mb-4 opacity-20" />
-                                        <p>Selecione um aluno para iniciar a análise</p>
-                                    </>
+                                    <Users size={48} className="mb-4 opacity-20" />
                                 )}
+                                <p>{loadingAI ? 'Analisando aluno...' : 'Selecione um aluno para ver o dossiê'}</p>
                             </div>
                         )}
+
+                        {/* TRANSCRIPTION ZONE - ALWAYS VISIBLE */}
+                        <div className="bg-white p-6 rounded-xl shadow border border-slate-200 animate-in fade-in slide-in-from-bottom-2">
+                            <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-4">
+                                <div>
+                                    <h3 className="font-bold text-slate-700 flex items-center gap-2">
+                                        <Mic size={20} className={isRecording ? "text-red-500 animate-pulse" : "text-slate-400"} />
+                                        Transcrição da Reunião
+                                    </h3>
+                                    <p className="text-xs text-slate-400 mt-1">O áudio é processado localmente no navegador</p>
+                                </div>
+                                <button
+                                    onClick={startRecording}
+                                    className={`px-6 py-3 rounded-full text-sm font-bold transition flex items-center gap-2 shadow-sm ${isRecording ? 'bg-red-100 text-red-600 ring-2 ring-red-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'} `}
+                                >
+                                    {isRecording ? (
+                                        <>
+                                            <span className="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
+                                            Parar Gravação
+                                        </>
+                                    ) : (
+                                        <>🎙️ Iniciar Gravação</>
+                                    )}
+                                </button>
+                            </div>
+
+                            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 min-h-[150px] text-sm text-slate-600 italic whitespace-pre-wrap max-h-[300px] overflow-y-auto">
+                                <span>{transcription}</span>
+                                <span className="text-slate-400">{interimTranscription}</span>
+                                {(!transcription && !interimTranscription) && "Clique em iniciar para transcrever o que for dito na reunião..."}
+                            </div>
+
+                            <div className="mt-4 flex justify-between items-center gap-4">
+                                <p className="text-xs text-slate-400">
+                                    {transcription.length > 0 ? `${transcription.length} caracteres capturados` : ''}
+                                </p>
+                                {transcription && (
+                                    <button
+                                        onClick={handleGenerateMinutes}
+                                        disabled={loadingAI}
+                                        className="btn-primary flex items-center gap-2 px-6"
+                                    >
+                                        {loadingAI ? 'Gerando...' : <><FileText size={16} /> Gerar Ata da Reunião com IA</>}
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Minutes Result */}
+                            {aiAnalysis?.minutes && (
+                                <div className="mt-6 p-6 bg-emerald-50 border border-emerald-100 rounded-xl shadow-sm animate-in zoom-in-95">
+                                    <div className="flex justify-between items-center mb-4 border-b border-emerald-200/50 pb-2">
+                                        <h3 className="font-bold text-lg text-emerald-900">Ata Gerada</h3>
+                                        <span className={`px-3 py-1 rounded-full text-xs font-black uppercase ${aiAnalysis.minutes.decision === 'APROVADO' ? 'bg-green-200 text-green-800' :
+                                            aiAnalysis.minutes.decision === 'RETIDO' ? 'bg-red-200 text-red-800' :
+                                                'bg-yellow-200 text-yellow-800'
+                                            }`}>
+                                            {aiAnalysis.minutes.decision}
+                                        </span>
+                                    </div>
+                                    <p className="text-emerald-800 text-sm mb-4 text-justify leading-relaxed">
+                                        {aiAnalysis.minutes.summary}
+                                    </p>
+
+                                    <div className="bg-white/60 p-3 rounded-lg">
+                                        <strong className="text-xs text-emerald-700 uppercase block mb-2">Encaminhamentos:</strong>
+                                        <ul className="list-disc pl-5 text-sm text-emerald-800 space-y-1">
+                                            {aiAnalysis.minutes.actions.map((act: string, idx: number) => (
+                                                <li key={idx}>{act}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                     </div>
                 </div>
             ) : (
