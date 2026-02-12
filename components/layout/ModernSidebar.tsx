@@ -194,15 +194,18 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
 
                 {/* 3. Role-Based Navigation */}
 
-                {/* SaaS Admin Section */}
+                {/* SaaS Admin Section (Consolidated) */}
                 {isSystemAdmin && (
                     <>
                         <SectionHeader label="Gestão SaaS" collapsed={collapsed} />
-                        <NavItem icon={Shield} label="Central de Controle" path="/admin/saas" active={currentPath === '/admin/saas'} onClick={() => navigate('/admin/saas')} collapsed={collapsed} />
-                        <NavItem icon={Users} label="Gestão de Clientes" path="/admin/tenants" active={currentPath === '/admin/tenants'} onClick={() => navigate('/admin/tenants')} collapsed={collapsed} />
-                        <NavItem icon={BarChart} label="Métricas Globais" path="/admin/metrics" active={currentPath === '/admin/metrics'} onClick={() => navigate('/admin/metrics')} collapsed={collapsed} />
-                        <NavItem icon={FileUp} label="Importação" path="/admin/import" active={currentPath === '/admin/import'} onClick={() => navigate('/admin/import')} collapsed={collapsed} />
-                        <NavItem icon={Terminal} label="Diagnóstico AI" path="/diag-ai" active={currentPath === '/diag-ai'} onClick={() => navigate('/diag-ai')} collapsed={collapsed} />
+                        <NavItem
+                            icon={Shield}
+                            label="Central SaaS"
+                            path="/admin/saas"
+                            active={currentPath.includes('/admin/saas') || currentPath.includes('/admin/tenants') || currentPath.includes('/admin/metrics')}
+                            onClick={() => navigate('/admin/saas')}
+                            collapsed={collapsed}
+                        />
                     </>
                 )}
 
@@ -262,21 +265,24 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
                         <NavItem icon={Shield} label="Risco" path="/risk-dashboard" active={currentPath === '/risk-dashboard'} onClick={() => navigate('/risk-dashboard')} collapsed={collapsed} />
                         <NavItem icon={Zap} label="Risco Preditivo" path="/predictive-risk" active={currentPath === '/predictive-risk'} onClick={() => navigate('/predictive-risk')} collapsed={collapsed} />
                         <NavItem icon={Stethoscope} label="Saúde Mental" path="/neuro-screening" active={currentPath === '/neuro-screening'} onClick={() => navigate('/neuro-screening')} collapsed={collapsed} />
-                        <NavItem icon={Gamepad2} label="Arcade Gov" path="/admin/governanca" active={currentPath.includes('/admin/governanca')} onClick={() => navigate('/admin/governanca')} collapsed={collapsed} />
 
                         <SectionHeader label="Apps" collapsed={collapsed} />
                         <NavItem icon={Tablet} label="App Tablet" path="/apps/tablet" active={currentPath.includes('/apps/tablet')} onClick={() => navigate('/apps/tablet')} collapsed={collapsed} />
                         <NavItem icon={Cast} label="Demo Live" path="/apps/demo" active={currentPath.includes('/apps/demo')} onClick={() => navigate('/apps/demo')} collapsed={collapsed} />
 
-                        {/* Gov & Security */}
-                        {canManageCapabilities && (
-                            <>
-                                <SectionHeader label="Sistema" collapsed={collapsed} />
-                                <NavItem icon={Target} label="Governança" path="/admin/capabilities" active={currentPath === '/admin/capabilities'} onClick={() => navigate('/admin/capabilities')} collapsed={collapsed} />
-                            </>
-                        )}
-                        {(isSystemAdmin || isMecAdmin) && (
+                        <SectionHeader label="Sistema" collapsed={collapsed} />
+                        {canView('AUDIT') && (isSystemAdmin || isMecAdmin) && (
                             <NavItem icon={Shield} label="Auditoria" path="/admin/audit" active={currentPath === '/admin/audit'} onClick={() => navigate('/admin/audit')} collapsed={collapsed} />
+                        )}
+                        {canManageCapabilities && (
+                            <NavItem icon={Target} label="Governança" path="/admin/capabilities" active={currentPath === '/admin/capabilities'} onClick={() => navigate('/admin/capabilities')} collapsed={collapsed} />
+                        )}
+                        <NavItem icon={Gamepad2} label="Governança Arcade" path="/admin/governanca" active={currentPath === '/admin/governanca'} onClick={() => navigate('/admin/governanca')} collapsed={collapsed} />
+                        {(isSystemAdmin || isMecAdmin || isStrategic) && (
+                            <>
+                                <NavItem icon={FileUp} label="Importação de Dados" path="/admin/import" active={currentPath === '/admin/import'} onClick={() => navigate('/admin/import')} collapsed={collapsed} />
+                                <NavItem icon={Terminal} label="Diagnóstico Sistema" path="/diag-ai" active={currentPath === '/diag-ai'} onClick={() => navigate('/diag-ai')} collapsed={collapsed} />
+                            </>
                         )}
                     </>
                 )}
