@@ -138,6 +138,73 @@ export interface PermissionMatrix {
   }
 }
 
+// --- RESOURCE DEPENDENCIES ---
+
+export interface ResourceDependency {
+  resource: Resource;
+  dependsOn: Resource[];
+  description: string;
+  impactWarning: string;
+}
+
+export const RESOURCE_DEPENDENCIES: ResourceDependency[] = [
+  {
+    resource: 'GAMIFIED_EVENTS',
+    dependsOn: ['ANALYTICS', 'COMMUNICATION', 'USER_DATA'],
+    description: 'Eventos Gamificados',
+    impactWarning: 'Eventos Gamificados precisam de Analytics (rankings), Comunicação (notificações) e Gestão de Usuários (participantes)'
+  },
+  {
+    resource: 'AI_FEATURES',
+    dependsOn: ['ITEM_BANK'],
+    description: 'Ferramentas de IA',
+    impactWarning: 'IA precisa do Banco de Itens para gerar e corrigir questões'
+  },
+  {
+    resource: 'OFFLINE_OPS',
+    dependsOn: ['EXAM_MGMT', 'ITEM_BANK', 'USER_DATA'],
+    description: 'Ecossistema Offline',
+    impactWarning: 'App Tablet precisa sincronizar Provas, Questões e Alunos'
+  },
+  {
+    resource: 'ANALYTICS',
+    dependsOn: ['EXAM_MGMT', 'USER_DATA'],
+    description: 'Analytics e Dashboards',
+    impactWarning: 'Analytics precisa de dados de Provas e Alunos para gerar relatórios'
+  },
+  {
+    resource: 'COMMUNICATION',
+    dependsOn: ['USER_DATA'],
+    description: 'Sistema de Comunicação',
+    impactWarning: 'Chat e Mural precisam de Gestão de Usuários para enviar mensagens'
+  },
+  {
+    resource: 'NEURO_SCREENING',
+    dependsOn: ['USER_DATA'],
+    description: 'Triagem Neuropsicológica',
+    impactWarning: 'Triagens precisam de Gestão de Usuários para vincular resultados aos alunos'
+  },
+  {
+    resource: 'REPORTS',
+    dependsOn: ['ANALYTICS', 'EXAM_MGMT'],
+    description: 'Relatórios e BI',
+    impactWarning: 'Relatórios precisam de Analytics e dados de Provas'
+  },
+  {
+    resource: 'COMMAND_CENTER',
+    dependsOn: ['EXAM_MGMT', 'ANALYTICS'],
+    description: 'Central de Comando',
+    impactWarning: 'Central de Comando precisa gerenciar Provas e visualizar Analytics'
+  },
+  {
+    resource: 'SCHEDULING',
+    dependsOn: ['EXAM_MGMT', 'SCHOOL_DATA'],
+    description: 'Agendamento de Provas',
+    impactWarning: 'Agendamento precisa de Gestão de Provas e dados de Escolas/Turmas'
+  }
+];
+
+
 export enum AssessmentType {
   DISC = 'DISC',
   LEARNING_STYLE = 'ESTILO_APRENDIZAGEM',

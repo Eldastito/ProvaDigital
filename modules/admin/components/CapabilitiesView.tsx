@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
-import { Shield, Check, X, Save, AlertTriangle, Building } from 'lucide-react';
+import { Shield, Check, X, Save, AlertTriangle, Building, Link2, AlertCircle } from 'lucide-react';
 import { useAppStore } from '../../../store/useAppStore';
-import { Action, Resource, UserRole, PermissionMatrix } from '../../../types';
+import { Action, Resource, UserRole, PermissionMatrix, RESOURCE_DEPENDENCIES } from '../../../types';
+import { useResourceDependencies } from '../../../hooks/useResourceDependencies';
 
 const RESOURCES: { id: Resource; label: string; description: string }[] = [
     { id: 'SCHOOL_DATA', label: 'Gestão de Escolas', description: 'Gerir escolas, turmas e matrículas' },
@@ -34,6 +35,7 @@ export const CapabilitiesView = () => {
     const { globalPermissions, updatePermissions, tenants, updateTenantFeatures } = useAppStore();
     const [localMatrix, setLocalMatrix] = useState<PermissionMatrix>(JSON.parse(JSON.stringify(globalPermissions)));
     const [selectedTenant, setSelectedTenant] = useState<string>('');
+    const { getDependents, getMissingDependencies, getDisableCascade, getDependencyInfo } = useResourceDependencies();
 
     React.useEffect(() => {
         if (tenants && tenants.length > 0 && !selectedTenant) {
@@ -82,9 +84,38 @@ export const CapabilitiesView = () => {
 
         let newDisabled;
         if (isDisabled) {
+            // HABILITAR: verificar se dependências estão ativas
+            const missing = getMissingDependencies(resource, currentTenant.id);
+            if (missing.length > 0) {
+                const depInfo = getDependencyInfo(resource);
+                alert(
+                    `⚠️ Não é possível habilitar "${resource}"\n\n` +
+                    `Dependências desabilitadas:\n${missing.map(r => `• ${r}`).join('\n')}\n\n` +
+                    `${depInfo?.impactWarning || ''}\n\n` +
+                    `Habilite essas funcionalidades primeiro.`
+                );
+                return;
+            }
             newDisabled = currentDisabled.filter(r => r !== resource);
         } else {
-            newDisabled = [...currentDisabled, resource];
+            // DESABILITAR: verificar impacto em cascata
+            const dependents = getDependents(resource);
+            const activeDependents = dependents.filter(d => !currentDisabled.includes(d));
+
+            if (activeDependents.length > 0) {
+                const confirm = window.confirm(
+                    `⚠️ ATENÇÃO: Desabilitar "${resource}" afetará:\n\n` +
+                    `${activeDependents.map(r => `• ${r}`).join('\n')}\n\n` +
+                    `Essas funcionalidades também serão DESABILITADAS automaticamente.\n\n` +
+                    `Deseja continuar?`
+                );
+                if (!confirm) return;
+
+                // Desabilitar em cascata
+                newDisabled = [...currentDisabled, resource, ...activeDependents];
+            } else {
+                newDisabled = [...currentDisabled, resource];
+            }
         }
         updateTenantFeatures(currentTenant.id, newDisabled);
     };
@@ -205,20 +236,51 @@ export const CapabilitiesView = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {RESOURCES.map(res => {
                         const isDisabled = currentTenant?.disabledResources?.includes(res.id) ?? false;
+                        const missing = getMissingDependencies(res.id, currentTenant?.id || '');
+                        const dependents = getDependents(res.id);
+                        const activeDependents = dependents.filter(d => !currentTenant?.disabledResources?.includes(d));
+                        const depInfo = getDependencyInfo(res.id);
 
                         return (
                             <div
                                 key={res.id}
-                                onClick={() => toggleTenantFeature(res.id)}
-                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${isDisabled ? 'bg-slate-50 border-slate-200 opacity-60 grayscale' : 'bg-white border-brand-secondary shadow-sm hover:shadow-md'}`}
+                                className="relative"
                             >
-                                <div>
-                                    <div className={`font-bold text-sm ${isDisabled ? 'text-slate-500' : 'text-brand-dark'}`}>{res.label}</div>
-                                    <div className="text-[10px] text-slate-400">{isDisabled ? 'Desativado para este cliente' : 'Ativo'}</div>
+                                <div
+                                    onClick={() => toggleTenantFeature(res.id)}
+                                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${isDisabled ? 'bg-slate-50 border-slate-200 opacity-60 grayscale' : 'bg-white border-brand-secondary shadow-sm hover:shadow-md'}`}
+                                >
+                                    <div className="flex-1">
+                                        <div className={`font-bold text-sm ${isDisabled ? 'text-slate-500' : 'text-brand-dark'}`}>{res.label}</div>
+                                        <div className="text-[10px] text-slate-400">{isDisabled ? 'Desativado para este cliente' : 'Ativo'}</div>
+
+                                        {/* Indicador de Dependências Faltantes */}
+                                        {missing.length > 0 && isDisabled && (
+                                            <div className="flex items-center gap-1 mt-1 text-[9px] text-red-600">
+                                                <AlertCircle size={10} />
+                                                <span>{missing.length} dependência(s) faltando</span>
+                                            </div>
+                                        )}
+
+                                        {/* Indicador de Recursos Dependentes */}
+                                        {activeDependents.length > 0 && !isDisabled && (
+                                            <div className="flex items-center gap-1 mt-1 text-[9px] text-amber-600">
+                                                <Link2 size={10} />
+                                                <span>{activeDependents.length} recurso(s) dependem deste</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className={`w-10 h-6 rounded-full p-1 transition-colors ${isDisabled ? 'bg-slate-300' : 'bg-emerald-500'}`}>
+                                        <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${isDisabled ? 'translate-x-0' : 'translate-x-4'}`}></div>
+                                    </div>
                                 </div>
-                                <div className={`w-10 h-6 rounded-full p-1 transition-colors ${isDisabled ? 'bg-slate-300' : 'bg-emerald-500'}`}>
-                                    <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${isDisabled ? 'translate-x-0' : 'translate-x-4'}`}></div>
-                                </div>
+
+                                {/* Badge de Dependências no Canto */}
+                                {depInfo && depInfo.dependsOn.length > 0 && (
+                                    <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-[9px] px-2 py-0.5 rounded-full font-bold shadow">
+                                        {depInfo.dependsOn.length}
+                                    </div>
+                                )}
                             </div>
                         );
                     })}
@@ -226,6 +288,34 @@ export const CapabilitiesView = () => {
                 <div className="mt-4 p-3 bg-amber-50 text-amber-800 text-xs rounded border border-amber-200 flex items-center gap-2">
                     <AlertTriangle size={16} />
                     <span>Atenção: Desabilitar um módulo aqui remove o acesso para <strong>TODOS</strong> os usuários desta prefeitura, independente da matriz acima.</span>
+                </div>
+
+                {/* Mapa Visual de Dependências */}
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h3 className="font-bold text-sm text-blue-900 mb-3 flex items-center gap-2">
+                        <Link2 size={16} />
+                        📊 Mapa de Dependências entre Recursos
+                    </h3>
+                    <p className="text-[10px] text-blue-700 mb-3">
+                        Recursos à esquerda <strong>dependem</strong> dos recursos à direita para funcionar corretamente.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                        {RESOURCE_DEPENDENCIES.map(dep => (
+                            <div key={dep.resource} className="flex items-start gap-2 bg-white p-2 rounded border border-blue-100">
+                                <span className="font-bold text-blue-700 min-w-[140px]">{dep.resource}:</span>
+                                <div className="flex flex-wrap gap-1">
+                                    {dep.dependsOn.map(r => (
+                                        <span key={r} className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                                            {r}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-3 p-2 bg-blue-100 rounded text-[10px] text-blue-800">
+                        <strong>💡 Dica:</strong> Ao desabilitar um recurso, todos os que dependem dele serão automaticamente desabilitados em cascata.
+                    </div>
                 </div>
             </div>
         </div>
