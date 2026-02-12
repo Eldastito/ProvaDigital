@@ -274,6 +274,36 @@ export interface Student {
   tenantId: string;
 }
 
+// --- AUDIT & METADATA TYPES ---
+
+export interface QuestionMetadata {
+  // Fonte
+  source?: {
+    type: 'manual' | 'ai_upload' | 'ai_context' | 'ai_topic';
+    fileName?: string;
+    fileType?: string;
+    uploadDate?: string;
+    pageRange?: string;
+    extractedContext?: string;
+  };
+
+  // Geração
+  generatedBy: 'professor' | 'ai';
+  aiModel?: string;
+  promptVersion?: string;
+  generatedAt: string;
+
+  // Uso
+  timesUsed?: number;
+  lastUsedAt?: string;
+  usedInExams?: Array<{
+    examId: string;
+    examName: string;
+    date: string;
+    studentsCount: number;
+  }>;
+}
+
 export interface ItemAlternative {
   id: string;
   text: string;
@@ -339,6 +369,8 @@ export interface Item {
   aiGenerationSettings?: any;
   reviewerId?: string;
   reviewedAt?: string;
+
+  metadata?: QuestionMetadata;
 
   createdAt: string;
 }
