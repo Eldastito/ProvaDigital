@@ -15,7 +15,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs
 export const useItemEditor = () => {
     const navigate = useNavigate();
     const state = useSafeAppStore();
-    const { addItem, activeBatchId, setActiveBatchId } = state;
+    const { addItem, addItems, addGenerationBatch, activeBatchId, setActiveBatchId } = state;
 
     const [mode, setMode] = useState<'MANUAL' | 'AI'>(() => getPersistedValue('mode', 'MANUAL'));
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -452,7 +452,23 @@ export const useItemEditor = () => {
 
             // Salvar
             if (allItems.length > 0) {
-                if (state.addItems) await state.addItems(allItems);
+                // Criar o lote (batch) primeiro para evitar erro de Foreign Key no Supabase (23503)
+                const batch: ItemGenerationBatch = {
+                    id: batchId,
+                    creatorId: state.currentUser!.id,
+                    tenantId: state.currentUser!.tenantId,
+                    totalRequested: useMultiLevel
+                        ? levelConfigs.filter(c => c.enabled).reduce((sum, c) => sum + c.quantity, 0)
+                        : aiQuantity,
+                    promptContext: aiContext.substring(0, 1000), // Primeiro 1k de contexto como referência
+                    source: currentMaterial ? 'Upload' : 'Contexto',
+                    status: 'open',
+                    createdAt: new Date().toISOString()
+                };
+
+                await addGenerationBatch(batch);
+
+                if (addItems) await addItems(allItems);
                 setActiveBatchId(batchId);
                 setGenerationProgress(100);
                 if (!useMultiLevel) alert(`${allItems.length} questões geradas com metadados de auditoria.`);
