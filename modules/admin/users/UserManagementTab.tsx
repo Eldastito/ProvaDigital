@@ -30,9 +30,9 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
     const filteredUsers = useMemo(() => {
         let result = users;
 
-        // Permission Filter: If not Admin, only see users from same school
+        // Permission Filter: If not Admin, only see users from same school OR users with no school (to fix orphans)
         if (!isTenantAdmin && currentUser.schoolId) {
-            result = result.filter(u => u.schoolId === currentUser.schoolId);
+            result = result.filter(u => u.schoolId === currentUser.schoolId || !u.schoolId);
         }
 
         // Text Filter
@@ -120,6 +120,8 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
 
             <UserList
                 users={filteredUsers}
+                schools={schools}
+                classes={classes}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onToggleStatus={handleToggleStatus}
