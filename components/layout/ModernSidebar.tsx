@@ -223,6 +223,7 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
                         <SectionHeader label="Ferramentas" collapsed={collapsed} />
                         <NavItem icon={Bot} label="Corujão Tutor" path="/aluno/tutor" active={currentPath === '/aluno/tutor'} onClick={() => navigate('/aluno/tutor')} collapsed={collapsed} />
                         <NavItem icon={Compass} label="Bússola" path="/aluno/bussola" active={currentPath === '/aluno/bussola'} onClick={() => navigate('/aluno/bussola')} collapsed={collapsed} />
+                        <NavItem icon={MessageCircle} label="Chat" path="/communication" active={currentPath === '/communication'} onClick={() => navigate('/communication')} collapsed={collapsed} />
                     </>
                 )}
 
@@ -310,6 +311,8 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
                         <NavItem icon={GraduationCap} label="Planos de Ensino" path="/study-plans" active={currentPath === '/study-plans'} onClick={() => navigate('/study-plans')} collapsed={collapsed} />
 
                         <SectionHeader label="Coordenação" collapsed={collapsed} />
+                        <NavItem icon={Trophy} label="Eventos Gamificados" path="/gamified-events" active={currentPath === '/gamified-events'} onClick={() => navigate('/gamified-events')} collapsed={collapsed} />
+                        <NavItem icon={MessageCircle} label="Chat" path="/communication" active={currentPath === '/communication'} onClick={() => navigate('/communication')} collapsed={collapsed} />
                         {canView('SCHEDULING') && (
                             <NavItem icon={CalendarCheck} label="Agendamento" path="/agendamento" active={currentPath === '/agendamento'} onClick={() => navigate('/agendamento')} collapsed={collapsed} />
                         )}
