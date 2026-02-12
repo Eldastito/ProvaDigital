@@ -21,7 +21,7 @@ interface ManagementFormsProps {
     studentForm: { name: string, reg: string, classId: string };
     setStudentForm: (val: any) => void;
 
-    userForm: { name: string, email: string, role: UserRole, schoolId: string };
+    userForm: { name: string, email: string, role: UserRole, schoolId: string, classIds: string[] };
     setUserForm: (val: any) => void;
 
     onSubmit: () => void;
@@ -175,13 +175,45 @@ export const ManagementForms = ({
                         <select
                             className="w-full border rounded-lg p-2"
                             value={userForm.schoolId || ''}
-                            onChange={e => setUserForm({ ...userForm, schoolId: e.target.value })}
+                            onChange={e => setUserForm({ ...userForm, schoolId: e.target.value, classIds: [] })}
                         >
                             <option value="">Selecione uma Escola...</option>
                             {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
                     </div>
                 )}
+
+                {/* CLASS SELECTION (Only for PROFESSOR) */}
+                {userForm.role === UserRole.PROFESSOR && (userForm.schoolId || userSchoolId) && (
+                    <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Turmas Associadas</label>
+                        <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto custom-scrollbar">
+                            {classes.filter(c => c.schoolId === (userForm.schoolId || userSchoolId)).map(cls => (
+                                <label key={cls.id} className="flex items-center gap-2 p-1 hover:bg-white rounded cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={userForm.classIds?.includes(cls.id)}
+                                        onChange={e => {
+                                            const newClassIds = e.target.checked
+                                                ? [...(userForm.classIds || []), cls.id]
+                                                : (userForm.classIds || []).filter(id => id !== cls.id);
+                                            setUserForm({ ...userForm, classIds: newClassIds });
+                                        }}
+                                        className="rounded text-brand-primary focus:ring-brand-primary"
+                                    />
+                                    <span className="text-sm text-slate-700 truncate" title={cls.name}>{cls.name} <span className="text-xs text-slate-400">({cls.series})</span></span>
+                                </label>
+                            ))}
+                            {classes.filter(c => c.schoolId === (userForm.schoolId || userSchoolId)).length === 0 && (
+                                <div className="text-xs text-slate-400 col-span-2 italic">Nenhuma turma cadastrada nesta escola.</div>
+                            )}
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-2">
+                            Selecione as turmas que este professor leciona. Ele terá acesso apenas aos alunos destas turmas.
+                        </p>
+                    </div>
+                )}
+
                 <button onClick={onSubmit} className="w-full btn-gradient text-white py-3 rounded-lg font-bold mt-6 shadow-md">Salvar Usuário</button>
             </div>
         );

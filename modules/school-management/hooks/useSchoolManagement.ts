@@ -51,7 +51,7 @@ export const useSchoolManagement = () => {
     });
     const [classForm, setClassForm] = useState({ name: '', series: '', shift: 'MANHA', schoolId: userSchoolId || '', room: '' });
     const [studentForm, setStudentForm] = useState({ name: '', reg: '', classId: '' });
-    const [userForm, setUserForm] = useState({ name: '', email: '', role: UserRole.PROFESSOR, schoolId: userSchoolId || '' });
+    const [userForm, setUserForm] = useState<{ name: string, email: string, role: UserRole, schoolId: string, classIds: string[] }>({ name: '', email: '', role: UserRole.PROFESSOR, schoolId: userSchoolId || '', classIds: [] });
 
     // --- BATCH UPLOAD SCHOOLS ---
     const handleBatchSchoolImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,7 +114,7 @@ export const useSchoolManagement = () => {
         });
         setClassForm({ name: '', series: '', shift: 'MANHA', schoolId: userSchoolId || '', room: '' });
         setStudentForm({ name: '', reg: '', classId: '' });
-        setUserForm({ name: '', email: '', role: UserRole.PROFESSOR, schoolId: userSchoolId || '' });
+        setUserForm({ name: '', email: '', role: UserRole.PROFESSOR, schoolId: userSchoolId || '', classIds: [] });
     };
 
     const handleSubmit = () => {
@@ -191,6 +191,7 @@ export const useSchoolManagement = () => {
                     email: userForm.email,
                     role: userForm.role,
                     schoolId: userForm.role === UserRole.TENANT_ADMIN || userForm.role === UserRole.SUPER_ADMIN ? undefined : userForm.schoolId,
+                    classIds: userForm.classIds,
                     tenantId: currentTenantId
                 });
             } else {
@@ -198,6 +199,7 @@ export const useSchoolManagement = () => {
                     id: uuidv4(),
                     tenantId: currentTenantId,
                     schoolId: userForm.role === UserRole.TENANT_ADMIN || userForm.role === UserRole.SUPER_ADMIN ? undefined : userForm.schoolId,
+                    classIds: userForm.classIds,
                     name: userForm.name,
                     email: userForm.email,
                     role: userForm.role,
@@ -263,7 +265,8 @@ export const useSchoolManagement = () => {
                 name: item.name,
                 email: item.email,
                 role: item.role,
-                schoolId: item.schoolId || ''
+                schoolId: item.schoolId || '',
+                classIds: item.classIds || []
             });
         } else if (activeTab === 'CLASSES' && type === 'CLASS' && item) {
             setEditingClass(item);
