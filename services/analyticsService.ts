@@ -198,6 +198,37 @@ export class AnalyticsService {
             { label: 'Ciências', value: 6.9, color: '#10b981' }
         ];
     }
+
+    /**
+     * Obter dados de benchmarking (Comparativo de Rede/Estado)
+     */
+    async getBenchmarkingData(schoolId: string) {
+        // Simulação de delay de rede
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        const schoolAvg = this.getNetworkStats().avgIDG; // Simplificado: usa a média da rede como base
+
+        return {
+            networkAvg: 6.8,
+            stateAvg: 7.1,
+            isAboveNetwork: schoolAvg > 6.8,
+            isAboveState: schoolAvg > 7.1
+        };
+    }
+
+    /**
+     * Obter dados de retenção e LTV (Setor Privado)
+     */
+    async getRetentionData(schoolId: string) {
+        await new Promise(resolve => setTimeout(resolve, 400));
+
+        return {
+            retentionRate: 92,
+            churnRate: 8,
+            satisfactionScore: 4.6,
+            projectedLTV: 15400
+        };
+    }
 }
 
 export const analyticsService = new AnalyticsService();
