@@ -45,8 +45,8 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
         if (searchTerm) {
             const lower = searchTerm.toLowerCase();
             result = result.filter(u =>
-                u.name.toLowerCase().includes(lower) ||
-                u.email.toLowerCase().includes(lower)
+                (u.name?.toLowerCase().includes(lower) || false) ||
+                (u.email?.toLowerCase().includes(lower) || false)
             );
         }
 

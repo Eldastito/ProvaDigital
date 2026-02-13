@@ -12,14 +12,20 @@ export const userService = {
      * Check if email is already in use by another user
      */
     isEmailTaken: (email: string, excludeId?: string): boolean => {
+        if (!email) return false;
         const users = useAppStore.getState().users || [];
-        return users.some(u => u.email.toLowerCase() === email.toLowerCase() && u.id !== excludeId);
+        return users.some(u =>
+            u.email &&
+            u.email.toLowerCase() === email.toLowerCase() &&
+            u.id !== excludeId
+        );
     },
 
     /**
      * Format name to Title Case
      */
     formatName: (name: string): string => {
+        if (!name) return '';
         return name
             .toLowerCase()
             .split(' ')

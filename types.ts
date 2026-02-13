@@ -343,6 +343,7 @@ export interface User {
   registrationNumber?: string; // Número de matrícula (para Alunos)
   subjectIds?: string[]; // Disciplinas/Áreas de conhecimento (para Professores)
   theme?: 'light' | 'dark'; // Preferência de tema do usuário
+  createdAt?: string;
 }
 
 export interface Student {

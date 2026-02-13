@@ -80,11 +80,11 @@ export const UserList: React.FC<UserListProps> = ({
                                         <div className="flex items-center gap-3">
                                             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${user.status === 'BLOCKED' ? 'bg-red-100 text-red-500' : 'bg-brand-light text-brand-primary'
                                                 }`}>
-                                                {user.name.charAt(0)}
+                                                {user.name?.charAt(0) || '?'}
                                             </div>
                                             <div>
                                                 <div className="font-bold text-slate-800 flex items-center gap-2">
-                                                    {user.name}
+                                                    {user.name || 'Sem Nome'}
                                                     {user.status === 'BLOCKED' && <Lock size={12} className="text-red-500" />}
                                                 </div>
                                                 <div className="text-xs text-slate-500">{user.email}</div>
