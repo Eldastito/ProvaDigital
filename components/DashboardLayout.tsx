@@ -13,6 +13,7 @@ import { UserRole, TenantType, ExamModel } from '../types';
 import { usePermissions } from '../hooks/usePermissions';
 import { ProfileSwitcher } from './ProfileSwitcher';
 import { ModernSidebar } from './layout/ModernSidebar';
+import { FloatingOwlHelp } from './layout/FloatingOwlHelp';
 import { OECDPortalView } from '../modules/analytics/OECDPortalView';
 import { supabase } from '../services/supabaseClient';
 
@@ -145,6 +146,9 @@ export const DashboardLayout = () => {
                 <main className="flex-1 overflow-y-auto p-6 bg-secondary">
                     <Outlet />
                 </main>
+
+                {/* 🦉 Corujinha Flutuante */}
+                <FloatingOwlHelp />
             </div>
         </div>
     );
