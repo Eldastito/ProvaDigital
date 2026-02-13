@@ -7,6 +7,9 @@ interface UserListProps {
     users: User[];
     schools: School[];
     classes: SchoolClass[];
+    selectedUserIds: string[];
+    onToggleSelection: (userId: string) => void;
+    onSelectAll: (userIds: string[]) => void;
     onEdit: (user: User) => void;
     onDelete: (user: User) => void;
     onResetPassword: (email: string) => void;
@@ -18,6 +21,9 @@ export const UserList: React.FC<UserListProps> = ({
     users,
     schools,
     classes,
+    selectedUserIds,
+    onToggleSelection,
+    onSelectAll,
     onEdit,
     onDelete,
     onResetPassword,
@@ -62,6 +68,22 @@ export const UserList: React.FC<UserListProps> = ({
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider">
+                            {canManageUsers && (
+                                <th className="p-4 w-10">
+                                    <input
+                                        type="checkbox"
+                                        className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary cursor-pointer h-4 w-4"
+                                        checked={users.length > 0 && users.every(u => selectedUserIds.includes(u.id))}
+                                        onChange={(e) => {
+                                            if (e.target.checked) {
+                                                onSelectAll(users.map(u => u.id));
+                                            } else {
+                                                onSelectAll([]);
+                                            }
+                                        }}
+                                    />
+                                </th>
+                            )}
                             <th className="p-4 font-bold">Usuário</th>
                             <th className="p-4 font-bold">Função</th>
                             <th className="p-4 font-bold">Vínculos (Escola/Turmas)</th>
@@ -75,7 +97,18 @@ export const UserList: React.FC<UserListProps> = ({
                             const schoolName = getSchoolName(user.schoolId);
 
                             return (
-                                <tr key={user.id} className={`hover:bg-slate-50 transition ${user.status === 'BLOCKED' ? 'bg-slate-50/50' : ''}`}>
+                                <tr key={user.id} className={`hover:bg-slate-50 transition ${user.status === 'BLOCKED' ? 'bg-slate-50/50' : ''
+                                    } ${selectedUserIds.includes(user.id) ? 'bg-brand-light/20' : ''}`}>
+                                    {canManageUsers && (
+                                        <td className="p-4">
+                                            <input
+                                                type="checkbox"
+                                                className="rounded border-slate-300 text-brand-primary focus:ring-brand-primary cursor-pointer h-4 w-4"
+                                                checked={selectedUserIds.includes(user.id)}
+                                                onChange={() => onToggleSelection(user.id)}
+                                            />
+                                        </td>
+                                    )}
                                     <td className="p-4">
                                         <div className="flex items-center gap-3">
                                             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${user.status === 'BLOCKED' ? 'bg-red-100 text-red-500' : 'bg-brand-light text-brand-primary'

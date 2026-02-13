@@ -5,7 +5,7 @@ import { UserList } from './UserList';
 import { UserFormModal } from './UserFormModal';
 import { userService } from '../../../services/userService';
 import { useSafeAppStore } from '../../../store/useAppStore';
-import { Plus, Table } from 'lucide-react';
+import { Plus, Table, X, Lock, Unlock, AlertTriangle } from 'lucide-react';
 import { BatchImportModal } from './BatchImportModal';
 
 interface UserManagementTabProps {
@@ -23,7 +23,16 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
     forcedRole = 'ALL',
     canManageUsers
 }) => {
-    const { users, classes } = useSafeAppStore();
+    const {
+        users,
+        classes,
+        selectedUserIds,
+        toggleUserSelection,
+        clearUserSelection,
+        selectAllVisibleUsers,
+        bulkDeleteUsers,
+        bulkUpdateUserStatus
+    } = useSafeAppStore();
 
     // States
     const [searchTerm, setSearchTerm] = useState('');
@@ -102,6 +111,19 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
         }
     };
 
+    const handleBulkDelete = async () => {
+        if (confirm(`Deseja realmente excluir permanentemente os ${selectedUserIds.length} usuários selecionados?`)) {
+            await bulkDeleteUsers(selectedUserIds);
+        }
+    };
+
+    const handleBulkStatus = async (status: 'ACTIVE' | 'BLOCKED') => {
+        const action = status === 'ACTIVE' ? 'DESBLOQUEAR' : 'BLOQUEAR';
+        if (confirm(`Confirmar ${action} para os ${selectedUserIds.length} usuários selecionados?`)) {
+            await bulkUpdateUserStatus(selectedUserIds, status);
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-end">
@@ -155,6 +177,9 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                 users={filteredUsers}
                 schools={schools}
                 classes={classes}
+                selectedUserIds={selectedUserIds}
+                onToggleSelection={toggleUserSelection}
+                onSelectAll={selectAllVisibleUsers}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onToggleStatus={handleToggleStatus}
@@ -181,6 +206,49 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                         // Remote data will reload via subscription or manual call if needed
                     }}
                 />
+            )}
+
+            {/* FLOATING BULK ACTIONS BAR */}
+            {selectedUserIds.length > 0 && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-4 ring-1 ring-slate-700">
+                    <div className="flex items-center gap-2 border-r border-slate-700 pr-4 mr-2">
+                        <span className="bg-brand-primary h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold">
+                            {selectedUserIds.length}
+                        </span>
+                        <span className="text-sm font-medium">Selecionados</span>
+                    </div>
+
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => handleBulkStatus('ACTIVE')}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-800 text-xs font-bold transition whitespace-nowrap"
+                        >
+                            <Unlock size={14} className="text-emerald-400" /> Ativar
+                        </button>
+                        <button
+                            onClick={() => handleBulkStatus('BLOCKED')}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-800 text-xs font-bold transition whitespace-nowrap"
+                        >
+                            <Lock size={14} className="text-amber-400" /> Bloquear
+                        </button>
+                        <button
+                            onClick={handleBulkDelete}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-red-900/40 text-red-400 text-xs font-bold transition whitespace-nowrap"
+                        >
+                            <X size={14} /> Excluir
+                        </button>
+                    </div>
+
+                    <div className="w-px h-6 bg-slate-700 mx-2" />
+
+                    <button
+                        onClick={() => clearUserSelection()}
+                        className="p-1 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition"
+                        title="Limpar seleção"
+                    >
+                        <X size={18} />
+                    </button>
+                </div>
             )}
         </div>
     );

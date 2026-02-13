@@ -114,6 +114,11 @@ interface AppActions {
     deleteStudent: (studentId: string) => Promise<void>; // Added
     addUser: (user: User) => Promise<void>;
     deleteUser: (userId: string) => Promise<void>; // Added
+    bulkDeleteUsers: (userIds: string[]) => Promise<void>; // Phase 6
+    toggleUserSelection: (userId: string) => void;
+    clearUserSelection: () => void;
+    selectAllVisibleUsers: (userIds: string[]) => void;
+    bulkUpdateUserStatus: (userIds: string[], status: 'ACTIVE' | 'BLOCKED') => Promise<void>;
     updateSettings: (settings: AppSettings) => void;
     updatePermissions: (matrix: PermissionMatrix) => void;
     updateMessages: (messages: ChatMessage[]) => void;
@@ -303,6 +308,7 @@ const checkAndTriggerAdaptation = async (exam: Exam, classIds: string[], state: 
 export const useAppStore = create<AppStore>((set, get) => ({
     currentUser: null,
     selectedChildId: null,
+    selectedUserIds: [], // Phase 6: Bulk Selection
     examEncryptionKey: null,
     identityKeys: null,
     tenants: USE_MOCK_DATA ? INITIAL_TENANTS : [],
@@ -382,6 +388,19 @@ export const useAppStore = create<AppStore>((set, get) => ({
         });
     },
     setSelectedChildId: (childId) => set({ selectedChildId: childId }),
+
+    toggleUserSelection: (userId) => {
+        set((state) => {
+            const isSelected = state.selectedUserIds.includes(userId);
+            return {
+                selectedUserIds: isSelected
+                    ? state.selectedUserIds.filter(id => id !== userId)
+                    : [...state.selectedUserIds, userId]
+            };
+        });
+    },
+    clearUserSelection: () => set({ selectedUserIds: [] }),
+    selectAllVisibleUsers: (userIds) => set({ selectedUserIds: userIds }),
 
     // --- CARREGAMENTO DO SUPABASE (Sincronização) ---
     loadRemoteData: async () => {
@@ -1171,6 +1190,39 @@ export const useAppStore = create<AppStore>((set, get) => ({
             console.log('✅ User deleted:', userId);
         } catch (e) {
             console.error('❌ Error deleting user:', e);
+        }
+    },
+    bulkDeleteUsers: async (userIds) => {
+        const state = get();
+        await state.logSecurityEvent({
+            attemptId: 'SYSTEM',
+            eventType: 'BULK_USER_DELETE',
+            severity: 'CRITICAL',
+            eventData: { count: userIds.length, deletedBy: state.currentUser?.email }
+        });
+        try {
+            const { error } = await supabase.from('users').delete().in('id', userIds);
+            if (error) throw error;
+            set((state) => ({
+                users: state.users.filter(u => !userIds.includes(u.id)),
+                selectedUserIds: []
+            }));
+            console.log('✅ Bulk users deleted:', userIds.length);
+        } catch (e) {
+            console.error('❌ Error in bulk delete:', e);
+        }
+    },
+    bulkUpdateUserStatus: async (userIds, status) => {
+        try {
+            const { error } = await supabase.from('users').update({ status }).in('id', userIds);
+            if (error) throw error;
+            set((state) => ({
+                users: state.users.map(u => userIds.includes(u.id) ? { ...u, status } : u),
+                selectedUserIds: []
+            }));
+            console.log('✅ Bulk status updated:', status, userIds.length);
+        } catch (e) {
+            console.error('❌ Error in bulk status update:', e);
         }
     },
     deleteExam: async (examId) => {

@@ -1111,6 +1111,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 export interface AppState {
   currentUser: User | null;
   selectedChildId: string | null;
+  selectedUserIds: string[]; // Phase 6: Bulk Selection
   examEncryptionKey: CryptoKey | null;
   identityKeys: CryptoKeyPair | null; // Phase 9: PKI
   tenants: Tenant[];
