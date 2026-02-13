@@ -43,10 +43,19 @@ export const useSchoolManagement = () => {
     const currentTenantId = currentUser?.tenantId || MOCK_TENANT_ID;
 
     // --- DATA FILTERING (ISOLATION) ---
+    // --- DATA FILTERING (ISOLATION) ---
     const visibleSchools = isTenantAdmin ? state.schools : state.schools.filter(s => s.id === userSchoolId);
     const visibleClasses = isTenantAdmin ? state.classes : state.classes.filter(c => c.schoolId === userSchoolId);
-    const visibleStudents = isTenantAdmin ? state.students : state.students.filter(s => s.schoolId === userSchoolId);
-    const visibleUsers = isTenantAdmin ? state.users : state.users.filter(u => u.schoolId === userSchoolId);
+
+    // SSOT: Derive students and users by role from the central users collection
+    const visibleUsers = (isTenantAdmin ? state.users : state.users.filter(u => u.schoolId === userSchoolId))
+        .filter(u => u.role !== UserRole.ALUNO); // Geral list excludes students for clarity if they have their own tab
+
+    const visibleStudents = (isTenantAdmin ? state.users : state.users.filter(u => u.schoolId === userSchoolId))
+        .filter(u => u.role === UserRole.ALUNO);
+
+    // Permissions (Hardening)
+    const canManageUsers = isTenantAdmin || isDirector || state.globalPermissions[currentUser?.role || '']?.USER_DATA?.includes('EDIT');
 
     // Form States
     const [schoolForm, setSchoolForm] = useState<{ name: string, inep: string, resources: SchoolResources }>({
@@ -150,6 +159,8 @@ export const useSchoolManagement = () => {
     };
 
     const handleSubmit = () => {
+        if (!canManageUsers) return alert('Você não tem permissão para realizar esta operação.');
+
         if (activeTab === 'SCHOOLS') {
             if (!schoolForm.name) return alert('Nome obrigatório');
 
@@ -376,6 +387,7 @@ export const useSchoolManagement = () => {
         visibleClasses,
         visibleStudents,
         visibleUsers,
+        canManageUsers,
         state,
         // Refs
         csvInputRef,

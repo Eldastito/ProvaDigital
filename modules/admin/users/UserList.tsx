@@ -11,6 +11,7 @@ interface UserListProps {
     onDelete: (user: User) => void;
     onResetPassword: (email: string) => void;
     onToggleStatus: (user: User) => void;
+    canManageUsers: boolean;
 }
 
 export const UserList: React.FC<UserListProps> = ({
@@ -20,7 +21,8 @@ export const UserList: React.FC<UserListProps> = ({
     onEdit,
     onDelete,
     onResetPassword,
-    onToggleStatus
+    onToggleStatus,
+    canManageUsers
 }) => {
 
     const getSchoolName = (schoolId?: string) => {
@@ -64,7 +66,7 @@ export const UserList: React.FC<UserListProps> = ({
                             <th className="p-4 font-bold">Função</th>
                             <th className="p-4 font-bold">Vínculos (Escola/Turmas)</th>
                             <th className="p-4 font-bold">Status</th>
-                            <th className="p-4 font-bold text-right">Ações</th>
+                            {canManageUsers && <th className="p-4 font-bold text-right">Ações</th>}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -160,41 +162,43 @@ export const UserList: React.FC<UserListProps> = ({
                                             {user.status === 'BLOCKED' ? 'Bloqueado' : 'Ativo'}
                                         </span>
                                     </td>
-                                    <td className="p-4 text-right">
-                                        <div className="flex justify-end gap-1">
-                                            <button
-                                                onClick={() => onEdit(user)}
-                                                className="p-2 rounded text-slate-400 hover:text-brand-primary hover:bg-brand-light transition"
-                                                title="Editar"
-                                            >
-                                                <Settings size={16} />
-                                            </button>
-                                            <button
-                                                onClick={() => onResetPassword(user.email)}
-                                                className="p-2 rounded text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition"
-                                                title="Resetar Senha"
-                                            >
-                                                <ShieldCheck size={16} />
-                                            </button>
-                                            <button
-                                                onClick={() => onToggleStatus(user)}
-                                                className={`p-2 rounded transition ${user.status === 'BLOCKED'
-                                                    ? 'text-red-500 hover:bg-red-100'
-                                                    : 'text-slate-400 hover:text-red-500 hover:bg-red-50'
-                                                    }`}
-                                                title={user.status === 'BLOCKED' ? 'Desbloquear' : 'Bloquear'}
-                                            >
-                                                {user.status === 'BLOCKED' ? <Unlock size={16} /> : <Lock size={16} />}
-                                            </button>
-                                            <button
-                                                onClick={() => onDelete(user)}
-                                                className="p-2 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
-                                                title="Excluir"
-                                            >
-                                                <X size={16} />
-                                            </button>
-                                        </div>
-                                    </td>
+                                    {canManageUsers && (
+                                        <td className="p-4 text-right">
+                                            <div className="flex justify-end gap-1">
+                                                <button
+                                                    onClick={() => onEdit(user)}
+                                                    className="p-2 rounded text-slate-400 hover:text-brand-primary hover:bg-brand-light transition"
+                                                    title="Editar"
+                                                >
+                                                    <Settings size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => onResetPassword(user.email)}
+                                                    className="p-2 rounded text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition"
+                                                    title="Resetar Senha"
+                                                >
+                                                    <ShieldCheck size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => onToggleStatus(user)}
+                                                    className={`p-2 rounded transition ${user.status === 'BLOCKED'
+                                                        ? 'text-red-500 hover:bg-red-100'
+                                                        : 'text-slate-400 hover:text-red-500 hover:bg-red-50'
+                                                        }`}
+                                                    title={user.status === 'BLOCKED' ? 'Desbloquear' : 'Bloquear'}
+                                                >
+                                                    {user.status === 'BLOCKED' ? <Unlock size={16} /> : <Lock size={16} />}
+                                                </button>
+                                                <button
+                                                    onClick={() => onDelete(user)}
+                                                    className="p-2 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                                                    title="Excluir"
+                                                >
+                                                    <X size={16} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    )}
                                 </tr>
                             );
                         })}

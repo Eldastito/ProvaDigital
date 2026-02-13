@@ -13,13 +13,15 @@ interface UserManagementTabProps {
     isTenantAdmin: boolean;
     schools: School[];
     forcedRole?: UserRole | 'ALL';
+    canManageUsers: boolean;
 }
 
 export const UserManagementTab: React.FC<UserManagementTabProps> = ({
     currentUser,
     isTenantAdmin,
     schools,
-    forcedRole = 'ALL'
+    forcedRole = 'ALL',
+    canManageUsers
 }) => {
     const { users, classes } = useSafeAppStore();
 
@@ -107,20 +109,24 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                     Gerenciamento de Usuários
                 </h2>
                 <div className="flex gap-2">
-                    <button
-                        onClick={() => setIsBatchImportOpen(true)}
-                        className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-slate-200 transition shadow-sm border border-slate-200"
-                    >
-                        <Table size={18} />
-                        Importação em Lote
-                    </button>
-                    <button
-                        onClick={handleAdd}
-                        className="bg-brand-primary text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-brand-secondary transition shadow-sm"
-                    >
-                        <Plus size={18} />
-                        Adicionar Usuário
-                    </button>
+                    {canManageUsers && (
+                        <>
+                            <button
+                                onClick={() => setIsBatchImportOpen(true)}
+                                className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-slate-200 transition shadow-sm border border-slate-200"
+                            >
+                                <Table size={18} />
+                                Importação em Lote
+                            </button>
+                            <button
+                                onClick={handleAdd}
+                                className="bg-brand-primary text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-brand-secondary transition shadow-sm"
+                            >
+                                <Plus size={18} />
+                                Adicionar Usuário
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -153,6 +159,7 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                 onDelete={handleDelete}
                 onToggleStatus={handleToggleStatus}
                 onResetPassword={handleResetPassword}
+                canManageUsers={canManageUsers}
             />
 
             <UserFormModal

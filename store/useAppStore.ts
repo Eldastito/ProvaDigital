@@ -1101,39 +1101,36 @@ export const useAppStore = create<AppStore>((set, get) => ({
         } catch (e) { console.error(e); }
     },
     addUser: async (user) => {
-        // 1. Matrícula Automática se for Aluno e não tiver
+        const state = get();
+
+        // 1. RBAC Check (Hardening)
+        const canCreate = state.globalPermissions[state.currentUser?.role || '']?.USER_DATA?.includes('CREATE');
+        if (!canCreate && state.currentUser?.role !== UserRole.SYSTEM_ADMIN) {
+            console.error('❌ Permission Denied: User cannot create records.');
+            alert('Você não tem permissão para cadastrar usuários.');
+            return;
+        }
+
+        // 2. Matrícula Automática se for Aluno e não tiver
         if (user.role === UserRole.ALUNO && !user.registrationNumber) {
-            const tenant = get().tenants.find(t => t.id === user.tenantId);
+            const tenant = state.tenants.find(t => t.id === user.tenantId);
             user.registrationNumber = enrollmentService.generateRegistrationNumber(tenant?.type || 'PUBLIC_MUNICIPAL');
         }
 
-        // 2. Optimistic Update (Users)
+        // 3. Optimistic Update (Users ONLY - SSOT)
         set((state) => ({ users: [...state.users, user] }));
 
-        // 3. Sincronização automática com Students (Fonte Única)
-        if (user.role === UserRole.ALUNO) {
-            const student: Student = {
-                id: user.id,
-                name: user.name,
-                registrationNumber: user.registrationNumber || '',
-                classId: user.classIds?.[0] || '',
-                schoolId: user.schoolId || '',
-                tenantId: user.tenantId
-            };
-            set(state => ({ students: [...state.students, student] }));
-
-            // Persistir Student
-            supabase.from('students').insert({
-                id: student.id,
-                name: student.name,
-                registration_number: student.registrationNumber,
-                class_id: student.classId,
-                school_id: student.schoolId,
-                tenant_id: student.tenantId
-            }).then(({ error }) => {
-                if (error) console.error('❌ Error syncing student record:', error);
-            });
-        }
+        // 4. Auditoria Preventiva
+        await state.logSecurityEvent({
+            attemptId: 'SYSTEM',
+            eventType: 'USER_CREATE',
+            severity: 'INFO',
+            eventData: {
+                createdUserId: user.id,
+                role: user.role,
+                createdBy: state.currentUser?.email
+            }
+        });
 
         try {
             const { error } = await supabase.from('users').insert({
@@ -1147,18 +1144,18 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 children_ids: user.childrenIds || [],
                 phone: user.phone || null,
                 registration_number: user.registrationNumber || null,
-                subject_ids: user.subjectIds || []
+                subject_ids: user.subjectIds || [],
+                status: user.status || 'ACTIVE'
             });
+
             if (error) {
                 console.error('❌ Error saving user:', error);
-                // Rollback (Simplificado)
-                set((state) => ({
-                    users: state.users.filter(u => u.id !== user.id),
-                    students: state.students.filter(s => s.id !== user.id)
-                }));
+                // Rollback
+                set((state) => ({ users: state.users.filter(u => u.id !== user.id) }));
+                alert(`Erro ao salvar: ${error.message}`);
                 throw error;
             }
-            console.log('✅ User saved (SOT):', user.id);
+            console.log('✅ User saved (SSOT):', user.id);
         } catch (e) { console.error(e); }
     },
 
@@ -1340,29 +1337,37 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
 
     updateUser: async (user) => {
+        const state = get();
+
+        // 1. RBAC Check (Hardening)
+        const canEdit = state.globalPermissions[state.currentUser?.role || '']?.USER_DATA?.includes('EDIT');
+        if (!canEdit && state.currentUser?.role !== UserRole.SYSTEM_ADMIN) {
+            console.error('❌ Permission Denied: User cannot edit records.');
+            alert('Você não tem permissão para editar usuários.');
+            return;
+        }
+
+        const previousUser = state.users.find(u => u.id === user.id);
+
+        // 2. Optimistic Update (SSOT)
         set((state) => ({
             users: state.users.map((u) => (u.id === user.id ? user : u))
         }));
 
-        // Sincronizar com Students se for Aluno (Single Source of Truth)
-        if (user.role === UserRole.ALUNO) {
-            set(state => ({
-                students: state.students.map(s => s.id === user.id ? {
-                    ...s,
-                    name: user.name,
-                    registrationNumber: user.registrationNumber || s.registrationNumber,
-                    schoolId: user.schoolId || s.schoolId,
-                    classId: user.classIds?.[0] || s.classId
-                } : s)
-            }));
-
-            supabase.from('students').update({
-                name: user.name,
-                registration_number: user.registrationNumber,
-                class_id: user.classIds?.[0],
-                school_id: user.schoolId
-            }).eq('id', user.id).then(({ error }) => {
-                if (error) console.error('❌ Error syncing student update:', error);
+        // 3. Auditoria de Alteração
+        if (previousUser && (previousUser.name !== user.name || previousUser.classIds !== user.classIds)) {
+            await state.logSecurityEvent({
+                attemptId: 'SYSTEM',
+                eventType: 'USER_UPDATE',
+                severity: 'INFO',
+                eventData: {
+                    updatedUserId: user.id,
+                    changes: {
+                        name: previousUser.name !== user.name,
+                        classIds: previousUser.classIds !== user.classIds
+                    },
+                    updatedBy: state.currentUser?.email
+                }
             });
         }
 
@@ -1376,10 +1381,22 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 children_ids: user.childrenIds || [],
                 phone: user.phone || null,
                 registration_number: user.registrationNumber || null,
-                subject_ids: user.subjectIds || []
+                subject_ids: user.subjectIds || [],
+                status: user.status
             }).eq('id', user.id);
-            if (error) throw error;
-            console.log('✅ User updated (SOT):', user.id);
+
+            if (error) {
+                console.error('❌ Error updating user:', error);
+                // Rollback
+                if (previousUser) {
+                    set((state) => ({
+                        users: state.users.map(u => u.id === user.id ? previousUser : u)
+                    }));
+                }
+                alert(`Erro ao atualizar: ${error.message}`);
+                throw error;
+            }
+            console.log('✅ User updated (SSOT):', user.id);
         } catch (e) {
             console.error('❌ Error updating user:', e);
         }

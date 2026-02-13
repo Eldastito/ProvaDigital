@@ -17,7 +17,8 @@ export const ManagementView = () => {
         userForm, setUserForm,
         currentUser, currentTenantId, userSchoolId,
         isTenantAdmin, isDirector,
-        visibleSchools, visibleClasses, visibleStudents,
+        visibleSchools, visibleClasses, visibleStudents, visibleUsers,
+        canManageUsers,
         state,
         csvInputRef, batchSchoolInputRef,
         handleBatchSchoolImport, downloadTemplate, handleSubmit, handleCsvImport,
@@ -317,15 +318,19 @@ export const ManagementView = () => {
                                     <div className="text-xs text-slate-500">Mat: {s.registrationNumber}</div>
                                 </div>
                                 <div className="flex items-center gap-4">
-                                    <span className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-500">{state.classes.find(c => c.id === s.classId)?.name}</span>
-                                    <div className="flex gap-1">
-                                        <button onClick={() => openModal(s, 'STUDENT')} className="text-slate-400 hover:text-brand-primary p-1 rounded" title="Editar Aluno">
-                                            <Settings size={16} />
-                                        </button>
-                                        <button onClick={() => handleDelete(s.id, 'STUDENT', s.name)} className="text-slate-400 hover:text-red-500 p-1 rounded" title="Excluir Aluno">
-                                            <X size={16} />
-                                        </button>
-                                    </div>
+                                    <span className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-500">
+                                        {state.classes.find(c => c.id === (s.classIds?.[0]))?.name || 'Sem Turma'}
+                                    </span>
+                                    {canManageUsers && (
+                                        <div className="flex gap-1">
+                                            <button onClick={() => openModal(s, 'STUDENT')} className="text-slate-400 hover:text-brand-primary p-1 rounded" title="Editar Aluno">
+                                                <Settings size={16} />
+                                            </button>
+                                            <button onClick={() => handleDelete(s.id, 'STUDENT', s.name)} className="text-slate-400 hover:text-red-500 p-1 rounded" title="Excluir Aluno">
+                                                <X size={16} />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ))}
@@ -339,6 +344,7 @@ export const ManagementView = () => {
                         isTenantAdmin={isTenantAdmin}
                         schools={state.schools}
                         forcedRole="ALL"
+                        canManageUsers={canManageUsers}
                     />
                 )}
 
@@ -348,6 +354,7 @@ export const ManagementView = () => {
                         isTenantAdmin={isTenantAdmin}
                         schools={state.schools}
                         forcedRole={UserRole.PROFESSOR}
+                        canManageUsers={canManageUsers}
                     />
                 )}
 
@@ -357,6 +364,7 @@ export const ManagementView = () => {
                         isTenantAdmin={isTenantAdmin}
                         schools={state.schools}
                         forcedRole={UserRole.PAIS}
+                        canManageUsers={canManageUsers}
                     />
                 )}
 
@@ -468,6 +476,7 @@ export const ManagementView = () => {
                                 classForm={classForm} setClassForm={setClassForm}
                                 studentForm={studentForm} setStudentForm={setStudentForm}
                                 userForm={userForm} setUserForm={setUserForm}
+                                canManageUsers={canManageUsers}
                                 onSubmit={handleSubmit}
                             />
                         </div>

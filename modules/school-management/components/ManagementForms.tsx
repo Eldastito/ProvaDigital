@@ -24,6 +24,7 @@ interface ManagementFormsProps {
     userForm: { name: string, email: string, role: UserRole, schoolId: string, classIds: string[] };
     setUserForm: (val: any) => void;
 
+    canManageUsers: boolean;
     onSubmit: () => void;
 }
 
@@ -33,6 +34,7 @@ export const ManagementForms = ({
     classForm, setClassForm,
     studentForm, setStudentForm,
     userForm, setUserForm,
+    canManageUsers,
     onSubmit
 }: ManagementFormsProps) => {
 
@@ -101,7 +103,11 @@ export const ManagementForms = ({
                         ))}
                     </div>
                 </div>
-                <button onClick={onSubmit} className="w-full btn-gradient text-white py-3 rounded-lg font-bold mt-6 shadow-md">
+                <button
+                    onClick={onSubmit}
+                    disabled={!canManageUsers}
+                    className={`w-full py-3 rounded-lg font-bold mt-6 shadow-md ${!canManageUsers ? 'bg-slate-300 cursor-not-allowed' : 'btn-gradient text-white'}`}
+                >
                     {isDirector ? 'Salvar Relatório' : 'Salvar Escola'}
                 </button>
             </div>
@@ -145,7 +151,13 @@ export const ManagementForms = ({
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Sala (Opcional)</label>
                     <input className="w-full border rounded-lg p-2" placeholder="Ex: Sala 101, Bloco B" value={classForm.room || ''} onChange={e => setClassForm({ ...classForm, room: e.target.value })} />
                 </div>
-                <button onClick={onSubmit} className="w-full btn-gradient text-white py-3 rounded-lg font-bold mt-6 shadow-md">Salvar Turma</button>
+                <button
+                    onClick={onSubmit}
+                    disabled={!canManageUsers}
+                    className={`w-full py-3 rounded-lg font-bold mt-6 shadow-md ${!canManageUsers ? 'bg-slate-300 cursor-not-allowed' : 'btn-gradient text-white'}`}
+                >
+                    Salvar Turma
+                </button>
             </div>
         );
     }
@@ -164,7 +176,13 @@ export const ManagementForms = ({
                         {visibleClasses.map(c => <option key={c.id} value={c.id}>{c.name} - {c.series}</option>)}
                     </select>
                 </div>
-                <button onClick={onSubmit} className="w-full btn-gradient text-white py-3 rounded-lg font-bold mt-6 shadow-md">Salvar Aluno</button>
+                <button
+                    onClick={onSubmit}
+                    disabled={!canManageUsers}
+                    className={`w-full py-3 rounded-lg font-bold mt-6 shadow-md ${!canManageUsers ? 'bg-slate-300 cursor-not-allowed' : 'btn-gradient text-white'}`}
+                >
+                    Salvar Aluno
+                </button>
             </div>
         );
     }
@@ -228,7 +246,13 @@ export const ManagementForms = ({
                     </div>
                 )}
 
-                <button onClick={onSubmit} className="w-full btn-gradient text-white py-3 rounded-lg font-bold mt-6 shadow-md">Salvar Usuário</button>
+                <button
+                    onClick={onSubmit}
+                    disabled={!canManageUsers}
+                    className={`w-full py-3 rounded-lg font-bold mt-6 shadow-md ${!canManageUsers ? 'bg-slate-300 cursor-not-allowed' : 'btn-gradient text-white'}`}
+                >
+                    Salvar Usuário
+                </button>
             </div>
         );
     }
