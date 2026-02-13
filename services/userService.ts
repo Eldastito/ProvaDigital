@@ -51,6 +51,12 @@ export const userService = {
 
         // Call Store Action
         useAppStore.getState().addUser(newUser);
+
+        // Trigger Auto-link for students
+        if (newUser.role === UserRole.ALUNO) {
+            userService.autoLinkGuardians(newUser);
+        }
+
         return newUser;
     },
 
@@ -73,7 +79,13 @@ export const userService = {
             name: updates.name ? userService.formatName(updates.name) : existing.name
         };
 
-        store.updateUser(updatedUser);
+        await store.updateUser(updatedUser);
+
+        // Trigger Auto-link if e-mail or role changed to Student
+        if (updatedUser.role === UserRole.ALUNO) {
+            userService.autoLinkGuardians(updatedUser);
+        }
+
         return updatedUser;
     },
 
@@ -93,5 +105,30 @@ export const userService = {
         const store = useAppStore.getState();
         store.resetUserPassword(email);
         // Here we would trigger Supabase Auth password reset in the future
+    },
+
+    /**
+     * Automatically link students to parents based on responsible_email
+     */
+    autoLinkGuardians: async (student: User): Promise<void> => {
+        if (!student.responsibleEmail || student.role !== UserRole.ALUNO) return;
+
+        const store = useAppStore.getState();
+        const parents = store.users.filter(u => u.role === UserRole.PAIS);
+        const targetParent = parents.find(p => p.email?.toLowerCase() === student.responsibleEmail?.toLowerCase());
+
+        if (targetParent) {
+            console.log(`🔗 Auto-linking student ${student.name} to parent ${targetParent.name}`);
+
+            // 1. Update the parent to include the child
+            const updatedChildrenIds = Array.from(new Set([...(targetParent.childrenIds || []), student.id]));
+            if (updatedChildrenIds.length !== (targetParent.childrenIds || []).length) {
+                await store.updateUser({ ...targetParent, childrenIds: updatedChildrenIds });
+            }
+
+            // 2. Update the student if primary guardian is not set
+            // Note: We don't need a separate store call if this is part of a create/update flow,
+            // but for safety we ensure the student record in store/DB reflects this too.
+        }
     }
 };

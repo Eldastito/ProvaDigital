@@ -341,6 +341,22 @@ export interface User {
   specialNeeds?: string[]; // Condition codes like TEA, TDAH, DISLEXIA
   phone?: string; // Telefone/WhatsApp de contato
   registrationNumber?: string; // Número de matrícula (para Alunos)
+  birthDate?: string;
+  gender?: 'M' | 'F' | 'OUTRO';
+  motherName?: string;
+  fatherName?: string;
+  responsibleEmail?: string;
+  responsiblePhone?: string;
+  documentNumber?: string;
+  address?: {
+    street: string;
+    number: string;
+    complement?: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+    zip: string;
+  };
   subjectIds?: string[]; // Disciplinas/Áreas de conhecimento (para Professores)
   theme?: 'light' | 'dark'; // Preferência de tema do usuário
   createdAt?: string;
