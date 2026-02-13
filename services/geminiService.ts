@@ -477,6 +477,37 @@ TAREFA:
             ],
             "recommendations": ["Recomendação 1", "Recomendação 2", "Recomendação 3"]
         }
+    `,
+    MAP_BATCH_COLUMNS: (headers: string[], sampleRows: string[]) => `
+        Você é um Especialista em Engenharia de Dados e Migração Escolar.
+        Sua tarefa é mapear os cabeçalhos de uma planilha "suja" para o padrão do sistema ExamePad.
+
+        CABEÇALHOS IDENTIFICADOS:
+        ${headers.join(', ')}
+
+        AMOSTRA DE DADOS (3 primeiras linhas):
+        ${sampleRows.join('\n')}
+
+        CAMPOS ALVO (Padronizados):
+        - name: Nome completo do Aluno/Professor.
+        - email: Endereço de e-mail institucional ou pessoal.
+        - registrationNumber: Número de matrícula escolar (Identidade Imutável).
+        - phone: Telefone ou WhatsApp (Formatar: +55...).
+        - role: Cargo (ALUNO, PROFESSOR, PAIS).
+        - classId: Identificador da Turma (Ex: 8A, 9B).
+        - schoolId: Identificador da Escola.
+
+        TAREFA:
+        1. Identifique qual cabeçalho da planilha corresponde a cada campo alvo.
+        2. Se não houver correspondência clara, ignore o cabeçalho.
+        3. Se 'role' não estiver explícito, use como padrão 'ALUNO' (a menos que a amostra sugira o contrário).
+        
+        RETORNE EM JSON:
+        {
+            "mapping": { "targetField": "headerName" },
+            "confidence": number,
+            "notes": "Explicação curta do mapeamento"
+        }
     `
 };
 
@@ -2087,6 +2118,49 @@ export const analyzeRiskData = async (assessments: any[]): Promise<RiskAnalysisR
             summary: "Não foi possível gerar a análise no momento.",
             insights: [],
             recommendations: []
+        };
+    }
+};
+
+/**
+ * Inteligência de Mapeamento para Importação em Lote (Concierge)
+ */
+export const mapImportColumns = async (
+    headers: string[],
+    sampleRows: any[]
+): Promise<{ mapping: Record<string, string>, confidence: number, notes: string }> => {
+    const prompt = (PROMPTS as any).MAP_BATCH_COLUMNS(headers, sampleRows.map(r => JSON.stringify(r)));
+
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            mapping: {
+                type: Type.OBJECT,
+                properties: {
+                    name: { type: Type.STRING },
+                    email: { type: Type.STRING },
+                    registrationNumber: { type: Type.STRING },
+                    phone: { type: Type.STRING },
+                    role: { type: Type.STRING },
+                    classId: { type: Type.STRING },
+                    schoolId: { type: Type.STRING }
+                }
+            },
+            confidence: { type: Type.NUMBER },
+            notes: { type: Type.STRING }
+        },
+        required: ["mapping", "confidence"]
+    };
+
+    try {
+        return await callGeminiAPI<any>(prompt, schema);
+    } catch (error) {
+        console.error("Erro ao mapear colunas com IA:", error);
+        // Fallback básico
+        return {
+            mapping: { name: headers[0], email: headers[1] },
+            confidence: 0,
+            notes: "Fallback manual devido a erro na IA."
         };
     }
 };

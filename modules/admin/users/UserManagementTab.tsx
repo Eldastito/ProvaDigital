@@ -5,7 +5,8 @@ import { UserList } from './UserList';
 import { UserFormModal } from './UserFormModal';
 import { userService } from '../../../services/userService';
 import { useSafeAppStore } from '../../../store/useAppStore';
-import { Plus } from 'lucide-react';
+import { Plus, Table } from 'lucide-react';
+import { BatchImportModal } from './BatchImportModal';
 
 interface UserManagementTabProps {
     currentUser: User;
@@ -26,6 +27,7 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
     const [searchTerm, setSearchTerm] = useState('');
     const [roleFilter, setRoleFilter] = useState<UserRole | 'ALL'>(forcedRole);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isBatchImportOpen, setIsBatchImportOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
 
     // Filter Logic
@@ -104,13 +106,22 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                 <h2 className="text-xl font-bold text-slate-800">
                     Gerenciamento de Usuários
                 </h2>
-                <button
-                    onClick={handleAdd}
-                    className="bg-brand-primary text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-brand-secondary transition shadow-sm"
-                >
-                    <Plus size={18} />
-                    Adicionar Usuário
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setIsBatchImportOpen(true)}
+                        className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-slate-200 transition shadow-sm border border-slate-200"
+                    >
+                        <Table size={18} />
+                        Importação em Lote
+                    </button>
+                    <button
+                        onClick={handleAdd}
+                        className="bg-brand-primary text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-brand-secondary transition shadow-sm"
+                    >
+                        <Plus size={18} />
+                        Adicionar Usuário
+                    </button>
+                </div>
             </div>
 
             {forcedRole === 'ALL' && (
@@ -155,6 +166,15 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                 currentTenantId={currentUser?.tenantId || ''}
                 isTenantAdmin={isTenantAdmin}
             />
+
+            {isBatchImportOpen && (
+                <BatchImportModal
+                    onClose={() => setIsBatchImportOpen(false)}
+                    onSuccess={() => {
+                        // Remote data will reload via subscription or manual call if needed
+                    }}
+                />
+            )}
         </div>
     );
 };

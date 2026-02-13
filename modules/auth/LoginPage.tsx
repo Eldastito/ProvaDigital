@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
-import { Lock, Mail, Loader2, AlertCircle, ArrowRight, Chrome } from 'lucide-react';
+import { Lock, Mail, Loader2, AlertCircle, ArrowRight, Chrome, ShieldCheck } from 'lucide-react';
+import { AccountClaimFlow } from './AccountClaimFlow';
 
 export const LoginPage = () => {
     const [email, setEmail] = useState('');
@@ -9,6 +10,8 @@ export const LoginPage = () => {
     const [error, setError] = useState<string | null>(null);
 
     const [isSignUp, setIsSignUp] = useState(false);
+    const [isClaiming, setIsClaiming] = useState(false);
+    const [claimEmail, setClaimEmail] = useState('');
 
     const handleGoogleLogin = async () => {
         setLoading(true);
@@ -209,16 +212,41 @@ export const LoginPage = () => {
                     </form>
 
                     <div className="mt-8 text-center flex flex-col gap-2">
-                        <button
-                            type="button"
-                            onClick={() => { setIsSignUp(!isSignUp); setError(null); }}
-                            className="text-sm font-bold text-brand-primary hover:text-emerald-400 transition-colors"
-                        >
-                            {isSignUp ? 'Já tem conta? Voltar para Login' : 'Não tem conta? Cadastrar-se (Primeiro Acesso)'}
-                        </button>
+                        {!isClaiming && (
+                            <button
+                                type="button"
+                                onClick={() => { setIsSignUp(!isSignUp); setError(null); }}
+                                className="text-sm font-bold text-brand-primary hover:text-emerald-400 transition-colors"
+                            >
+                                {isSignUp ? 'Já tem conta? Voltar para Login' : 'Não tem conta? Cadastrar-se (Primeiro Acesso)'}
+                            </button>
+                        )}
+
+                        {!isSignUp && !isClaiming && (
+                            <button
+                                type="button"
+                                onClick={() => { setIsClaiming(true); setClaimEmail(email); }}
+                                className="flex items-center justify-center gap-2 text-sm font-bold text-indigo-400 hover:text-indigo-300 transition-colors bg-indigo-500/10 py-2 rounded-xl border border-indigo-500/20"
+                            >
+                                <ShieldCheck size={16} />
+                                Resgatar Meu Acesso (Importado)
+                            </button>
+                        )}
+
                         {!isSignUp && <a href="#" className="text-sm text-slate-400 hover:text-emerald-400 transition-colors">Esqueceu sua senha?</a>}
                     </div>
                 </div>
+
+                {isClaiming && (
+                    <AccountClaimFlow
+                        email={claimEmail || email}
+                        onSuccess={() => {
+                            setIsClaiming(false);
+                            alert("Conta ativada! Agora você pode fazer login com sua nova senha.");
+                        }}
+                        onCancel={() => setIsClaiming(false)}
+                    />
+                )}
 
                 <p className="text-center text-slate-500 text-xs mt-8 opacity-60">
                     &copy; 2024 ExamePad SaaS. Sistema Seguro.

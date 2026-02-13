@@ -2,6 +2,7 @@ import React from 'react';
 import { Sparkles, Loader2, GripVertical, Brain, Video, Music, Wifi, Upload, ImageIcon } from 'lucide-react';
 import { RichTextEditor } from '../../../../components/RichTextEditor';
 import { QuestionType } from '../../../../types';
+import { fileSecurityService } from '../../../../services/fileSecurityService';
 
 interface StatementEditorProps {
     form: any;
@@ -133,12 +134,27 @@ export const StatementEditor: React.FC<StatementEditorProps> = ({
                                 onChange={async (e) => {
                                     const file = e.target.files?.[0];
                                     if (!file) return;
+
+                                    let finalFile = file;
+
+                                    // Global Security Layer: Sanitização de Imagens
+                                    if (file.type.startsWith('image/')) {
+                                        try {
+                                            const sanitizedBlob = await fileSecurityService.sanitizeImage(file);
+                                            finalFile = new File([sanitizedBlob], file.name, { type: sanitizedBlob.type });
+                                        } catch (err) {
+                                            console.error("Segurança: Falha na sanitização da imagem:", err);
+                                            alert("Este arquivo foi rejeitado pelo Porteiro de Segurança IA.");
+                                            return;
+                                        }
+                                    }
+
                                     // Em prod enviaria para Supabase Storage. Aqui usamos Blob URL p/ demo.
-                                    const objectUrl = URL.createObjectURL(file);
-                                    const type = file.type.startsWith('video') ? 'VIDEO' : file.type.startsWith('audio') ? 'AUDIO' : 'IMAGE';
+                                    const objectUrl = URL.createObjectURL(finalFile);
+                                    const type = finalFile.type.startsWith('video') ? 'VIDEO' : finalFile.type.startsWith('audio') ? 'AUDIO' : 'IMAGE';
                                     setForm({
                                         ...form,
-                                        multimedia: [{ type, url: objectUrl, description: `Arquivo offline: ${file.name}` }]
+                                        multimedia: [{ type, url: objectUrl, description: `Arquivo offline: ${finalFile.name}` }]
                                     });
                                     alert("Arquivo carregado com sucesso! Este recurso estará disponível offline no tablet.");
                                 }}

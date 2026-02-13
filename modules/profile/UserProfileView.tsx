@@ -5,6 +5,7 @@ import { AppState, User as UserType, UserProfileExtended, AssessmentType, Assess
 import { AssessmentRunner } from './AssessmentRunner';
 import { ScreeningReportModal } from '../neuro-screening/ScreeningReportModal';
 import { uuidv4 } from '../../utils/helpers';
+import { fileSecurityService } from '../../services/fileSecurityService';
 
 interface UserProfileViewProps {
     state: AppState;
@@ -34,15 +35,22 @@ export const UserProfileView = () => {
 
     const isAdminOrManager = user.role === UserRole.SUPER_ADMIN || user.role === UserRole.TENANT_ADMIN || user.role === UserRole.DIRETOR;
 
-    const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const newProfile = { ...userProfile, avatarUrl: reader.result as string };
-                onUpdateProfile(newProfile);
-            };
-            reader.readAsDataURL(file);
+            try {
+                // Global Security Layer: Reconstruct image to strip malicious code/metadata
+                const sanitizedBlob = await fileSecurityService.sanitizeImage(file);
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const newProfile = { ...userProfile, avatarUrl: reader.result as string };
+                    onUpdateProfile(newProfile);
+                };
+                reader.readAsDataURL(sanitizedBlob);
+            } catch (err) {
+                console.error("Erro na sanitização de segurança:", err);
+                alert("Este arquivo foi rejeitado pelo Porteiro de Segurança IA por conter possíveis scripts maliciosos.");
+            }
         }
     };
 

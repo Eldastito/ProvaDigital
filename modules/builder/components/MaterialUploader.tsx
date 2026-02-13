@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { Upload, File, FileText, Image as ImageIcon, Table, X, Eye, Loader2 } from 'lucide-react';
+import { Upload, File as FileIcon, FileText, Image as ImageIcon, Table, X, Eye, Loader2 } from 'lucide-react';
+import { fileSecurityService } from '../../../services/fileSecurityService';
 
 export interface MaterialSource {
     type: 'pdf' | 'image' | 'docx' | 'xlsx' | 'txt';
@@ -63,7 +64,7 @@ export const MaterialUploader: React.FC<MaterialUploaderProps> = ({
             case 'xlsx':
                 return <Table className="text-green-600" size={24} />;
             case 'txt':
-                return <File className="text-slate-600" size={24} />;
+                return <FileIcon className="text-slate-600" size={24} />;
             case 'image':
                 return <ImageIcon className="text-purple-600" size={24} />;
         }
@@ -91,13 +92,25 @@ export const MaterialUploader: React.FC<MaterialUploaderProps> = ({
                 throw new Error('Tipo de arquivo não suportado');
             }
 
+            let finalFile = file;
+
+            // Global Security Layer: Sanitização Ativa
+            if (fileType === 'image') {
+                const blob = await fileSecurityService.sanitizeImage(file);
+                finalFile = new File([blob], file.name, { type: blob.type });
+            } else if (fileType === 'txt' || fileType === 'pdf') {
+                // Para PDF, por enquanto validamos apenas a integridade estrutural/raw
+                // futuramente podemos reconstrur o PDF se tivermos biblioteca local
+                await fileSecurityService.validateRawData(file);
+            }
+
             // Criar material source
             const material: MaterialSource = {
                 type: fileType,
-                fileName: file.name,
-                fileSize: file.size,
+                fileName: finalFile.name,
+                fileSize: finalFile.size,
                 uploadedAt: new Date(),
-                file: file
+                file: finalFile
             };
 
             // Para PDFs, detectar número de páginas (será implementado no processamento)
@@ -108,7 +121,8 @@ export const MaterialUploader: React.FC<MaterialUploaderProps> = ({
 
             onMaterialUploaded(material);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Erro ao processar arquivo');
+            console.error("Erro na segurança do arquivo:", err);
+            setError(err instanceof Error ? err.message : 'Erro ao processar arquivo por segurança');
         } finally {
             setIsProcessing(false);
         }
@@ -236,8 +250,8 @@ export const MaterialUploader: React.FC<MaterialUploaderProps> = ({
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isDragging
-                        ? 'border-brand-primary bg-brand-primary/5'
-                        : 'border-slate-300 hover:border-slate-400'
+                    ? 'border-brand-primary bg-brand-primary/5'
+                    : 'border-slate-300 hover:border-slate-400'
                     }`}
             >
                 {isProcessing ? (
