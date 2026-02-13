@@ -8,7 +8,8 @@ import {
     Lock,
     ArrowRight,
     Fingerprint,
-    UserCheck
+    UserCheck,
+    AlertCircle
 } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
 import { enrollmentService } from '../../services/enrollmentService';
@@ -19,14 +20,15 @@ interface AccountClaimFlowProps {
     onCancel: () => void;
 }
 
-type ClaimStep = 'VERIFY_IDENTITY' | 'SET_PASSWORD' | 'SUCCESS';
+type ClaimStep = 'IDENTIFY' | 'VERIFY_OTP' | 'SET_PASSWORD' | 'SUCCESS';
 
-export const AccountClaimFlow = ({ email, onSuccess, onCancel }: AccountClaimFlowProps) => {
-    const [step, setStep] = useState<ClaimStep>('VERIFY_IDENTITY');
+export const AccountClaimFlow = ({ email: initialEmail, onSuccess, onCancel }: AccountClaimFlowProps) => {
+    const [step, setStep] = useState<ClaimStep>('IDENTIFY');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Verification Fields
+    // Fields
+    const [email, setEmail] = useState(initialEmail);
     const [registrationNumber, setRegistrationNumber] = useState('');
     const [otp, setOtp] = useState('');
 
@@ -34,30 +36,62 @@ export const AccountClaimFlow = ({ email, onSuccess, onCancel }: AccountClaimFlo
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
-    const handleVerifyIdentity = async (e: React.FormEvent) => {
+    const handleIdentify = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
 
         try {
-            // 1. Verificar se o número de matrícula coincide com o e-mail na tabela 'users'
+            // 1. KBA: Verificar se o número de matrícula coincide na tabela pública
             const { data: user, error: userError } = await supabase
                 .from('users')
-                .select('*')
+                .select('id, status')
                 .eq('email', email)
                 .eq('registration_number', registrationNumber)
                 .single();
 
             if (userError || !user) {
-                throw new Error("Identidade não confirmada. Verifique o número de matrícula.");
+                throw new Error("Identidade não confirmada para este e-mail. Verifique a matrícula.");
             }
 
-            // Em um cenário real, aqui validaríamos também o OTP enviado por e-mail.
-            // Como estamos em Mock/PoC, simularemos a validação do OTP "123456"
-            if (otp !== '123456') {
-                throw new Error("Código de verificação (OTP) inválido.");
+            if (user.status === 'ACTIVE') {
+                throw new Error("Esta conta já está ativa. Tente fazer login normalmente.");
             }
 
+            // 2. Disparar OTP Real via Supabase Auth
+            const { error: otpError } = await supabase.auth.signInWithOtp({
+                email,
+                options: {
+                    shouldCreateUser: true // Garante que será criado no Auth se for importado apenas no DB
+                }
+            });
+
+            if (otpError) throw otpError;
+
+            setStep('VERIFY_OTP');
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleVerifyOtp = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+
+        try {
+            // 3. Validar OTP contra o servidor
+            const { error: verifyError } = await supabase.auth.verifyOtp({
+                email,
+                token: otp,
+                type: 'email'
+            });
+
+            if (verifyError) throw verifyError;
+
+            // Se passou, o usuário já está logado na sessão autêntica
             setStep('SET_PASSWORD');
         } catch (err: any) {
             setError(err.message);
@@ -75,10 +109,14 @@ export const AccountClaimFlow = ({ email, onSuccess, onCancel }: AccountClaimFlo
 
         setLoading(true);
         try {
-            // 1. Atualizar a senha no Supabase Auth (Aqui assume-se que o usuário já existe no Auth mas com senha aleatória ou pendente)
-            // Nota: No fluxo real de importação, o usuário precisaria dar 'Reset Password' ou usaríamos um trigger.
-            // Para este fluxo SaaS, atualizaremos o status do usuário na tabela pública.
+            // 4. Definir senha definitiva
+            const { error: pwdError } = await supabase.auth.updateUser({
+                password: password
+            });
 
+            if (pwdError) throw pwdError;
+
+            // 5. Ativar no banco público
             const { error: activeError } = await supabase
                 .from('users')
                 .update({ status: 'ACTIVE' })
@@ -109,13 +147,22 @@ export const AccountClaimFlow = ({ email, onSuccess, onCancel }: AccountClaimFlo
                 </div>
 
                 <div className="p-8">
-                    {step === 'VERIFY_IDENTITY' && (
-                        <form onSubmit={handleVerifyIdentity} className="space-y-6">
-                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-start gap-3">
-                                <Mail className="text-indigo-600 mt-1" size={20} />
-                                <div>
-                                    <div className="text-xs font-bold text-slate-400 uppercase">E-mail Identificado</div>
-                                    <div className="text-slate-800 font-bold">{email}</div>
+                    {step === 'IDENTIFY' && (
+                        <form onSubmit={handleIdentify} className="space-y-6">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Seu E-mail Institucional/Cadastrado</label>
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+                                        <Mail size={20} />
+                                    </div>
+                                    <input
+                                        type="email"
+                                        required
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition-all font-bold"
+                                        placeholder="voce@escola.com"
+                                    />
                                 </div>
                             </div>
 
@@ -134,11 +181,44 @@ export const AccountClaimFlow = ({ email, onSuccess, onCancel }: AccountClaimFlo
                                         placeholder="Ex: MUN2024ABCD"
                                     />
                                 </div>
-                                <p className="text-[10px] text-slate-400 ml-1 italic">* Esta informação foi fornecida pela sua instituição de ensino.</p>
+                                <p className="text-[10px] text-slate-400 ml-1 italic">* Identidade fornecida pela sua instituição para validar seu acesso.</p>
+                            </div>
+
+                            {error && (
+                                <div className="bg-rose-50 text-rose-600 p-4 rounded-2xl text-xs font-bold flex items-center gap-2 border border-rose-100">
+                                    <AlertCircle size={16} />
+                                    {error}
+                                </div>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full bg-indigo-600 hover:bg-black text-white py-4 rounded-2xl font-bold shadow-xl shadow-indigo-100 transition-all flex items-center justify-center gap-2"
+                            >
+                                {loading ? <Loader2 className="animate-spin" size={20} /> : "Verificar Matrícula e Enviar E-mail"}
+                                <ArrowRight size={20} />
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={onCancel}
+                                className="w-full text-slate-400 text-sm font-bold hover:text-slate-600 transition-colors"
+                            >
+                                Cancelar Resgate
+                            </button>
+                        </form>
+                    )}
+
+                    {step === 'VERIFY_OTP' && (
+                        <form onSubmit={handleVerifyOtp} className="space-y-6">
+                            <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 text-center">
+                                <p className="text-xs font-bold text-indigo-700">Enviamos um código para seu e-mail!</p>
+                                <p className="text-[10px] text-indigo-500">{email}</p>
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Código OTP do E-mail</label>
+                                <label className="text-xs font-bold text-slate-500 uppercase ml-1">Código de 6 Dígitos</label>
                                 <div className="relative group">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-600 transition-colors">
                                         <KeyRound size={20} />
@@ -149,7 +229,7 @@ export const AccountClaimFlow = ({ email, onSuccess, onCancel }: AccountClaimFlo
                                         value={otp}
                                         onChange={(e) => setOtp(e.target.value)}
                                         className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition-all text-center tracking-[0.5em] font-black"
-                                        placeholder="123456"
+                                        placeholder="000000"
                                         maxLength={6}
                                     />
                                 </div>
@@ -157,7 +237,7 @@ export const AccountClaimFlow = ({ email, onSuccess, onCancel }: AccountClaimFlo
 
                             {error && (
                                 <div className="bg-rose-50 text-rose-600 p-4 rounded-2xl text-xs font-bold flex items-center gap-2 border border-rose-100">
-                                    <UserCheck size={16} />
+                                    <AlertCircle size={16} />
                                     {error}
                                 </div>
                             )}
@@ -167,16 +247,15 @@ export const AccountClaimFlow = ({ email, onSuccess, onCancel }: AccountClaimFlo
                                 disabled={loading}
                                 className="w-full bg-indigo-600 hover:bg-black text-white py-4 rounded-2xl font-bold shadow-xl shadow-indigo-100 transition-all flex items-center justify-center gap-2"
                             >
-                                {loading ? <Loader2 className="animate-spin" size={20} /> : "Confirmar Identidade"}
-                                <ArrowRight size={20} />
+                                {loading ? <Loader2 className="animate-spin" size={20} /> : "Validar Código"}
                             </button>
 
                             <button
                                 type="button"
-                                onClick={onCancel}
-                                className="w-full text-slate-400 text-sm font-bold hover:text-slate-600 transition-colors"
+                                onClick={() => setStep('IDENTIFY')}
+                                className="w-full text-slate-400 text-sm font-bold"
                             >
-                                Cancelar Resgate
+                                Voltar
                             </button>
                         </form>
                     )}
