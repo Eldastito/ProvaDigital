@@ -11,18 +11,20 @@ interface UserManagementTabProps {
     currentUser: User;
     isTenantAdmin: boolean;
     schools: School[];
+    forcedRole?: UserRole | 'ALL';
 }
 
 export const UserManagementTab: React.FC<UserManagementTabProps> = ({
     currentUser,
     isTenantAdmin,
-    schools
+    schools,
+    forcedRole = 'ALL'
 }) => {
     const { users, classes } = useSafeAppStore();
 
     // States
     const [searchTerm, setSearchTerm] = useState('');
-    const [roleFilter, setRoleFilter] = useState<UserRole | 'ALL'>('ALL');
+    const [roleFilter, setRoleFilter] = useState<UserRole | 'ALL'>(forcedRole);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
 
@@ -111,12 +113,26 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                 </button>
             </div>
 
-            <UserFilters
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                roleFilter={roleFilter}
-                onRoleFilterChange={setRoleFilter}
-            />
+            {forcedRole === 'ALL' && (
+                <UserFilters
+                    searchTerm={searchTerm}
+                    onSearchChange={setSearchTerm}
+                    roleFilter={roleFilter}
+                    onRoleFilterChange={setRoleFilter}
+                />
+            )}
+
+            {forcedRole !== 'ALL' && (
+                <div className="flex bg-slate-50 p-3 rounded-lg border border-slate-200 mb-2">
+                    <input
+                        type="text"
+                        placeholder="Buscar nesta lista..."
+                        className="flex-1 bg-transparent outline-none text-sm px-2"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                    />
+                </div>
+            )}
 
             <UserList
                 users={filteredUsers}
@@ -135,7 +151,8 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                 editingUser={editingUser}
                 availableSchools={schools}
                 availableClasses={classes} // Passing classes to modal
-                currentTenantId={currentUser.tenantId}
+                allStudents={users.filter(u => u.role === UserRole.ALUNO)}
+                currentTenantId={currentUser?.tenantId || ''}
                 isTenantAdmin={isTenantAdmin}
             />
         </div>

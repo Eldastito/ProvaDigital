@@ -1,5 +1,6 @@
 import React from 'react';
 import { GraduationCap, Briefcase, Users, Settings, Plus, X, School as SchoolIcon, Upload, Radio, FileText, Download, Network, GitMerge, ArrowRight, ShieldCheck, Database, AlertTriangle } from 'lucide-react';
+import { UserRole } from '../../types';
 import { useSchoolManagement } from './hooks/useSchoolManagement';
 import { CommandCenter } from './components/CommandCenter';
 import { ManagementForms } from './components/ManagementForms';
@@ -43,8 +44,8 @@ export const ManagementView = () => {
                             <Upload size={18} /> <span className="sm:inline">Importar</span> CSV
                         </button>
                     )}
-                    {/* Hide header Add button for COMMAND_CENTER, SETTINGS, etc. and for USERS (has its own button) or if no permission for SCHOOLS */}
-                    {activeTab !== 'COMMAND_CENTER' && activeTab !== 'SETTINGS' && activeTab !== 'BATCH_IMPORT' && activeTab !== 'HIERARCHY' && activeTab !== 'USERS' && (isTenantAdmin || isDirector || activeTab !== 'SCHOOLS') && (
+                    {/* Hide header Add button for COMMAND_CENTER, SETTINGS, etc. and for USERS/PROFESSORES/RESPONSAVEIS (has its own button) or if no permission for SCHOOLS */}
+                    {activeTab !== 'COMMAND_CENTER' && activeTab !== 'SETTINGS' && activeTab !== 'BATCH_IMPORT' && activeTab !== 'HIERARCHY' && activeTab !== 'USERS' && activeTab !== 'PROFESSORES' && activeTab !== 'RESPONSAVEIS' && (isTenantAdmin || isDirector || activeTab !== 'SCHOOLS') && (
                         <button onClick={() => openModal()} className="flex-1 sm:flex-none justify-center btn-gradient px-3 md:px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm text-xs md:text-sm font-medium">
                             <Plus size={18} />
                             Adicionar <span className="sm:inline">{activeTab === 'SCHOOLS' ? 'Escola' : activeTab === 'CLASSES' ? 'Turma' : activeTab === 'STUDENTS' ? 'Aluno' : 'Usuário'}</span>
@@ -74,8 +75,14 @@ export const ManagementView = () => {
                 <button onClick={() => setActiveTab('STUDENTS')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'STUDENTS' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
                     <Users size={18} /> Alunos
                 </button>
+                <button onClick={() => setActiveTab('PROFESSORES')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'PROFESSORES' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
+                    <Users size={18} /> Professores
+                </button>
+                <button onClick={() => setActiveTab('RESPONSAVEIS')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'RESPONSAVEIS' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
+                    <Users size={18} /> Responsáveis
+                </button>
                 <button onClick={() => setActiveTab('USERS')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'USERS' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
-                    <Settings size={18} /> Usuários
+                    <Settings size={18} /> Geral
                 </button>
                 <button onClick={() => setActiveTab('COMMAND_CENTER')} className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'COMMAND_CENTER' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-500'}`}>
                     <Radio size={18} /> Centro de Comando
@@ -331,6 +338,25 @@ export const ManagementView = () => {
                         currentUser={currentUser}
                         isTenantAdmin={isTenantAdmin}
                         schools={state.schools}
+                        forcedRole="ALL"
+                    />
+                )}
+
+                {activeTab === 'PROFESSORES' && currentUser && (
+                    <UserManagementTab
+                        currentUser={currentUser}
+                        isTenantAdmin={isTenantAdmin}
+                        schools={state.schools}
+                        forcedRole={UserRole.PROFESSOR}
+                    />
+                )}
+
+                {activeTab === 'RESPONSAVEIS' && currentUser && (
+                    <UserManagementTab
+                        currentUser={currentUser}
+                        isTenantAdmin={isTenantAdmin}
+                        schools={state.schools}
+                        forcedRole={UserRole.PAIS}
                     />
                 )}
 

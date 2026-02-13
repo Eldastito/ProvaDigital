@@ -339,6 +339,9 @@ export interface User {
   status?: string;
   childrenIds?: string[]; // Array de IDs dos filhos
   specialNeeds?: string[]; // Condition codes like TEA, TDAH, DISLEXIA
+  phone?: string; // Telefone/WhatsApp de contato
+  registrationNumber?: string; // Número de matrícula (para Alunos)
+  subjectIds?: string[]; // Disciplinas/Áreas de conhecimento (para Professores)
   theme?: 'light' | 'dark'; // Preferência de tema do usuário
 }
 

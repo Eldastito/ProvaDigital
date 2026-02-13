@@ -37,7 +37,7 @@ export const useStudentDashboard = () => {
         updatedAt: new Date().toISOString()
     } as any;
 
-    const analytics = new AnalyticsService(); // Removed 'state' arg as per previous fix
+    const analytics = new AnalyticsService(state);
 
     const realStats = foundStudent ? analytics.getStudentStats(foundStudent.id) : null;
     const stats = realStats || {

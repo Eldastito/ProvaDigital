@@ -10,7 +10,7 @@ interface GlobalRankingViewProps {
 }
 
 export const GlobalRankingView = ({ state, onClose }: GlobalRankingViewProps) => {
-    const analytics = new AnalyticsService();
+    const analytics = new AnalyticsService(state);
     const { currentUser } = state;
 
     // Filtros

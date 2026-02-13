@@ -5,7 +5,7 @@ import { uuidv4 } from '../../../utils/helpers';
 import { useSafeAppStore } from '../../../store/useAppStore';
 import { MOCK_TENANT_ID } from '../../../utils/mockData';
 
-export type ManagementTab = 'SCHOOLS' | 'CLASSES' | 'STUDENTS' | 'USERS' | 'COMMAND_CENTER' | 'SETTINGS' | 'BATCH_IMPORT' | 'HIERARCHY' | 'TENANT_SETTINGS';
+export type ManagementTab = 'SCHOOLS' | 'CLASSES' | 'STUDENTS' | 'PROFESSORES' | 'RESPONSAVEIS' | 'USERS' | 'COMMAND_CENTER' | 'SETTINGS' | 'BATCH_IMPORT' | 'HIERARCHY' | 'TENANT_SETTINGS';
 
 export const useSchoolManagement = () => {
     const state = useSafeAppStore();

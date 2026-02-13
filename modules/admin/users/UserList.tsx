@@ -33,6 +33,18 @@ export const UserList: React.FC<UserListProps> = ({
         return classes.filter(c => classIds.includes(c.id));
     };
 
+    const getChildrenNames = (childIds?: string[]) => {
+        if (!childIds || childIds.length === 0) return [];
+        return users.filter(u => childIds.includes(u.id));
+    };
+
+    const isMultiSchoolParent = (childIds?: string[]) => {
+        if (!childIds || childIds.length < 2) return false;
+        const linkedStudents = users.filter(u => childIds.includes(u.id));
+        const schools = new Set(linkedStudents.map(s => s.schoolId).filter(Boolean));
+        return schools.size > 1;
+    };
+
     if (users.length === 0) {
         return (
             <div className="p-12 text-center bg-slate-50 rounded-lg border border-slate-200 border-dashed">
@@ -74,6 +86,7 @@ export const UserList: React.FC<UserListProps> = ({
                                                     {user.status === 'BLOCKED' && <Lock size={12} className="text-red-500" />}
                                                 </div>
                                                 <div className="text-xs text-slate-500">{user.email}</div>
+                                                {user.phone && <div className="text-[10px] text-brand-primary font-medium">{user.phone}</div>}
                                             </div>
                                         </div>
                                     </td>
@@ -112,6 +125,30 @@ export const UserList: React.FC<UserListProps> = ({
                                                         ))
                                                     ) : (
                                                         schoolName && <span className="text-[10px] text-slate-400 italic pl-1">Nenhuma turma</span>
+                                                    )}
+                                                    {user.subjectIds && user.subjectIds.length > 0 && (
+                                                        user.subjectIds.map(sub => (
+                                                            <span key={sub} className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">
+                                                                {sub}
+                                                            </span>
+                                                        ))
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {user.role === UserRole.PAIS && (
+                                                <div className="flex flex-col gap-1 mt-1">
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {getChildrenNames(user.childrenIds).map(child => (
+                                                            <span key={child.id} className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100 flex items-center gap-1">
+                                                                <Users size={8} /> {child.name}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                    {isMultiSchoolParent(user.childrenIds) && (
+                                                        <span className="text-[9px] font-bold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 flex items-center gap-1 animate-pulse">
+                                                            <AlertCircle size={8} /> MULTI-ESCOLA
+                                                        </span>
                                                     )}
                                                 </div>
                                             )}

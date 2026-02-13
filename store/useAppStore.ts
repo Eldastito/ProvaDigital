@@ -14,6 +14,8 @@ import {
 import { uuidv4 } from '../utils/helpers';
 import { INITIAL_TENANTS, INITIAL_SCHOOLS, INITIAL_CLASSES, INITIAL_USERS, INITIAL_ITEMS, INITIAL_STUDENTS, INITIAL_RESULTS, INITIAL_EXAMS, INITIAL_REGISTRATIONS, INITIAL_ANNOUNCEMENTS, INITIAL_MESSAGES, INITIAL_LESSON_PLANS, INITIAL_STUDY_PLANS, INITIAL_STUDENT_PROFILES, INITIAL_USER_PROFILES, INITIAL_SETTINGS, INITIAL_GAMIFIED_EVENTS } from '../utils/mockData';
 import { supabase } from '../services/supabaseClient';
+import { userMigrationService } from '../services/userMigrationService';
+import { enrollmentService } from '../services/enrollmentService';
 
 // OTIMIZAÇÃO HIERÁRQUICA DE PERMISSÕES - [Deploy Trigger: 2026-01-11]
 const DEFAULT_PERMISSIONS: PermissionMatrix = {
@@ -421,7 +423,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
                     tenantId: u.tenant_id,
                     schoolId: u.school_id,
                     childrenIds: u.children_ids || [],
-                    classIds: u.class_ids || [], // Add this mapping
+                    classIds: u.class_ids || [],
+                    phone: u.phone,
+                    registrationNumber: u.registration_number,
+                    subjectIds: u.subject_ids || [],
                     status: u.status
                 }));
 
@@ -577,6 +582,21 @@ export const useAppStore = create<AppStore>((set, get) => ({
             } else {
                 console.warn("⚠️ Nenhum perfil encontrado no Supabase.");
                 set({ userProfiles: [] });
+            }
+
+            // --- MIGRAÇÃO DE DADOS LEGADOS ---
+            const state = get();
+            const { updatedUsers, updatedStudents } = await userMigrationService.syncLegacyData(
+                state.users,
+                state.students,
+                state.tenants
+            );
+
+            if (updatedUsers.length !== state.users.length || updatedStudents.length !== state.students.length ||
+                JSON.stringify(updatedUsers) !== JSON.stringify(state.users)) {
+                set({ users: updatedUsers, students: updatedStudents });
+                // Persistência em background para não travar o carregamento
+                userMigrationService.persistMigration(updatedUsers, updatedStudents);
             }
 
             //4.5 Carregar Live Quiz Sessions
@@ -1081,7 +1101,40 @@ export const useAppStore = create<AppStore>((set, get) => ({
         } catch (e) { console.error(e); }
     },
     addUser: async (user) => {
+        // 1. Matrícula Automática se for Aluno e não tiver
+        if (user.role === UserRole.ALUNO && !user.registrationNumber) {
+            const tenant = get().tenants.find(t => t.id === user.tenantId);
+            user.registrationNumber = enrollmentService.generateRegistrationNumber(tenant?.type || 'PUBLIC_MUNICIPAL');
+        }
+
+        // 2. Optimistic Update (Users)
         set((state) => ({ users: [...state.users, user] }));
+
+        // 3. Sincronização automática com Students (Fonte Única)
+        if (user.role === UserRole.ALUNO) {
+            const student: Student = {
+                id: user.id,
+                name: user.name,
+                registrationNumber: user.registrationNumber || '',
+                classId: user.classIds?.[0] || '',
+                schoolId: user.schoolId || '',
+                tenantId: user.tenantId
+            };
+            set(state => ({ students: [...state.students, student] }));
+
+            // Persistir Student
+            supabase.from('students').insert({
+                id: student.id,
+                name: student.name,
+                registration_number: student.registrationNumber,
+                class_id: student.classId,
+                school_id: student.schoolId,
+                tenant_id: student.tenantId
+            }).then(({ error }) => {
+                if (error) console.error('❌ Error syncing student record:', error);
+            });
+        }
+
         try {
             const { error } = await supabase.from('users').insert({
                 id: user.id,
@@ -1090,15 +1143,22 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 role: user.role,
                 tenant_id: user.tenantId,
                 school_id: user.schoolId || null,
-                children_ids: user.childrenIds || []
-                // Removed 'status' field - doesn't exist in Supabase schema
+                class_ids: user.classIds || [],
+                children_ids: user.childrenIds || [],
+                phone: user.phone || null,
+                registration_number: user.registrationNumber || null,
+                subject_ids: user.subjectIds || []
             });
             if (error) {
                 console.error('❌ Error saving user:', error);
-                set((state) => ({ users: state.users.filter(u => u.id !== user.id) }));
+                // Rollback (Simplificado)
+                set((state) => ({
+                    users: state.users.filter(u => u.id !== user.id),
+                    students: state.students.filter(s => s.id !== user.id)
+                }));
                 throw error;
             }
-            console.log('✅ User saved:', user.id);
+            console.log('✅ User saved (SOT):', user.id);
         } catch (e) { console.error(e); }
     },
 
@@ -1281,16 +1341,48 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
     updateUser: async (user) => {
         set((state) => ({
-            users: state.users.map(u => u.id === user.id ? user : u)
+            users: state.users.map((u) => (u.id === user.id ? user : u))
         }));
+
+        // Sincronizar com Students se for Aluno (Single Source of Truth)
+        if (user.role === UserRole.ALUNO) {
+            set(state => ({
+                students: state.students.map(s => s.id === user.id ? {
+                    ...s,
+                    name: user.name,
+                    registrationNumber: user.registrationNumber || s.registrationNumber,
+                    schoolId: user.schoolId || s.schoolId,
+                    classId: user.classIds?.[0] || s.classId
+                } : s)
+            }));
+
+            supabase.from('students').update({
+                name: user.name,
+                registration_number: user.registrationNumber,
+                class_id: user.classIds?.[0],
+                school_id: user.schoolId
+            }).eq('id', user.id).then(({ error }) => {
+                if (error) console.error('❌ Error syncing student update:', error);
+            });
+        }
+
         try {
-            await supabase.from('users').update({
+            const { error } = await supabase.from('users').update({
                 name: user.name,
                 email: user.email,
                 role: user.role,
-                status: user.status
+                school_id: user.schoolId || null,
+                class_ids: user.classIds || [],
+                children_ids: user.childrenIds || [],
+                phone: user.phone || null,
+                registration_number: user.registrationNumber || null,
+                subject_ids: user.subjectIds || []
             }).eq('id', user.id);
-        } catch (e) { console.error(e); }
+            if (error) throw error;
+            console.log('✅ User updated (SOT):', user.id);
+        } catch (e) {
+            console.error('❌ Error updating user:', e);
+        }
     },
     resetUserPassword: async (email) => {
         try {
