@@ -447,13 +447,15 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 const studentId = uuidv4();
                 const regNum = Math.floor(Math.random() * 9000) + 1000;
 
-                const { error } = await supabase.from('students').insert({
+                const { error } = await supabase.from('users').insert({
                     id: studentId,
                     name: inputName,
+                    role: 'ALUNO',
                     registration_number: regNum.toString(),
-                    class_id: classIdParam,
+                    class_ids: [classIdParam],
                     school_id: 's1', // Fixo demo
-                    tenant_id: MOCK_TENANT_ID // Fixo demo
+                    tenant_id: MOCK_TENANT_ID, // Fixo demo
+                    status: 'ACTIVE'
                 });
 
                 if (error) throw error;

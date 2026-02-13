@@ -73,9 +73,10 @@ export class CommandCenterService {
             for (const event of events || []) {
                 // Contar alunos
                 const { count: totalStudents } = await supabase
-                    .from('students')
+                    .from('users')
                     .select('*', { count: 'exact', head: true })
-                    .eq('class_id', event.class_id);
+                    .eq('role', 'ALUNO')
+                    .contains('class_ids', [event.class_id]);
 
                 // Contar alunos conectados (sessions ativas)
                 const { count: connectedStudents } = await supabase

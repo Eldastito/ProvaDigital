@@ -68,27 +68,17 @@ export const userMigrationService = {
     /**
      * Persiste as alterações no Supabase (Batch update manual simulado)
      */
-    persistMigration: async (updatedUsers: User[], updatedStudents: Student[]) => {
-        // Nota: Em produção, isso seria feito via RPC ou migrations em SQL. 
-        // Aqui atualizamos os que mudaram.
+    persistMigration: async (updatedUsers: User[]) => {
         for (const user of updatedUsers) {
             if (user.registrationNumber) {
                 await supabase.from('users').update({
                     registration_number: user.registrationNumber,
-                    phone: user.phone
+                    phone: user.phone,
+                    class_ids: user.classIds,
+                    school_id: user.schoolId
                 }).eq('id', user.id);
             }
         }
-
-        for (const student of updatedStudents) {
-            await supabase.from('students').upsert({
-                id: student.id,
-                name: student.name,
-                registration_number: student.registrationNumber,
-                class_id: student.classId,
-                school_id: student.schoolId,
-                tenant_id: student.tenantId
-            });
-        }
+        console.log('✅ Migração de usuários persistida em users table.');
     }
 };

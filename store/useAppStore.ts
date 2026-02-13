@@ -437,23 +437,19 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 });
             }
 
-            // 0.1 Carregar Estudantes (Students)
-            const { data: dbStudents } = await supabase.from('students').select('*');
-            if (dbStudents && dbStudents.length > 0) {
-                const formattedStudents = dbStudents.map((s: any) => ({
-                    id: s.id,
-                    name: s.name,
-                    registrationNumber: s.registration_number,
-                    classId: s.class_id,
-                    schoolId: s.school_id,
-                    tenantId: s.tenant_id
-                }));
-                set(state => {
-                    const existingIds = new Set(state.students.map(x => x.id));
-                    const newStudents = formattedStudents.filter((x: any) => !existingIds.has(x.id));
-                    return { students: [...state.students, ...newStudents] };
-                });
-            }
+            // 0.1 Derivar Estudantes (A partir de Users - SSOT)
+            set(state => ({
+                students: state.users
+                    .filter(u => u.role === UserRole.ALUNO)
+                    .map(u => ({
+                        id: u.id,
+                        name: u.name,
+                        registrationNumber: u.registrationNumber || '',
+                        classId: u.classIds?.[0] || '',
+                        schoolId: u.schoolId || '',
+                        tenantId: u.tenantId
+                    }))
+            }));
 
             // 1. Carregar Items
             const { data: dbItems } = await supabase.from('items').select('*');
@@ -596,7 +592,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 JSON.stringify(updatedUsers) !== JSON.stringify(state.users)) {
                 set({ users: updatedUsers, students: updatedStudents });
                 // Persistência em background para não travar o carregamento
-                userMigrationService.persistMigration(updatedUsers, updatedStudents);
+                userMigrationService.persistMigration(updatedUsers);
             }
 
             //4.5 Carregar Live Quiz Sessions
@@ -1038,20 +1034,22 @@ export const useAppStore = create<AppStore>((set, get) => ({
     addStudent: async (student) => {
         set((state) => ({ students: [...state.students, student] }));
         try {
-            const { error } = await supabase.from('students').insert({
+            const { error } = await supabase.from('users').insert({
                 id: student.id,
                 name: student.name,
+                role: UserRole.ALUNO,
                 registration_number: student.registrationNumber,
-                class_id: student.classId,
+                class_ids: [student.classId],
                 school_id: student.schoolId,
-                tenant_id: student.tenantId
+                tenant_id: student.tenantId,
+                status: 'ACTIVE'
             });
             if (error) {
                 console.error('❌ Error saving student:', error);
                 set((state) => ({ students: state.students.filter(s => s.id !== student.id) }));
                 throw error;
             }
-            console.log('✅ Student saved:', student.id);
+            console.log('✅ Student saved to users table:', student.id);
         } catch (e) { console.error(e); }
     },
     updateStudent: async (student) => {
@@ -1059,19 +1057,19 @@ export const useAppStore = create<AppStore>((set, get) => ({
             students: state.students.map(s => s.id === student.id ? student : s)
         }));
         try {
-            const { error } = await supabase.from('students').update({
+            const { error } = await supabase.from('users').update({
                 name: student.name,
                 registration_number: student.registrationNumber,
-                class_id: student.classId,
+                class_ids: [student.classId],
                 school_id: student.schoolId
             }).eq('id', student.id);
 
             if (error) {
-                console.error('❌ Error updating student:', error);
+                console.error('❌ Error updating student in users table:', error);
                 // Rollback logic could be added here
                 throw error;
             }
-            console.log('✅ Student updated:', student.id);
+            console.log('✅ Student updated in users table:', student.id);
         } catch (e) { console.error(e); }
     },
     deleteStudent: async (studentId) => {
@@ -1084,7 +1082,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         });
         set((state) => ({ students: state.students.filter(s => s.id !== studentId) }));
         try {
-            await supabase.from('students').delete().eq('id', studentId);
+            await supabase.from('users').delete().eq('id', studentId);
         } catch (e) { console.error(e); }
     },
     deleteSchool: async (schoolId) => {

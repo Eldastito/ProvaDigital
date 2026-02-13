@@ -46,8 +46,9 @@ export class AnalyticsService {
                 .select('*', { count: 'exact', head: true });
 
             const { count: totalStudents } = await supabase
-                .from('students')
-                .select('*', { count: 'exact', head: true });
+                .from('users')
+                .select('*', { count: 'exact', head: true })
+                .eq('role', 'ALUNO');
 
             const { data: results } = await supabase
                 .from('exam_results')

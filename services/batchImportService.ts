@@ -165,6 +165,7 @@ export class BatchImportService {
                         phone: candidate.normalizedData.phone,
                         registration_number: candidate.normalizedData.registrationNumber,
                         school_id: candidate.normalizedData.schoolId,
+                        class_ids: candidate.normalizedData.classId ? [candidate.normalizedData.classId] : [],
                         tenant_id: (candidate.normalizedData as any).tenantId,
                         status: 'PENDING_CLAIM' // Status para o fluxo de resgate seguro
                     }, { onConflict: 'email' })
@@ -172,18 +173,6 @@ export class BatchImportService {
                     .single();
 
                 if (userError) throw userError;
-
-                // Se for aluno, garante registro na tabela 'students' (SOT)
-                if (candidate.normalizedData.role === UserRole.ALUNO) {
-                    await supabase.from('students').upsert({
-                        id: userData.id,
-                        name: candidate.normalizedData.name,
-                        registration_number: candidate.normalizedData.registrationNumber,
-                        class_id: candidate.normalizedData.classId,
-                        school_id: candidate.normalizedData.schoolId,
-                        tenant_id: (candidate.normalizedData as any).tenantId
-                    });
-                }
 
                 successCount++;
             } catch (err) {

@@ -27,7 +27,10 @@ export const ProfessorRemoteControl = ({ classId, onExit }: ProfessorRemoteContr
             .then(({ data }) => setStatus(data?.status || 'UNKNOWN'));
 
         // Count Students
-        supabase.from('students').select('id', { count: 'exact' }).eq('class_id', classId)
+        supabase.from('users')
+            .select('id', { count: 'exact' })
+            .eq('role', 'ALUNO')
+            .contains('class_ids', [classId])
             .then(({ count }) => setStudentsCount(count || 0));
 
         // Realtime Updates
@@ -35,8 +38,11 @@ export const ProfessorRemoteControl = ({ classId, onExit }: ProfessorRemoteContr
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'classes', filter: `id=eq.${classId}` }, (payload) => {
                 setStatus(payload.new.status);
             })
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'students', filter: `class_id=eq.${classId}` }, () => {
-                setStudentsCount(prev => prev + 1);
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'users' }, (payload) => {
+                const newUser = payload.new;
+                if (newUser.role === 'ALUNO' && newUser.class_ids?.includes(classId)) {
+                    setStudentsCount(prev => prev + 1);
+                }
             })
             .subscribe();
 
