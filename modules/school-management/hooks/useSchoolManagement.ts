@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AppState, School, SchoolClass, Student, User, UserRole, SchoolResources } from '../../../types';
 import { uuidv4 } from '../../../utils/helpers';
 import { useSafeAppStore } from '../../../store/useAppStore';
@@ -18,7 +19,15 @@ export const useSchoolManagement = () => {
         updateSettings: onUpdateSettings
     } = state;
 
-    const [activeTab, setActiveTab] = useState<ManagementTab>('SCHOOLS');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const activeTab = (searchParams.get('tab') as ManagementTab) || 'SCHOOLS';
+    const setActiveTab = (tab: ManagementTab) => {
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            next.set('tab', tab);
+            return next;
+        });
+    };
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [editingStudent, setEditingStudent] = useState<Student | null>(null);
@@ -52,6 +61,29 @@ export const useSchoolManagement = () => {
     const [classForm, setClassForm] = useState({ name: '', series: '', shift: 'MANHA', schoolId: userSchoolId || '', room: '' });
     const [studentForm, setStudentForm] = useState({ name: '', reg: '', classId: '' });
     const [userForm, setUserForm] = useState<{ name: string, email: string, role: UserRole, schoolId: string, classIds: string[] }>({ name: '', email: '', role: UserRole.PROFESSOR, schoolId: userSchoolId || '', classIds: [] });
+
+    // --- PERSISTENCE ---
+    const STORAGE_KEY = `mgmt_draft_${currentTenantId}_${currentUser?.id}`;
+
+    useEffect(() => {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (parsed.schoolForm) setSchoolForm(parsed.schoolForm);
+                if (parsed.classForm) setClassForm(parsed.classForm);
+                if (parsed.studentForm) setStudentForm(parsed.studentForm);
+                if (parsed.userForm) setUserForm(parsed.userForm);
+            } catch (e) {
+                console.error("Failed to load management drafts", e);
+            }
+        }
+    }, [currentTenantId, currentUser?.id]);
+
+    useEffect(() => {
+        const draft = { schoolForm, classForm, studentForm, userForm };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+    }, [schoolForm, classForm, studentForm, userForm]);
 
     // --- BATCH UPLOAD SCHOOLS ---
     const handleBatchSchoolImport = (e: React.ChangeEvent<HTMLInputElement>) => {

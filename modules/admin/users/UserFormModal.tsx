@@ -161,8 +161,8 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                         )}
                     </div>
 
-                    {/* Class Selection for Professors */}
-                    {formData.role === UserRole.PROFESSOR && formData.schoolId && (
+                    {/* Class Selection for Professors and Students */}
+                    {(formData.role === UserRole.PROFESSOR || formData.role === UserRole.ALUNO) && formData.schoolId && (
                         <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
                             <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Turmas Associadas</label>
                             <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto custom-scrollbar">

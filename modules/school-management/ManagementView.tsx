@@ -43,8 +43,8 @@ export const ManagementView = () => {
                             <Upload size={18} /> <span className="sm:inline">Importar</span> CSV
                         </button>
                     )}
-                    {/* Hide Add button for Schools if Director (they can only edit) */}
-                    {activeTab !== 'COMMAND_CENTER' && activeTab !== 'SETTINGS' && activeTab !== 'BATCH_IMPORT' && activeTab !== 'HIERARCHY' && (isTenantAdmin || activeTab !== 'SCHOOLS') && (
+                    {/* Hide header Add button for COMMAND_CENTER, SETTINGS, etc. and for USERS (has its own button) or if no permission for SCHOOLS */}
+                    {activeTab !== 'COMMAND_CENTER' && activeTab !== 'SETTINGS' && activeTab !== 'BATCH_IMPORT' && activeTab !== 'HIERARCHY' && activeTab !== 'USERS' && (isTenantAdmin || isDirector || activeTab !== 'SCHOOLS') && (
                         <button onClick={() => openModal()} className="flex-1 sm:flex-none justify-center btn-gradient px-3 md:px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm text-xs md:text-sm font-medium">
                             <Plus size={18} />
                             Adicionar <span className="sm:inline">{activeTab === 'SCHOOLS' ? 'Escola' : activeTab === 'CLASSES' ? 'Turma' : activeTab === 'STUDENTS' ? 'Aluno' : 'Usuário'}</span>

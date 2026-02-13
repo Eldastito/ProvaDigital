@@ -41,13 +41,27 @@ export const ManagementForms = ({
         return (
             <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
-                    <div>
+                    <div className="col-span-2 sm:col-span-1">
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nome da Escola</label>
-                        <input className="w-full border rounded-lg p-2 bg-slate-50" value={schoolForm.name} disabled={isDirector} onChange={e => setSchoolForm({ ...schoolForm, name: e.target.value })} />
+                        <input className="w-full border rounded-lg p-2 bg-white" placeholder="Ex: Escola Municipal Cora Coralina" value={schoolForm.name} onChange={e => setSchoolForm({ ...schoolForm, name: e.target.value })} />
                     </div>
-                    <div>
+                    <div className="col-span-2 sm:col-span-1">
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Código INEP</label>
-                        <input className="w-full border rounded-lg p-2 bg-slate-50" value={schoolForm.inep} disabled={isDirector} onChange={e => setSchoolForm({ ...schoolForm, inep: e.target.value })} />
+                        <input className="w-full border rounded-lg p-2 bg-white" placeholder="Ex: 12345678" value={schoolForm.inep} onChange={e => setSchoolForm({ ...schoolForm, inep: e.target.value })} />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tipo de Unidade / Rede</label>
+                        <select
+                            className="w-full border rounded-lg p-2 bg-white"
+                            onChange={e => setSchoolForm({ ...schoolForm, type: e.target.value })}
+                        >
+                            <option value="PUBLIC_MUNICIPAL">Pública Municipal</option>
+                            <option value="PUBLIC_STATE">Pública Estadual</option>
+                            <option value="PRIVATE">Privada / Particular</option>
+                        </select>
                     </div>
                 </div>
 
@@ -183,8 +197,8 @@ export const ManagementForms = ({
                     </div>
                 )}
 
-                {/* CLASS SELECTION (Only for PROFESSOR) */}
-                {userForm.role === UserRole.PROFESSOR && (userForm.schoolId || userSchoolId) && (
+                {/* CLASS SELECTION (For PROFESSOR or ALUNO) */}
+                {(userForm.role === UserRole.PROFESSOR || userForm.role === UserRole.ALUNO) && (userForm.schoolId || userSchoolId) && (
                     <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Turmas Associadas</label>
                         <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto custom-scrollbar">
@@ -209,7 +223,7 @@ export const ManagementForms = ({
                             )}
                         </div>
                         <p className="text-[10px] text-slate-400 mt-2">
-                            Selecione as turmas que este professor leciona. Ele terá acesso apenas aos alunos destas turmas.
+                            Selecione as turmas vinculadas a este usuário.
                         </p>
                     </div>
                 )}

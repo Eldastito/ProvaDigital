@@ -421,6 +421,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
                     tenantId: u.tenant_id,
                     schoolId: u.school_id,
                     childrenIds: u.children_ids || [],
+                    classIds: u.class_ids || [], // Add this mapping
                     status: u.status
                 }));
 

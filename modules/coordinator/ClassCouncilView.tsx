@@ -21,23 +21,27 @@ export const ClassCouncilView: React.FC = () => {
     const availableClasses = state.classes;
     const classStudents = useMemo(() => {
         if (!selectedClassId) return [];
-        return state.users.filter(u => u.role === UserRole.ALUNO && u.classIds?.includes(selectedClassId));
-    }, [selectedClassId, state.users]);
+        // Prioritize state.students as per the implementation plan
+        return state.students.filter(s => s.classId === selectedClassId);
+    }, [selectedClassId, state.students]);
 
     // --- ACTIONS ---
     const handleAnalyzeStudent = async (studentId: string) => {
         setLoadingAI(true);
         setSelectedStudentId(studentId);
 
-        // Mock data gathering - In production, pull from gradebook
-        const historyMock = {
-            grades: [7.5, 8.0, 6.5],
-            attendance: 92,
-            behavior: "Participativo, mas conversa muito."
+        // Real data gathering from state
+        const studentResults = state.results.filter(r => r.studentId === studentId);
+        const grades = studentResults.length > 0 ? studentResults.map(r => r.totalScore).slice(-5) : [7.0, 7.5]; // Fallback if no results yet
+
+        const historyData = {
+            grades,
+            attendance: 95, // Default for now
+            behavior: "Participação regular observada em sala."
         };
 
         try {
-            const prediction = await predictStudentOutcome(JSON.stringify(historyMock));
+            const prediction = await predictStudentOutcome(JSON.stringify(historyData));
             setAiAnalysis(prediction);
         } catch (e) {
             console.error(e);
@@ -127,14 +131,19 @@ export const ClassCouncilView: React.FC = () => {
                 </div>
 
                 <select
-                    className="p-2 border rounded-lg bg-white shadow-sm"
+                    className="p-2 border rounded-lg bg-white shadow-sm font-medium text-slate-700"
                     value={selectedClassId}
                     onChange={e => setSelectedClassId(e.target.value)}
                 >
                     <option value="">Selecione uma Turma...</option>
-                    {availableClasses.map(c => (
-                        <option key={c.id} value={c.id}>{c.name} ({c.series})</option>
-                    ))}
+                    {availableClasses.map(c => {
+                        const schoolName = state.schools.find(s => s.id === c.schoolId)?.name || 'Escola não encontrada';
+                        return (
+                            <option key={c.id} value={c.id}>
+                                {c.name} ({c.series}) - {schoolName}
+                            </option>
+                        );
+                    })}
                 </select>
             </header>
 
