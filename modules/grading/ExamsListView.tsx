@@ -135,17 +135,14 @@ export const ExamsListView = () => {
                                         )}
 
                                         {/* 6. CORRIGIR - NÃO FUNCIONA */}
-                                        {(exam.status === ExamStatus.ACTIVE ||
-                                            exam.status === ExamStatus.COMPLETED ||
-                                            (exam.status as any) === 'PUBLISHED') && (
-                                                <button
-                                                    onClick={() => alert('⚠️ Funcionalidade em desenvolvimento')}
-                                                    className="text-slate-400 font-medium text-sm hover:text-slate-500 flex items-center gap-1 transition cursor-not-allowed"
-                                                    title="Lançar notas e corrigir (em desenvolvimento)"
-                                                >
-                                                    <ClipboardCheck size={18} />
-                                                </button>
-                                            )}
+                                        <button
+                                            onClick={() => navigate(`/exams/${exam.id}/results`)}
+                                            className="text-emerald-600 font-medium text-sm hover:text-emerald-800 flex items-center gap-1 transition"
+                                            title="Lançar notas e corrigir"
+                                        >
+                                            <ClipboardCheck size={18} />
+                                        </button>
+
 
                                         {/* 7. EXCLUIR */}
                                         <button

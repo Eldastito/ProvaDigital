@@ -17,7 +17,7 @@ import { StudentDashboardView } from './modules/student-portal/StudentDashboardV
 import { OwlTutorView } from './modules/student-portal/OwlTutorView';
 import { StudentBattleView } from './modules/student-portal/StudentBattleView';
 import { SurvivalView } from './modules/student-portal/SurvivalView';
-import { SchoolDashboardView } from './modules/analytics/SchoolDashboardView';
+import { SchoolPrincipalDashboard } from './modules/analytics/SchoolPrincipalDashboard';
 import { CommunicationView } from './modules/communication/CommunicationView';
 import { StudyPlansView } from './modules/academic/StudyPlansView';
 import { UserProfileView } from './modules/profile/UserProfileView';

@@ -148,7 +148,7 @@ export const ProfessorDashboardView = () => {
                                 <div className="flex gap-2">
                                     <button onClick={() => navigate('/exams')} className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded hover:bg-slate-200 flex-1">Gerenciar</button>
                                     {exam.status === ExamStatus.PUBLISHED && (
-                                        <button onClick={() => { /* Navigate to grading */ }} className="text-xs bg-brand-light text-brand-primary px-3 py-1 rounded hover:bg-brand-secondary hover:text-white transition flex items-center gap-1">
+                                        <button onClick={() => navigate(`/exams/${exam.id}/results`)} className="text-xs bg-brand-light text-brand-primary px-3 py-1 rounded hover:bg-brand-secondary hover:text-white transition flex items-center gap-1">
                                             <ClipboardCheck size={12} /> Notas
                                         </button>
                                     )}
