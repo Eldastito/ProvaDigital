@@ -5,7 +5,7 @@ import { NetworkDashboardView } from '../modules/analytics/NetworkDashboardView'
 import { SchoolPrincipalDashboard } from '../modules/analytics/SchoolPrincipalDashboard';
 import { PedagogicalDashboard } from '../modules/analytics/PedagogicalDashboard';
 import { ParentsDashboardView } from '../modules/parents/ParentsDashboardView';
-import { ProfessorDashboardView } from '../modules/analytics/ProfessorDashboardView';
+import { ProfessorDashboardView } from '../modules/professor/ProfessorDashboardView';
 import { StudentDashboardView } from '../modules/student-portal/StudentDashboardView';
 
 import { useAppStore } from '../store/useAppStore';

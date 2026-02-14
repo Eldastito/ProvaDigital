@@ -23,6 +23,7 @@ import {
     Brain
 } from 'lucide-react';
 import { RiskAgentAnalyst } from './components/RiskAgentAnalyst';
+import { InterventionDashboard } from '../../professor/features/InterventionDashboard';
 
 type FilterLevel = 'ALL' | RiskLevel;
 
@@ -39,6 +40,7 @@ export const RiskDashboard = () => {
     const [activeModal, setActiveModal] = useState<'MEETING' | 'PLAN' | null>(null);
     const [selectedAssessment, setSelectedAssessment] = useState<RiskAssessment | null>(null);
     const [isSubmittingAction, setIsSubmittingAction] = useState(false);
+    const [activeTab, setActiveTab] = useState<'RISK' | 'INTERVENTIONS'>('RISK');
 
     // HIERARQUIA DE ACESSO
     const isMEC = currentUser?.role === 'SUPER_ADMIN';
@@ -250,40 +252,64 @@ export const RiskDashboard = () => {
                 </div>
             </div>
 
-            {/* Estatísticas */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6 mb-8">
-                <StatCard
-                    title="Total de Alunos"
-                    value={stats.total}
-                    icon={Users}
-                    color="blue"
-                />
-                <StatCard
-                    title="Risco Alto"
-                    value={stats.high}
-                    subtitle={`${((stats.high / stats.total) * 100).toFixed(1)}% `}
-                    icon={AlertTriangle}
-                    color="red"
-                    alert
-                />
-                <StatCard
-                    title="Risco Médio"
-                    value={stats.medium}
-                    subtitle={`${((stats.medium / stats.total) * 100).toFixed(1)}% `}
-                    icon={AlertCircle}
-                    color="yellow"
-                />
-                <StatCard
-                    title="Risco Baixo"
-                    value={stats.low}
-                    subtitle={`${((stats.low / stats.total) * 100).toFixed(1)}% `}
-                    icon={CheckCircle}
-                    color="green"
-                />
+            {/* TABS NAVIGATION */}
+            <div className="flex gap-1 bg-slate-100 p-1 rounded-xl mb-6 w-fit">
+                <button
+                    onClick={() => setActiveTab('RISK')}
+                    className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'RISK' ? 'bg-white text-brand-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                    <AlertTriangle size={16} />
+                    Análise de Risco
+                </button>
+                <button
+                    onClick={() => setActiveTab('INTERVENTIONS')}
+                    className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'INTERVENTIONS' ? 'bg-white text-brand-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                    <FileText size={16} />
+                    Planos de Intervenção
+                </button>
             </div>
 
-            {/* AI Agent Analyst - Contextual Strategic Insights */}
-            <RiskAgentAnalyst assessments={riskAssessments} />
+            {activeTab === 'RISK' ? (
+                <>
+                    {/* Estatísticas */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6 mb-8">
+                        <StatCard
+                            title="Total de Alunos"
+                            value={stats.total}
+                            icon={Users}
+                            color="blue"
+                        />
+                        <StatCard
+                            title="Risco Alto"
+                            value={stats.high}
+                            subtitle={`${((stats.high / stats.total) * 100).toFixed(1)}% `}
+                            icon={AlertTriangle}
+                            color="red"
+                            alert
+                        />
+                        <StatCard
+                            title="Risco Médio"
+                            value={stats.medium}
+                            subtitle={`${((stats.medium / stats.total) * 100).toFixed(1)}% `}
+                            icon={AlertCircle}
+                            color="yellow"
+                        />
+                        <StatCard
+                            title="Risco Baixo"
+                            value={stats.low}
+                            subtitle={`${((stats.low / stats.total) * 100).toFixed(1)}% `}
+                            icon={CheckCircle}
+                            color="green"
+                        />
+                    </div>
+
+                    {/* AI Agent Analyst - Contextual Strategic Insights */}
+                    <RiskAgentAnalyst assessments={riskAssessments} />
+                </>
+            ) : (
+                <InterventionDashboard />
+            )}
 
             {/* Botão de Salvar Alertas */}
             {stats.high > 0 || stats.medium > 0 ? (
