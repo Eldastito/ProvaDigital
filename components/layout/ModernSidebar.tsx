@@ -16,7 +16,8 @@ import {
     Zap,
     FlaskConical,
     FileUp,
-    Terminal
+    Terminal,
+    Truck
 } from 'lucide-react';
 import { useSafeAppStore } from '../../store/useAppStore';
 import { UserRole, TenantType } from '../../types';
@@ -87,6 +88,7 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
     if (!currentUser) return null;
 
     // Roles and Logic (Strict restoration)
+    const isMasterSaas = currentUser.role === UserRole.MASTER_SAAS;
     const isSystemAdmin = currentUser.role === UserRole.SYSTEM_ADMIN;
     const isMecAdmin = currentUser.role === UserRole.SUPER_ADMIN;
     const isStudent = currentUser.role === UserRole.ALUNO;
@@ -194,6 +196,20 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
 
                 {/* 3. Role-Based Navigation */}
 
+                {isMasterSaas && (
+                    <>
+                        <SectionHeader label="Gestão ExamePad" collapsed={collapsed} />
+                        <NavItem
+                            icon={Truck}
+                            label="Logística Master"
+                            path="/admin/logistica"
+                            active={currentPath.includes('/admin/logistica')}
+                            onClick={() => navigate('/admin/logistica')}
+                            collapsed={collapsed}
+                        />
+                    </>
+                )}
+
                 {/* SaaS Admin Section (Consolidated) */}
                 {isSystemAdmin && (
                     <>
@@ -273,7 +289,7 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
                         <NavItem icon={Cast} label="Demo Live" path="/apps/demo" active={currentPath.includes('/apps/demo')} onClick={() => navigate('/apps/demo')} collapsed={collapsed} />
 
                         <SectionHeader label="Sistema" collapsed={collapsed} />
-                        {canView('AUDIT') && (isSystemAdmin || isMecAdmin) && (
+                        {canView('SYSTEM_MGMT') && (isSystemAdmin || isMecAdmin) && (
                             <NavItem icon={Shield} label="Auditoria" path="/admin/audit" active={currentPath === '/admin/audit'} onClick={() => navigate('/admin/audit')} collapsed={collapsed} />
                         )}
                         {canManageCapabilities && (

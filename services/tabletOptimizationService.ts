@@ -248,8 +248,8 @@ export class TabletOptimizationService {
 
             const gap = nextStart - currentEnd;
 
-            // Intervalo mínimo: 60 minutos
-            if (gap < 60) {
+            // Intervalo mínimo solicitado: 15 minutos
+            if (gap < 15) {
                 return false;
             }
         }

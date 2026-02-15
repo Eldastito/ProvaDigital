@@ -57,6 +57,7 @@ import { MarketplaceView } from './modules/marketplace/MarketplaceView';
 import { MultimodalLabView } from './modules/builder/MultimodalLabView';
 import { PredictiveRiskDashboard } from './modules/analytics/PredictiveRiskDashboard';
 import { PredictiveDashboardView } from './modules/analytics/PredictiveDashboardView';
+import LogisticsManagementView from './modules/admin/LogisticsManagementView';
 
 // Helper for Role-based Dashboard
 const ConditionalDashboard = () => {
@@ -145,6 +146,13 @@ export const appRoutes: RouteObject[] = [
             { path: 'admin/saas', element: <SaaSControlPanelView /> },
             { path: 'admin/tenants', element: <SaaSControlPanelView /> }, // Por enquanto usando a mesma visão consolidada
             { path: 'admin/metrics', element: <SaaSControlPanelView /> }, // Por enquanto usando a mesma visão consolidada
+            {
+                path: 'admin/logistica',
+                element: <ProtectedRoute resource="LOGISTICS_MASTER" fallbackPath="/dashboard" />,
+                children: [
+                    { index: true, element: <LogisticsManagementView /> }
+                ]
+            },
             { path: 'risk-dashboard', element: <RiskDashboard /> },
             { path: 'admin/governance', element: <GovernanceView /> },
 

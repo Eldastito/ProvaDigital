@@ -1,6 +1,7 @@
 
 // Enums
 export enum UserRole {
+  MASTER_SAAS = 'MASTER_SAAS', // Novo: Gestão ExamePad (Logística/Controle Master)
   SYSTEM_ADMIN = 'SYSTEM_ADMIN', // Gestão total do SaaS / Business
   SUPER_ADMIN = 'SUPER_ADMIN', // MEC / Gestão Educacional
   STATE_ADMIN = 'STATE_ADMIN', // Secretaria Estadual
@@ -128,7 +129,9 @@ export type Resource =
   | 'SYSTEM_MGMT'      // Configurações globais do sistema
   | 'TENANT_MGMT'      // Gestão de clientes/prefeituras
   | 'SaaS_BILLING'     // Faturamento SaaS
-  | 'PLATFORM_HEALTH'; // Monitoramento de infra
+  | 'PLATFORM_HEALTH'  // Monitoramento de infra
+  | 'LOGISTICS_MASTER' // Novo: Controle ExamePad de Malas/Ativos
+  | 'CUSTODY_OPS';     // Novo: Operação de Entrega/Retirada
 
 export type Action = 'VIEW' | 'CREATE' | 'EDIT' | 'DELETE';
 
@@ -1367,4 +1370,67 @@ export interface ExamCoverData {
   standards: QualityStandard[];
   validationScore?: number;
 }
+
+// --- LOGISTICS & CUSTODY MODULE ---
+
+export interface LogisticsAsset {
+  id: string;
+  serialNumber: string;
+  qrId: string;
+  model: string;
+  status: 'AVAILABLE' | 'IN_TRANSIT' | 'IN_USE' | 'MAINTENANCE' | 'LOST';
+  lastBatteryLevel: number;
+  lastSyncAt?: string;
+  schoolId?: string;
+  createdAt: string;
+}
+
+export interface LogisticsCase {
+  id: string;
+  caseNumber: string;
+  capacity: number;
+  status: 'IN_STOCK' | 'PREPARING' | 'IN_TRANSIT' | 'DELIVERED' | 'RETURNING';
+  currentSchoolId?: string;
+  assets?: string[]; // IDs dos assets dentro da mala
+}
+
+export interface LogisticsSeal {
+  id: string; // Número do lacre
+  status: 'AVAILABLE' | 'APPLIED' | 'BROKEN' | 'DISCARDED';
+  appliedAt?: string;
+  appliedBy?: string;
+  brokenAt?: string;
+  brokenBy?: string;
+  caseId?: string;
+}
+
+export type CustodyTransferType = 'OUT_FROM_BASE' | 'DELIVERY_TO_SCHOOL' | 'COLLECTION_FROM_SCHOOL' | 'IN_TO_BASE';
+
+export interface CustodyTransfer {
+  id: string;
+  fromUserId: string;
+  toUserId: string;
+  caseId: string;
+  sealId: string;
+  type: CustodyTransferType;
+  expectedQuantity: number;
+  confirmedQuantity: number;
+  sealStatus: 'INTACT' | 'BROKEN_ACCIDENT' | 'BROKEN_SUSPICIOUS';
+  notes?: string;
+  evidenceUrls?: string[];
+  location?: { lat: number, lng: number };
+  createdAt: string;
+}
+
+export interface LogisticsIncident {
+  id: string;
+  transferId: string;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  description: string;
+  status: 'OPEN' | 'INVESTIGATING' | 'RESOLVED';
+  resolvedAt?: string;
+  resolvedBy?: string;
+  createdAt: string;
+}
+
 
