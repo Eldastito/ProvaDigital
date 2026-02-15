@@ -58,6 +58,7 @@ import { MultimodalLabView } from './modules/builder/MultimodalLabView';
 import { PredictiveRiskDashboard } from './modules/analytics/PredictiveRiskDashboard';
 import { PredictiveDashboardView } from './modules/analytics/PredictiveDashboardView';
 import LogisticsManagementView from './modules/admin/LogisticsManagementView';
+import CustodianOperationsView from './modules/logistics/CustodianOperationsView';
 
 // Helper for Role-based Dashboard
 const ConditionalDashboard = () => {
@@ -227,6 +228,13 @@ export const appRoutes: RouteObject[] = [
             { path: 'online-exam/results/:id', element: <ResultFeedbackView /> },
             { path: 'monitor/:examId', element: <LiveExamMonitorView /> },
             { path: 'live-dashboard', element: <LiveDashboardWrapper /> },
+            {
+                path: 'logistica/operacoes',
+                element: <ProtectedRoute resource="CUSTODY_OPS" fallbackPath="/dashboard" />,
+                children: [
+                    { index: true, element: <CustodianOperationsView /> }
+                ]
+            },
             { path: 'professor/logistics', element: <ProfessorApp onBack={() => window.history.back()} /> },
 
             // Utils

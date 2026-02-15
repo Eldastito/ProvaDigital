@@ -14,6 +14,7 @@ import {
     ShoppingBag,
     Swords,
     Zap,
+    Package,
     FlaskConical,
     FileUp,
     Terminal,
@@ -205,6 +206,20 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
                             path="/admin/logistica"
                             active={currentPath.includes('/admin/logistica')}
                             onClick={() => navigate('/admin/logistica')}
+                            collapsed={collapsed}
+                        />
+                    </>
+                )}
+
+                {canView('CUSTODY_OPS') && (
+                    <>
+                        <SectionHeader label="Operacional Logístico" collapsed={collapsed} />
+                        <NavItem
+                            icon={Package}
+                            label="Operações de Custódia"
+                            path="/logistica/operacoes"
+                            active={currentPath === '/logistica/operacoes'}
+                            onClick={() => navigate('/logistica/operacoes')}
                             collapsed={collapsed}
                         />
                     </>
