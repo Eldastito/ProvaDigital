@@ -197,7 +197,7 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
 
                 {/* 3. Role-Based Navigation */}
 
-                {isMasterSaas && (
+                {canView('LOGISTICS_MASTER') && (
                     <>
                         <SectionHeader label="Gestão ExamePad" collapsed={collapsed} />
                         <NavItem

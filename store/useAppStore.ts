@@ -54,7 +54,9 @@ const DEFAULT_PERMISSIONS: PermissionMatrix = {
         SYSTEM_MGMT: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
         TENANT_MGMT: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
         SaaS_BILLING: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
-        PLATFORM_HEALTH: ['VIEW', 'CREATE', 'EDIT', 'DELETE']
+        PLATFORM_HEALTH: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
+        LOGISTICS_MASTER: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
+        CUSTODY_OPS: ['VIEW', 'CREATE', 'EDIT', 'DELETE']
     },
     [UserRole.SUPER_ADMIN]: {
         SCHOOL_DATA: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
@@ -69,7 +71,9 @@ const DEFAULT_PERMISSIONS: PermissionMatrix = {
         GAMIFIED_EVENTS: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
         SCHEDULING: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
         COMMAND_CENTER: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
-        REPORTS: ['VIEW', 'CREATE', 'EDIT', 'DELETE']
+        REPORTS: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
+        LOGISTICS_MASTER: ['VIEW', 'CREATE', 'EDIT', 'DELETE'],
+        CUSTODY_OPS: ['VIEW', 'CREATE', 'EDIT', 'DELETE']
     },
     [UserRole.ALUNO]: {
         SCHOOL_DATA: ['VIEW'],
