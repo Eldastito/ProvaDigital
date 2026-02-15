@@ -16,8 +16,10 @@
   },
   "dependencies": {
     "@capacitor/android": "^8.0.0",
+    "@capacitor/app": "^8.0.1",
     "@capacitor/cli": "^8.0.0",
     "@capacitor/core": "^8.0.0",
+    "@capacitor/keyboard": "^8.0.0",
     "@google/genai": "^1.30.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
