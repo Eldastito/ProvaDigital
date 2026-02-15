@@ -10,9 +10,15 @@ import { uuidv4 } from './utils/helpers';
 
 // Infrastructure
 import { PrivacyPolicyModal } from './components/Legal/PrivacyPolicyModal';
+import { nativeBridge } from './services/nativeBridgeService';
 
 export default function App() {
   const store = useAppStore();
+
+  // Inicializa ponte nativa (Android Back Button, etc)
+  useEffect(() => {
+    nativeBridge.getIsNative(); // Trigger constructor
+  }, []);
   const { currentUser, setCurrentUser, users, loadRemoteData, isInitialized, hasConsented, setHasConsented } = store;
   const navigate = useNavigate();
   const [authChecking, setAuthChecking] = useState(true); // Track auth verification state
