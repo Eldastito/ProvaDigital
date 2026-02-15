@@ -2208,7 +2208,45 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 submitted_at: newResult.gradedAt
             }).eq('id', attemptId);
         } catch (e) {
-            console.error("Error persisting result:", e);
+            console.error("Error persisting result to Supabase:", e);
+
+            // --- PHASE 7: MESH SUBMISSION FALLBACK ---
+            console.log("⚠️ Supabase indisponível. Tentando envio via Rede Mesh Local...");
+            try {
+                const LOCAL_URL = "http://192.168.43.1:8080/sync/submit";
+
+                const meshPayload = {
+                    studentId: newResult.studentId,
+                    studentName: state.currentUser?.name,
+                    examId: newResult.examId,
+                    eventId: newResult.examId, // Assuming 1:1 for now
+                    encryptedAnswers: null, // If we had encryption, we'd pass it here
+                    metadata: {
+                        score: newResult.totalScore,
+                        answers: newResult.answers,
+                        autoGradeLog: newResult.autoGradeLog,
+                        violationCount: newResult.violationCount
+                    }
+                };
+
+                const response = await fetch(LOCAL_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(meshPayload),
+                    signal: AbortSignal.timeout(5000)
+                });
+
+                if (!response.ok) throw new Error(`Mesh submit failed: ${response.status}`);
+
+                console.log("✅ Resultado enviado via Rede Mesh com sucesso!");
+                alert("Internet indisponível. Resultado enviado ao Professor via Rede Local.");
+
+            } catch (meshError) {
+                console.error("❌ Mesh Submission failed:", meshError);
+                // Save to IndexedDB (OfflineConsolidationService CLIENT SIDE?)
+                // Or just alert user to call teacher.
+                alert("ERRO CRÍTICO: Não foi possível enviar a prova via Internet nem Rede Local. Por favor, chame o professor.");
+            }
         }
     },
 
@@ -2907,8 +2945,47 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 }));
             }
         } catch (e) {
-            console.error("Error fetching exam items:", e);
-            throw e; // RETHROW TO ALLOW CALLER (StudentApp) TO HANDLE ERROR
+            console.error("Error fetching exam items via Supabase/RPC:", e);
+
+            // --- PHASE 7: MESH FALLBACK ---
+            console.log("⚠️ Tentando fallback via Rede Mesh Local (Router)...");
+            try {
+                // Try default router IP (Android Hotspot Default)
+                const CONTROLLER_IP = "192.168.43.1";
+                const PORT = 8080;
+
+                // Use simple fetch (Standard Web API)
+                const response = await fetch(`http://${CONTROLLER_IP}:${PORT}/sync/exam/${examId}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                    signal: AbortSignal.timeout(3000) // 3s timeout to fail fast
+                });
+
+                if (!response.ok) throw new Error(`Mesh fetch failed: ${response.status}`);
+
+                const data = await response.json();
+
+                if (data.exam && data.items) {
+                    console.log("✅ Prova baixada via Rede Mesh Local!", data.exam.title);
+
+                    // Merge Items
+                    const newItems = data.items.map((i: any) => ({
+                        ...i,
+                        origin: 'MESH_SYNC' // Mark origin for debugging
+                    }));
+
+                    set(state => ({
+                        items: [...state.items.filter(existing => !newItems.some((n: any) => n.id === existing.id)), ...newItems]
+                    }));
+
+                    // We successfully got the items, so we can return (swallow the original error)
+                    return;
+                }
+            } catch (meshError) {
+                console.error("❌ Mesh Fallback failed:", meshError);
+            }
+
+            throw e; // RETHROW ORIGINAL ERROR IF FALLBACK FAILS
         }
     },
 

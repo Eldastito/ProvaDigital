@@ -113,6 +113,85 @@ export class LocalServerService {
         this.app.get('/', (req: any, res: any) => {
             res.send(`<h1>ExamePad Local Server</h1><p>Online: ${this.peers.size} peers</p>`);
         });
+
+        // --- MESH SYNC ENDPOINTS (PHASE 7) ---
+
+        // 1. Download Exam (Student -> Teacher)
+        this.app.get('/sync/exam/:id', async (req: any, res: any) => {
+            try {
+                const examId = req.params.id;
+                // Import Dynamically to avoid circular dependencies if needed, or just standard import if safe
+                // We assume useAppStore is available in the global scope or module system
+                const { useAppStore } = await import('../store/useAppStore');
+                const store = useAppStore.getState();
+
+                const exam = store.exams.find((e: any) => e.id === examId);
+
+                if (!exam) {
+                    return res.status(404).json({ error: 'Exam not found in teacher cache' });
+                }
+
+                // Hydrate items
+                // The exam object in store has items as ExamItemConfig[], so we need to fetch full Item objects from global store
+                let fullItems: any[] = [];
+
+                if (store.items && store.items.length > 0) {
+                    fullItems = store.items.filter((i: any) =>
+                        (exam.items_config || []).some((ic: any) =>
+                            (typeof ic === 'string' ? ic : ic.itemId) === i.id
+                        )
+                    );
+                }
+
+                res.json({
+                    exam,
+                    items: fullItems
+                });
+            } catch (e) {
+                console.error("Error serving exam:", e);
+                res.status(500).json({ error: 'Internal Server Error' });
+            }
+        });
+
+        // 2. Submit Answers (Student -> Teacher)
+        this.app.post('/sync/submit', async (req: any, res: any) => {
+            try {
+                const submission = req.body; // Expects OfflineSubmission shape
+
+                if (!submission || !submission.studentId || !submission.examId) {
+                    return res.status(400).json({ error: 'Invalid submission data' });
+                }
+
+                const { offlineConsolidationService } = await import('./offlineConsolidationService');
+
+                // Map to OfflineSubmission interface
+                // We assume the student sends a compatible payload
+                // Force eventId = examId if not present (simplified for now)
+                const payload = {
+                    studentId: submission.studentId,
+                    studentName: submission.studentName || 'Unknown',
+                    examId: submission.examId,
+                    eventId: submission.eventId || submission.examId,
+                    encryptedAnswers: submission.encryptedAnswers, // Critical
+                    scannedAt: new Date().toISOString(),
+                    metadata: {
+                        ...submission.metadata,
+                        viaMesh: true,
+                        peerIp: req.ip
+                    }
+                };
+
+                await offlineConsolidationService.saveSubmission(payload);
+
+                console.log(`📥 Mesh Submission Received: ${submission.studentId} for ${submission.examId}`);
+
+                res.json({ success: true, receipt: Date.now() });
+
+            } catch (e) {
+                console.error("Error receiving submission:", e);
+                res.status(500).json({ error: 'Failed to save submission' });
+            }
+        });
     }
 
     private setupWebSocket(): void {

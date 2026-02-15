@@ -356,6 +356,11 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     // Use shuffled items for the exam
     const actualItems = shuffledItems;
 
+    // --- PHASE 7: MESH MODE DETECTION ---
+    const isMeshMode = React.useMemo(() =>
+        examItems.some(i => i.origin === 'MESH_SYNC'),
+        [examItems]);
+
     // --- SECURITY HANDLERS ---
     const handlePreventClipboard = (e: React.ClipboardEvent) => {
         e.preventDefault();
@@ -982,7 +987,10 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 <div className="text-sm font-bold truncate max-w-[150px] md:max-w-none">{studentData.name}</div>
                 <div className="flex gap-2 items-center">
                     <div className={`px-2 py-1 rounded font-mono text-[10px] md:text-xs border flex items-center gap-1 ${a11y.theme === 'high-contrast' ? 'border-yellow-400 text-yellow-400' : 'bg-slate-800 border-slate-700 text-emerald-400'}`}>
-                        <Wifi size={10} /> <span className="hidden sm:inline">{sessionMode === 'LIVE_REAL' ? 'Online' : 'Local'}</span>
+                        <Wifi size={10} />
+                        <span className="hidden sm:inline">
+                            {isMeshMode ? 'Mesh (Offline)' : (sessionMode === 'LIVE_REAL' ? 'Online' : 'Local')}
+                        </span>
                     </div>
                     {isKioskActive && <div className={`px-2 py-1 rounded font-mono text-[10px] md:text-xs border ${a11y.theme === 'high-contrast' ? 'border-white text-white' : 'bg-emerald-900 text-emerald-300 border-emerald-700'}`}>Kiosk</div>}
                     {meshInitialized && <NetworkStatusInline />}
