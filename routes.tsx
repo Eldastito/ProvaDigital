@@ -59,6 +59,21 @@ import { PredictiveRiskDashboard } from './modules/analytics/PredictiveRiskDashb
 import { PredictiveDashboardView } from './modules/analytics/PredictiveDashboardView';
 import LogisticsManagementView from './modules/admin/LogisticsManagementView';
 import CustodianOperationsView from './modules/logistics/CustodianOperationsView';
+import { RouterTabletSetup } from './modules/runner/router/RouterTabletSetup';
+
+// Wrapper for Router Setup to handle params from store since it's a direct route
+const RouterSetupWrapper = () => {
+    const { currentUser } = useAppStore();
+    if (!currentUser) return <Navigate to="/login" replace />;
+
+    // For router setup, we use the professor's school and a generic or selected eventId
+    return (
+        <RouterTabletSetup
+            schoolId={currentUser.schoolId || 'unknown'}
+            eventId={`MESH-${currentUser.schoolId}-${new Date().toISOString().split('T')[0]}`}
+        />
+    );
+};
 
 // Helper for Role-based Dashboard
 const ConditionalDashboard = () => {
@@ -236,6 +251,7 @@ export const appRoutes: RouteObject[] = [
                 ]
             },
             { path: 'professor/logistics', element: <ProfessorApp onBack={() => window.history.back()} /> },
+            { path: 'professor/config/router', element: <RouterSetupWrapper /> },
 
             // Utils
             { path: 'diag-ai', element: <AIDiagnosticView /> },

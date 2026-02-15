@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Scan,
     Package,
@@ -8,20 +8,28 @@ import {
     Camera,
     History,
     ArrowRight,
-    Info
+    Info,
+    MapPin
 } from 'lucide-react';
-import { QRScannerModal } from '../runner/offline/QRScannerModal';
+import { SimpleQRScanner } from './SimpleQRScanner';
+import { useAppStore } from '../../store/useAppStore';
+import { uuidv4 } from '../../utils/helpers';
+import { CustodyTransfer } from '../../types';
 
 interface CustodyChecklistProps {
     type: 'DELIVERY' | 'COLLECTION';
+    caseInfo?: { id: string, caseNumber: string }; // Optional: if already known
     onComplete: (data: any) => void;
 }
 
-export const CustodyChecklist: React.FC<CustodyChecklistProps> = ({ type, onComplete }) => {
+export const CustodyChecklist: React.FC<CustodyChecklistProps> = ({ type, caseInfo, onComplete }) => {
+    const { currentUser, addCustodyTransfer, updateCaseStatus, addLogisticsIncident } = useAppStore();
     const [step, setStep] = useState<1 | 2 | 3>(1);
-    const [showScanner, setShowScanner] = useState(false);
+    const [showScanner, setShowScanner] = useState<'CASE' | 'SEAL' | null>(null);
+    const [location, setLocation] = useState<{ lat: number, lng: number } | null>(null);
+
     const [data, setData] = useState({
-        caseId: '',
+        caseId: caseInfo?.id || '',
         sealId: '',
         confirmedQuantity: 0,
         expectedQuantity: 40,
@@ -30,16 +38,65 @@ export const CustodyChecklist: React.FC<CustodyChecklistProps> = ({ type, onComp
         evidencePhoto: null as string | null
     });
 
-    const handleScanCase = (qr: string) => {
-        setData(prev => ({ ...prev, caseId: qr }));
-        setShowScanner(false);
-        setStep(2);
+    // Capture location on mount/init
+    useEffect(() => {
+        if ('geolocation' in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                (err) => console.warn("Location capture failed:", err),
+                { enableHighAccuracy: true }
+            );
+        }
+    }, []);
+
+    const handleScanComplete = (qr: string) => {
+        if (showScanner === 'CASE') {
+            setData(prev => ({ ...prev, caseId: qr }));
+            setStep(2);
+        } else {
+            setData(prev => ({ ...prev, sealId: qr }));
+            setStep(3);
+        }
+        setShowScanner(null);
     };
 
-    const handleScanSeal = (qr: string) => {
-        setData(prev => ({ ...prev, sealId: qr }));
-        setShowScanner(false);
-        setStep(3);
+    const handleFinalize = async () => {
+        if (!currentUser) return;
+
+        const transfer: CustodyTransfer = {
+            id: uuidv4(),
+            fromUserId: currentUser.id, // Current operator
+            toUserId: type === 'DELIVERY' ? 'SCHOOL_ADMIN_ID' : 'BASE_ADMIN_ID', // Simplified for now
+            caseId: data.caseId,
+            sealId: data.sealId,
+            type: type === 'DELIVERY' ? 'DELIVERY_TO_SCHOOL' : 'COLLECTION_FROM_SCHOOL',
+            expectedQuantity: data.expectedQuantity,
+            confirmedQuantity: data.confirmedQuantity,
+            sealStatus: data.incidentReported ? 'BROKEN_SUSPICIOUS' : 'INTACT',
+            notes: data.incidentNotes,
+            location: location || undefined,
+            createdAt: new Date().toISOString()
+        };
+
+        // 1. Cadastrar Transferência
+        await addCustodyTransfer(transfer);
+
+        // 2. Atualizar Status da Mala
+        await updateCaseStatus(data.caseId, type === 'DELIVERY' ? 'DELIVERED' : 'RETURNING');
+
+        // 3. Registrar Incidente se houver divergência
+        if (data.confirmedQuantity !== data.expectedQuantity || data.incidentReported) {
+            await addLogisticsIncident({
+                id: uuidv4(),
+                transferId: transfer.id,
+                severity: data.incidentReported ? 'HIGH' : 'MEDIUM',
+                description: `Divergência rituada em ${type}. Esperado: ${data.expectedQuantity}, Confirmado: ${data.confirmedQuantity}. Notas: ${data.incidentNotes}`,
+                status: 'OPEN',
+                createdAt: new Date().toISOString()
+            });
+        }
+
+        onComplete(data);
     };
 
     return (
@@ -49,6 +106,11 @@ export const CustodyChecklist: React.FC<CustodyChecklistProps> = ({ type, onComp
                 <p className="text-slate-500 text-sm">
                     {type === 'DELIVERY' ? 'Entrega de Malas na Unidade' : 'Coleta de Malas para a Base'}
                 </p>
+                {location && (
+                    <div className="flex items-center gap-1 mt-1 text-[10px] text-green-600 font-bold uppercase tracking-widest">
+                        <MapPin size={10} /> Localização Fixada
+                    </div>
+                )}
             </div>
 
             {/* Progress Stepper */}
@@ -79,7 +141,7 @@ export const CustodyChecklist: React.FC<CustodyChecklistProps> = ({ type, onComp
                             </div>
                         ) : (
                             <button
-                                onClick={() => setShowScanner(true)}
+                                onClick={() => setShowScanner('CASE')}
                                 className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 active:scale-95 transition"
                             >
                                 <Scan size={20} />
@@ -115,7 +177,7 @@ export const CustodyChecklist: React.FC<CustodyChecklistProps> = ({ type, onComp
                             </div>
                         ) : (
                             <button
-                                onClick={() => setShowScanner(true)}
+                                onClick={() => setShowScanner('SEAL')}
                                 className="w-full py-4 bg-teal-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-teal-600/20 active:scale-95 transition"
                             >
                                 <Scan size={20} />
@@ -125,10 +187,10 @@ export const CustodyChecklist: React.FC<CustodyChecklistProps> = ({ type, onComp
 
                         <div className="w-full pt-4">
                             <button
-                                onClick={() => setData(prev => ({ ...prev, incidentReported: true, step: 3 } as any))}
-                                className="text-amber-600 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-amber-50 p-2 rounded-lg transition overflow-hidden"
+                                onClick={() => setData(prev => ({ ...prev, incidentReported: true }) as any)}
+                                className={`text-amber-600 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 p-2 rounded-lg transition overflow-hidden ${data.incidentReported ? 'bg-amber-100 border border-amber-200' : 'hover:bg-amber-50'}`}
                             >
-                                <AlertTriangle size={14} /> Lacre Violado ou Ausente
+                                <AlertTriangle size={14} /> {data.incidentReported ? 'Incidente Registrado' : 'Lacre Violado ou Ausente'}
                             </button>
                         </div>
 
@@ -144,7 +206,7 @@ export const CustodyChecklist: React.FC<CustodyChecklistProps> = ({ type, onComp
                 )}
 
                 {step === 3 && (
-                    <div className="flex flex-col space-y-6">
+                    <div className="flex flex-col space-y-6 overflow-y-auto">
                         <div>
                             <h2 className="text-xl font-bold text-slate-800">Conferência de Carga</h2>
                             <p className="text-slate-500 text-sm mt-2">Valide a quantidade física de tablets dentro da mala.</p>
@@ -172,7 +234,7 @@ export const CustodyChecklist: React.FC<CustodyChecklistProps> = ({ type, onComp
                             </div>
                         </div>
 
-                        {data.confirmedQuantity !== data.expectedQuantity && (
+                        {(data.confirmedQuantity !== data.expectedQuantity || data.incidentReported) && (
                             <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex gap-3 animate-in slide-in-from-top-2">
                                 <AlertTriangle className="text-amber-500 shrink-0" size={20} />
                                 <div>
@@ -182,7 +244,7 @@ export const CustodyChecklist: React.FC<CustodyChecklistProps> = ({ type, onComp
                             </div>
                         )}
 
-                        {data.confirmedQuantity !== data.expectedQuantity && (
+                        {(data.confirmedQuantity !== data.expectedQuantity || data.incidentReported) && (
                             <div className="space-y-4">
                                 <textarea
                                     className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-sm focus:border-indigo-600 outline-none transition"
@@ -198,12 +260,12 @@ export const CustodyChecklist: React.FC<CustodyChecklistProps> = ({ type, onComp
                             </div>
                         )}
 
-                        <div className="mt-auto">
+                        <div className="mt-auto pt-4">
                             <button
-                                onClick={() => onComplete(data)}
+                                onClick={handleFinalize}
                                 className="w-full py-5 bg-green-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-green-600/20 active:scale-95 transition flex items-center justify-center gap-2"
                             >
-                                {data.confirmedQuantity === data.expectedQuantity ? 'Confirmar Entrega' : 'Finalizar com Ressalva'}
+                                {data.confirmedQuantity === data.expectedQuantity && !data.incidentReported ? 'Confirmar Operação' : 'Finalizar com Ressalva'}
                             </button>
                         </div>
                     </div>
@@ -216,10 +278,10 @@ export const CustodyChecklist: React.FC<CustodyChecklistProps> = ({ type, onComp
             </div>
 
             {showScanner && (
-                <QRScannerModal
-                    examId="logistics-temp"
-                    eventId="custody-op"
-                    onClose={() => setShowScanner(false)}
+                <SimpleQRScanner
+                    title={showScanner === 'CASE' ? 'Escanear Mala' : 'Escanear Lacre'}
+                    onScan={handleScanComplete}
+                    onClose={() => setShowScanner(null)}
                 />
             )}
         </div>

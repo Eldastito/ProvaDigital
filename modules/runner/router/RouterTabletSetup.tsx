@@ -8,21 +8,29 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Wifi, WifiOff, Server, Users, Check, AlertTriangle, RefreshCw } from 'lucide-react';
-import { wifiHotspotService, HotspotConfig, HotspotStatus } from '../../../services/wifiHotspotService';
+import { Wifi, WifiOff, Server, Users, Check, AlertTriangle, RefreshCw, ArrowLeft } from 'lucide-react';
+import { WifiHotspotService, wifiHotspotService, HotspotConfig, HotspotStatus } from '../../../services/wifiHotspotService';
 import { getLocalServer } from '../../../services/localServerService';
+import { useAppStore } from '../../../store/useAppStore';
+import { useNavigate } from 'react-router-dom';
 
 interface RouterTabletSetupProps {
-    eventId: string;
-    schoolId: string;
+    eventId?: string;
+    schoolId?: string;
     onReady?: () => void;
 }
 
 export const RouterTabletSetup: React.FC<RouterTabletSetupProps> = ({
-    eventId,
-    schoolId,
+    eventId: propEventId,
+    schoolId: propSchoolId,
     onReady
 }) => {
+    const { currentUser } = useAppStore();
+    const navigate = useNavigate();
+
+    // Fallback para dados da store
+    const schoolId = propSchoolId || currentUser?.schoolId || 'unknown';
+    const eventId = propEventId || `MESH-${schoolId}-${new Date().toISOString().split('T')[0]}`;
     const [step, setStep] = useState<'SETUP' | 'STARTING' | 'ACTIVE'>('SETUP');
     const [hotspotStatus, setHotspotStatus] = useState<HotspotStatus | null>(null);
     const [ssid, setSSID] = useState('');
@@ -32,8 +40,8 @@ export const RouterTabletSetup: React.FC<RouterTabletSetupProps> = ({
 
     // Gerar SSID e senha ao montar
     useEffect(() => {
-        const generatedSSID = wifiHotspotService.constructor.generateSSID(schoolId, eventId);
-        const generatedPassword = wifiHotspotService.constructor.generatePassword();
+        const generatedSSID = WifiHotspotService.generateSSID(schoolId, eventId);
+        const generatedPassword = WifiHotspotService.generatePassword();
 
         setSSID(generatedSSID);
         setPassword(generatedPassword);
@@ -132,6 +140,12 @@ export const RouterTabletSetup: React.FC<RouterTabletSetupProps> = ({
 
                 {/* Header */}
                 <div className="bg-white rounded-2xl shadow-2xl p-8 mb-6">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="mb-6 flex items-center gap-2 text-orange-600 font-bold hover:underline"
+                    >
+                        <ArrowLeft size={20} /> Voltar ao Painel
+                    </button>
                     <div className="flex items-center gap-4 mb-4">
                         <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center">
                             {step === 'ACTIVE' ? (

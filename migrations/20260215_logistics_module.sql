@@ -1,6 +1,9 @@
 -- Migração: Módulo de Logística & Custódia
 -- Data: 2026-02-15
 
+-- Inclusão da extensão para suporte a dados geográficos (GPS)
+CREATE EXTENSION IF NOT EXISTS postgis;
+
 -- 1. Cadastro de Ativos (Tablets)
 CREATE TABLE IF NOT EXISTS public.logistics_assets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -10,7 +13,7 @@ CREATE TABLE IF NOT EXISTS public.logistics_assets (
     status TEXT DEFAULT 'AVAILABLE' CHECK (status IN ('AVAILABLE', 'IN_TRANSIT', 'IN_USE', 'MAINTENANCE', 'LOST')),
     last_battery_level INTEGER DEFAULT 100,
     last_sync_at TIMESTAMPTZ,
-    school_id UUID REFERENCES public.schools(id),
+    school_id TEXT REFERENCES public.schools(id),
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -20,9 +23,10 @@ CREATE TABLE IF NOT EXISTS public.logistics_cases (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     case_number TEXT UNIQUE NOT NULL,
     capacity INTEGER DEFAULT 30,
-    status TEXT DEFAULT 'IN_STOCK' CHECK (status IN ('IN_STOCK', 'PREPARING', 'IN_TRANSIT', 'DELIVERED', 'RETURNING')),
-    current_school_id UUID REFERENCES public.schools(id),
-    created_at TIMESTAMPTZ DEFAULT now()
+    status TEXT DEFAULT 'AVAILABLE' CHECK (status IN ('AVAILABLE', 'PREPARING', 'IN_TRANSIT', 'DELIVERED', 'RETURNING', 'MAINTENANCE', 'LOST')),
+    current_school_id TEXT REFERENCES public.schools(id),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- 3. Cadastro de Lacres
@@ -30,17 +34,19 @@ CREATE TABLE IF NOT EXISTS public.logistics_seals (
     id TEXT PRIMARY KEY, -- O ID é o número impresso no lacre físico
     status TEXT DEFAULT 'AVAILABLE' CHECK (status IN ('AVAILABLE', 'APPLIED', 'BROKEN', 'DISCARDED')),
     applied_at TIMESTAMPTZ,
-    applied_by UUID REFERENCES auth.users(id),
+    applied_by TEXT REFERENCES public.users(id),
     broken_at TIMESTAMPTZ,
-    broken_by UUID REFERENCES auth.users(id),
-    case_id UUID REFERENCES public.logistics_cases(id)
+    broken_by TEXT REFERENCES public.users(id),
+    case_id UUID REFERENCES public.logistics_cases(id),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- 4. Eventos de Custódia (Transferência de Posse)
 CREATE TABLE IF NOT EXISTS public.custody_transfers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    from_user_id UUID REFERENCES auth.users(id),
-    to_user_id UUID REFERENCES auth.users(id),
+    from_user_id TEXT REFERENCES public.users(id),
+    to_user_id TEXT REFERENCES public.users(id),
     case_id UUID REFERENCES public.logistics_cases(id),
     seal_id TEXT REFERENCES public.logistics_seals(id),
     type TEXT NOT NULL CHECK (type IN ('OUT_FROM_BASE', 'DELIVERY_TO_SCHOOL', 'COLLECTION_FROM_SCHOOL', 'IN_TO_BASE')),
@@ -68,8 +74,9 @@ CREATE TABLE IF NOT EXISTS public.logistics_incidents (
     description TEXT NOT NULL,
     status TEXT DEFAULT 'OPEN' CHECK (status IN ('OPEN', 'INVESTIGATING', 'RESOLVED')),
     resolved_at TIMESTAMPTZ,
-    resolved_by UUID REFERENCES auth.users(id),
-    created_at TIMESTAMPTZ DEFAULT now()
+    resolved_by TEXT REFERENCES public.users(id),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- Habilitar RLS
@@ -79,7 +86,36 @@ ALTER TABLE public.logistics_seals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.custody_transfers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.logistics_incidents ENABLE ROW LEVEL SECURITY;
 
--- Políticas de acesso conforme solicitado (Master SAAS tem acesso total)
--- Exemplo para logistics_assets
-CREATE POLICY "Master SAAS total access" ON public.logistics_assets
-    USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'MASTER_SAAS'));
+-- Políticas de acesso (Master SAAS tem acesso total)
+DO $$ 
+BEGIN
+    -- Política para logistics_assets
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Master SAAS total access assets') THEN
+        CREATE POLICY "Master SAAS total access assets" ON public.logistics_assets
+            USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid()::text AND role = 'MASTER_SAAS'));
+    END IF;
+
+    -- Política para logistics_cases
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Master SAAS total access cases') THEN
+        CREATE POLICY "Master SAAS total access cases" ON public.logistics_cases
+            USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid()::text AND role = 'MASTER_SAAS'));
+    END IF;
+
+    -- Política para logistics_seals
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Master SAAS total access seals') THEN
+        CREATE POLICY "Master SAAS total access seals" ON public.logistics_seals
+            USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid()::text AND role = 'MASTER_SAAS'));
+    END IF;
+
+    -- Política para custody_transfers
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Master SAAS total access transfers') THEN
+        CREATE POLICY "Master SAAS total access transfers" ON public.custody_transfers
+            USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid()::text AND role = 'MASTER_SAAS'));
+    END IF;
+
+    -- Política para logistics_incidents
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Master SAAS total access incidents') THEN
+        CREATE POLICY "Master SAAS total access incidents" ON public.logistics_incidents
+            USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid()::text AND role = 'MASTER_SAAS'));
+    END IF;
+END $$;

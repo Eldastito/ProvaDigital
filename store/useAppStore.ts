@@ -9,7 +9,8 @@ import {
     UserProfileExtended, ExamRegistration, RegistrationStatus,
     ExamAttempt, ExamAttemptEvent, AuditLog, ArcadeGame, ExamVariantOverride,
     LiveQuizSession, LiveQuizParticipant, LiveQuizResult,
-    LogisticsSuitcase, SuitcaseStatus, TabletLogistics, LogisticsAuditEntry
+    LogisticsAsset, LogisticsCase, LogisticsSeal, CustodyTransfer, LogisticsIncident,
+    SuitcaseStatus, TabletLogistics, LogisticsAuditEntry
 } from '../types';
 import { uuidv4 } from '../utils/helpers';
 import { INITIAL_TENANTS, INITIAL_SCHOOLS, INITIAL_CLASSES, INITIAL_USERS, INITIAL_ITEMS, INITIAL_STUDENTS, INITIAL_RESULTS, INITIAL_EXAMS, INITIAL_REGISTRATIONS, INITIAL_ANNOUNCEMENTS, INITIAL_MESSAGES, INITIAL_LESSON_PLANS, INITIAL_STUDY_PLANS, INITIAL_STUDENT_PROFILES, INITIAL_USER_PROFILES, INITIAL_SETTINGS, INITIAL_GAMIFIED_EVENTS } from '../utils/mockData';
@@ -225,9 +226,10 @@ interface AppActions {
     updatePedagogicalFeedback: (resultId: string, feedback: string) => Promise<void>;
 
     // --- LOGISTICS ACTIONS ---
-    addLogisticsSuitcase: (suitcase: LogisticsSuitcase) => Promise<void>;
-    updateSuitcaseStatus: (id: string, status: SuitcaseStatus) => Promise<void>;
-    logTabletMovement: (serialId: string, suitcaseId: string, action: 'CHECK_IN' | 'CHECK_OUT', actorId: string) => Promise<void>;
+    addLogisticsCase: (lgCase: LogisticsCase) => Promise<void>;
+    updateCaseStatus: (id: string, status: 'AVAILABLE' | 'PREPARING' | 'IN_TRANSIT' | 'DELIVERED' | 'RETURNING' | 'MAINTENANCE' | 'LOST') => Promise<void>;
+    addCustodyTransfer: (transfer: CustodyTransfer) => Promise<void>;
+    addLogisticsIncident: (incident: LogisticsIncident) => Promise<void>;
     loadLogisticsData: () => Promise<void>;
 
     // --- UI/THEME ACTIONS ---
@@ -364,6 +366,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
     activeBatchId: null,
     examVersions: [],
     logisticsSuitcases: [],
+    logisticsAssets: [],
+    logisticsCases: [],
+    logisticsSeals: [],
+    custodyTransfers: [],
+    logisticsIncidents: [],
     logisticsTablets: [],
     logisticsAudit: [],
 
@@ -2220,39 +2227,67 @@ export const useAppStore = create<AppStore>((set, get) => ({
         }
     },
 
-    // --- LOGISTICS ACTIONS implementation ---
-    addLogisticsSuitcase: async (suitcase) => {
-        set(state => ({ logisticsSuitcases: [suitcase, ...state.logisticsSuitcases] }));
+    // --- LOGISTICS ACTIONS ---
+    addLogisticsCase: async (lgCase) => {
+        set(state => ({ logisticsCases: [lgCase, ...state.logisticsCases] }));
+        try {
+            const { error } = await supabase.from('logistics_cases').insert(lgCase);
+            if (error) throw error;
+        } catch (e) {
+            console.error("Error adding logistics case:", e);
+        }
     },
-    updateSuitcaseStatus: async (id, status) => {
+    updateCaseStatus: async (id, status) => {
         set(state => ({
-            logisticsSuitcases: state.logisticsSuitcases.map(s =>
-                s.id === id ? { ...s, status, lastUpdatedAt: new Date().toISOString() } : s
+            logisticsCases: state.logisticsCases.map(c =>
+                c.id === id ? { ...c, status, updatedAt: new Date().toISOString() } : c
             )
         }));
+        try {
+            const { error } = await supabase.from('logistics_cases').update({ status, updated_at: new Date().toISOString() }).eq('id', id);
+            if (error) throw error;
+        } catch (e) {
+            console.error("Error updating case status:", e);
+        }
     },
-    logTabletMovement: async (serialId, suitcaseId, action, actorId) => {
-        const entry: LogisticsAuditEntry = {
-            id: uuidv4(),
-            suitcaseId,
-            tabletSerial: serialId,
-            action,
-            actorId,
-            timestamp: new Date().toISOString()
-        };
-        set(state => ({
-            logisticsAudit: [entry, ...state.logisticsAudit],
-            logisticsTablets: state.logisticsTablets.map(t =>
-                t.serialId === serialId ? {
-                    ...t,
-                    status: action === 'CHECK_OUT' ? 'IN_USE' : 'RETURNED',
-                    currentSuitcaseId: action === 'CHECK_OUT' ? suitcaseId : undefined
-                } : t
-            )
-        }));
+    addCustodyTransfer: async (transfer) => {
+        set(state => ({ custodyTransfers: [transfer, ...state.custodyTransfers] }));
+        try {
+            const { error } = await supabase.from('custody_transfers').insert(transfer);
+            if (error) throw error;
+        } catch (e) {
+            console.error("Error adding custody transfer:", e);
+        }
+    },
+    addLogisticsIncident: async (incident) => {
+        set(state => ({ logisticsIncidents: [incident, ...state.logisticsIncidents] }));
+        try {
+            const { error } = await supabase.from('logistics_incidents').insert(incident);
+            if (error) throw error;
+        } catch (e) {
+            console.error("Error adding logistics incident:", e);
+        }
     },
     loadLogisticsData: async () => {
-        console.log("🚚 Dados logísticos simulados carregados.");
+        try {
+            const [assets, cases, seals, transfers, incidents] = await Promise.all([
+                supabase.from('logistics_assets').select('*'),
+                supabase.from('logistics_cases').select('*'),
+                supabase.from('logistics_seals').select('*'),
+                supabase.from('custody_transfers').select('*'),
+                supabase.from('logistics_incidents').select('*')
+            ]);
+
+            set({
+                logisticsAssets: assets.data || [],
+                logisticsCases: cases.data || [],
+                logisticsSeals: seals.data || [],
+                custodyTransfers: transfers.data || [],
+                logisticsIncidents: incidents.data || []
+            });
+        } catch (e) {
+            console.error("Error loading logistics data:", e);
+        }
     },
 
     getRecommendedVariant: async (studentId, versionId) => {

@@ -15,21 +15,25 @@ import { TabletOptimizationService } from '../../services/tabletOptimizationServ
 import { LogisticsAsset, LogisticsCase, CustodyTransfer, LogisticsIncident } from '../../types';
 
 const LogisticsManagementView: React.FC = () => {
-    const { exams, schools, users, loadRemoteData } = useAppStore();
+    const {
+        logisticsAssets,
+        logisticsCases,
+        custodyTransfers,
+        logisticsIncidents,
+        loadLogisticsData
+    } = useAppStore();
     const [activeTab, setActiveTab] = useState<'assets' | 'cases' | 'transfers' | 'incidents' | 'demand'>('demand');
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Mock data for initial UI dev (replace with store data later)
-    const [assets] = useState<LogisticsAsset[]>([]);
-    const [cases] = useState<LogisticsCase[]>([]);
-    const [transfers] = useState<CustodyTransfer[]>([]);
-    const [incidents] = useState<LogisticsIncident[]>([]);
+    useEffect(() => {
+        loadLogisticsData();
+    }, []);
 
-    // Calculate demand based on scheduled exams
-    const calculateDemand = () => {
-        // This would use logisticsEngine.getRealLogisticsDemand(store)
-        return []; // Placeholder for now
-    };
+    // KPIs baseados em dados reais
+    const totalAssets = logisticsAssets.length;
+    const assetsInTransit = logisticsAssets.filter(a => a.status === 'IN_TRANSIT').length;
+    const casesInTransit = logisticsCases.filter(c => c.status === 'IN_TRANSIT').length;
+    const openIncidents = logisticsIncidents.filter(i => i.status === 'OPEN').length;
 
     return (
         <div className="p-6 space-y-6 animate-in fade-in duration-500">
@@ -56,7 +60,7 @@ const LogisticsManagementView: React.FC = () => {
                     </div>
                     <div>
                         <p className="text-xs text-slate-500 uppercase font-semibold">Total Ativos</p>
-                        <p className="text-2xl font-bold text-slate-800">1,240</p>
+                        <p className="text-2xl font-bold text-slate-800">{totalAssets.toLocaleString()}</p>
                     </div>
                 </div>
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
@@ -65,7 +69,7 @@ const LogisticsManagementView: React.FC = () => {
                     </div>
                     <div>
                         <p className="text-xs text-slate-500 uppercase font-semibold">Malas em Trânsito</p>
-                        <p className="text-2xl font-bold text-slate-800">42</p>
+                        <p className="text-2xl font-bold text-slate-800">{casesInTransit}</p>
                     </div>
                 </div>
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
@@ -74,7 +78,7 @@ const LogisticsManagementView: React.FC = () => {
                     </div>
                     <div>
                         <p className="text-xs text-slate-500 uppercase font-semibold">Divergências Abertas</p>
-                        <p className="text-2xl font-bold text-slate-800">3</p>
+                        <p className="text-2xl font-bold text-slate-800">{openIncidents}</p>
                     </div>
                 </div>
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
@@ -82,49 +86,162 @@ const LogisticsManagementView: React.FC = () => {
                         <Truck size={24} />
                     </div>
                     <div>
-                        <p className="text-xs text-slate-500 uppercase font-semibold">Rotas Planejadas (Semana)</p>
-                        <p className="text-2xl font-bold text-slate-800">18</p>
+                        <p className="text-xs text-slate-500 uppercase font-semibold">Ativos em Trânsito</p>
+                        <p className="text-2xl font-bold text-slate-800">{assetsInTransit}</p>
                     </div>
                 </div>
             </div>
 
             {/* Tabs */}
             <div className="flex gap-1 border-b border-slate-200">
-                <button
-                    onClick={() => setActiveTab('demand')}
-                    className={`px-4 py-2 font-medium transition-all border-b-2 ${activeTab === 'demand' ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                >
-                    Previsão de Demanda
-                </button>
-                <button
-                    onClick={() => setActiveTab('assets')}
-                    className={`px-4 py-2 font-medium transition-all border-b-2 ${activeTab === 'assets' ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                >
-                    Estoque de Tablets
-                </button>
-                <button
-                    onClick={() => setActiveTab('cases')}
-                    className={`px-4 py-2 font-medium transition-all border-b-2 ${activeTab === 'cases' ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                >
-                    Malas de Transporte
-                </button>
-                <button
-                    onClick={() => setActiveTab('transfers')}
-                    className={`px-4 py-2 font-medium transition-all border-b-2 ${activeTab === 'transfers' ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                >
-                    Histórico de Custódia
-                </button>
+                {['demand', 'assets', 'cases', 'transfers', 'incidents'].map((tab) => (
+                    <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab as any)}
+                        className={`px-4 py-2 font-medium transition-all border-b-2 capitalize ${activeTab === tab ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                    >
+                        {tab === 'demand' ? 'Previsão de Demanda' : tab === 'assets' ? 'Estoque de Tablets' : tab === 'cases' ? 'Malas de Transporte' : tab === 'transfers' ? 'Histórico de Custódia' : 'Incidentes'}
+                    </button>
+                ))}
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden min-h-[400px]">
                 {activeTab === 'demand' && <DemandPlanningView />}
+
                 {activeTab === 'assets' && (
-                    <div className="p-8 text-center text-slate-400">
-                        <Tablet size={48} className="mx-auto mb-4 opacity-20" />
-                        <p>Módulo de Gerenciamento de Assets (Serial/Status)</p>
+                    <div className="p-6">
+                        <table className="w-full text-left">
+                            <thead className="bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th className="px-4 py-3 text-slate-500 font-semibold text-sm">Serial</th>
+                                    <th className="px-4 py-3 text-slate-500 font-semibold text-sm">Modelo</th>
+                                    <th className="px-4 py-3 text-slate-500 font-semibold text-sm">Status</th>
+                                    <th className="px-4 py-3 text-slate-500 font-semibold text-sm">Bateria</th>
+                                    <th className="px-4 py-3 text-slate-500 font-semibold text-sm">Último Sync</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {logisticsAssets.length === 0 ? (
+                                    <tr><td colSpan={5} className="p-8 text-center text-slate-400">Nenhum ativo cadastrado</td></tr>
+                                ) : (
+                                    logisticsAssets.map(asset => (
+                                        <tr key={asset.id} className="border-b border-slate-50">
+                                            <td className="px-4 py-3 font-mono text-sm">{asset.serialNumber}</td>
+                                            <td className="px-4 py-3 text-sm">{asset.model}</td>
+                                            <td className="px-4 py-3">
+                                                <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${asset.status === 'AVAILABLE' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                    {asset.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-sm">{asset.lastBatteryLevel}%</td>
+                                            <td className="px-4 py-3 text-xs text-slate-500">{asset.lastSyncAt ? new Date(asset.lastSyncAt).toLocaleString() : '-'}</td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 )}
-                {/* Adicionar as outras abas conforme o desenvolvimento progredir */}
+
+                {activeTab === 'cases' && (
+                    <div className="p-6">
+                        <table className="w-full text-left">
+                            <thead className="bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th className="px-4 py-3 text-slate-500 font-semibold text-sm">Mala #</th>
+                                    <th className="px-4 py-3 text-slate-500 font-semibold text-sm">Capacidade</th>
+                                    <th className="px-4 py-3 text-slate-500 font-semibold text-sm">Status</th>
+                                    <th className="px-4 py-3 text-slate-500 font-semibold text-sm">Ativos</th>
+                                    <th className="px-4 py-3 text-slate-500 font-semibold text-sm">Data Criação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {logisticsCases.length === 0 ? (
+                                    <tr><td colSpan={5} className="p-8 text-center text-slate-400">Nenhuma mala cadastrada</td></tr>
+                                ) : (
+                                    logisticsCases.map(c => (
+                                        <tr key={c.id} className="border-b border-slate-50">
+                                            <td className="px-4 py-3 font-bold text-slate-800">{c.caseNumber}</td>
+                                            <td className="px-4 py-3 text-sm">{c.capacity} tablets</td>
+                                            <td className="px-4 py-3">
+                                                <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded-full text-[10px] font-bold">
+                                                    {c.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-sm">{c.assets?.length || 0}</td>
+                                            <td className="px-4 py-3 text-xs text-slate-500">{new Date(c.createdAt).toLocaleDateString()}</td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
+                {activeTab === 'transfers' && (
+                    <div className="p-6">
+                        <table className="w-full text-left">
+                            <thead className="bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th className="px-4 py-3 text-slate-500 font-semibold text-sm">Data</th>
+                                    <th className="px-4 py-3 text-slate-500 font-semibold text-sm">Tipo</th>
+                                    <th className="px-4 py-3 text-slate-500 font-semibold text-sm">Mala</th>
+                                    <th className="px-4 py-3 text-slate-500 font-semibold text-sm">Lacre</th>
+                                    <th className="px-4 py-3 text-slate-500 font-semibold text-sm">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {custodyTransfers.length === 0 ? (
+                                    <tr><td colSpan={5} className="p-8 text-center text-slate-400">Nenhuma transferência rituada</td></tr>
+                                ) : (
+                                    custodyTransfers.map(t => (
+                                        <tr key={t.id} className="border-b border-slate-50">
+                                            <td className="px-4 py-3 text-sm">{new Date(t.createdAt).toLocaleString()}</td>
+                                            <td className="px-4 py-3">
+                                                <span className="text-xs font-medium text-slate-600">{t.type}</span>
+                                            </td>
+                                            <td className="px-4 py-3 text-xs font-mono">{t.caseId}</td>
+                                            <td className="px-4 py-3 text-xs font-mono">{t.sealId}</td>
+                                            <td className="px-4 py-3">
+                                                <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${t.sealStatus === 'INTACT' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                    {t.sealStatus}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
+                {activeTab === 'incidents' && (
+                    <div className="p-6">
+                        {logisticsIncidents.length === 0 ? (
+                            <div className="p-12 text-center">
+                                <CheckCircle size={48} className="mx-auto text-green-500 opacity-20 mb-4" />
+                                <p className="text-slate-400">Nenhum incidente registrado</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-4">
+                                {logisticsIncidents.map(incident => (
+                                    <div key={incident.id} className="p-4 bg-red-50 border border-red-100 rounded-xl flex gap-4">
+                                        <div className="p-2 bg-red-100 text-red-600 rounded-lg h-fit">
+                                            <AlertTriangle size={20} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex justify-between">
+                                                <p className="font-bold text-red-900">{incident.severity} SEVERITY</p>
+                                                <span className="text-[10px] text-red-400 uppercase font-black">{new Date(incident.createdAt).toLocaleString()}</span>
+                                            </div>
+                                            <p className="text-sm text-red-800 mt-1">{incident.description}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );

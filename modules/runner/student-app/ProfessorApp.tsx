@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { Users, ArrowLeft, Monitor, UserCheck, QrCode, CheckCircle, Lock, UserPlus, XSquare, Layers, AlertTriangle, Unlock, Play, Smartphone, KeyRound, BarChart2, Scan } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Users, ArrowLeft, Monitor, UserCheck, QrCode, CheckCircle, Lock, UserPlus, XSquare, Layers, AlertTriangle, Unlock, Play, Smartphone, KeyRound, BarChart2, Scan, Wifi, Download } from 'lucide-react';
 import { AppState } from '../../../types';
 import { QRDataTransfer } from '../../../services/qrCodecService';
 import { supabase } from '../../../services/supabaseClient';
 import { QRScannerModal } from '../offline/QRScannerModal';
+import { offlineCacheService } from '../../../services/offlineCacheService';
 
 import { useSafeAppStore } from '../../../store/useAppStore';
 import { TabletLauncher } from './TabletLauncher';
@@ -15,7 +17,8 @@ interface ProfessorAppProps {
 
 export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
     const state = useSafeAppStore();
-    // Check URL params for Live Controller Mode
+    const navigate = useNavigate();
+    // ...
     const params = new URLSearchParams(window.location.search);
     const isLiveController = params.get('action') === 'CONTROL';
     const liveClassId = params.get('classId');
@@ -346,6 +349,44 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
                                     Ativos: {stats.present} / {classData.students.length}
                                 </span>
                             </div>
+                        </div>
+
+                        {/* Infraestrutura section */}
+                        <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <button
+                                onClick={() => navigate('/professor/config/router')}
+                                className="p-4 bg-orange-100 border-2 border-orange-200 rounded-2xl flex items-center gap-4 hover:bg-orange-200 transition-colors text-left"
+                            >
+                                <div className="p-3 bg-orange-500 text-white rounded-xl">
+                                    <Wifi size={24} />
+                                </div>
+                                <div>
+                                    <p className="font-bold text-orange-900">Configurar Modo Roteador</p>
+                                    <p className="text-sm text-orange-700">Transforme este tablet em um servidor mesh offline.</p>
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={async () => {
+                                    if (classData) {
+                                        const success = await offlineCacheService.downloadClassDataForOffline(classData.classId, classData.students);
+                                        if (success) {
+                                            alert(`Pacote da turma "${classData.className}" baixado com sucesso! Você pode realizar a chamada offline.`);
+                                        } else {
+                                            alert('Falha ao baixar pacote da turma. Verifique sua conexão.');
+                                        }
+                                    }
+                                }}
+                                className="p-4 bg-blue-100 border-2 border-blue-200 rounded-2xl flex items-center gap-4 hover:bg-blue-200 transition-colors text-left"
+                            >
+                                <div className="p-3 bg-blue-500 text-white rounded-xl">
+                                    <Download size={24} />
+                                </div>
+                                <div>
+                                    <p className="font-bold text-blue-900">Baixar Dados da Turma</p>
+                                    <p className="text-sm text-blue-700">Garante que todos os alunos e fotos fiquem salvos offline.</p>
+                                </div>
+                            </button>
                         </div>
 
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">

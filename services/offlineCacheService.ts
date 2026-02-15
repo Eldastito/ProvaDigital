@@ -129,6 +129,40 @@ export class OfflineCacheService {
         const cache = await caches.open(this.CACHE_NAME);
         await cache.delete(`/api/exams/offline-package/${examId}`);
     }
+
+    /**
+     * Baixa os dados da turma (alunos) para o cache offline
+     */
+    async downloadClassDataForOffline(classId: string, students: any[]): Promise<boolean> {
+        try {
+            console.log(`[OfflineCache] Iniciando download da turma: ${classId}`);
+
+            if (!('caches' in window)) {
+                throw new Error('Cache API não suportada neste navegador');
+            }
+
+            const cache = await caches.open(this.CACHE_NAME);
+
+            // Salvar o JSON dos alunos
+            const studentsBlob = new Blob([JSON.stringify(students)], { type: 'application/json' });
+            const studentsResponse = new Response(studentsBlob);
+            await cache.put(`/api/classes/${classId}/students`, studentsResponse);
+
+            // Registrar no index de caches locais
+            const indexKey = 'cached_classes_index';
+            const index = JSON.parse(localStorage.getItem(indexKey) || '[]');
+            if (!index.includes(classId)) {
+                index.push(classId);
+                localStorage.setItem(indexKey, JSON.stringify(index));
+            }
+
+            console.log(`[OfflineCache] Download da turma ${classId} concluído.`);
+            return true;
+        } catch (error) {
+            console.error('[OfflineCache] Erro no download da turma:', error);
+            return false;
+        }
+    }
 }
 
 export const registerCachedExam = async (examId: string, title: string) => {

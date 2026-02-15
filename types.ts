@@ -1157,7 +1157,11 @@ export interface AppState {
   liveAlerts: any[]; // Phase 5: Live Monitoring
   realtimeChannel: RealtimeChannel | null;
   // Logistics Extensions
-  logisticsSuitcases: LogisticsSuitcase[];
+  logisticsAssets: LogisticsAsset[];
+  logisticsCases: LogisticsCase[];
+  logisticsSeals: LogisticsSeal[];
+  custodyTransfers: CustodyTransfer[];
+  logisticsIncidents: LogisticsIncident[];
   logisticsTablets: TabletLogistics[];
   logisticsAudit: LogisticsAuditEntry[];
 }
@@ -1389,9 +1393,11 @@ export interface LogisticsCase {
   id: string;
   caseNumber: string;
   capacity: number;
-  status: 'IN_STOCK' | 'PREPARING' | 'IN_TRANSIT' | 'DELIVERED' | 'RETURNING';
+  status: 'AVAILABLE' | 'PREPARING' | 'IN_TRANSIT' | 'DELIVERED' | 'RETURNING' | 'MAINTENANCE' | 'LOST';
   currentSchoolId?: string;
   assets?: string[]; // IDs dos assets dentro da mala
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface LogisticsSeal {
@@ -1402,6 +1408,8 @@ export interface LogisticsSeal {
   brokenAt?: string;
   brokenBy?: string;
   caseId?: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export type CustodyTransferType = 'OUT_FROM_BASE' | 'DELIVERY_TO_SCHOOL' | 'COLLECTION_FROM_SCHOOL' | 'IN_TO_BASE';
