@@ -22,6 +22,7 @@ import { E2EEncryptionService, SignedPayload } from '../../../services/security/
 import { QRDataTransfer, QRChunk } from '../../../services/qrCodecService';
 import { QRCodeSVG } from 'qrcode.react';
 import { QRScannerService } from '../../../services/qrScannerService';
+import { offlineConsolidationService, OfflineSubmission } from '../../../services/offlineConsolidationService';
 
 
 interface QRScannerModalProps {
@@ -57,6 +58,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
     const scannerRef = useRef<QRScannerService | null>(null);
 
     useEffect(() => {
+        loadExistingSubmissions();
         if (scanning) {
             startCamera();
         } else {
@@ -65,6 +67,26 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
 
         return () => stopCamera();
     }, [scanning]);
+
+    const loadExistingSubmissions = async () => {
+        try {
+            const submissions = await offlineConsolidationService.getSubmissionsByEvent(eventId);
+            if (submissions.length > 0) {
+                const mappedStudents: ScannedStudent[] = submissions.map(s => ({
+                    studentId: s.studentId,
+                    studentName: s.studentName,
+                    encryptedAnswers: s.encryptedAnswers,
+                    totalQuestions: 0, // Informação não persistida diretamente, mas poderia ser
+                    scannedAt: s.scannedAt,
+                    validated: true
+                }));
+                setStudents(mappedStudents);
+                console.log(`📂 Carregadas ${submissions.length} submissões persistidas do evento ${eventId}`);
+            }
+        } catch (err) {
+            console.error('Erro ao carregar submissões persistidas:', err);
+        }
+    };
 
     const startCamera = async () => {
         try {
@@ -194,12 +216,35 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
             };
 
             setStudents(prev => [...prev, newStudent]);
-            console.log(`✅ Aluno ${payload.studentName} adicionado (${newStudent.totalQuestions} questões)`);
+
+            // 5. Persistir no IndexedDB
+            await offlineConsolidationService.saveSubmission({
+                studentId: newStudent.studentId,
+                studentName: newStudent.studentName,
+                examId,
+                eventId,
+                encryptedAnswers: newStudent.encryptedAnswers,
+                scannedAt: newStudent.scannedAt
+            });
+
+            console.log(`✅ Aluno ${payload.studentName} adicionado e persistido`);
 
         } catch (err) {
             console.error('Erro ao processar submissão:', err);
             setError(err instanceof Error ? err.message : 'Erro ao validar QR Code');
             throw err;
+        }
+    };
+
+    const handleDeleteStudent = async (studentId: string) => {
+        if (!confirm('Deseja remover esta submissão da lista local?')) return;
+
+        try {
+            await offlineConsolidationService.deleteSubmission(eventId, studentId);
+            setStudents(prev => prev.filter(s => s.studentId !== studentId));
+            console.log(`🗑️ Submissão ${studentId} removida`);
+        } catch (err) {
+            setError('Erro ao remover submissão do banco local');
         }
     };
 
@@ -392,9 +437,18 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                                                 </p>
                                             </div>
                                         </div>
-                                        <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-medium">
-                                            ✓ Validado
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-medium">
+                                                ✓ Validado
+                                            </span>
+                                            <button
+                                                onClick={() => handleDeleteStudent(student.studentId)}
+                                                className="p-1 text-slate-400 hover:text-red-500 transition"
+                                                title="Remover"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>

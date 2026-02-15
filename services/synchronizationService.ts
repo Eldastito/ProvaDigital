@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { getSessionService, StudentSession } from './sessionIsolationService';
+import { offlineConsolidationService } from './offlineConsolidationService';
 
 export class SynchronizationService {
     private isSyncing = false;
@@ -13,8 +14,9 @@ export class SynchronizationService {
         if (this.syncInterval) return;
 
         console.log(`🔄 AutoSync iniciado (${intervalMs}ms)`);
-        this.syncInterval = window.setInterval(() => {
-            this.syncPendingSessions();
+        this.syncInterval = window.setInterval(async () => {
+            await this.syncPendingSessions();
+            await this.syncOfflineSubmissions();
         }, intervalMs);
     }
 
@@ -98,6 +100,49 @@ export class SynchronizationService {
         }
 
         // 2. Opcional: Salvar logs de auditoria detalhados
+    }
+
+    /**
+     * Sincroniza submissões coletadas via Scanner Offline
+     */
+    async syncOfflineSubmissions(): Promise<{ total: number; success: number; failed: number }> {
+        const result = { total: 0, success: 0, failed: 0 };
+
+        try {
+            const submissions = await offlineConsolidationService.getAllSubmissions();
+            result.total = submissions.length;
+
+            if (result.total === 0) return result;
+
+            console.log(`🚀 Sincronizando ${result.total} submissões offline (Scanner)...`);
+
+            for (const sub of submissions) {
+                try {
+                    // Reutilizar a lógica de upload (pode precisar de ajustes se o formato for diferente)
+                    // Adaptando OfflineSubmission para StudentSession para reuso
+                    const mockSession: any = {
+                        studentId: sub.studentId,
+                        examId: sub.examId,
+                        encryptedAnswers: sub.encryptedAnswers,
+                        startedAt: sub.scannedAt,
+                        finishedAt: sub.scannedAt, // Aproximação
+                        telemetry: {},
+                        securityEvents: []
+                    };
+
+                    await this.uploadSession(mockSession);
+                    await offlineConsolidationService.deleteSubmission(sub.eventId, sub.studentId);
+                    result.success++;
+                } catch (error) {
+                    console.error(`❌ Falha ao sincronizar submissão offline de ${sub.studentName}:`, error);
+                    result.failed++;
+                }
+            }
+        } catch (error) {
+            console.error('Erro na sincronização offline:', error);
+        }
+
+        return result;
     }
 }
 

@@ -7,6 +7,7 @@ import { QRDataTransfer } from '../../../services/qrCodecService';
 import { supabase } from '../../../services/supabaseClient';
 import { QRScannerModal } from '../offline/QRScannerModal';
 import { offlineCacheService } from '../../../services/offlineCacheService';
+import { OfflineMonitorView } from '../offline/OfflineMonitorView';
 
 import { useSafeAppStore } from '../../../store/useAppStore';
 import { TabletLauncher } from './TabletLauncher';
@@ -27,7 +28,7 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
     const [classData, setClassData] = useState<any>(null);
 
     // Controle de Sessão
-    const [view, setView] = useState<'DASHBOARD' | 'ATTENDANCE' | 'DISTRIBUTE_STUDENT_QR' | 'LIVE_CONTROLLER'>('DASHBOARD');
+    const [view, setView] = useState<'DASHBOARD' | 'ATTENDANCE' | 'DISTRIBUTE_STUDENT_QR' | 'LIVE_CONTROLLER' | 'MONITOR'>('DASHBOARD');
     const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
     const [studentStatuses, setStudentStatuses] = useState<Record<string, 'PENDING' | 'ACTIVE' | 'FINISHED'>>({});
     const [attendanceLocked, setAttendanceLocked] = useState(false);
@@ -352,7 +353,7 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
                         </div>
 
                         {/* Infraestrutura section */}
-                        <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
                             <button
                                 onClick={() => navigate('/professor/config/router')}
                                 className="p-4 bg-orange-100 border-2 border-orange-200 rounded-2xl flex items-center gap-4 hover:bg-orange-200 transition-colors text-left"
@@ -361,8 +362,8 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
                                     <Wifi size={24} />
                                 </div>
                                 <div>
-                                    <p className="font-bold text-orange-900">Configurar Modo Roteador</p>
-                                    <p className="text-sm text-orange-700">Transforme este tablet em um servidor mesh offline.</p>
+                                    <p className="font-bold text-orange-900">Configurar Roteador</p>
+                                    <p className="text-sm text-orange-700">Modo Mesh Offline.</p>
                                 </div>
                             </button>
 
@@ -371,9 +372,7 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
                                     if (classData) {
                                         const success = await offlineCacheService.downloadClassDataForOffline(classData.classId, classData.students);
                                         if (success) {
-                                            alert(`Pacote da turma "${classData.className}" baixado com sucesso! Você pode realizar a chamada offline.`);
-                                        } else {
-                                            alert('Falha ao baixar pacote da turma. Verifique sua conexão.');
+                                            alert(`Pacote da turma "${classData.className}" baixado com sucesso!`);
                                         }
                                     }
                                 }}
@@ -383,8 +382,21 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
                                     <Download size={24} />
                                 </div>
                                 <div>
-                                    <p className="font-bold text-blue-900">Baixar Dados da Turma</p>
-                                    <p className="text-sm text-blue-700">Garante que todos os alunos e fotos fiquem salvos offline.</p>
+                                    <p className="font-bold text-blue-900">Baixar Turma</p>
+                                    <p className="text-sm text-blue-700">Cache para Offline.</p>
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={() => setView('MONITOR')}
+                                className="p-4 bg-emerald-100 border-2 border-emerald-200 rounded-2xl flex items-center gap-4 hover:bg-emerald-200 transition-colors text-left"
+                            >
+                                <div className="p-3 bg-emerald-500 text-white rounded-xl">
+                                    <BarChart2 size={24} />
+                                </div>
+                                <div>
+                                    <p className="font-bold text-emerald-900">Monitor Offline</p>
+                                    <p className="text-sm text-emerald-700">Ver entregas (Scanner).</p>
                                 </div>
                             </button>
                         </div>
@@ -476,6 +488,16 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
                             </div>
                         )}
                     </div>
+                )}
+
+                {view === 'MONITOR' && classData && (
+                    <OfflineMonitorView
+                        classId={classData.classId}
+                        className={classData.className}
+                        students={classData.students}
+                        eventId={`evt_${classData.classId}_${new Date().toISOString().split('T')[0]}`}
+                        onBack={() => setView('DASHBOARD')}
+                    />
                 )}
 
                 {/* Modal de Entrega de Tablet */}
