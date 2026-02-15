@@ -2,7 +2,7 @@
 import React from 'react';
 import { X, CheckCircle, XCircle, AlertCircle, FileText, PieChart } from 'lucide-react';
 import { Exam, Item, QuestionType } from '../../types';
-import { Badge } from '../ui/Badge';
+import { Badge } from '../../components/ui/Badge';
 
 interface ExamDetailsModalProps {
     exam: Exam;
@@ -95,8 +95,8 @@ export const ExamDetailsModal = ({ exam, items: allItems, onClose }: ExamDetails
                                             <div
                                                 key={alt.id}
                                                 className={`p-3 rounded-lg border flex items-center gap-3 transition-colors ${alt.isCorrect
-                                                        ? 'bg-emerald-50 border-emerald-200 shadow-sm'
-                                                        : 'bg-white border-transparent text-slate-400 opacity-60' // Dim incorrect ones to focus on the breakdown
+                                                    ? 'bg-emerald-50 border-emerald-200 shadow-sm'
+                                                    : 'bg-white border-transparent text-slate-400 opacity-60' // Dim incorrect ones to focus on the breakdown
                                                     }`}
                                             >
                                                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border ${alt.isCorrect ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white border-slate-200'}`}>
