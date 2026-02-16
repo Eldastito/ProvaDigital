@@ -1,14 +1,40 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
-import { Activity, BookOpen, CheckCircle, Clock, AlertTriangle, ChevronRight, User } from 'lucide-react';
+import { Activity, BookOpen, CheckCircle, Clock, AlertTriangle, ChevronRight, User, Calendar, MessageCircle, FileText } from 'lucide-react';
+import { getActiveInterventions, Intervention } from '../../../services/alertService';
 
 export const InterventionDashboard: React.FC = () => {
-    const { studyPlans, students, exams } = useAppStore();
+    const { currentUser, studyPlans, students, exams } = useAppStore();
     const [filterStatus, setFilterStatus] = useState<'PENDING' | 'COMPLETED' | 'ALL'>('ALL');
+    const [interventions, setInterventions] = useState<Intervention[]>([]);
+    const [loadingInterventions, setLoadingInterventions] = useState(true);
+
+    React.useEffect(() => {
+        const fetchInterventions = async () => {
+            if (currentUser?.schoolId) {
+                try {
+                    const data = await getActiveInterventions(currentUser.schoolId);
+                    setInterventions(data);
+                } catch (error) {
+                    console.error('Failed to fetch interventions', error);
+                } finally {
+                    setLoadingInterventions(false);
+                }
+            }
+        };
+        fetchInterventions();
+    }, [currentUser?.schoolId]);
 
     const filteredPlans = studyPlans.filter(p => {
         if (filterStatus === 'ALL') return true;
         return p.status === filterStatus;
+    });
+
+    const filteredInterventions = interventions.filter(i => {
+        if (filterStatus === 'ALL') return true;
+        // Map intervention status 'IN_PROGRESS' | 'PENDING' to UI filters if needed
+        if (filterStatus === 'COMPLETED') return i.status === 'COMPLETED' || i.status === 'CANCELLED';
+        return i.status === 'PENDING' || i.status === 'IN_PROGRESS';
     });
 
     return (
@@ -83,6 +109,68 @@ export const InterventionDashboard: React.FC = () => {
                         </h3>
                     </div>
                 </div>
+            </div>
+
+            {/* SEÇÃO: INTERVENÇÕES HUMANAS (Alertas de Risco) */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                    <div>
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                            <AlertTriangle size={20} className="text-orange-500" />
+                            Ações de Intervenção (Risco)
+                        </h3>
+                        <p className="text-sm text-slate-500">Ações manuais registradas via Análise de Risco</p>
+                    </div>
+                    <div className="text-sm font-bold text-slate-600">
+                        {filteredInterventions.length} ações
+                    </div>
+                </div>
+
+                {loadingInterventions ? (
+                    <div className="p-8 text-center text-slate-400">Carregando intervenções...</div>
+                ) : filteredInterventions.length === 0 ? (
+                    <div className="p-8 text-center text-slate-500 bg-slate-50">
+                        Nenhuma intervenção registrada para este filtro.
+                    </div>
+                ) : (
+                    <div className="divide-y divide-slate-100">
+                        {filteredInterventions.map(action => (
+                            <div key={action.id} className="p-4 hover:bg-slate-50 flex items-center justify-between group">
+                                <div className="flex items-start gap-4">
+                                    <div className={`mt-1 p-2 rounded-lg ${action.priority === 'URGENT' ? 'bg-red-100 text-red-600' :
+                                        action.priority === 'HIGH' ? 'bg-orange-100 text-orange-600' :
+                                            'bg-blue-100 text-blue-600'
+                                        }`}>
+                                        {action.target === 'PARENT' ? <User size={20} /> :
+                                            action.target === 'TEACHER' ? <BookOpen size={20} /> :
+                                                <FileText size={20} />}
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-slate-800">{action.action}</h4>
+                                        <p className="text-sm text-slate-600 mb-1">{action.description}</p>
+                                        <div className="flex items-center gap-3 text-xs text-slate-500">
+                                            <span className="flex items-center gap-1">
+                                                <User size={12} /> Aluno: {(action as any).studentName || 'N/A'}
+                                            </span>
+                                            <span className="flex items-center gap-1">
+                                                <Calendar size={12} /> {new Date(action.createdAt).toLocaleDateString()}
+                                            </span>
+                                            <span className={`px-1.5 py-0.5 rounded font-bold ${action.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'
+                                                }`}>
+                                                {action.status}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button className="px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-bold hover:bg-white hover:shadow-sm">
+                                        Gerenciar
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* List of Plans */}
@@ -172,6 +260,6 @@ export const InterventionDashboard: React.FC = () => {
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 };

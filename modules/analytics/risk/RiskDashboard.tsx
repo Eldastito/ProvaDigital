@@ -41,6 +41,15 @@ export const RiskDashboard = () => {
     const [selectedAssessment, setSelectedAssessment] = useState<RiskAssessment | null>(null);
     const [isSubmittingAction, setIsSubmittingAction] = useState(false);
     const [activeTab, setActiveTab] = useState<'RISK' | 'INTERVENTIONS'>('RISK');
+    const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+    // Auto-dismiss feedback
+    useEffect(() => {
+        if (feedbackMessage) {
+            const timer = setTimeout(() => setFeedbackMessage(null), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [feedbackMessage]);
 
     // HIERARQUIA DE ACESSO
     const isMEC = currentUser?.role === 'SUPER_ADMIN';
@@ -169,16 +178,14 @@ export const RiskDashboard = () => {
             const result = await processSchoolRiskAlerts(targetSchoolId || 'MULTI_SCHOOL', riskAssessments);
 
             setLastSaved(new Date().toISOString());
-            alert(
-                `✅ Alertas processados com sucesso!\n\n` +
-                `• ${result.created} novos alertas criados\n` +
-                `• ${result.updated} alertas atualizados\n` +
-                `• ${result.notifications} notificações enviadas\n\n` +
-                `Coordenadores e pais foram notificados.`
-            );
+            setLastSaved(new Date().toISOString());
+            setFeedbackMessage({
+                type: 'success',
+                text: `✅ Alertas processados! ${result.created} novos, ${result.updated} atualizados, ${result.notifications} notificações.`
+            });
         } catch (error) {
             console.error('Erro ao salvar alertas:', error);
-            alert('❌ Erro ao salvar alertas. Tente novamente.');
+            setFeedbackMessage({ type: 'error', text: '❌ Erro ao salvar alertas. Tente novamente.' });
         } finally {
             setIsSaving(false);
         }
@@ -217,12 +224,12 @@ export const RiskDashboard = () => {
                 status: 'PENDING'
             });
 
-            window.alert('✅ Ação registrada com sucesso no sistema!');
+            setFeedbackMessage({ type: 'success', text: '✅ Ação registrada com sucesso!' });
             setActiveModal(null);
             setSelectedAssessment(null);
         } catch (error) {
             console.error('Erro ao registrar ação:', error);
-            window.alert('❌ Erro ao salvar a ação. Por favor, tente novamente.');
+            setFeedbackMessage({ type: 'error', text: '❌ Erro ao salvar a ação.' });
         } finally {
             setIsSubmittingAction(false);
         }
@@ -231,7 +238,15 @@ export const RiskDashboard = () => {
     if (!currentUser) return null;
 
     return (
-        <div className="p-4 md:p-8 max-w-7xl mx-auto">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto relative">
+            {/* Feedback Toast */}
+            {feedbackMessage && (
+                <div className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 ${feedbackMessage.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+                    }`}>
+                    {feedbackMessage.type === 'success' ? <CheckCircle size={24} /> : <AlertTriangle size={24} />}
+                    <span className="font-bold text-sm">{feedbackMessage.text}</span>
+                </div>
+            )}
             {/* Header - Refined Card Layout */}
             <div className="mx-0 mt-2 mb-8 bg-white border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-md z-20">
                 <div className="flex items-center gap-4">

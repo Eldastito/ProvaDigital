@@ -522,6 +522,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
                     isAccessible: i.is_accessible,
                     accessibilityInstructions: i.accessibility_instructions,
                     multimedia: i.multimedia || [],
+                    isPublic: i.is_public,
+                    downloadsCount: i.downloads_count,
+                    ratingAvg: i.rating_avg,
                     aiModelId: i.ai_model_id,
                     aiPromptVersion: i.ai_prompt_version,
                     aiGenerationSettings: i.ai_generation_settings,
@@ -685,6 +688,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 is_accessible: item.isAccessible || false,
                 accessibility_instructions: item.accessibilityInstructions || '',
                 multimedia: item.multimedia || [],
+                is_public: item.isPublic || false,
                 ai_model_id: item.aiModelId,
                 ai_prompt_version: item.aiPromptVersion,
                 ai_generation_settings: item.aiGenerationSettings,
@@ -779,7 +783,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 knowledge_area: item.knowledgeArea,
                 tags: item.tags,
                 is_accessible: item.isAccessible,
-                accessibility_instructions: item.accessibilityInstructions
+                accessibility_instructions: item.accessibilityInstructions,
+                is_public: item.isPublic
             }).eq('id', item.id);
             if (error) {
                 console.error('❌ Error updating item in Supabase:', error);
@@ -818,7 +823,19 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
             // 2. Update Head
             const { error: uError } = await supabase.from('items').update({
-                ...updates,
+                statement: updates.statement,
+                subject: updates.subject,
+                type: updates.type,
+                difficulty: updates.difficulty,
+                alternatives: updates.alternatives,
+                correct_justification: updates.correctAnswerJustification,
+                bncc_code: updates.bnccCode,
+                tri_params: updates.triParams,
+                knowledge_area: updates.knowledgeArea,
+                tags: updates.tags,
+                is_accessible: updates.isAccessible,
+                accessibility_instructions: updates.accessibilityInstructions,
+                is_public: updates.isPublic,
                 current_version_id: versionData.id
             }).eq('id', itemId);
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
 import { Item, ItemVersion, QuestionType, DifficultyLevel } from '../../../types';
-import { Save, History, ArrowLeft, AlertTriangle, Plus, Trash2, Video, Music, Image as ImageIcon } from 'lucide-react';
+import { Save, History, ArrowLeft, AlertTriangle, Plus, Trash2, Video, Music, Image as ImageIcon, ShoppingBag } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { RichTextEditor } from '../../../components/RichTextEditor';
 
@@ -191,6 +191,25 @@ export const ItemEditorV2 = () => {
                             />
                         </div>
 
+                        {/* Marketplace & Sharing (Sprint 6) */}
+                        <div className="mb-8 p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-100 text-indigo-600">
+                                    <ShoppingBag size={20} />
+                                </div>
+                                <div className="text-left">
+                                    <div className="font-bold text-slate-800 text-sm">Publicar no Marketplace</div>
+                                    <p className="text-[10px] text-slate-500">Torna esta versão visível e reutilizável por outros professores.</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setItem({ ...item, isPublic: !item.isPublic })}
+                                className={`w-12 h-6 rounded-full transition-colors relative ${item.isPublic ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                            >
+                                <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${item.isPublic ? 'left-7' : 'left-1'}`} />
+                            </button>
+                        </div>
+
                         {/* Versioning Footer */}
                         <div className="mt-8 pt-6 border-t bg-yellow-50 -mx-8 -mb-8 p-6 flex flex-col gap-3">
                             <div className="flex items-start gap-3">
@@ -234,6 +253,6 @@ export const ItemEditorV2 = () => {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };

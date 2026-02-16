@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Filter, Plus, Eye, X, Check, Brain, ChevronDown, ChevronUp, History, BookOpen, AlignLeft, Trash2, Download, Tag, Square, CheckSquare } from 'lucide-react';
+import { Search, Filter, Plus, Eye, X, Check, Brain, ChevronDown, ChevronUp, History, BookOpen, AlignLeft, Trash2, Download, Tag, Square, CheckSquare, Globe, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppState, Item, DifficultyLevel, ItemOrigin, Exam, QuestionType, UserRole } from '../types';
 import { Badge } from './ui/Badge';
@@ -63,6 +63,18 @@ const ItemRow: React.FC<ItemRowProps> = ({ item, onSelect, onHistory, getUsageCo
             <div className="w-24 text-slate-500 text-xs uppercase font-semibold">
                 {item.origin === ItemOrigin.IA ? <span className="text-purple-600 flex items-center gap-1"><Brain size={12} /> IA</span> : 'Manual'}
             </div>
+            <div className="w-24 flex items-center justify-center">
+                {item.isPublic ? (
+                    <div className="flex flex-col items-center" title={`Público - ${item.ratingAvg ? item.ratingAvg.toFixed(1) : '-'} estrelas`}>
+                        <Globe size={14} className="text-sky-500 mb-1" />
+                        <span className="text-[10px] text-sky-600 font-bold bg-sky-50 px-1.5 rounded">{item.downloadsCount || 0} dl</span>
+                    </div>
+                ) : (
+                    <div title="Privado">
+                        <Lock size={14} className="text-slate-300" />
+                    </div>
+                )}
+            </div>
             <div className="w-24">
                 <Badge color={item.lifecycleStatus === 'DRAFT' ? 'yellow' : 'blue'}>
                     {item.lifecycleStatus || 'APPROVED'}
@@ -82,7 +94,7 @@ const ItemRow: React.FC<ItemRowProps> = ({ item, onSelect, onHistory, getUsageCo
                     {realUsageCount > 0 && <span className="absolute top-0 right-0 w-2 h-2 bg-brand-secondary rounded-full"></span>}
                 </button>
             </div>
-        </div>
+        </div >
     );
 };
 
@@ -305,6 +317,7 @@ export const ItemsListView = () => {
                     <div className="w-24">BNCC</div>
                     <div className="w-24">Dificuldade</div>
                     <div className="w-24">Origem</div>
+                    <div className="w-24 text-center">Visibilidade</div>
                     <div className="w-24">Status</div>
                     <div className="w-24 text-center">Uso</div>
                     <div className="w-24 text-right">Ações</div>
