@@ -8,6 +8,7 @@ import { RichTextRenderer } from '../../../components/RichTextRenderer';
 import { SimulationRenderer } from './SimulationRenderer';
 import { DrawingCanvas } from './DrawingCanvas';
 import { AccessibilityToolbar } from './AccessibilityToolbar';
+import { EssayQuestionRenderer } from './EssayQuestionRenderer';
 import { useProctoring } from '../../../hooks/useProctoring';
 import { supabase } from '../../../services/supabaseClient';
 import { reportingService } from '../../../services/reportingService';
@@ -314,10 +315,26 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         const newAnswers = { ...answers, [itemId]: alternativeId };
         setAnswers(newAnswers);
 
-        // Auto-save debounce could be added here, but for safety we save critical progress immediately
+        // Auto-save: Critical for alternatives, immediate save
         if (attemptId) {
             await saveExamProgress(attemptId, newAnswers);
         }
+    };
+
+    // Debounced save for essays to avoid flooding
+    const essaySaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const handleEssayAnswer = (itemId: string, text: string) => {
+        const newAnswers = { ...answers, [itemId]: text };
+        // Update local state immediately for UI responsiveness
+        setAnswers(newAnswers);
+
+        if (essaySaveTimeoutRef.current) clearTimeout(essaySaveTimeoutRef.current);
+
+        essaySaveTimeoutRef.current = setTimeout(async () => {
+            if (attemptId) {
+                await saveExamProgress(attemptId, newAnswers);
+            }
+        }, 2000); // 2 seconds debounce
     };
 
     // --- ADAPTIVE NAVIGATION LOGIC ---
@@ -421,7 +438,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
             const studentAnswers: StudentAnswer[] = activeExamItems.map(item => {
                 const selectedAltId = answers[item.id];
                 const essayText = (item.type === 'ESSAY' || item.type === 'REDACTION')
-                    ? (answers as any)[`${item.id}_text`]
+                    ? (answers[item.id] || (answers as any)[`${item.id}_text`]) // Support both new and old formats
                     : null;
 
                 return {
@@ -483,26 +500,25 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                     return {
                         itemId: item.id,
                         selectedAlternativeId: null,
-                        text: (answers as any)[`${item.id}_text`] || null,
+                        text: answers[item.id] || (answers as any)[`${item.id}_text`] || null,
                         isCorrect: false,
                         scoreObtained: 0,
                         gradingMethod: 'MANUAL_REQUIRED' as any,
                         essayFeedback: 'Erro técnico durante correção automática. Revisão humana necessária.'
                     };
-                }
 
-                const selectedAlt = item.alternatives.find(a => a.id === selectedAltId);
-                const isCorrect = selectedAlt?.isCorrect || false;
-                const score = isCorrect ? (item.score || 1) : 0;
+                    const selectedAlt = item.alternatives.find(a => a.id === selectedAltId);
+                    const isCorrect = selectedAlt?.isCorrect || false;
+                    const score = isCorrect ? (item.score || 1) : 0;
 
-                return {
-                    itemId: item.id,
-                    selectedAlternativeId: selectedAltId || null,
-                    isCorrect,
-                    scoreObtained: score,
-                    gradingMethod: 'OFFLINE_OBJECTIVE' as any
-                };
-            });
+                    return {
+                        itemId: item.id,
+                        selectedAlternativeId: selectedAltId || null,
+                        isCorrect,
+                        scoreObtained: score,
+                        gradingMethod: 'OFFLINE_OBJECTIVE' as any
+                    };
+                });
 
             // SALVAR NA FILA OFFLINE SE SUBMISSÃO FALHAR TOTALMENTE
             try {
@@ -958,6 +974,18 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                             onLibrasDetected={(url) => setA11y(prev => ({ ...prev, librasVideoUrl: url }))}
                         />
                     </div>
+
+                    {/* Essay / Redaction Renderer */}
+                    {(currentItem.type === 'ESSAY' || currentItem.type === 'REDACTION') ? (
+                        <div className="mb-6">
+                            <EssayQuestionRenderer
+                                item={currentItem}
+                                initialText={answers[currentItem.id] || ''}
+                                onTextChange={(text) => handleEssayAnswer(currentItem.id, text)}
+                                theme={a11y.theme === 'high-contrast' ? 'high-contrast' : a11y.theme === 'dark' ? 'dark' : 'light'}
+                            />
+                        </div>
+                    ) : null}
 
                     {/* Simulation Item Type */}
                     {currentItem.type === 'SIMULATION' ? ( // Using literal string as Type might not be fully updated in import
