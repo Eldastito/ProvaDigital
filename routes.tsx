@@ -42,6 +42,8 @@ import { ResultFeedbackView } from './modules/runner/features/ResultFeedbackView
 import { LiveExamMonitorView } from './modules/runner/features/LiveExamMonitorView';
 import { OnlineExamRunner } from './modules/runner/features/OnlineExamRunner';
 import { useAppStore } from './store/useAppStore';
+import { INITIAL_ANNOUNCEMENTS, INITIAL_EXAMS } from './utils/mockData';
+import { uuidv4 } from './utils/helpers';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { AnalyticsDashboard } from './modules/analytics/AnalyticsDashboard';
 import { AIQuestionGeneratorView } from './modules/builder/AIQuestionGeneratorView';
@@ -116,8 +118,8 @@ const OnlineExamRunnerWrapper = () => {
 const LiveDashboardWrapper = () => {
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
-    const eventId = queryParams.get('eventId') || 'EVT-GLOBAL';
-    const examId = queryParams.get('examId') || 'EXAM-001';
+    const eventId = queryParams.get('eventId') || INITIAL_ANNOUNCEMENTS[0]?.id || uuidv4();
+    const examId = queryParams.get('examId') || INITIAL_EXAMS[0]?.id || uuidv4();
     const totalQuestions = parseInt(queryParams.get('totalQuestions') || '10');
 
     return (

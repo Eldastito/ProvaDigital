@@ -4,12 +4,19 @@ import { Tenant, School, SchoolClass, User, UserRole, Item, QuestionType, Diffic
 // UUIDs válidos para evitar erros de sintaxe no Banco de Dados (RPCs/Foreign Keys)
 export const MOCK_TENANT_ID = 'd5f2c7a0-9b3e-4b8a-8c9d-6e1f0a2b3c4d';
 export const MOCK_TENANT_ID_2 = 'a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d';
-export const MOCK_SCHOOL_ID = 'b7d1e8a9-c2b3-4f5g-6h7i-8j9k0l1m2n3o';
-export const MOCK_CLASS_ID = 'c1d2e3f4-g5h6-7i8j-9k0l-1m2n3o4p5q6r';
-export const MOCK_USER_ID = 'u1v2w3x4-y5z6-7a8b-9c0d-1e2f3g4h5i6j';
-export const MOCK_ITEM_ID = 'i1j2k3l4-m5n6-7o8p-9q0r-1s2t3u4v5w6x';
-export const MOCK_EXAM_ID = 'e1f2g3h4-i5j6-7k8l-9m0n-1o2p3q4r5s6t';
-export const MOCK_STUDENT_ID = 's1t2u3v4-w5x6-7y8z-9a0b-1c2d3e4f5g6h';
+export const MOCK_SCHOOL_ID = '8b7d1e8a-9c2b-44f5-a1b2-c3d4e5f6a9b8';
+export const MOCK_CLASS_ID = 'c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f';
+export const MOCK_USER_ID = 'f1e2d3c4-b5a6-4987-8c9d-0e1f2a3b4c5d';
+export const MOCK_ITEM_ID = 'e1d2c3b4-a5a6-4987-8c9d-0e1f2a3b4c5d';
+export const MOCK_EXAM_ID = 'd1c2b3a4-a5a6-4987-8c9d-0e1f2a3b4c5d';
+export const MOCK_STUDENT_ID = 'c1b2a3a4-a5a6-4987-8c9d-0e1f2a3b4c5d';
+export const MOCK_TENANT_UUID = MOCK_TENANT_ID;
+export const MOCK_SCHOOL_UUID = MOCK_SCHOOL_ID;
+export const MOCK_CLASS_UUID = MOCK_CLASS_ID;
+export const MOCK_USER_UUID = MOCK_USER_ID;
+export const MOCK_ITEM_UUID = MOCK_ITEM_ID;
+export const MOCK_EXAM_UUID = MOCK_EXAM_ID;
+export const MOCK_STUDENT_UUID = MOCK_STUDENT_ID;
 
 // --- 1. TENANTS (REDES) ---
 export const INITIAL_TENANTS: Tenant[] = [

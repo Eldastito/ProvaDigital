@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSafeAppStore } from '../../../store/useAppStore';
+import { INITIAL_SCHOOLS, INITIAL_EXAMS } from '../../../utils/mockData';
 import { calculateSchoolRisk, calculateBatchRisk, RiskAssessment } from '../../../services/riskDetectionEngine';
 import { RiskLevel } from '../../../types';
 import { processSchoolRiskAlerts, createIntervention, getInterventionsByAlert } from '../../../services/alertService';
@@ -174,8 +175,7 @@ export const RiskDashboard = () => {
             // Ele usa `saveRiskAlert` que precisa de `schoolId`. O Assessment JÁ TEM `schoolId`.
             // Então podemos refatorar `processSchoolRiskAlerts` para não exigir schoolId como parametro principal, ou ignorá-lo.
 
-            // Vou chamar passando targetSchoolId ou o primeiro da lista, mas o importante é que o assessment tenha os dados.
-            const result = await processSchoolRiskAlerts(targetSchoolId || 'MULTI_SCHOOL', riskAssessments);
+            const result = await processSchoolRiskAlerts(targetSchoolId || currentUser?.schoolId || INITIAL_SCHOOLS[0].id, riskAssessments);
 
             setLastSaved(new Date().toISOString());
             setLastSaved(new Date().toISOString());
@@ -210,7 +210,7 @@ export const RiskDashboard = () => {
         setIsSubmittingAction(true);
         try {
             // 1. Garantir que o Alerta de Risco esteja salvo no banco (usa saveRiskAlert importado)
-            const alertResult = await processSchoolRiskAlerts(selectedAssessment.schoolId || 'N/A', [selectedAssessment]);
+            const alertResult = await processSchoolRiskAlerts(selectedAssessment.schoolId || INITIAL_SCHOOLS[0].id, [selectedAssessment]);
 
             // Buscamos o ID do alerta recém criado ou atualizado
             // Para simplificar no MVP, vamos usar o studentId se não conseguirmos o UUID do risk_alerts facilmente aqui,
@@ -533,6 +533,7 @@ const StatCard = ({ title, value, subtitle, icon: Icon, color, alert }: any) => 
 };
 
 const GrowthIndicator = ({ studentId }: { studentId: string }) => {
+    const state = useSafeAppStore();
     const [growth, setGrowth] = useState<GrowthMetric | null>(null);
     const [loading, setLoading] = useState(false);
 
@@ -542,7 +543,9 @@ const GrowthIndicator = ({ studentId }: { studentId: string }) => {
             try {
                 // No MVP, comparamos os dois últimos exames conhecidos
                 // Mock ids para demonstração se não houver exames reais no contexto local
-                const metric = await growthService.calculateStudentGrowth(studentId, 'baseline', 'followup');
+                const baselineId = state.exams[0]?.id || INITIAL_EXAMS[0].id;
+                const followupId = state.exams[1]?.id || INITIAL_EXAMS[0].id;
+                const metric = await growthService.calculateStudentGrowth(studentId, baselineId, followupId);
                 setGrowth(metric);
             } catch (e) {
                 console.error('Growth fetch error', e);

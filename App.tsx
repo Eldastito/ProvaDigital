@@ -7,6 +7,7 @@ import { appRoutes } from './routes';
 import { checkConnection, supabase } from './services/supabaseClient';
 import { LoginPage } from './modules/auth/LoginPage';
 import { uuidv4 } from './utils/helpers';
+import { INITIAL_TENANTS, INITIAL_SCHOOLS } from './utils/mockData';
 
 // Infrastructure
 import { PrivacyPolicyModal } from './components/Legal/PrivacyPolicyModal';
@@ -45,8 +46,8 @@ export default function App() {
         name: 'Visitante (Demo)',
         email: 'guest@examepad.com',
         role: UserRole.ALUNO,
-        tenantId: 't1',
-        schoolId: 's1'
+        tenantId: INITIAL_TENANTS[0].id,
+        schoolId: INITIAL_SCHOOLS[0].id
       });
     }
   }, [location.search, store.currentUser, isInitialized]);
@@ -117,7 +118,7 @@ export default function App() {
           name: sessionUser.user_metadata?.full_name || 'Usuário',
           email: sessionUser.email,
           role: sessionUser.user_metadata?.role || UserRole.PAIS,
-          tenant_id: 't1', // Default tenant
+          tenant_id: INITIAL_TENANTS[0].id, // Default tenant
           status: 'ACTIVE'
         };
 
