@@ -506,19 +506,20 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                         gradingMethod: 'MANUAL_REQUIRED' as any,
                         essayFeedback: 'Erro técnico durante correção automática. Revisão humana necessária.'
                     };
+                }
 
-                    const selectedAlt = item.alternatives.find(a => a.id === selectedAltId);
-                    const isCorrect = selectedAlt?.isCorrect || false;
-                    const score = isCorrect ? (item.score || 1) : 0;
+                const selectedAlt = item.alternatives.find(a => a.id === selectedAltId);
+                const isCorrect = selectedAlt?.isCorrect || false;
+                const score = isCorrect ? (item.score || 1) : 0;
 
-                    return {
-                        itemId: item.id,
-                        selectedAlternativeId: selectedAltId || null,
-                        isCorrect,
-                        scoreObtained: score,
-                        gradingMethod: 'OFFLINE_OBJECTIVE' as any
-                    };
-                });
+                return {
+                    itemId: item.id,
+                    selectedAlternativeId: selectedAltId || null,
+                    isCorrect,
+                    scoreObtained: score,
+                    gradingMethod: 'OFFLINE_OBJECTIVE' as any
+                };
+            });
 
             // SALVAR NA FILA OFFLINE SE SUBMISSÃO FALHAR TOTALMENTE
             try {

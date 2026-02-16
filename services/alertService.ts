@@ -277,6 +277,47 @@ export const getInterventionsByAlert = async (alertId: string): Promise<Interven
 };
 
 /**
+ * Busca todas as intervenções de uma escola (para o Dashboard)
+ */
+export const getActiveInterventions = async (schoolId: string): Promise<Intervention[]> => {
+    // Nota: Como interventions não tem school_id direto, fazemos join com risk_alerts
+    if (USE_SUPABASE) {
+        const { data, error } = await supabase
+            .from('interventions')
+            .select(`
+                *,
+                risk_alerts!inner(school_id, student_name, class_id)
+            `)
+            .eq('risk_alerts.school_id', schoolId)
+            .neq('status', 'CANCELLED')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Flatten ou ajustar conforme necessário
+        return data.map((i: any) => ({
+            ...i,
+            studentName: i.risk_alerts?.student_name, // Enriching with student info
+            alertId: i.alert_id,
+            responsibleId: i.responsible_id,
+            responsibleName: i.responsible_name,
+            scheduledDate: i.scheduled_date,
+            completedAt: i.completed_at,
+            createdAt: i.created_at
+        }));
+    } else {
+        // Mock: Filter by looking up parent alerts
+        return mockInterventions.filter(i => {
+            const parentAlert = mockAlerts.find(a => a.id === i.alertId);
+            return parentAlert && parentAlert.schoolId === schoolId && i.status !== 'CANCELLED';
+        }).map(i => {
+            const parentAlert = mockAlerts.find(a => a.id === i.alertId);
+            return { ...i, studentName: parentAlert?.studentName };
+        }) as any;
+    }
+};
+
+/**
  * Marca intervenção como concluída
  */
 export const completeIntervention = async (
