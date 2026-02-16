@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { FileText, ChevronRight, Brain, User, AlertCircle, Sparkles, CheckCircle, Search, ArrowLeft, Star } from 'lucide-react';
 import { useAppStore } from '../../../store/useAppStore';
 import { ExamResult, Exam, Item, QuestionType } from '../../../types';
+import { GradeResultEssayCard } from '../../grading/components/GradeResultEssayCard';
 
 export const ExamReviewPortal = () => {
     const { results, exams, items } = useAppStore();
@@ -88,32 +88,35 @@ export const ExamReviewPortal = () => {
                                                         </div>
                                                     ) : (
                                                         <div className="mb-6 space-y-4">
-                                                            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 italic text-slate-700 text-sm leading-relaxed">
-                                                                "{answer?.essayText || "Nenhuma resposta fornecida."}"
-                                                            </div>
+                                                            <GradeResultEssayCard
+                                                                text={answer?.essayText || "Nenhuma resposta fornecida."}
+                                                                correction={answer?.essayCorrection}
+                                                            />
 
-                                                            {/* FEEDBACK HÍBRIDO (IA + PROFESSOR) */}
-                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                <div className="bg-indigo-50 border-l-4 border-indigo-500 p-4 rounded-r-2xl">
+                                                            {/* FEEDBACK HÍBRIDO ADICIONAL (SE HOUVER) */}
+                                                            {(answer?.aiFeedback && !answer.essayCorrection) && (
+                                                                <div className="mt-4 bg-indigo-50 border-l-4 border-indigo-500 p-4 rounded-r-2xl">
                                                                     <div className="flex items-center gap-2 mb-2">
                                                                         <Brain size={16} className="text-indigo-600" />
                                                                         <span className="text-xs font-black text-indigo-800 uppercase tracking-wider">Avaliação Primária (IA)</span>
                                                                     </div>
                                                                     <p className="text-sm text-indigo-900 leading-relaxed">
-                                                                        {answer?.aiFeedback || "Aguardando processamento do Corujão..."}
+                                                                        {answer?.aiFeedback}
                                                                     </p>
                                                                 </div>
+                                                            )}
 
-                                                                <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-2xl">
+                                                            {answer?.professorFeedback && (
+                                                                <div className="mt-4 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-2xl">
                                                                     <div className="flex items-center gap-2 mb-2">
                                                                         <User size={16} className="text-amber-600" />
                                                                         <span className="text-xs font-black text-amber-800 uppercase tracking-wider">Feedback do Professor</span>
                                                                     </div>
                                                                     <p className="text-sm text-amber-900 leading-relaxed font-medium">
-                                                                        {answer?.professorFeedback || "O professor ainda não revisou esta redação."}
+                                                                        {answer?.professorFeedback}
                                                                     </p>
                                                                 </div>
-                                                            </div>
+                                                            )}
                                                         </div>
                                                     )}
 

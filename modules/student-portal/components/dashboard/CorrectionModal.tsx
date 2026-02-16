@@ -2,6 +2,7 @@ import React from 'react';
 import { FileText, X, Brain, Check, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Exam, ExamResult, QuestionType, Item } from '../../../../types';
+import { GradeResultEssayCard } from '../../../grading/components/GradeResultEssayCard';
 
 interface CorrectionModalProps {
     selectedResult: ExamResult | null;
@@ -87,9 +88,11 @@ export const CorrectionModal: React.FC<CorrectionModalProps> = ({
                                             </div>
                                         ) : (
                                             <div className="pl-7 mt-2">
-                                                <div className="text-xs font-bold text-slate-500 uppercase">Sua Resposta:</div>
-                                                <div className="p-2 bg-white border border-slate-200 rounded text-sm text-slate-600 italic">
-                                                    (Resposta discursiva avaliada pelo professor)
+                                                <div className="mt-4">
+                                                    <GradeResultEssayCard
+                                                        text={answer?.essayText || answer?.text || ''}
+                                                        correction={answer?.essayCorrection}
+                                                    />
                                                 </div>
                                             </div>
                                         )}
