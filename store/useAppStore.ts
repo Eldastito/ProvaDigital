@@ -13,7 +13,7 @@ import {
     SuitcaseStatus, TabletLogistics, LogisticsAuditEntry
 } from '../types';
 import { uuidv4 } from '../utils/helpers';
-import { INITIAL_TENANTS, INITIAL_SCHOOLS, INITIAL_CLASSES, INITIAL_USERS, INITIAL_ITEMS, INITIAL_STUDENTS, INITIAL_RESULTS, INITIAL_EXAMS, INITIAL_REGISTRATIONS, INITIAL_ANNOUNCEMENTS, INITIAL_MESSAGES, INITIAL_LESSON_PLANS, INITIAL_STUDY_PLANS, INITIAL_STUDENT_PROFILES, INITIAL_USER_PROFILES, INITIAL_SETTINGS, INITIAL_GAMIFIED_EVENTS } from '../utils/mockData';
+import { INITIAL_TENANTS, INITIAL_SCHOOLS, INITIAL_CLASSES, INITIAL_STUDENTS, INITIAL_USERS, INITIAL_ITEMS, INITIAL_EXAMS, INITIAL_RESULTS, INITIAL_ANNOUNCEMENTS, INITIAL_MESSAGES, INITIAL_LESSON_PLANS, INITIAL_STUDY_PLANS, INITIAL_STUDENT_PROFILES, INITIAL_SETTINGS, MOCK_TENANT_ID, MOCK_TENANT_ID_2, MOCK_ITEM_ID, MOCK_EXAM_ID, INITIAL_REGISTRATIONS, INITIAL_GAMIFIED_EVENTS, INITIAL_USER_PROFILES } from '../utils/mockData';
 import { supabase } from '../services/supabaseClient';
 import { userMigrationService } from '../services/userMigrationService';
 import { enrollmentService } from '../services/enrollmentService';
@@ -539,7 +539,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
                     if (!PRODUCTION_MODE) {
                         const demoItems = INITIAL_ITEMS.filter(i =>
-                            i.id.startsWith('sim_') || i.tags?.some(t => t.startsWith('TRI_'))
+                            i.id === MOCK_ITEM_ID || i.tags?.some(t => t.startsWith('TRI_'))
                         );
                         demoItems.forEach(item => {
                             if (!itemMap.has(item.id)) {
@@ -577,7 +577,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
                     if (!PRODUCTION_MODE) {
                         const demoExams = INITIAL_EXAMS.filter(e =>
-                            e.id === 'e_adapt_1' || e.id === 'e_sim_1'
+                            e.id === MOCK_EXAM_ID
                         );
                         const allNewExams = [...formattedExams, ...demoExams];
                         const newExams = allNewExams.filter((x: any) => !existingIds.has(x.id));

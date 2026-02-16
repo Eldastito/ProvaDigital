@@ -629,7 +629,7 @@ export const useItemEditor = () => {
             imageUrl: form.imageUrl,
             alternatives: (form.type === QuestionType.REDACTION || form.type === QuestionType.ESSAY)
                 ? []
-                : alternatives.map((a, i) => ({ id: `alt-${i}`, text: a.text, isCorrect: a.isCorrect })),
+                : alternatives.map((a, i) => ({ id: uuidv4(), text: a.text, isCorrect: a.isCorrect })),
 
             correctAnswerJustification: form.correctAnswerJustification +
                 (form.offlineKeywords?.required || form.offlineKeywords?.optional

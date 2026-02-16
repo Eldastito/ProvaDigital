@@ -6,7 +6,7 @@ import { uuidv4 } from '../../../utils/helpers';
 import { useSafeAppStore } from '../../../store/useAppStore';
 import { smartSelectItems, ExamCriteria } from '../../../services/examService';
 import { generateQuestionsFromText } from '../../../services/geminiService';
-import { MOCK_TENANT_ID } from '../../../utils/mockData';
+import { MOCK_TENANT_ID, MOCK_SCHOOL_ID } from '../../../utils/mockData';
 
 export const useExamBuilder = () => {
     const navigate = useNavigate();
@@ -39,13 +39,13 @@ export const useExamBuilder = () => {
         securityNotices: '',
         sections: [
             {
-                id: '1',
+                id: uuidv4(),
                 type: 'text',
                 title: 'INSTRUÇÕES GERAIS',
                 content: `1 - Navegue entre as questões utilizando as setas ou o painel lateral.\n2 - Questões respondidas ficarão marcadas em verde.\n3 - Você pode revisar suas respostas a qualquer momento antes de finalizar.\n4 - O sistema salva seu progresso automaticamente.`
             },
             {
-                id: '2',
+                id: uuidv4(),
                 type: 'distribution',
                 title: 'DISTRIBUIÇÃO DE QUESTÕES',
                 distribution: {
@@ -68,7 +68,7 @@ export const useExamBuilder = () => {
                 }
             },
             {
-                id: '3',
+                id: uuidv4(),
                 type: 'text',
                 title: 'AVISOS DE SEGURANÇA',
                 content: `1 - O modo de tela cheia é obrigatório. Sair da tela cheia pode ser registrado como infração.\n2 - O sistema monitora a troca de abas e perda de foco.\n3 - Certifique-se de que sua bateria está carregada e conexão estável.\n4 - Identificação de cola ou consulta não autorizada anulará a prova.`
@@ -156,7 +156,7 @@ export const useExamBuilder = () => {
             const newExam: Exam = {
                 id: examId,
                 tenantId: state.currentUser?.tenantId || MOCK_TENANT_ID,
-                schoolId: state.currentUser?.schoolId || 's1',
+                schoolId: state.currentUser?.schoolId || MOCK_SCHOOL_ID,
                 creatorId: state.currentUser?.id || '',
                 title: config.title,
                 description: config.description,
