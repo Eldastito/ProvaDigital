@@ -18,7 +18,7 @@ CREATE INDEX IF NOT EXISTS idx_items_subject ON public.items(subject);
 CREATE TABLE IF NOT EXISTS public.marketplace_interactions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     item_id TEXT NOT NULL REFERENCES public.items(id) ON DELETE CASCADE,
-    user_id TEXT NOT NULL REFERENCES auth.users(id),
+    user_id UUID NOT NULL REFERENCES auth.users(id),
     type TEXT NOT NULL CHECK (type IN ('DOWNLOAD', 'LIKE', 'RATING', 'VIEW')),
     rating_value INTEGER CHECK (rating_value BETWEEN 1 AND 5),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
