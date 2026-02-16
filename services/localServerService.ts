@@ -143,9 +143,23 @@ export class LocalServerService {
                     );
                 }
 
+                // 🛡️ SECURITY HARDENING (Requested by User)
+                // Remove sensitive fields (answers) before sending to student device via Mesh
+                const sanitizedItems = fullItems.map((item: any) => ({
+                    ...item,
+                    alternatives: item.alternatives.map((alt: any) => ({
+                        id: alt.id,
+                        text: alt.text
+                        // isCorrect removed
+                    })),
+                    correctAnswerJustification: undefined, // removed
+                    isPublic: undefined,
+                    ownerId: undefined
+                }));
+
                 res.json({
                     exam,
-                    items: fullItems
+                    items: sanitizedItems
                 });
             } catch (e) {
                 console.error("Error serving exam:", e);
