@@ -648,6 +648,28 @@ export interface StudentAnswer {
   professorFeedback?: string; // Human teacher feedback
   gradingMethod?: 'OFFLINE_OBJECTIVE' | 'OFFLINE_PATTERN' | 'ONLINE_AI' | 'MANUAL_REQUIRED' | 'NOT_ANSWERED';
   needsHumanReview?: boolean; // Flag para correção manual posterior
+
+  // --- FASE 8: CORREÇÃO DE REDAÇÃO DETALHADA ---
+  essayCorrection?: {
+    globalScore: number;
+    competencies: {
+      id: number;
+      name: string;
+      score: number;
+      maxScore: number;
+      feedback: string;
+    }[];
+    issues: {
+      excerpt: string;
+      suggestion: string;
+      type: 'GRAMMAR' | 'ORTHOGRAPHY' | 'COHESION' | 'CLARITY';
+      explanation: string;
+      position?: { start: number; end: number };
+    }[];
+    generalFeedback: string;
+    gradedAt: string;
+    modelUsed: string;
+  };
 }
 
 export interface ExamResult {

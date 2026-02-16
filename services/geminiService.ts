@@ -58,6 +58,49 @@ const PROMPTS = {
 
         Retorne JSON.
     `,
+    GRADE_FULL_ESSAY: (topic: string, motivationalText: string, studentText: string) => `
+        Você é um Corretor de Redação Especialista (Banca ENEM/Vestibulares).
+        Sua tarefa é corrigir a redação abaixo com rigor técnico e pedagógico.
+
+        TEMA: "${topic}"
+        TEXTO MOTIVADOR (Resumo): "${motivationalText.substring(0, 500)}..."
+        
+        REDACAO DO ALUNO:
+        "${studentText}"
+
+        CRITÉRIOS DE AVALIAÇÃO (Modelo ENEM - 1000 pontos):
+        1. Desvios Gramaticais e Convenções da Escrita (200 pts)
+        2. Compreensão do Tema e Tipo Textual (200 pts)
+        3. Seleção e Organização de Argumentos (200 pts)
+        4. Coesão Textual (200 pts)
+        5. Proposta de Intervenção / Conclusão (200 pts)
+
+        TAREFA:
+        1. Atribua nota para cada competência (0, 40, 80, 120, 160, 200).
+        2. Identifique erros gramaticais, ortográficos ou de coesão, citando o trecho exato e sugerindo a correção.
+        3. Escreva um feedback geral construtivo.
+
+        RETORNE ESTRITAMENTE EM JSON:
+        {
+            "globalScore": number, // Soma das competências
+            "competencies": [
+                { "id": 1, "name": "Domínio da Escrita", "score": number, "maxScore": 200, "feedback": "string" },
+                { "id": 2, "name": "Compreensão do Tema", "score": number, "maxScore": 200, "feedback": "string" },
+                { "id": 3, "name": "Organização de Ideias", "score": number, "maxScore": 200, "feedback": "string" },
+                { "id": 4, "name": "Coesão", "score": number, "maxScore": 200, "feedback": "string" },
+                { "id": 5, "name": "Proposta de Intervenção", "score": number, "maxScore": 200, "feedback": "string" }
+            ],
+            "issues": [
+                { 
+                    "excerpt": "trecho errado", 
+                    "suggestion": "correção", 
+                    "type": "GRAMMAR" | "ORTHOGRAPHY" | "COHESION" | "CLARITY", 
+                    "explanation": "porquê" 
+                }
+            ],
+            "generalFeedback": "Comentário final encorajador"
+        }
+    `,
     STUDY_PLAN: (name: string, subject: string, grade: number) => `
         Crie um plano de estudo personalizado e motivador para o aluno ${name}.
         Dificuldade principal identificada: ${subject}.
@@ -670,6 +713,50 @@ export const batchGradeAnswers = async (answers: AnswerContext[]): Promise<Batch
 
     // No production fallback for batch grading
     return callGeminiAPI<BatchGradeResult[]>(prompt, schema);
+};
+
+export const gradeFullEssay = async (
+    topic: string,
+    motivationalText: string,
+    studentText: string
+): Promise<any> => {
+    const prompt = PROMPTS.GRADE_FULL_ESSAY(topic, motivationalText, studentText);
+
+    // Schema definition for structure guarantee
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            globalScore: { type: Type.NUMBER },
+            competencies: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        id: { type: Type.NUMBER },
+                        name: { type: Type.STRING },
+                        score: { type: Type.NUMBER },
+                        maxScore: { type: Type.NUMBER },
+                        feedback: { type: Type.STRING }
+                    }
+                }
+            },
+            issues: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        excerpt: { type: Type.STRING },
+                        suggestion: { type: Type.STRING },
+                        type: { type: Type.STRING, enum: ["GRAMMAR", "ORTHOGRAPHY", "COHESION", "CLARITY"] },
+                        explanation: { type: Type.STRING }
+                    }
+                }
+            },
+            generalFeedback: { type: Type.STRING }
+        }
+    };
+
+    return callGeminiAPI<any>(prompt, schema);
 };
 
 
