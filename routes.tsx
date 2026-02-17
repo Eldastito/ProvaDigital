@@ -1,13 +1,13 @@
-import { RouteObject, Navigate } from 'react-router-dom';
+import { RouteObject, Navigate, useParams, useLocation, useNavigate } from 'react-router-dom';
 import { SaaSControlPanelView } from './modules/admin/SaaSControlPanelView';
 import { LoginPage } from './modules/auth/LoginPage';
 import { BulkImportView } from './modules/admin/components/BulkImportView';
 import { DashboardView } from './components/DashboardView';
-import { ItemsListView } from './components/ItemsListView'; // Stays in components? Checked.
+import { ItemsListView } from './components/ItemsListView';
 import { ItemEditorView } from './modules/builder/ItemEditorView';
 import { ItemEditorV2 } from './modules/builder/ItemBank/ItemEditorV2';
 import { ExamVariantsManager } from './components/ExamVariantsManager';
-import { ExamsListView } from './modules/grading/ExamsListView'; // Moved to Grading module
+import { ExamsListView } from './modules/grading/ExamsListView';
 import { ExamBuilderView } from './modules/builder/ExamBuilderView';
 import { AllocationView } from './modules/grading/AllocationView';
 import { ManagementView } from './modules/school-management/ManagementView';
@@ -44,7 +44,6 @@ import { OnlineExamRunner } from './modules/runner/features/OnlineExamRunner';
 import { useAppStore } from './store/useAppStore';
 import { INITIAL_ANNOUNCEMENTS, INITIAL_EXAMS } from './utils/mockData';
 import { uuidv4 } from './utils/helpers';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { AnalyticsDashboard } from './modules/analytics/AnalyticsDashboard';
 import { AIQuestionGeneratorView } from './modules/builder/AIQuestionGeneratorView';
 import { ExamScheduler } from './modules/coordinator/ExamScheduler';
@@ -63,23 +62,23 @@ import LogisticsManagementView from './modules/admin/LogisticsManagementView';
 import CustodianOperationsView from './modules/logistics/CustodianOperationsView';
 import { RouterTabletSetup } from './modules/runner/router/RouterTabletSetup';
 
-// Wrapper for Router Setup to handle params from store since it's a direct route
+import { studentModule } from './modules/student-portal/module';
+import { professorModule } from './modules/professor/module';
+import { adminModule } from './modules/admin/module';
+import { strategicModule } from './modules/analytics/module';
+import { managementModule } from './modules/school-management/module';
+import { parentsModule } from './modules/parents/module';
+
+// Wrappers needed by child routes
 const RouterSetupWrapper = () => {
     const { currentUser } = useAppStore();
     if (!currentUser) return <Navigate to="/login" replace />;
-
-    // For router setup, we use the professor's school and a generic or selected eventId
     return (
         <RouterTabletSetup
             schoolId={currentUser.schoolId || 'unknown'}
             eventId={`MESH-${currentUser.schoolId}-${new Date().toISOString().split('T')[0]}`}
         />
     );
-};
-
-// Helper for Role-based Dashboard
-const ConditionalDashboard = () => {
-    return <DashboardView />;
 };
 
 const OnlineExamRunnerWrapper = () => {
@@ -144,6 +143,13 @@ export const appRoutes: RouteObject[] = [
         path: '/',
         element: <DashboardLayout />,
         children: [
+            ...studentModule.routes,
+            ...professorModule.routes,
+            ...adminModule.routes,
+            ...strategicModule.routes,
+            ...managementModule.routes,
+            ...parentsModule.routes,
+
             { path: 'dashboard', element: <DashboardView /> },
             { path: 'items', element: <ItemsListView /> },
             { path: 'items/new', element: <ItemEditorView /> },
@@ -156,90 +162,9 @@ export const appRoutes: RouteObject[] = [
             { path: 'exams/:id/print', element: <PrintableExamView /> },
             { path: 'exams/:id/results', element: <ResultsEntryView /> },
             { path: 'allocation', element: <AllocationView /> },
-            { path: 'admin/gestao', element: <ManagementView /> },
-            { path: 'admin/governanca', element: <GovernanceView /> },
-            { path: 'admin/capabilities', element: <CapabilitiesView /> },
-            { path: 'admin/audit', element: <AuditLogView /> },
-            { path: 'admin/import', element: <BulkImportView /> },
-            { path: 'admin/saas', element: <SaaSControlPanelView /> },
-            { path: 'admin/tenants', element: <SaaSControlPanelView /> }, // Por enquanto usando a mesma visão consolidada
-            { path: 'admin/metrics', element: <SaaSControlPanelView /> }, // Por enquanto usando a mesma visão consolidada
-            {
-                path: 'admin/logistica',
-                element: <ProtectedRoute resource="LOGISTICS_MASTER" fallbackPath="/dashboard" />,
-                children: [
-                    { index: true, element: <LogisticsManagementView /> }
-                ]
-            },
-            { path: 'risk-dashboard', element: <RiskDashboard /> },
-            { path: 'admin/governance', element: <GovernanceView /> },
-
-            // COORDENAÇÃO & CONSELHO
-            { path: 'coordinator/council', element: <ClassCouncilView /> },
-            // Removed legacy analytics/SchoolDashboardView in favor of PerformanceAnalyticsDashboard below
-
-            {
-                path: 'communication',
-                element: <CommunicationView />
-            },
-            {
-                path: 'analytics',
-                element: <AnalyticsDashboard />
-            },
-            {
-                path: 'predictive-risk',
-                element: <PredictiveRiskDashboard />
-            },
-            {
-                path: 'advanced-analytics',
-                element: <PredictiveDashboardView />
-            },
-            {
-                path: 'marketplace',
-                element: <MarketplaceView />
-            },
-            {
-                path: 'study-plans',
-                element: <StudyPlansView />
-            },
-            { path: 'class-diary', element: <ClassDiaryView /> },
             { path: 'my-profile', element: <UserProfileView /> },
-            { path: 'neuro-screening', element: <NeuroScreeningView /> },
-            { path: 'gamified-events', element: <GamifiedEventsManager /> },
 
-            // Sprint 0: Coordinator Tools
-            {
-                path: 'agendamento',
-                element: <ProtectedRoute resource="SCHEDULING" fallbackPath="/dashboard" />,
-                children: [
-                    { index: true, element: <ExamScheduler /> }
-                ]
-            },
-            {
-                path: 'central-comando',
-                element: <ProtectedRoute resource="COMMAND_CENTER" fallbackPath="/dashboard" />,
-                children: [
-                    { index: true, element: <CommandCenter /> }
-                ]
-            },
-            {
-                path: 'adm-relatorios',
-                element: <ProtectedRoute resource="REPORTS" fallbackPath="/dashboard" />,
-                children: [
-                    { index: true, element: <ReportGeneratorView /> }
-                ]
-            },
-
-            // Student specific
-            { path: 'aluno', element: <StudentDashboardView /> },
-            { path: 'aluno/tutor', element: <OwlTutorView /> },
-            { path: 'aluno/arcade', element: <ArcadeView /> },
-            { path: 'aluno/bussola', element: <VocationalCompassView /> },
-            { path: 'aluno/loja', element: <AvatarShopView /> },
-            { path: 'battle-arena', element: <StudentBattleView /> },
-            { path: 'survival-mode', element: <SurvivalView /> },
-
-            // Online Exam
+            // Online Exam core (shared)
             { path: 'online-exam', element: <ExamLauncher /> },
             { path: 'online-exam/run/:id', element: <OnlineExamRunnerWrapper /> },
             { path: 'online-exam/results/:id', element: <ResultFeedbackView /> },
@@ -252,12 +177,7 @@ export const appRoutes: RouteObject[] = [
                     { index: true, element: <CustodianOperationsView /> }
                 ]
             },
-            { path: 'professor/logistics', element: <ProfessorApp onBack={() => window.history.back()} /> },
-            { path: 'professor/config/router', element: <RouterSetupWrapper /> },
-
-            // Utils
-            { path: 'diag-ai', element: <AIDiagnosticView /> },
-            { path: 'oecd-portal', element: <OECDPortalView onBack={() => window.history.back()} /> }
+            { path: 'professor/config/router', element: <RouterSetupWrapper /> }
         ]
     },
     // Full screen / No layout apps

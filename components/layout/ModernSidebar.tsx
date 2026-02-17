@@ -23,6 +23,21 @@ import {
 import { useSafeAppStore } from '../../store/useAppStore';
 import { UserRole, TenantType } from '../../types';
 import { usePermissions } from '../../hooks/usePermissions';
+import { studentModule } from '../../modules/student-portal/module';
+import { professorModule } from '../../modules/professor/module';
+import { adminModule } from '../../modules/admin/module';
+import { strategicModule } from '../../modules/analytics/module';
+import { managementModule } from '../../modules/school-management/module';
+import { parentsModule } from '../../modules/parents/module';
+
+const modules = [
+    studentModule,
+    professorModule,
+    adminModule,
+    strategicModule,
+    managementModule,
+    parentsModule
+];
 
 interface NavItemProps {
     icon: any;
@@ -101,6 +116,8 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
     const isStrategic = isStateAdmin || isTenantAdmin;
     const isManagement = isSystemAdmin || isMecAdmin || isStrategic || currentUser.role === UserRole.DIRETOR || currentUser.role === UserRole.SUPERVISOR;
     const canManageCapabilities = isSystemAdmin || isMecAdmin || isStrategic || currentUser.role === UserRole.DIRETOR;
+
+    const activeModule = modules.find(m => m.allowedRoles.includes(currentUser.role));
 
     const myChildren = isParent && currentUser.childrenIds && students
         ? students.filter(s => currentUser.childrenIds?.includes(s.id))
@@ -197,157 +214,32 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
 
                 {/* 3. Role-Based Navigation */}
 
-                {canView('LOGISTICS_MASTER') && (
+                {/* Dynamic Modules (Aluno, Professor, Admin, Estratégico, Gestão, Pais) */}
+                {activeModule && (
                     <>
-                        <SectionHeader label="Gestão ExamePad" collapsed={collapsed} />
-                        <NavItem
-                            icon={Truck}
-                            label="Logística Master"
-                            path="/admin/logistica"
-                            active={currentPath.includes('/admin/logistica')}
-                            onClick={() => navigate('/admin/logistica')}
-                            collapsed={collapsed}
-                        />
+                        <SectionHeader label={activeModule.id.replace('-', ' ').toUpperCase()} collapsed={collapsed} />
+                        {activeModule.sidebarItems
+                            .filter(item => !item.resource || canView(item.resource))
+                            .map(item => (
+                                <NavItem
+                                    key={item.path}
+                                    icon={item.icon}
+                                    label={item.label}
+                                    path={item.path}
+                                    active={currentPath === item.path}
+                                    onClick={() => navigate(item.path)}
+                                    collapsed={collapsed}
+                                />
+                            ))
+                        }
                     </>
                 )}
 
-                {canView('CUSTODY_OPS') && (
-                    <>
-                        <SectionHeader label="Operacional Logístico" collapsed={collapsed} />
-                        <NavItem
-                            icon={Package}
-                            label="Operações de Custódia"
-                            path="/logistica/operacoes"
-                            active={currentPath === '/logistica/operacoes'}
-                            onClick={() => navigate('/logistica/operacoes')}
-                            collapsed={collapsed}
-                        />
-                    </>
-                )}
-
-                {/* SaaS Admin Section (Consolidated) */}
-                {isSystemAdmin && (
-                    <>
-                        <SectionHeader label="Gestão SaaS" collapsed={collapsed} />
-                        <NavItem
-                            icon={Shield}
-                            label="Central SaaS"
-                            path="/admin/saas"
-                            active={currentPath.includes('/admin/saas') || currentPath.includes('/admin/tenants') || currentPath.includes('/admin/metrics')}
-                            onClick={() => navigate('/admin/saas')}
-                            collapsed={collapsed}
-                        />
-                    </>
-                )}
-
-                {/* Student Flow */}
-                {isStudent && (
-                    <>
-                        <SectionHeader label="Portal Aluno" collapsed={collapsed} />
-                        <NavItem icon={LayoutDashboard} label="Meu Desempenho" path="/aluno" active={currentPath === '/aluno' || currentPath === '/dashboard'} onClick={() => navigate('/aluno')} collapsed={collapsed} />
-                        <NavItem icon={Target} label="Plano de Estudos" path="/study-plans" active={currentPath === '/study-plans'} onClick={() => navigate('/study-plans')} collapsed={collapsed} />
-                        <SectionHeader label="Zona Arcade" collapsed={collapsed} />
-                        <NavItem icon={Arcade} label="Games Arcade" path="/aluno/arcade" active={currentPath === '/aluno/arcade'} onClick={() => navigate('/aluno/arcade')} collapsed={collapsed} />
-                        <NavItem icon={Swords} label="Arena de Batalha" path="/battle-arena" active={currentPath === '/battle-arena'} onClick={() => navigate('/battle-arena')} collapsed={collapsed} />
-                        <NavItem icon={Zap} label="Modo Survival" path="/survival-mode" active={currentPath === '/survival-mode'} onClick={() => navigate('/survival-mode')} collapsed={collapsed} />
-                        <NavItem icon={Trophy} label="Avatar Shop" path="/aluno/loja" active={currentPath === '/aluno/loja'} onClick={() => navigate('/aluno/loja')} collapsed={collapsed} />
-                        <SectionHeader label="Ferramentas" collapsed={collapsed} />
-                        <NavItem icon={Bot} label="Corujão Tutor" path="/aluno/tutor" active={currentPath === '/aluno/tutor'} onClick={() => navigate('/aluno/tutor')} collapsed={collapsed} />
-                        <NavItem icon={Compass} label="Bússola" path="/aluno/bussola" active={currentPath === '/aluno/bussola'} onClick={() => navigate('/aluno/bussola')} collapsed={collapsed} />
-                        <NavItem icon={MessageCircle} label="Chat" path="/communication" active={currentPath === '/communication'} onClick={() => navigate('/communication')} collapsed={collapsed} />
-                    </>
-                )}
-
-                {/* Parent Flow */}
-                {isParent && (
-                    <>
-                        <SectionHeader label="Portal Família" collapsed={collapsed} />
-                        <NavItem icon={LayoutDashboard} label="Desempenho" path="/dashboard" active={currentPath === '/dashboard'} onClick={() => navigate('/dashboard')} collapsed={collapsed} />
-                        <NavItem icon={MessageCircle} label="Comunicação" path="/communication" active={currentPath === '/communication'} onClick={() => navigate('/communication')} collapsed={collapsed} />
-                    </>
-                )}
-
-                {/* Management / Strategic Flow */}
-                {isManagement && (
-                    <>
-                        <SectionHeader label="Dashboard Geral" collapsed={collapsed} />
-                        <NavItem icon={PieChart} label="Visão Geral" path="/dashboard" active={currentPath === '/dashboard'} onClick={() => navigate('/dashboard')} collapsed={collapsed} />
-
-                        <SectionHeader label="Acadêmico" collapsed={collapsed} />
-                        <NavItem icon={FileText} label="Banco de Itens" path="/items" active={currentPath.includes('/items')} onClick={() => navigate('/items')} collapsed={collapsed} />
-                        <NavItem icon={FlaskConical} label="Lab Multimodal" path="/items/multimodal-lab" active={currentPath === '/items/multimodal-lab'} onClick={() => navigate('/items/multimodal-lab')} collapsed={collapsed} />
-                        <NavItem icon={BookOpen} label="Provas" path="/exams" active={currentPath.includes('/exams')} onClick={() => navigate('/exams')} collapsed={collapsed} />
-                        <NavItem icon={GraduationCap} label="Aplicação" path="/online-exam" active={currentPath.includes('/online-exam')} onClick={() => navigate('/online-exam')} collapsed={collapsed} />
-                        <NavItem icon={Calendar} label="Diário" path="/class-diary" active={currentPath === '/class-diary'} onClick={() => navigate('/class-diary')} collapsed={collapsed} />
-                        <NavItem icon={Map} label="Alocação" path="/allocation" active={currentPath === '/allocation'} onClick={() => navigate('/allocation')} collapsed={collapsed} />
-                        <NavItem icon={Cast} label="Eventos" path="/gamified-events" active={currentPath === '/gamified-events'} onClick={() => navigate('/gamified-events')} collapsed={collapsed} />
-                        <NavItem icon={GraduationCap} label="Ensino" path="/study-plans" active={currentPath === '/study-plans'} onClick={() => navigate('/study-plans')} collapsed={collapsed} />
-                        <NavItem icon={Users} label="Conselho Digital (IA)" path="/coordinator/council" active={currentPath === '/coordinator/council'} onClick={() => navigate('/coordinator/council')} collapsed={collapsed} />
-
-                        <SectionHeader label="Estratégico" collapsed={collapsed} />
-                        <NavItem icon={BarChart} label="Analytics" path="/analytics" active={currentPath === '/analytics'} onClick={() => navigate('/analytics')} collapsed={collapsed} />
-                        <NavItem icon={TrendingUp} label="Advanced BI" path="/advanced-analytics" active={currentPath === '/advanced-analytics'} onClick={() => navigate('/advanced-analytics')} collapsed={collapsed} />
-                        <NavItem icon={Globe} label="Portal OCDE" path="/oecd-portal" active={currentPath === '/oecd-portal'} onClick={() => navigate('/oecd-portal')} collapsed={collapsed} />
-                        <NavItem icon={ShoppingBag} label="Marketplace" path="/marketplace" active={currentPath === '/marketplace'} onClick={() => navigate('/marketplace')} collapsed={collapsed} />
-                        {canView('REPORTS') && (
-                            <NavItem icon={Printer} label="Relatórios" path="/adm-relatorios" active={currentPath === '/adm-relatorios'} onClick={() => navigate('/adm-relatorios')} collapsed={collapsed} />
-                        )}
-                        <NavItem icon={Users} label="Rede" path="/admin/gestao" active={currentPath.includes('/admin/gestao')} onClick={() => navigate('/admin/gestao')} collapsed={collapsed} />
-
-                        <SectionHeader label="Especializado" collapsed={collapsed} />
-                        <NavItem icon={Shield} label="Risco" path="/risk-dashboard" active={currentPath === '/risk-dashboard'} onClick={() => navigate('/risk-dashboard')} collapsed={collapsed} />
-                        <NavItem icon={Zap} label="Risco Preditivo" path="/predictive-risk" active={currentPath === '/predictive-risk'} onClick={() => navigate('/predictive-risk')} collapsed={collapsed} />
-                        <NavItem icon={Stethoscope} label="Saúde Mental" path="/neuro-screening" active={currentPath === '/neuro-screening'} onClick={() => navigate('/neuro-screening')} collapsed={collapsed} />
-
-                        <SectionHeader label="Apps" collapsed={collapsed} />
-                        <NavItem icon={Tablet} label="App Tablet" path="/apps/tablet" active={currentPath.includes('/apps/tablet')} onClick={() => navigate('/apps/tablet')} collapsed={collapsed} />
-                        <NavItem icon={Cast} label="Demo Live" path="/apps/demo" active={currentPath.includes('/apps/demo')} onClick={() => navigate('/apps/demo')} collapsed={collapsed} />
-
-                        <SectionHeader label="Sistema" collapsed={collapsed} />
-                        {canView('SYSTEM_MGMT') && (isSystemAdmin || isMecAdmin) && (
-                            <NavItem icon={Shield} label="Auditoria" path="/admin/audit" active={currentPath === '/admin/audit'} onClick={() => navigate('/admin/audit')} collapsed={collapsed} />
-                        )}
-                        {canManageCapabilities && (
-                            <NavItem icon={Target} label="Governança" path="/admin/capabilities" active={currentPath === '/admin/capabilities'} onClick={() => navigate('/admin/capabilities')} collapsed={collapsed} />
-                        )}
-                        <NavItem icon={Gamepad2} label="Governança Arcade" path="/admin/governanca" active={currentPath === '/admin/governanca'} onClick={() => navigate('/admin/governanca')} collapsed={collapsed} />
-                        {(isSystemAdmin || isMecAdmin || isStrategic) && (
-                            <>
-                                <NavItem icon={FileUp} label="Importação de Dados" path="/admin/import" active={currentPath === '/admin/import'} onClick={() => navigate('/admin/import')} collapsed={collapsed} />
-                                <NavItem icon={Terminal} label="Diagnóstico Sistema" path="/diag-ai" active={currentPath === '/diag-ai'} onClick={() => navigate('/diag-ai')} collapsed={collapsed} />
-                            </>
-                        )}
-                    </>
-                )}
-
-                {/* Professor specific (Non-Management) */}
-                {isProfessor && !isManagement && (
-                    <>
-                        <SectionHeader label="Sala de Aula" collapsed={collapsed} />
-                        <NavItem icon={PieChart} label="Minhas Turmas" path="/dashboard" active={currentPath === '/dashboard'} onClick={() => navigate('/dashboard')} collapsed={collapsed} />
-                        <NavItem icon={Calendar} label="Diário" path="/class-diary" active={currentPath === '/class-diary'} onClick={() => navigate('/class-diary')} collapsed={collapsed} />
-                        <NavItem icon={Home} label="Logística Professor" path="/professor/logistics" active={currentPath === '/professor/logistics'} onClick={() => navigate('/professor/logistics')} collapsed={collapsed} />
-
-                        {canView('COMMAND_CENTER') && (
-                            <NavItem icon={Activity} label="Painel de Controle" path="/central-comando" active={currentPath === '/central-comando'} onClick={() => navigate('/central-comando')} collapsed={collapsed} />
-                        )}
-
-                        <NavItem icon={CalendarCheck} label="Agendamento" path="/agendamento" active={currentPath === '/agendamento'} onClick={() => navigate('/agendamento')} collapsed={collapsed} />
-                    </>
-                )}
-
-                <NavItem icon={FileText} label="Banco de Questões" path="/items" active={currentPath.includes('/items')} onClick={() => navigate('/items')} collapsed={collapsed} />
-                <NavItem icon={FlaskConical} label="Lab Multimodal" path="/items/multimodal-lab" active={currentPath === '/items/multimodal-lab'} onClick={() => navigate('/items/multimodal-lab')} collapsed={collapsed} />
-                <NavItem icon={BookOpen} label="Minhas Provas" path="/exams" active={currentPath.includes('/exams')} onClick={() => navigate('/exams')} collapsed={collapsed} />
-                <NavItem icon={GraduationCap} label="Aplicação" path="/online-exam" active={currentPath.includes('/online-exam')} onClick={() => navigate('/online-exam')} collapsed={collapsed} />
-                <NavItem icon={BarChart} label="Analytics" path="/analytics" active={currentPath === '/analytics'} onClick={() => navigate('/analytics')} collapsed={collapsed} />
-                <NavItem icon={GraduationCap} label="Planos de Ensino" path="/study-plans" active={currentPath === '/study-plans'} onClick={() => navigate('/study-plans')} collapsed={collapsed} />
-
-                <SectionHeader label="Coordenação" collapsed={collapsed} />
-                <NavItem icon={Trophy} label="Eventos Gamificados" path="/gamified-events" active={currentPath === '/gamified-events'} onClick={() => navigate('/gamified-events')} collapsed={collapsed} />
-                <NavItem icon={MessageCircle} label="Chat" path="/communication" active={currentPath === '/communication'} onClick={() => navigate('/communication')} collapsed={collapsed} />
-                {canView('SCHEDULING') && (
-                    <NavItem icon={CalendarCheck} label="Agendamento" path="/agendamento" active={currentPath === '/agendamento'} onClick={() => navigate('/agendamento')} collapsed={collapsed} />
+                {/* Parent Selection Context (Keep if parent and no child selected yet) */}
+                {isParent && myChildren.length > 0 && selectedChildId === '' && !collapsed && (
+                    <div className="text-center text-slate-400 p-8 text-xs font-medium bg-slate-50/50 rounded-2xl mx-4 my-2 border border-dashed border-slate-200">
+                        Selecione um aluno acima para visualizar os dados acadêmicos detalhados.
+                    </div>
                 )}
 
             </div>
