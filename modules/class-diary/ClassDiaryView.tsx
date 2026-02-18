@@ -69,10 +69,12 @@ export const ClassDiaryView = () => {
     const [expandedStudent, setExpandedStudent] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
 
-    // Filtrar turmas do professor
+    // Filtrar turmas do professor (Unificado com o Dashboard)
     const teacherClasses = useMemo(() => {
         if (!currentUser) return [];
-        return classes.filter(c => c.schoolId === currentUser.schoolId);
+        return classes.filter(c =>
+            c.teacherId === currentUser.id || currentUser.classIds?.includes(c.id)
+        );
     }, [currentUser, classes]);
 
     // Alunos da turma selecionada
@@ -94,17 +96,9 @@ export const ClassDiaryView = () => {
         return { total, present, absent, justified, pending };
     }, [classStudents, attendance]);
 
-    const handleAttendanceToggle = (studentId: string) => {
-        const current = attendance.get(studentId);
-        let next: AttendanceRecord['status'];
-
-        if (!current) next = 'PRESENT';
-        else if (current === 'PRESENT') next = 'ABSENT';
-        else if (current === 'ABSENT') next = 'JUSTIFIED';
-        else next = 'PRESENT';
-
+    const setAttendanceStatus = (studentId: string, status: AttendanceRecord['status']) => {
         const newAttendance = new Map(attendance);
-        newAttendance.set(studentId, next);
+        newAttendance.set(studentId, status);
         setAttendance(newAttendance);
     };
 
@@ -279,7 +273,7 @@ export const ClassDiaryView = () => {
                         <div className="p-6 border-b border-slate-200 bg-slate-50">
                             <h2 className="text-lg font-semibold text-slate-800">Chamada</h2>
                             <p className="text-sm text-slate-600 mt-1">
-                                Clique no aluno para alternar: Presente → Falta → Justificada
+                                Selecione a presença de cada aluno para a data escolhida.
                             </p>
                         </div>
 
@@ -297,12 +291,12 @@ export const ClassDiaryView = () => {
                                 return (
                                     <div key={student.id} className="border-l-4 transition-all" style={{ borderLeftColor: status === 'PRESENT' ? '#10b981' : status === 'ABSENT' ? '#ef4444' : status === 'JUSTIFIED' ? '#f59e0b' : '#cbd5e1' }}>
                                         <div
-                                            className={`p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 ${isExpanded ? 'bg-slate-50' : ''}`}
+                                            className={`p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-slate-50 ${isExpanded ? 'bg-slate-50' : ''}`}
                                             onClick={() => setExpandedStudent(isExpanded ? null : student.id)}
                                         >
-                                            <div className="flex items-center gap-4">
-                                                <div onClick={(e) => { e.stopPropagation(); handleAttendanceToggle(student.id); }}>
-                                                    {getStatusIcon(status)}
+                                            <div className="flex items-center gap-4 flex-1">
+                                                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500">
+                                                    {student.name.charAt(0)}
                                                 </div>
                                                 <div>
                                                     <h3 className="font-bold text-slate-800 flex items-center gap-2">
@@ -314,13 +308,37 @@ export const ClassDiaryView = () => {
                                                         )}
                                                     </h3>
                                                     <p className="text-xs text-slate-500">
-                                                        {getStatusLabel(status)} {occurrences.length > 0 && `• ${occurrences.length} ocorrências`}
+                                                        Matrícula: {student.registrationNumber}
                                                     </p>
                                                 </div>
                                             </div>
 
+                                            {/* Attendance Selector Buttons */}
+                                            <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl" onClick={(e) => e.stopPropagation()}>
+                                                <button
+                                                    onClick={() => setAttendanceStatus(student.id, 'PRESENT')}
+                                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all flex items-center gap-1 ${status === 'PRESENT' ? 'bg-emerald-600 text-white shadow-md shadow-emerald-200' : 'text-slate-500 hover:bg-white'}`}
+                                                >
+                                                    <CheckCircle size={12} /> Presente
+                                                </button>
+                                                <button
+                                                    onClick={() => setAttendanceStatus(student.id, 'ABSENT')}
+                                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all flex items-center gap-1 ${status === 'ABSENT' ? 'bg-rose-600 text-white shadow-md shadow-rose-200' : 'text-slate-500 hover:bg-white'}`}
+                                                >
+                                                    <XCircle size={12} /> Falta
+                                                </button>
+                                                <button
+                                                    onClick={() => setAttendanceStatus(student.id, 'JUSTIFIED')}
+                                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all flex items-center gap-1 ${status === 'JUSTIFIED' ? 'bg-amber-500 text-white shadow-md shadow-amber-200' : 'text-slate-500 hover:bg-white'}`}
+                                                >
+                                                    <FileText size={12} /> Justificada
+                                                </button>
+                                            </div>
+
                                             <div className="flex items-center gap-3">
-                                                {isExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
+                                                <button className="p-2 text-slate-400 hover:text-brand-primary">
+                                                    {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                                </button>
                                             </div>
                                         </div>
 
