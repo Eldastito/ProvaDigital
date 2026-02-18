@@ -27,13 +27,14 @@ export const InterventionDashboard: React.FC = () => {
 
     const filteredPlans = studyPlans.filter(p => {
         if (filterStatus === 'ALL') return true;
+        if (filterStatus === 'PENDING') return p.status === 'PENDING' || p.status === 'IN_PROGRESS';
         return p.status === filterStatus;
     });
 
     const filteredInterventions = interventions.filter(i => {
         if (filterStatus === 'ALL') return true;
-        // Map intervention status 'IN_PROGRESS' | 'PENDING' to UI filters if needed
         if (filterStatus === 'COMPLETED') return i.status === 'COMPLETED' || i.status === 'CANCELLED';
+        // 'PENDING' filter includes both PENDING and IN_PROGRESS
         return i.status === 'PENDING' || i.status === 'IN_PROGRESS';
     });
 

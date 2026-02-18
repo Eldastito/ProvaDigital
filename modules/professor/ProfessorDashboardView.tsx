@@ -16,11 +16,9 @@ export const ProfessorDashboardView = () => {
     const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
     const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'PERFORMANCE'>('OVERVIEW');
 
-    // Filtrar turmas onde o professor está associado
+    // Filtrar turmas onde o professor está associado (Titular ou Substituto)
     const myClasses = classes.filter(c => {
-        // Assumindo que temos um campo teacherId ou similar
-        // Por enquanto, vamos mostrar todas as turmas como exemplo
-        return true;
+        return c.teacherId === currentUser?.id || currentUser?.classIds?.includes(c.id);
     });
 
     // Filtrar provas criadas pelo professor
@@ -133,7 +131,7 @@ export const ProfessorDashboardView = () => {
                     {/* Quick Actions */}
                     <div className="grid grid-cols-3 gap-4">
                         <button
-                            onClick={() => navigate('/teacher/provas/nova')}
+                            onClick={() => navigate('/exams/new')}
                             className="bg-gradient-to-br from-brand-primary to-emerald-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all group"
                         >
                             <div className="flex items-center gap-4">
@@ -148,7 +146,7 @@ export const ProfessorDashboardView = () => {
                         </button>
 
                         <button
-                            onClick={() => navigate('/teacher/itens')}
+                            onClick={() => navigate('/items')}
                             className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all group"
                         >
                             <div className="flex items-center gap-4">
@@ -163,7 +161,7 @@ export const ProfessorDashboardView = () => {
                         </button>
 
                         <button
-                            onClick={() => setActiveTab('PERFORMANCE')}
+                            onClick={() => navigate('/analytics')}
                             className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all group"
                         >
                             <div className="flex items-center gap-4">
