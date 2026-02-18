@@ -12,8 +12,12 @@ import {
     Save,
     AlertCircle,
     Edit3,
-    Trash2
+    Trash2,
+    Brain,
+    ClipboardCheck
 } from 'lucide-react';
+import { uuidv4 } from '../../utils/helpers';
+import { DiaryEntry } from '../../types';
 
 interface AttendanceRecord {
     id: string;
@@ -37,11 +41,30 @@ interface ClassNote {
     createdAt: string;
 }
 
+interface Occurrence {
+    id: string;
+    label: string;
+    category: 'PEDAGOGICAL' | 'BEHAVIORAL' | 'HEALTH_NEURO';
+    icon: string;
+}
+
+const QUICK_OCCURRENCES: Occurrence[] = [
+    { id: 'diff_comprehension', label: 'Dificuldade de Compreensão', category: 'PEDAGOGICAL', icon: '🧠' },
+    { id: 'active_participation', label: 'Participação Ativa', category: 'PEDAGOGICAL', icon: '⭐' },
+    { id: 'no_material', label: 'Falta de Material', category: 'PEDAGOGICAL', icon: '🎒' },
+    { id: 'high_distraction', label: 'Dispersão Excessiva', category: 'BEHAVIORAL', icon: '🌀' },
+    { id: 'conflict', label: 'Conflito com Colega', category: 'BEHAVIORAL', icon: '🤝' },
+    { id: 'sensory_sensitivity', label: 'Sensibilidade Sensorial', category: 'HEALTH_NEURO', icon: '👂' },
+    { id: 'social_interaction', label: 'Dificuldade Social', category: 'HEALTH_NEURO', icon: '👤' },
+    { id: 'hyperfocus', label: 'Hiper-foco', category: 'HEALTH_NEURO', icon: '🎯' },
+];
+
 export const ClassDiaryView = () => {
-    const { currentUser, students, classes } = useAppStore();
+    const { currentUser, students, classes, addDiaryEntries } = useAppStore();
     const [selectedClass, setSelectedClass] = useState<string>('');
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [attendance, setAttendance] = useState<Map<string, AttendanceRecord['status']>>(new Map());
+    const [studentOccurrences, setStudentOccurrences] = useState<Map<string, string[]>>(new Map());
     const [classNote, setClassNote] = useState({ content: '', observations: '' });
     const [expandedStudent, setExpandedStudent] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
@@ -85,6 +108,17 @@ export const ClassDiaryView = () => {
         setAttendance(newAttendance);
     };
 
+    const handleOccurrenceToggle = (studentId: string, occurrenceId: string) => {
+        const current = studentOccurrences.get(studentId) || [];
+        const next = current.includes(occurrenceId)
+            ? current.filter(id => id !== occurrenceId)
+            : [...current, occurrenceId];
+
+        const newOccurrences = new Map(studentOccurrences);
+        newOccurrences.set(studentId, next);
+        setStudentOccurrences(newOccurrences);
+    };
+
     const handleSave = async () => {
         if (!selectedClass || !currentUser) {
             alert('Selecione uma turma primeiro.');
@@ -103,15 +137,28 @@ export const ClassDiaryView = () => {
         // Simular salvamento (em produção, salvar no Supabase)
         await new Promise(resolve => setTimeout(resolve, 1000));
 
+        // Preparar entradas para o store global
+        const newEntries: DiaryEntry[] = classStudents.map(student => ({
+            id: uuidv4(),
+            studentId: student.id,
+            classId: selectedClass,
+            date: selectedDate,
+            attendance: attendance.get(student.id) || 'PRESENT',
+            occurrences: studentOccurrences.get(student.id) || [],
+            teacherId: currentUser.id
+        }));
+
+        await addDiaryEntries(newEntries);
+
         console.log('Salvando chamada:', {
             classId: selectedClass,
             date: selectedDate,
-            attendance: Array.from(attendance.entries()),
+            entries: newEntries,
             classNote,
             teacherId: currentUser.id
         });
 
-        alert(`✅ Chamada salva com sucesso!\n\n📊 Resumo:\n• Presentes: ${stats.present}\n• Faltas: ${stats.absent}\n• Justificadas: ${stats.justified}`);
+        alert(`✅ Chamada e Ocorrências salvas com sucesso!\n\nOs dados qualitativos foram enviados para análise de rede (MEC/Secretaria).`);
 
         setIsSaving(false);
     };
@@ -239,27 +286,93 @@ export const ClassDiaryView = () => {
                         <div className="divide-y divide-slate-100">
                             {classStudents.map(student => {
                                 const status = attendance.get(student.id);
+                                const occurrences = studentOccurrences.get(student.id) || [];
+                                const isExpanded = expandedStudent === student.id;
+
+                                // Simulação do Pipeline de Alerta (Se tiver ocorrências neuro, mostra ícone)
+                                const hasNeuroAlert = occurrences.some(id =>
+                                    QUICK_OCCURRENCES.find(o => o.id === id)?.category === 'HEALTH_NEURO'
+                                );
+
                                 return (
-                                    <div
-                                        key={student.id}
-                                        className={`p-4 transition cursor-pointer hover:bg-slate-50 border-l-4 ${getStatusColor(status)}`}
-                                        onClick={() => handleAttendanceToggle(student.id)}
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                {getStatusIcon(status)}
+                                    <div key={student.id} className="border-l-4 transition-all" style={{ borderLeftColor: status === 'PRESENT' ? '#10b981' : status === 'ABSENT' ? '#ef4444' : status === 'JUSTIFIED' ? '#f59e0b' : '#cbd5e1' }}>
+                                        <div
+                                            className={`p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 ${isExpanded ? 'bg-slate-50' : ''}`}
+                                            onClick={() => setExpandedStudent(isExpanded ? null : student.id)}
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div onClick={(e) => { e.stopPropagation(); handleAttendanceToggle(student.id); }}>
+                                                    {getStatusIcon(status)}
+                                                </div>
                                                 <div>
-                                                    <h3 className="font-medium text-slate-800">{student.name}</h3>
-                                                    <p className="text-sm text-slate-500">
-                                                        {getStatusLabel(status)}
+                                                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                                                        {student.name}
+                                                        {hasNeuroAlert && (
+                                                            <span className="flex items-center gap-1 px-2 py-0.5 bg-rose-100 text-rose-700 text-[10px] rounded-full animate-pulse font-black">
+                                                                <Brain size={10} /> SINAL DE ALERTA
+                                                            </span>
+                                                        )}
+                                                    </h3>
+                                                    <p className="text-xs text-slate-500">
+                                                        {getStatusLabel(status)} {occurrences.length > 0 && `• ${occurrences.length} ocorrências`}
                                                     </p>
                                                 </div>
                                             </div>
 
-                                            <div className="text-sm text-slate-600">
-                                                Clique para alterar
+                                            <div className="flex items-center gap-3">
+                                                {isExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
                                             </div>
                                         </div>
+
+                                        {isExpanded && (
+                                            <div className="p-4 bg-slate-50/50 border-t border-slate-100 animate-in slide-in-from-top-2 duration-300">
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                    {/* Categorias de Ocorrências */}
+                                                    {(['PEDAGOGICAL', 'BEHAVIORAL', 'HEALTH_NEURO'] as const).map(category => (
+                                                        <div key={category}>
+                                                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                                                                {category === 'PEDAGOGICAL' ? '📚 Pedagógico' : category === 'BEHAVIORAL' ? '🤝 Comportamental' : '🧠 Neuro/PCD'}
+                                                            </h4>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {QUICK_OCCURRENCES.filter(o => o.category === category).map(occ => (
+                                                                    <button
+                                                                        key={occ.id}
+                                                                        onClick={() => handleOccurrenceToggle(student.id, occ.id)}
+                                                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${occurrences.includes(occ.id)
+                                                                            ? 'bg-slate-900 text-white border-slate-900 shadow-sm scale-105'
+                                                                            : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                                                                            }`}
+                                                                    >
+                                                                        <span>{occ.icon}</span>
+                                                                        {occ.label}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {hasNeuroAlert && (
+                                                    <div className="mt-6 p-3 bg-rose-50 border border-rose-100 rounded-xl flex items-center justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="p-2 bg-rose-100 text-rose-600 rounded-full">
+                                                                <Brain size={18} />
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-xs font-bold text-rose-900">IA Insight: Padrão Identificado</p>
+                                                                <p className="text-[10px] text-rose-700">Sinais indicam possível necessidade de rastreio neuropsicológico.</p>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            className="px-4 py-1.5 bg-rose-600 text-white text-[10px] font-black rounded-lg hover:bg-rose-700 transition"
+                                                            onClick={() => alert('Encaminhando para módulo de Neuro-Screening...')}
+                                                        >
+                                                            INICIAR TRIAGEM
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}

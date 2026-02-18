@@ -99,6 +99,9 @@ export const ProfessorPerformanceTab = () => {
         RAPID_ERR: studentStats.filter(s => s.behaviorCluster === 'RAPID_ERR').length
     };
 
+    const avgFrequency = 92.4; // Mock for now
+    const neuroAlerts = studentStats.filter(s => (s.stats?.riskLevel || 'LOW') === 'HIGH').length;
+
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500">
             {/* Left Column: Class Selection & Overview */}
@@ -150,12 +153,12 @@ export const ProfessorPerformanceTab = () => {
 
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 text-center">
-                                    <div className="text-2xl font-bold text-slate-800">{studentStats.length}</div>
-                                    <div className="text-[10px] text-slate-500 uppercase">Alunos</div>
+                                    <div className="text-2xl font-bold text-slate-800">{avgFrequency}%</div>
+                                    <div className="text-[10px] text-slate-500 uppercase">Frequência Média</div>
                                 </div>
                                 <div className="bg-rose-50 p-3 rounded-lg border border-rose-100 text-center">
-                                    <div className="text-2xl font-bold text-rose-600">{studentStats.filter(s => (s.stats?.riskLevel || 'LOW') !== 'LOW').length}</div>
-                                    <div className="text-[10px] text-rose-600 uppercase">Em Risco</div>
+                                    <div className="text-2xl font-bold text-rose-600">{neuroAlerts}</div>
+                                    <div className="text-[10px] text-rose-600 uppercase">Alertas Neuro</div>
                                 </div>
                             </div>
 
@@ -246,11 +249,17 @@ export const ProfessorPerformanceTab = () => {
                                 </div>
 
                                 <div className="flex items-center gap-6">
-                                    <div className="text-right">
-                                        <div className={`font-black text-lg ${student.stats?.idgScore && student.stats.idgScore >= 6 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                            {student.stats?.idgScore.toFixed(1)}
+                                    <div className="text-right flex items-center gap-4">
+                                        <div className="text-center">
+                                            <div className="text-xs font-bold text-slate-700">95%</div>
+                                            <div className="text-[8px] text-slate-400 uppercase leading-none">Freq</div>
                                         </div>
-                                        <div className="text-[10px] text-slate-400 uppercase">IDG</div>
+                                        <div className="text-right">
+                                            <div className={`font-black text-lg ${student.stats?.idgScore && student.stats.idgScore >= 6 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                {student.stats?.idgScore.toFixed(1)}
+                                            </div>
+                                            <div className="text-[10px] text-slate-400 uppercase">IDG</div>
+                                        </div>
                                     </div>
                                     {expandedStudentId === student.id ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
                                 </div>

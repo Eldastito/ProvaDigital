@@ -3,7 +3,7 @@ import { Calendar, CheckSquare, Plus, BookOpen, Target, Brain, User as UserIcon,
 import { AppState, User, UserRole, LessonPlan, StudyPlan, QuestionType } from '../../types';
 import { uuidv4 } from '../../utils/helpers';
 import { AnalyticsService } from '../../services/analyticsService';
-import { generateStudyPlanSuggestions, generateLessonPlanSuggestions } from '../../services/geminiService';
+import { generateStudyPlanSuggestions, generateLessonPlanSuggestions, LessonPlanSuggestion } from '../../services/geminiService';
 import { useAppStore } from '../../store/useAppStore';
 
 interface StudyPlansViewProps {
@@ -25,11 +25,11 @@ export const StudyPlansView = () => {
     const targetStudentId = isStudent ? user.id : (isParent ? selectedChildId || user.childrenIds?.[0] || '' : '');
     const targetStudentName = state.students.find(s => s.id === targetStudentId)?.name || 'Aluno';
 
-    const [activeTab, setActiveTab] = useState<'LESSON' | 'STUDY' | 'POMODORO' | 'SIMULATOR'>('STUDY');
+    const [activeTab, setActiveTab] = useState<'LESSON' | 'STUDY' | 'POMODORO' | 'SIMULATOR' | 'CURRICULUM'>('STUDY');
 
-    // Se for professor, mostra Lesson Plans por padrão
+    // Se for professor, mostra Curriculum por padrão para planejar o ano
     useEffect(() => {
-        if (isProfessor) setActiveTab('LESSON');
+        if (isProfessor) setActiveTab('CURRICULUM');
         else setActiveTab('STUDY');
     }, [isProfessor]);
 
@@ -48,6 +48,7 @@ export const StudyPlansView = () => {
     const [spForm, setSpForm] = useState({ studentId: targetStudentId, title: '', newTask: '' });
     const [spTasks, setSpTasks] = useState<{ id: string, description: string, completed: boolean }[]>([]);
     const [aiLoading, setAiLoading] = useState(false);
+    const [aiLessonSuggestion, setAiLessonSuggestion] = useState<LessonPlanSuggestion | null>(null);
 
     // POMODORO STATE
     const [pomoTime, setPomoTime] = useState(25 * 60);
@@ -213,15 +214,11 @@ export const StudyPlansView = () => {
             const subject = 'Geral'; // No store, geralmente vem do contexto do professor
 
             const suggestion = await generateLessonPlanSuggestions(subject, grade, lpForm.topic);
+            setAiLessonSuggestion(suggestion);
 
-            // Formatando o conteúdo gerado
-            let formattedContent = `Visão Geral:\n${suggestion.overview}\n\n`;
-            formattedContent += `Habilidades BNCC:\n${suggestion.bnccCodes.join(', ')}\n\n`;
-            formattedContent += suggestion.weeks.map(w => (
-                `Semana ${w.week}: ${w.theme}\n` +
-                `🎯 Objetivo: ${w.objective}\n` +
-                `🏃 Atividade: ${w.activity}\n`
-            )).join('\n');
+            // Mantendo compatibilidade com o formato de texto anterior para o campo 'content'
+            let formattedContent = `Resumo: ${suggestion.overview}\n\n`;
+            formattedContent += suggestion.weeks.map(w => `S${w.week}: ${w.theme}`).join(' | ');
 
             setLpForm(prev => ({
                 ...prev,
@@ -245,6 +242,7 @@ export const StudyPlansView = () => {
             generatedBy: isStudent || isParent ? 'IA' : user.id,
             title: spForm.title,
             tasks: spTasks,
+            status: 'PENDING',
             createdAt: new Date().toISOString()
         };
         addStudyPlan(newPlan);
@@ -375,11 +373,14 @@ export const StudyPlansView = () => {
             <div className="flex gap-6 border-b border-slate-200">
                 {isProfessor ? (
                     <>
-                        <button onClick={() => setActiveTab('LESSON')} className={`pb - 3 text - sm font - medium border - b - 2 transition flex items - center gap - 2 ${activeTab === 'LESSON' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'} `}>
-                            <GraduationCap size={18} /> Planos de Aula (Turma)
+                        <button onClick={() => setActiveTab('CURRICULUM')} className={`pb-3 text-sm font-black border-b-2 transition flex items-center gap-2 ${activeTab === 'CURRICULUM' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
+                            <Calendar size={18} /> Cronograma Anual
                         </button>
-                        <button onClick={() => setActiveTab('STUDY')} className={`pb - 3 text - sm font - medium border - b - 2 transition flex items - center gap - 2 ${activeTab === 'STUDY' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-500'} `}>
-                            <Target size={18} /> Roteiros de Estudo (Individual)
+                        <button onClick={() => setActiveTab('LESSON')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 ${activeTab === 'LESSON' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500'}`}>
+                            <GraduationCap size={18} /> Planos de Aula
+                        </button>
+                        <button onClick={() => setActiveTab('STUDY')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 ${activeTab === 'STUDY' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-500'}`}>
+                            <Target size={18} /> Roteiros p/ Alunos
                         </button>
                     </>
                 ) : (
@@ -400,6 +401,106 @@ export const StudyPlansView = () => {
                     </>
                 )}
             </div>
+
+            {/* --- TOOL 0: CURRICULUM / MACRO PLANNING --- */}
+            {activeTab === 'CURRICULUM' && isProfessor && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {/* Bimester Navigator */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        {[1, 2, 3, 4].map(b => (
+                            <div key={b} className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${b === 1 ? 'bg-brand-primary/5 border-brand-primary shadow-md' : 'bg-white border-slate-100 hover:border-slate-300'}`}>
+                                <div className="flex justify-between items-start mb-2">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{b}º Bimestre</span>
+                                    {b === 1 && <span className="px-2 py-0.5 bg-brand-primary text-white text-[8px] font-black rounded-full uppercase">Atual</span>}
+                                </div>
+                                <h3 className="font-bold text-slate-800">Unidade {b}</h3>
+                                <div className="mt-4 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div className="h-full bg-brand-primary transition-all duration-1000" style={{ width: b === 1 ? '65%' : b < 1 ? '100%' : '0%' }}></div>
+                                </div>
+                                <p className="text-[10px] text-slate-500 mt-2 font-medium">{b === 1 ? '65% do conteúdo ministrado' : 'Aguardando início'}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Timeline & Topics */}
+                    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <div>
+                                <h2 className="text-lg font-black text-slate-800 uppercase tracking-tight">Cronograma de Conteúdo</h2>
+                                <p className="text-xs text-slate-500">Distribuição de tópicos BNCC por semana</p>
+                            </div>
+                            <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-black hover:bg-slate-800 transition">
+                                <Sparkles size={14} className="text-yellow-400" /> RECALCULAR COM IA
+                            </button>
+                        </div>
+
+                        <div className="p-0">
+                            {[
+                                { week: 1, topic: 'Introdução aos Conjuntos Numéricos', status: 'DONE', bncc: 'EF09MA01' },
+                                { week: 2, topic: 'Operações com Números Reais', status: 'DONE', bncc: 'EF09MA02' },
+                                { week: 3, topic: 'Potenciação e Radiciação', status: 'IN_PROGRESS', bncc: 'EF09MA03' },
+                                { week: 4, topic: 'Expressões Algébricas', status: 'TODO', bncc: 'EF09MA04' },
+                            ].map((item, idx) => (
+                                <div key={idx} className="group flex items-center gap-6 p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                                    <div className="w-16 flex flex-col items-center shrink-0">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase">Semana</span>
+                                        <span className="text-xl font-black text-slate-800">{item.week}</span>
+                                    </div>
+                                    <div className="h-10 w-px bg-slate-200"></div>
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase ${item.status === 'DONE' ? 'bg-emerald-100 text-emerald-700' :
+                                                item.status === 'IN_PROGRESS' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'
+                                                }`}>
+                                                {item.status === 'DONE' ? 'Concluído' : item.status === 'IN_PROGRESS' ? 'Em aula' : 'Pendente'}
+                                            </span>
+                                            <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{item.bncc}</span>
+                                        </div>
+                                        <h4 className="font-bold text-slate-800 group-hover:text-brand-primary transition-colors">{item.topic}</h4>
+                                    </div>
+                                    <div className="flex items-center gap-2 pr-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button className="p-2 hover:bg-brand-primary/10 text-brand-primary rounded-lg transition" title="Ver Plano de Aula">
+                                            <BookOpen size={18} />
+                                        </button>
+                                        <button className="p-2 hover:bg-brand-primary/10 text-brand-primary rounded-lg transition" title="Criar Prova sobre o tema">
+                                            <Target size={18} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Progress Chart Placeholder */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-slate-900 rounded-3xl p-6 text-white overflow-hidden relative">
+                            <div className="relative z-10">
+                                <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-4">Meta de Desempenho</h3>
+                                <div className="flex items-end gap-2 mb-2">
+                                    <span className="text-4xl font-black">74.2</span>
+                                    <span className="text-slate-400 mb-1 font-bold">IDG Médio Esperado</span>
+                                </div>
+                                <p className="text-xs text-slate-400">Baseado na velocidade de absorção da turma atual.</p>
+                            </div>
+                            <div className="absolute top-0 right-0 p-8 opacity-20">
+                                <Trophy size={100} />
+                            </div>
+                        </div>
+                        <div className="bg-white rounded-3xl p-6 border border-slate-200">
+                            <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-2">Ajuste de Rota com IA</h3>
+                            <div className="flex items-start gap-3 p-3 bg-brand-primary/5 rounded-2xl border border-brand-primary/10">
+                                <Sparkles size={24} className="text-brand-primary shrink-0 mt-1" />
+                                <div>
+                                    <p className="text-xs font-bold text-slate-800 uppercase">Sugestão de Aceleração</p>
+                                    <p className="text-[11px] text-slate-600 mt-1">
+                                        A turma demonstrou 85% de proficiência em "Conjuntos Numéricos". Recomendo unir os tópicos das semanas 4 e 5 para antecipar a unidade de Equações.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* --- TOOL 1: POMODORO & GAMIFICATION --- */}
             {activeTab === 'POMODORO' && !isParent && (
@@ -762,26 +863,69 @@ export const StudyPlansView = () => {
                                 {aiLoading ? <span className="animate-spin">⏳</span> : <Sparkles size={14} />}
                                 {aiLoading ? 'Processando com IA...' : 'Estruturar Aula e BNCC com IA 🦉'}
                             </button>
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-1">Objetivos</label>
-                                <textarea
-                                    value={lpForm.objectives}
-                                    onChange={e => setLpForm({ ...lpForm, objectives: e.target.value })}
-                                    rows={2}
-                                    className="w-full p-3 border border-slate-300 rounded-lg"
-                                    placeholder="O que os alunos devem aprender?"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-1">Desenvolvimento / Conteúdo</label>
-                                <textarea
-                                    value={lpForm.content}
-                                    onChange={e => setLpForm({ ...lpForm, content: e.target.value })}
-                                    rows={4}
-                                    className="w-full p-3 border border-slate-300 rounded-lg"
-                                    placeholder="Detalhes da aula..."
-                                />
-                            </div>
+                            {aiLessonSuggestion ? (
+                                <div className="space-y-4 max-h-[400px] overflow-y-auto p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Visão Pedagógica</h3>
+                                            <p className="text-sm text-slate-700 font-medium leading-relaxed">{aiLessonSuggestion.overview}</p>
+                                        </div>
+                                        <div className="flex gap-1 shrink-0">
+                                            {aiLessonSuggestion.bnccCodes.map(code => (
+                                                <span key={code} className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[9px] font-black rounded uppercase">{code}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {aiLessonSuggestion.weeks.map(w => (
+                                            <div key={w.week} className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm relative overflow-hidden group">
+                                                <div className="absolute top-0 left-0 w-1 h-full bg-brand-primary"></div>
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-[10px] font-black text-brand-primary uppercase">Módulo {w.week}</span>
+                                                </div>
+                                                <h4 className="font-bold text-slate-800 text-sm mb-1">{w.theme}</h4>
+                                                <p className="text-[11px] text-slate-600 mb-2"><span className="font-bold">Objetivo:</span> {w.objective}</p>
+                                                <div className="p-2 bg-emerald-50 rounded text-[11px] text-emerald-800 font-medium border border-emerald-100">
+                                                    🚀 <span className="font-bold underline">Atividade Sugerida:</span> {w.activity}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="pt-4 border-t border-slate-200">
+                                        <button
+                                            className="w-full py-2 bg-slate-900 text-white rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-800 transition"
+                                            onClick={() => alert(`Simulando geração de itens para ${lpForm.topic}...`)}
+                                        >
+                                            <Target size={14} className="text-brand-secondary" /> Gerar Itens de Avaliação p/ este Tema
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">Objetivos</label>
+                                        <textarea
+                                            value={lpForm.objectives}
+                                            onChange={e => setLpForm({ ...lpForm, objectives: e.target.value })}
+                                            rows={2}
+                                            className="w-full p-3 border border-slate-300 rounded-lg"
+                                            placeholder="O que os alunos devem aprender?"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">Desenvolvimento / Conteúdo</label>
+                                        <textarea
+                                            value={lpForm.content}
+                                            onChange={e => setLpForm({ ...lpForm, content: e.target.value })}
+                                            rows={4}
+                                            className="w-full p-3 border border-slate-300 rounded-lg"
+                                            placeholder="Detalhes da aula..."
+                                        />
+                                    </div>
+                                </>
+                            )}
                             <div className="flex gap-3 mt-6">
                                 <button
                                     onClick={handleCreateLessonPlan}

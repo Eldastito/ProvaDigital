@@ -374,6 +374,17 @@ export interface Student {
   tenantId: string;
 }
 
+// --- CLASS DIARY QUALITATIVE DATA ---
+export interface DiaryEntry {
+  id: string;
+  studentId: string;
+  classId: string;
+  date: string;
+  attendance: 'PRESENT' | 'ABSENT' | 'JUSTIFIED';
+  occurrences: string[]; // IDs from QUICK_OCCURRENCES
+  teacherId: string;
+}
+
 // --- AUDIT & METADATA TYPES ---
 
 export interface QuestionMetadata {
@@ -1188,6 +1199,8 @@ export interface AppState {
   logisticsIncidents: LogisticsIncident[];
   logisticsTablets: TabletLogistics[];
   logisticsAudit: LogisticsAuditEntry[];
+  neuroReportDeliveries: NeuroReportDelivery[];
+  diaryEntries: DiaryEntry[];
 }
 
 // ============================================
@@ -1463,6 +1476,24 @@ export interface LogisticsIncident {
   resolvedAt?: string;
   resolvedBy?: string;
   createdAt: string;
+}
+
+// --- NEURO-SCREENING AUDIT & REFERRAL ---
+
+export interface NeuroReportDelivery {
+  id: string;
+  studentId: string;
+  recipientName: string;
+  deliveredById: string; // Professor ID
+  deliveredAt: string;
+  snapshot: {
+    studentName: string;
+    studentRegistration: string;
+    observations: any[]; // Daily occurrences
+    screeningResults: AssessmentResult[];
+  };
+  disclaimerAccepted: boolean;
+  signatureUrl?: string; // Optativo: Placeholder para assinatura digital
 }
 
 

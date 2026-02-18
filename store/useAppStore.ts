@@ -10,7 +10,7 @@ import {
     ExamAttempt, ExamAttemptEvent, AuditLog, ArcadeGame, ExamVariantOverride,
     LiveQuizSession, LiveQuizParticipant, LiveQuizResult,
     LogisticsAsset, LogisticsCase, LogisticsSeal, CustodyTransfer, LogisticsIncident,
-    SuitcaseStatus, TabletLogistics, LogisticsAuditEntry
+    SuitcaseStatus, TabletLogistics, LogisticsAuditEntry, NeuroReportDelivery, DiaryEntry
 } from '../types';
 import { uuidv4 } from '../utils/helpers';
 import { INITIAL_TENANTS, INITIAL_SCHOOLS, INITIAL_CLASSES, INITIAL_STUDENTS, INITIAL_USERS, INITIAL_ITEMS, INITIAL_EXAMS, INITIAL_RESULTS, INITIAL_ANNOUNCEMENTS, INITIAL_MESSAGES, INITIAL_LESSON_PLANS, INITIAL_STUDY_PLANS, INITIAL_STUDENT_PROFILES, INITIAL_SETTINGS, MOCK_TENANT_ID, MOCK_TENANT_ID_2, MOCK_ITEM_ID, MOCK_EXAM_ID, INITIAL_REGISTRATIONS, INITIAL_GAMIFIED_EVENTS, INITIAL_USER_PROFILES } from '../utils/mockData';
@@ -234,6 +234,10 @@ interface AppActions {
 
     // --- UI/THEME ACTIONS ---
     toggleTheme: () => void;
+
+    // --- NEURO-SCREENING AUDIT ---
+    addNeuroReportDelivery: (delivery: NeuroReportDelivery) => Promise<void>;
+    addDiaryEntries: (entries: DiaryEntry[]) => Promise<void>;
 }
 
 export type AppStore = AppState & AppActions;
@@ -373,6 +377,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
     logisticsIncidents: [],
     logisticsTablets: [],
     logisticsAudit: [],
+    neuroReportDeliveries: [],
+    diaryEntries: INITIAL_LESSON_PLANS.length > 0 ? [] : [], // Placeholder for initial data if needed
 
 
 
@@ -404,6 +410,52 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
     setHasConsented: (val) => set({ hasConsented: val }),
     setOwlTutorContext: (ctx) => set({ owlTutorContext: ctx }),
+
+    addNeuroReportDelivery: async (delivery) => {
+        set((state) => ({ neuroReportDeliveries: [...state.neuroReportDeliveries, delivery] }));
+
+        // Persist to Supabase if possible (using audit_logs as fallback or new table)
+        try {
+            const { error } = await supabase.from('audit_logs').insert({
+                id: uuidv4(),
+                tenantId: get().currentUser?.tenantId || MOCK_TENANT_ID,
+                actionType: 'NEURO_REPORT_DELIVERY',
+                targetResource: 'STUDENT',
+                targetId: delivery.studentId,
+                details: {
+                    recipient: delivery.recipientName,
+                    deliveredBy: delivery.deliveredById,
+                    snapshot: delivery.snapshot,
+                    disclaimerAccepted: delivery.disclaimerAccepted
+                },
+                createdAt: delivery.deliveredAt
+            });
+            if (error) console.error("Error logging delivery:", error);
+        } catch (e) {
+            console.error("Failed to log delivery:", e);
+        }
+    },
+
+    addDiaryEntries: async (newEntries) => {
+        set((state) => ({ diaryEntries: [...state.diaryEntries, ...newEntries] }));
+
+        // Persist to Supabase if needed
+        try {
+            const dbPayload = newEntries.map(e => ({
+                id: e.id,
+                student_id: e.studentId,
+                class_id: e.classId,
+                date: e.date,
+                attendance: e.attendance,
+                occurrences: e.occurrences,
+                teacher_id: e.teacherId,
+                created_at: new Date().toISOString()
+            }));
+            await supabase.from('diary_entries').insert(dbPayload);
+        } catch (e) {
+            console.error("Failed to persist diary entries:", e);
+        }
+    },
 
     setCurrentUser: (user) => {
         set((state) => {

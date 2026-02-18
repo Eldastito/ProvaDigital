@@ -194,6 +194,11 @@ export const NeuroScreeningView = () => {
                     report={selectedReport}
                     studentName={selectedStudent.name}
                     studentId={selectedStudent.registrationNumber}
+                    observations={Array.from(new Set(
+                        state.diaryEntries
+                            .filter(e => e.studentId === selectedStudentId)
+                            .flatMap(e => e.occurrences)
+                    ))}
                     onClose={() => setSelectedReport(null)}
                 />
             )}
