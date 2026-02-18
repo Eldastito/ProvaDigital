@@ -36,8 +36,10 @@ export const ProfessorPerformanceTab = () => {
     const { currentUser } = state;
     const analytics = new AnalyticsService(state);
 
-    // Ensure we have access and data
-    const professorClasses = state.classes.filter(c => currentUser?.classIds?.includes(c.id));
+    // Ensure we have access and data (unificado com a lógica do dashboard)
+    const professorClasses = state.classes.filter(c =>
+        c.teacherId === currentUser?.id || currentUser?.classIds?.includes(c.id)
+    );
 
     const [selectedClassId, setSelectedClassId] = useState<string>(professorClasses[0]?.id || '');
     const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
