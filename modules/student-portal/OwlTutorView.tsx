@@ -122,13 +122,6 @@ export const OwlTutorView = () => {
     // --- TABS STATE ---
     const [activeTab, setActiveTab] = useState<'chat' | 'history'>('chat');
 
-    // --- HISTORY DATA ---
-    const studentResults = state.results
-        .filter(r => r.studentId === student.id)
-        .sort((a, b) => new Date(b.gradedAt).getTime() - new Date(a.gradedAt).getTime());
-
-    const getExamTitle = (examId: string) => state.exams.find(e => e.id === examId)?.title || 'Prova Removida';
-
     if (!student) {
         return (
             <div className="h-[calc(100vh-140px)] flex flex-col items-center justify-center bg-white rounded-xl border border-brand-primary/20 shadow-lg max-w-4xl mx-auto p-12 text-center">
@@ -138,6 +131,13 @@ export const OwlTutorView = () => {
             </div>
         );
     }
+
+    // --- HISTORY DATA (Computed only if student exists) ---
+    const studentResults = (state.results || [])
+        .filter(r => r && r.studentId === student.id)
+        .sort((a, b) => new Date(b.gradedAt || 0).getTime() - new Date(a.gradedAt || 0).getTime());
+
+    const getExamTitle = (examId: string) => (state.exams || []).find(e => e && e.id === examId)?.title || 'Prova Removida';
 
     return (
         <div className="h-[calc(100vh-140px)] flex flex-col bg-white rounded-xl border border-brand-primary/20 shadow-lg overflow-hidden max-w-4xl mx-auto">
