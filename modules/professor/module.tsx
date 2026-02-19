@@ -16,7 +16,6 @@ export const professorModule: AppModule = {
     id: 'professor',
     allowedRoles: [UserRole.PROFESSOR],
     routes: [
-        { path: 'dashboard', element: <ProfessorDashboardView /> },
         { path: 'class-diary', element: <ClassDiaryView /> },
         { path: 'professor/logistics', element: <ProfessorApp onBack={() => window.history.back()} /> },
         {

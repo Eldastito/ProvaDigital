@@ -28,7 +28,6 @@ export const managementModule: AppModule = {
     id: 'school-management',
     allowedRoles: [UserRole.DIRETOR, UserRole.SUPERVISOR],
     routes: [
-        { path: 'dashboard', element: <ManagementView /> },
         { path: 'coordinator/council', element: <ClassCouncilView /> },
         { path: 'communication', element: <CommunicationView /> },
         { path: 'items', element: <ItemsListView /> },
