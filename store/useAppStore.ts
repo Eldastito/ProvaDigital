@@ -120,6 +120,7 @@ interface AppActions {
     updateItemWithVersion: (itemId: string, updates: Partial<Item>, changeReason: string) => Promise<void>;
     addExam: (exam: Exam) => void;
     deleteExam: (examId: string) => Promise<void>; // Added
+    activateExam: (examId: string) => Promise<void>;
     // Live Quiz Actions
     addLiveQuizSession: (session: LiveQuizSession) => Promise<void>;
     updateLiveQuizSession: (sessionId: string, updates: Partial<LiveQuizSession>) => Promise<void>;
@@ -1391,6 +1392,30 @@ export const useAppStore = create<AppStore>((set, get) => ({
             alert('✅ Prova excluída com sucesso!');
         } catch (e: any) {
             console.error('❌ Error deleting exam:', e);
+            set({ exams: previousExams }); // Rollback
+        }
+    },
+    activateExam: async (examId) => {
+        const state = get();
+        const exam = state.exams.find(e => e.id === examId);
+        if (!exam) return;
+
+        const previousExams = state.exams;
+        set((state) => ({
+            exams: state.exams.map(e => e.id === examId ? { ...e, status: ExamStatus.ACTIVE } : e)
+        }));
+
+        try {
+            const { error } = await supabase.from('exams').update({ status: ExamStatus.ACTIVE }).eq('id', examId);
+            if (error) {
+                console.error('❌ Error activating exam:', error);
+                set({ exams: previousExams }); // Rollback
+                alert("Erro ao ativar prova: " + (error.message || 'Erro desconhecido'));
+                throw error;
+            }
+            console.log('✅ Exam activated:', examId);
+        } catch (e: any) {
+            console.error('❌ Error activating exam:', e);
             set({ exams: previousExams }); // Rollback
         }
     },

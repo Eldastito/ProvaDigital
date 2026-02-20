@@ -10,7 +10,7 @@ export const ExamLauncher = () => {
     const [searchTerm, setSearchTerm] = useState('');
 
     const availableExams = exams.filter(e =>
-        e.status === ExamStatus.ACTIVE || e.status === ExamStatus.DRAFT
+        e.status === ExamStatus.ACTIVE
     ).filter(e =>
         e.title.toLowerCase().includes(searchTerm.toLowerCase())
     );

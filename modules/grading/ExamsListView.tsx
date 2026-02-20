@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Plus, MoreHorizontal, Clock, FileText, Printer, ClipboardCheck, Globe, School, Activity, ShieldCheck, Layers, Trash2, Edit } from 'lucide-react';
+import { Plus, MoreHorizontal, Clock, FileText, Printer, ClipboardCheck, Globe, School, Activity, ShieldCheck, Layers, Trash2, Edit, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppState, Exam, ExamStatus, QuestionType } from '../../types';
 import { Badge } from '../../components/ui/Badge';
@@ -10,7 +10,7 @@ import { AdvancedReviewPipeline } from '../runner/features/AdvancedReviewPipelin
 
 export const ExamsListView = () => {
     const state = useSafeAppStore();
-    const { currentUser } = state;
+    const { currentUser, activateExam } = state;
     const navigate = useNavigate();
     const [auditExamId, setAuditExamId] = React.useState<string | null>(null);
 
@@ -143,6 +143,21 @@ export const ExamsListView = () => {
                                             <ClipboardCheck size={18} />
                                         </button>
 
+                                        {/* 6.5 APLICAR (ATIVAÇÃO) */}
+                                        {exam.status === ExamStatus.DRAFT && (
+                                            <button
+                                                onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    if (confirm('Tem certeza que deseja ativar e publicar esta prova para os alunos?')) {
+                                                        await activateExam(exam.id);
+                                                    }
+                                                }}
+                                                className="text-brand-primary font-bold text-sm hover:text-brand-dark flex items-center gap-1 transition ml-2 px-3 py-1 bg-brand-light rounded-lg"
+                                                title="Aplicar e publicar prova para os alunos"
+                                            >
+                                                <Play size={16} /> Aplicar
+                                            </button>
+                                        )}
 
                                         {/* 7. EXCLUIR */}
                                         <button
