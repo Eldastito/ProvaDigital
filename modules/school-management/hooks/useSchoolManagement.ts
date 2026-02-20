@@ -38,8 +38,8 @@ export const useSchoolManagement = () => {
 
     const currentUser = state.currentUser;
     const userSchoolId = currentUser?.schoolId;
-    const isTenantAdmin = currentUser?.role === UserRole.TENANT_ADMIN || currentUser?.role === UserRole.SUPER_ADMIN;
-    const isDirector = currentUser?.role === UserRole.DIRETOR;
+    const isTenantAdmin = currentUser?.role === UserRole.TENANT_ADMIN || currentUser?.role === UserRole.SUPER_ADMIN || currentUser?.role === UserRole.SYSTEM_ADMIN || currentUser?.role === UserRole.MASTER_SAAS;
+    const isDirector = currentUser?.role === UserRole.DIRETOR || currentUser?.role === UserRole.SUPERVISOR;
     const currentTenantId = currentUser?.tenantId || MOCK_TENANT_ID;
 
     // --- DATA FILTERING (ISOLATION) ---

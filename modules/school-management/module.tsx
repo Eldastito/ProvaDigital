@@ -28,6 +28,7 @@ export const managementModule: AppModule = {
     id: 'school-management',
     allowedRoles: [UserRole.DIRETOR, UserRole.SUPERVISOR],
     routes: [
+        { path: 'admin/gestao', element: <ManagementView /> },
         { path: 'coordinator/council', element: <ClassCouncilView /> },
         { path: 'communication', element: <CommunicationView /> },
         { path: 'items', element: <ItemsListView /> },
@@ -43,6 +44,7 @@ export const managementModule: AppModule = {
     ],
     sidebarItems: [
         { icon: LayoutDashboard, label: 'Painel Gestão', path: '/dashboard' },
+        { icon: Users, label: 'Rede', path: '/admin/gestao' },
         { icon: Users, label: 'Conselho Digital (IA)', path: '/coordinator/council' },
         { icon: MessageCircle, label: 'Comunicação', path: '/communication' },
         { icon: FileText, label: 'Banco de Itens', path: '/items' },

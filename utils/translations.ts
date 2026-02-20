@@ -74,6 +74,7 @@ export const translateSecurityFlag = (flag: string): string => {
 
 export const translateUserRole = (role: UserRole): string => {
     const map: Record<UserRole, string> = {
+        [UserRole.MASTER_SAAS]: 'Gestão ExamePad (Master)',
         [UserRole.SYSTEM_ADMIN]: 'Gestão SaaS (Global)',
         [UserRole.SUPER_ADMIN]: 'Gestão MEC (Educacional)',
         [UserRole.STATE_ADMIN]: 'Secretaria Estadual',

@@ -2,7 +2,7 @@ import React from 'react';
 import { UserRole } from '../../types';
 import { AppModule } from '../core/types';
 import {
-    Shield, Truck, History, Settings, FileUp, Terminal, Target, Gamepad2, Package
+    Shield, Truck, History, Settings, FileUp, Terminal, Target, Gamepad2, Package, Users
 } from 'lucide-react';
 import { SaaSControlPanelView } from './SaaSControlPanelView';
 import LogisticsManagementView from './LogisticsManagementView';
@@ -11,6 +11,7 @@ import { GovernanceView } from './components/GovernanceView';
 import { CapabilitiesView } from './components/CapabilitiesView';
 import { BulkImportView } from './components/BulkImportView';
 import { AIDiagnosticView } from '../diagnostics/AIDiagnosticView';
+import { ManagementView } from '../school-management/ManagementView';
 import { ProtectedRoute } from '../../components/ProtectedRoute';
 
 export const adminModule: AppModule = {
@@ -18,6 +19,7 @@ export const adminModule: AppModule = {
     allowedRoles: [UserRole.MASTER_SAAS, UserRole.SYSTEM_ADMIN],
     routes: [
         { path: 'admin/saas', element: <SaaSControlPanelView /> },
+        { path: 'admin/gestao', element: <ManagementView /> },
         { path: 'admin/tenants', element: <SaaSControlPanelView /> },
         { path: 'admin/metrics', element: <SaaSControlPanelView /> },
         {
@@ -43,6 +45,11 @@ export const adminModule: AppModule = {
             icon: Shield,
             label: 'Central SaaS',
             path: '/admin/saas'
+        },
+        {
+            icon: Users,
+            label: 'Rede (Escolas/Usuários)',
+            path: '/admin/gestao'
         },
         {
             icon: History,
