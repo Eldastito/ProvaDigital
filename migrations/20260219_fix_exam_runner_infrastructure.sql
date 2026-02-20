@@ -31,17 +31,17 @@ ALTER TABLE public.exam_attempt_events ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Students can view own attempts" ON public.exam_attempts;
 CREATE POLICY "Students can view own attempts"
     ON public.exam_attempts FOR SELECT
-    USING (student_id = auth.uid()::text OR auth.role() = 'authenticated');
+    USING (student_id = auth.uid() OR auth.role() = 'authenticated');
 
 DROP POLICY IF EXISTS "Students can start own attempts" ON public.exam_attempts;
 CREATE POLICY "Students can start own attempts"
     ON public.exam_attempts FOR INSERT
-    WITH CHECK (student_id = auth.uid()::text OR auth.role() = 'authenticated');
+    WITH CHECK (student_id = auth.uid() OR auth.role() = 'authenticated');
 
 DROP POLICY IF EXISTS "Students can update own attempts" ON public.exam_attempts;
 CREATE POLICY "Students can update own attempts"
     ON public.exam_attempts FOR UPDATE
-    USING (student_id = auth.uid()::text OR auth.role() = 'authenticated');
+    USING (student_id = auth.uid() OR auth.role() = 'authenticated');
 
 DROP POLICY IF EXISTS "Professors can view all attempts" ON public.exam_attempts;
 CREATE POLICY "Professors can view all attempts"
@@ -59,7 +59,7 @@ CREATE POLICY "Students can log own events"
     WITH CHECK (EXISTS (
         SELECT 1 FROM public.exam_attempts
         WHERE exam_attempts.id = exam_attempt_events.attempt_id
-        AND exam_attempts.student_id = auth.uid()::text
+        AND exam_attempts.student_id = auth.uid()
     ));
 
 DROP POLICY IF EXISTS "Professors can view events" ON public.exam_attempt_events;
