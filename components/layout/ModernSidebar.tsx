@@ -266,7 +266,7 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
                     {!collapsed && (
                         <div className="mt-4 flex items-center gap-3 p-3 bg-white rounded-2xl border border-slate-100 shadow-sm animate-in slide-in-from-bottom-2 duration-700">
                             <div className="w-10 h-10 rounded-xl overflow-hidden shadow-md">
-                                <img src={`https://ui-avatars.com/api/?name=${currentUser.name}&background=random&size=100`} alt="Avatar" className="w-full h-full object-cover" />
+                                <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${currentUser.name}`} alt="Avatar" className="w-full h-full object-cover" />
                             </div>
                             <div className="flex-1 overflow-hidden">
                                 <p className="text-[11px] font-black text-slate-900 truncate uppercase">{currentUser.name.split(' ')[0]}</p>
