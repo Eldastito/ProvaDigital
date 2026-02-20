@@ -102,8 +102,9 @@ export const useProctoring = ({ studentId, studentName, isActive, onViolation }:
       // F. Mouse Leave (Intent to Switch Tab/App)
       const handleMouseLeave = (e: MouseEvent | Event) => {
         const me = e as MouseEvent;
-        // Only trigger if mouse leaves the top of the viewport (tab bar area)
-        if (me.clientY <= 0) {
+        // Only trigger if mouse leaves significantly towards the top of the viewport
+        // Changed from clientY <= 0 to clientY <= 2 to avoid accidental browser tab hovers
+        if (me.clientY <= -2) {
           handleViolation('Aluno moveu o cursor para fora da janela (Intenção de trocar aba).', 'MOUSE_LEAVE');
         }
       };

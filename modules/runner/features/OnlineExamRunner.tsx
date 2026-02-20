@@ -60,6 +60,9 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         return localStorage.getItem(`exam_scratchpad_${examId}`) || '';
     });
 
+    // --- SYNC STATE ---
+    const [isSyncing, setIsSyncing] = useState(true);
+
     // --- OFFLINE CACHE STATE ---
     const [isOfflineReady, setIsOfflineReady] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
@@ -136,83 +139,89 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         if (!examId || !studentId || !exam) return;
 
         const initSession = async () => {
-            // 1. Ensure items are loaded (The whole pool for adaptive)
-            await state.fetchExamItems(examId);
+            try {
+                // 1. Ensure items are loaded (The whole pool for adaptive)
+                await state.fetchExamItems(examId);
 
-            // 2. Check for existing active attempt (Server State -> LocalStorage)
-            let activeId = attemptId;
+                // 2. Check for existing active attempt (Server State -> LocalStorage)
+                let activeId = attemptId;
 
-            // If we don't have local ID, check store/DB for an open attempt for this user+exam
-            if (!activeId) {
-                const existing = examAttempts.find(a =>
-                    a.studentId === studentId &&
-                    a.examVersionId === exam.id &&
-                    a.status === 'started'
-                );
-                if (existing) activeId = existing.id;
-            }
-
-            // 3. Start or Resume
-            if (!activeId) {
-                // New Attempt
-                activeId = await startExamAttempt({
-                    examId: exam.id,
-                    examVersionId: exam.id,
-                    studentId: studentId
-                });
-                setAttemptId(activeId);
-                localStorage.setItem(`exam_attempt_${exam.id}_${studentId}`, activeId);
-
-                // ADAPTIVE START: Pick first item if empty
-                if (isAdaptive) {
-                    const { CATEngine } = await import('../../../services/grading/catEngine');
-                    // Pick best item for Theta=0 (Average student)
-                    const firstItem = CATEngine.selectNextItem(0, itemPool, []);
-                    if (firstItem) {
-                        setAdaptivePath([firstItem]);
-                        // Save initial path to metadata (TODO: Persist in DB)
-                    }
+                // If we don't have local ID, check store/DB for an open attempt for this user+exam
+                if (!activeId) {
+                    const existing = examAttempts.find(a =>
+                        a.studentId === studentId &&
+                        a.examVersionId === exam.id &&
+                        a.status === 'started'
+                    );
+                    if (existing) activeId = existing.id;
                 }
 
-            } else {
-                setAttemptId(activeId);
-                // Resume logic: Load answers and sync timer
-                const attempt = examAttempts.find(a => a.id === activeId);
-                if (attempt) {
-                    // Restore Answers
-                    if (attempt.metadata?.savedAnswers) {
-                        setAnswers(attempt.metadata.savedAnswers);
-                    }
+                // 3. Start or Resume
+                if (!activeId) {
+                    // New Attempt
+                    activeId = await startExamAttempt({
+                        examId: exam.id,
+                        examVersionId: exam.id,
+                        studentId: studentId
+                    });
+                    setAttemptId(activeId);
+                    localStorage.setItem(`exam_attempt_${exam.id}_${studentId}`, activeId);
 
-                    // Restore Adaptive State
-                    if (isAdaptive && attempt.metadata?.adaptivePath) {
-                        setAdaptivePath(attempt.metadata.adaptivePath);
-                        setCurrentTheta(attempt.metadata.currentTheta || 0);
-                    } else if (isAdaptive && adaptivePath.length === 0) {
-                        // Fallback if metadata missing but resume needed (Should not happen in prod)
+                    // ADAPTIVE START: Pick first item if empty
+                    if (isAdaptive) {
                         const { CATEngine } = await import('../../../services/grading/catEngine');
+                        // Pick best item for Theta=0 (Average student)
                         const firstItem = CATEngine.selectNextItem(0, itemPool, []);
-                        if (firstItem) setAdaptivePath([firstItem]);
+                        if (firstItem) {
+                            setAdaptivePath([firstItem]);
+                            // Save initial path to metadata (TODO: Persist in DB)
+                        }
                     }
 
-                    // Restore Timer
-                    if (attempt.startedAt) {
-                        const startTime = new Date(attempt.startedAt).getTime();
-                        const now = Date.now();
-                        const elapsedSeconds = Math.floor((now - startTime) / 1000);
-                        const remaining = Math.max(0, totalDurationSeconds - elapsedSeconds);
-                        setTimeLeft(remaining);
+                } else {
+                    setAttemptId(activeId);
+                    // Resume logic: Load answers and sync timer
+                    const attempt = examAttempts.find(a => a.id === activeId);
+                    if (attempt) {
+                        // Restore Answers
+                        if (attempt.metadata?.savedAnswers) {
+                            setAnswers(attempt.metadata.savedAnswers);
+                        }
+
+                        // Restore Adaptive State
+                        if (isAdaptive && attempt.metadata?.adaptivePath) {
+                            setAdaptivePath(attempt.metadata.adaptivePath);
+                            setCurrentTheta(attempt.metadata.currentTheta || 0);
+                        } else if (isAdaptive && adaptivePath.length === 0) {
+                            // Fallback if metadata missing but resume needed (Should not happen in prod)
+                            const { CATEngine } = await import('../../../services/grading/catEngine');
+                            const firstItem = CATEngine.selectNextItem(0, itemPool, []);
+                            if (firstItem) setAdaptivePath([firstItem]);
+                        }
+
+                        // Restore Timer
+                        if (attempt.startedAt) {
+                            const startTime = new Date(attempt.startedAt).getTime();
+                            const now = Date.now();
+                            const elapsedSeconds = Math.floor((now - startTime) / 1000);
+                            const remaining = Math.max(0, totalDurationSeconds - elapsedSeconds);
+                            setTimeLeft(remaining);
+                        }
                     }
                 }
+
+                // 4. Join Realtime
+                initializeExamEvents(examId);
+
+            } catch (err) {
+                console.error("Sync error:", err);
+            } finally {
+                setIsSyncing(false);
+                setIsRestored(true);
             }
-
-            setIsRestored(true);
-
-            // 4. Join Realtime
-            initializeExamEvents(examId);
         };
 
-        if (!isRestored) {
+        if (isSyncing) {
             initSession();
         }
 
@@ -602,6 +611,16 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
 
     // --- GUARDS / RENDER MODALS ---
     // --- GUARDS / RENDER MODALS ---
+    if (isSyncing) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-slate-900 no-zoom">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-6" />
+                <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">Criptografia de Prova Ativa</h2>
+                <p className="text-blue-400/60 text-sm animate-pulse">Sincronizando ambiente seguro...</p>
+            </div>
+        );
+    }
+
     if (isCompleted && finalGrading) {
         return (
             <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/95 backdrop-blur-sm no-zoom ${getFontClass()}`}>
@@ -650,9 +669,9 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         );
     }
 
-    if (!exam) return <div className="p-8 text-center no-zoom">Prova não encontrada.</div>;
+    if (!exam) return <div className="p-8 text-center no-zoom text-white bg-slate-900 min-h-screen flex items-center justify-center">Prova não encontrada.</div>;
 
-    if (isAdaptive && showAdaptiveIntro && !isRestored) {
+    if (isAdaptive && showAdaptiveIntro) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-95 text-white p-4 no-zoom">
                 <div className="max-w-2xl w-full bg-gray-800 rounded-2xl p-8 shadow-2xl border border-blue-500/30 ring-1 ring-blue-500/20">
@@ -740,7 +759,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         );
     }
 
-    if (!securityCheckPassed && !isRestored) {
+    if (!securityCheckPassed) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-95 text-white p-4 no-zoom">
                 <div className="max-w-md w-full bg-gray-800 rounded-xl p-6 shadow-2xl border border-gray-700">

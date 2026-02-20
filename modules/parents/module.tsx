@@ -9,7 +9,6 @@ export const parentsModule: AppModule = {
     id: 'parents-portal',
     allowedRoles: [UserRole.PAIS],
     routes: [
-        { path: 'dashboard', element: <ParentsDashboardView /> },
         { path: 'communication', element: <CommunicationView /> },
     ],
     sidebarItems: [
