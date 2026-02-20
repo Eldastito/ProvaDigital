@@ -1148,7 +1148,23 @@ export const useAppStore = create<AppStore>((set, get) => ({
         } catch (e) { console.error(e); }
     },
     addStudent: async (student) => {
-        set((state) => ({ students: [...state.students, student] }));
+        set((state) => {
+            const newUser: User = {
+                id: student.id,
+                name: student.name,
+                email: `${student.registrationNumber || student.id}@examepad.com`,
+                role: UserRole.ALUNO,
+                registrationNumber: student.registrationNumber,
+                classIds: [student.classId],
+                schoolId: student.schoolId,
+                tenantId: student.tenantId,
+                status: 'ACTIVE'
+            };
+            return {
+                students: [...state.students, student],
+                users: [...state.users, newUser]
+            };
+        });
         try {
             const { error } = await supabase.from('users').insert({
                 id: student.id,
@@ -1162,15 +1178,25 @@ export const useAppStore = create<AppStore>((set, get) => ({
             });
             if (error) {
                 console.error('❌ Error saving student:', error);
-                set((state) => ({ students: state.students.filter(s => s.id !== student.id) }));
+                set((state) => ({
+                    students: state.students.filter(s => s.id !== student.id),
+                    users: state.users.filter(u => u.id !== student.id)
+                }));
                 throw error;
             }
-            console.log('✅ Student saved to users table:', student.id);
+            console.log('✅ Student saved to users table (Store Sync):', student.id);
         } catch (e) { console.error(e); }
     },
     updateStudent: async (student) => {
         set((state) => ({
-            students: state.students.map(s => s.id === student.id ? student : s)
+            students: state.students.map(s => s.id === student.id ? student : s),
+            users: state.users.map(u => u.id === student.id ? {
+                ...u,
+                name: student.name,
+                registrationNumber: student.registrationNumber,
+                classIds: [student.classId],
+                schoolId: student.schoolId
+            } : u)
         }));
         try {
             const { error } = await supabase.from('users').update({
@@ -1182,10 +1208,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
             if (error) {
                 console.error('❌ Error updating student in users table:', error);
-                // Rollback logic could be added here
                 throw error;
             }
-            console.log('✅ Student updated in users table:', student.id);
+            console.log('✅ Student updated in store (Sync):', student.id);
         } catch (e) { console.error(e); }
     },
     deleteStudent: async (studentId) => {
@@ -1196,7 +1221,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
             severity: 'WARNING',
             eventData: { studentId, deletedBy: state.currentUser?.email }
         });
-        set((state) => ({ students: state.students.filter(s => s.id !== studentId) }));
+        set((state) => ({
+            students: state.students.filter(s => s.id !== studentId),
+            users: state.users.filter(u => u.id !== studentId)
+        }));
         try {
             await supabase.from('users').delete().eq('id', studentId);
         } catch (e) { console.error(e); }
@@ -1231,8 +1259,25 @@ export const useAppStore = create<AppStore>((set, get) => ({
             user.registrationNumber = enrollmentService.generateRegistrationNumber(tenant?.type || 'PUBLIC_MUNICIPAL');
         }
 
-        // 3. Optimistic Update (Users ONLY - SSOT)
-        set((state) => ({ users: [...state.users, user] }));
+        // 3. Optimistic Update (Users & Students Sync)
+        set((state) => {
+            const nextUsers = [...state.users, user];
+            if (user.role === UserRole.ALUNO) {
+                const newStudent: Student = {
+                    id: user.id,
+                    name: user.name,
+                    registrationNumber: user.registrationNumber || '',
+                    classId: user.classIds?.[0] || '',
+                    schoolId: user.schoolId || '',
+                    tenantId: user.tenantId
+                };
+                return {
+                    users: nextUsers,
+                    students: [...state.students, newStudent]
+                };
+            }
+            return { users: nextUsers };
+        });
 
         // 4. Auditoria Preventiva
         await state.logSecurityEvent({
@@ -1496,10 +1541,33 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
         const previousUser = state.users.find(u => u.id === user.id);
 
-        // 2. Optimistic Update (SSOT)
-        set((state) => ({
-            users: state.users.map((u) => (u.id === user.id ? user : u))
-        }));
+        // 2. Optimistic Update (SSOT & Students Sync)
+        set((state) => {
+            const nextUsers = state.users.map((u) => (u.id === user.id ? user : u));
+
+            // Sync with students collection
+            let nextStudents = [...state.students];
+            if (user.role === UserRole.ALUNO) {
+                const studentData: Student = {
+                    id: user.id,
+                    name: user.name,
+                    registrationNumber: user.registrationNumber || '',
+                    classId: user.classIds?.[0] || '',
+                    schoolId: user.schoolId || '',
+                    tenantId: user.tenantId
+                };
+                const index = nextStudents.findIndex(s => s.id === user.id);
+                if (index >= 0) {
+                    nextStudents[index] = studentData;
+                } else {
+                    nextStudents.push(studentData);
+                }
+            } else {
+                nextStudents = nextStudents.filter(s => s.id !== user.id);
+            }
+
+            return { users: nextUsers, students: nextStudents };
+        });
 
         // 3. Auditoria de Alteração
         if (previousUser && (previousUser.name !== user.name || previousUser.classIds !== user.classIds)) {
