@@ -64,6 +64,10 @@ export const StudyPlansView = () => {
     const [simTimeLeft, setSimTimeLeft] = useState(0);
     const [simFinished, setSimFinished] = useState(false);
 
+    // Bimester selection
+    const [selectedBimester, setSelectedBimester] = useState(1);
+    const [isRecalculating, setIsRecalculating] = useState(false);
+
     const analytics = new AnalyticsService(state);
 
     // --- EFFECT: POMODORO ---
@@ -184,6 +188,14 @@ export const StudyPlansView = () => {
         }
         return () => clearInterval(interval);
     }, [simStep, simTimeLeft, simFinished]);
+
+    const handleRecalculateIA = async () => {
+        setIsRecalculating(true);
+        // Simulate IA processing
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        setIsRecalculating(false);
+        alert("Planejamento otimizado com sucesso com base no desempenho da turma!");
+    };
 
     // --- ACTIONS ---
 
@@ -321,7 +333,7 @@ export const StudyPlansView = () => {
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
-        return `${mins}:${secs < 10 ? '0' : ''}${secs} `;
+        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
     };
 
     const filteredStudyPlans = isProfessor
@@ -385,15 +397,15 @@ export const StudyPlansView = () => {
                     </>
                 ) : (
                     <>
-                        <button onClick={() => setActiveTab('STUDY')} className={`pb - 3 text - sm font - medium border - b - 2 transition flex items - center gap - 2 ${activeTab === 'STUDY' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'} `}>
+                        <button onClick={() => setActiveTab('STUDY')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 ${activeTab === 'STUDY' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
                             <Target size={18} /> Meus Planos
                         </button>
                         {!isParent && (
                             <>
-                                <button onClick={() => setActiveTab('POMODORO')} className={`pb - 3 text - sm font - medium border - b - 2 transition flex items - center gap - 2 ${activeTab === 'POMODORO' ? 'border-rose-500 text-rose-600' : 'border-transparent text-slate-500'} `}>
+                                <button onClick={() => setActiveTab('POMODORO')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 ${activeTab === 'POMODORO' ? 'border-rose-500 text-rose-600' : 'border-transparent text-slate-500'}`}>
                                     <Clock size={18} /> Foco (Pomodoro)
                                 </button>
-                                <button onClick={() => setActiveTab('SIMULATOR')} className={`pb - 3 text - sm font - medium border - b - 2 transition flex items - center gap - 2 ${activeTab === 'SIMULATOR' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500'} `}>
+                                <button onClick={() => setActiveTab('SIMULATOR')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 ${activeTab === 'SIMULATOR' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500'}`}>
                                     <CheckSquare size={18} /> Simulado
                                 </button>
                             </>
@@ -408,7 +420,11 @@ export const StudyPlansView = () => {
                     {/* Bimester Navigator */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         {[1, 2, 3, 4].map(b => (
-                            <div key={b} className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${b === 1 ? 'bg-brand-primary/5 border-brand-primary shadow-md' : 'bg-white border-slate-100 hover:border-slate-300'}`}>
+                            <div
+                                key={b}
+                                onClick={() => setSelectedBimester(b)}
+                                className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${selectedBimester === b ? 'bg-brand-primary/5 border-brand-primary shadow-md' : 'bg-white border-slate-100 hover:border-slate-300'}`}
+                            >
                                 <div className="flex justify-between items-start mb-2">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{b}º Bimestre</span>
                                     {b === 1 && <span className="px-2 py-0.5 bg-brand-primary text-white text-[8px] font-black rounded-full uppercase">Atual</span>}
@@ -427,10 +443,15 @@ export const StudyPlansView = () => {
                         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                             <div>
                                 <h2 className="text-lg font-black text-slate-800 uppercase tracking-tight">Cronograma de Conteúdo</h2>
-                                <p className="text-xs text-slate-500">Distribuição de tópicos BNCC por semana</p>
+                                <p className="text-xs text-slate-500">Distribuição de tópicos BNCC por semana (Bimestre {selectedBimester})</p>
                             </div>
-                            <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-black hover:bg-slate-800 transition">
-                                <Sparkles size={14} className="text-yellow-400" /> RECALCULAR COM IA
+                            <button
+                                onClick={handleRecalculateIA}
+                                disabled={isRecalculating}
+                                className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-black hover:bg-slate-800 transition"
+                            >
+                                <Sparkles size={14} className={`${isRecalculating ? 'animate-spin' : 'text-yellow-400'}`} />
+                                {isRecalculating ? 'RECALCULANDO...' : 'RECALCULAR COM IA'}
                             </button>
                         </div>
 
@@ -459,10 +480,18 @@ export const StudyPlansView = () => {
                                         <h4 className="font-bold text-slate-800 group-hover:text-brand-primary transition-colors">{item.topic}</h4>
                                     </div>
                                     <div className="flex items-center gap-2 pr-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button className="p-2 hover:bg-brand-primary/10 text-brand-primary rounded-lg transition" title="Ver Plano de Aula">
+                                        <button
+                                            onClick={() => setActiveTab('LESSON')}
+                                            className="p-2 hover:bg-brand-primary/10 text-brand-primary rounded-lg transition"
+                                            title="Ver Plano de Aula"
+                                        >
                                             <BookOpen size={18} />
                                         </button>
-                                        <button className="p-2 hover:bg-brand-primary/10 text-brand-primary rounded-lg transition" title="Criar Prova sobre o tema">
+                                        <button
+                                            onClick={() => alert(`Criando prova para o tema: ${item.topic}`)}
+                                            className="p-2 hover:bg-brand-primary/10 text-brand-primary rounded-lg transition"
+                                            title="Criar Prova sobre o tema"
+                                        >
                                             <Target size={18} />
                                         </button>
                                     </div>
@@ -531,8 +560,8 @@ export const StudyPlansView = () => {
                         {/* Background Pulse & Effects */}
                         {pomoIsActive && (
                             <>
-                                <div className={`absolute inset - 0 opacity - 10 animate - pulse ${pomoMode === 'FOCUS' ? 'bg-rose-500' : 'bg-emerald-500'} `}></div>
-                                <div className="absolute top-0 left-0 w-full h-1 bg-slate-100"><div className="h-full bg-rose-500 transition-all duration-1000" style={{ width: `${(pomoTime / (25 * 60)) * 100}% ` }}></div></div>
+                                <div className={`absolute inset-0 opacity-10 animate-pulse ${pomoMode === 'FOCUS' ? 'bg-rose-500' : 'bg-emerald-500'}`}></div>
+                                <div className="absolute top-0 left-0 w-full h-1 bg-slate-100"><div className="h-full bg-rose-500 transition-all duration-1000" style={{ width: `${(pomoTime / (25 * 60)) * 100}%` }}></div></div>
                             </>
                         )}
 
@@ -540,14 +569,14 @@ export const StudyPlansView = () => {
                             <h2 className="text-3xl font-black text-slate-800 mb-2 tracking-tight">{pomoMode === 'FOCUS' ? 'Hora de Focar 🚀' : 'Pausa Merecida ☕'}</h2>
                             <p className="text-slate-500 mb-8 font-medium">{pomoMode === 'FOCUS' ? 'Bloqueie distrações e ganhe +50 XP!' : 'Respire fundo e prepare-se para o próximo round.'}</p>
 
-                            <div className={`text - 8xl font - black font - mono mb - 8 tracking - tighter tabular - nums ${pomoMode === 'FOCUS' ? 'text-rose-500 drop-shadow-sm' : 'text-emerald-500'} `}>
+                            <div className={`text-8xl font-black font-mono mb-8 tracking-tighter tabular-nums ${pomoMode === 'FOCUS' ? 'text-rose-500 drop-shadow-sm' : 'text-emerald-500'}`}>
                                 {formatTime(pomoTime)}
                             </div>
 
                             <div className="flex justify-center gap-4">
                                 <button
                                     onClick={() => setPomoIsActive(!pomoIsActive)}
-                                    className={`w - 20 h - 20 rounded - 2xl flex items - center justify - center shadow - xl transition - all transform active: scale - 95 ${pomoIsActive ? 'bg-amber-400 text-amber-900 border-b-4 border-amber-600' : 'bg-brand-primary text-white border-b-4 border-blue-700 hover:brightness-110'} `}
+                                    className={`w-20 h-20 rounded-2xl flex items-center justify-center shadow-xl transition-all transform active:scale-95 ${pomoIsActive ? 'bg-amber-400 text-amber-900 border-b-4 border-amber-600' : 'bg-brand-primary text-white border-b-4 border-blue-700 hover:brightness-110'}`}
                                 >
                                     {pomoIsActive ? <Pause size={36} fill="currentColor" /> : <Play size={36} fill="currentColor" className="ml-1" />}
                                 </button>
@@ -575,10 +604,10 @@ export const StudyPlansView = () => {
                                         {['OFF', 'WHITE_NOISE'].map((sound) => (
                                             <button
                                                 key={sound}
-                                                className={`px - 3 py - 1.5 rounded - lg text - xs font - bold transition flex items - center gap - 1 ${(activeSound === sound)
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ${(activeSound === sound)
                                                     ? 'bg-slate-800 text-white shadow-md transform scale-105'
                                                     : 'bg-white border hover:bg-slate-50 text-slate-600'
-                                                    } `}
+                                                    }`}
                                                 onClick={() => handleSoundChange(sound as any)}
                                             >
                                                 {sound === 'OFF' ? <XCircle size={12} /> : <Play size={10} />}
@@ -651,7 +680,7 @@ export const StudyPlansView = () => {
                                 <div className="text-sm font-bold text-slate-500">
                                     Questão {simCurrentQ + 1} de {simQuestions.length}
                                 </div>
-                                <div className={`text - xl font - mono font - bold ${simTimeLeft < 60 ? 'text-rose-500 animate-pulse' : 'text-slate-700'} `}>
+                                <div className={`text-xl font-mono font-bold ${simTimeLeft < 60 ? 'text-rose-500 animate-pulse' : 'text-slate-700'}`}>
                                     {formatTime(simTimeLeft)}
                                 </div>
                             </div>
@@ -673,10 +702,10 @@ export const StudyPlansView = () => {
                                                 if (!currentQuestion) return;
                                                 setSimAnswers(prev => ({ ...prev, [currentQuestion.id]: alt.id }));
                                             }}
-                                            className={`w - full p - 4 rounded - lg border - 2 text - left transition flex justify - between items - center ${currentQuestion && simAnswers[currentQuestion.id] === alt.id
+                                            className={`w-full p-4 rounded-lg border-2 text-left transition flex justify-between items-center ${currentQuestion && simAnswers[currentQuestion.id] === alt.id
                                                 ? 'border-brand-primary bg-blue-50 text-brand-dark'
                                                 : 'border-slate-200 hover:border-slate-300'
-                                                } `}
+                                                }`}
                                         >
                                             <span>{alt.text}</span>
                                             {currentQuestion && simAnswers[currentQuestion.id] === alt.id && <CheckCircle size={20} className="text-brand-primary" />}
@@ -974,12 +1003,12 @@ export const StudyPlansView = () => {
                                             <div
                                                 key={task.id}
                                                 onClick={() => toggleTask(plan.id, task.id)}
-                                                className={`flex items - center gap - 3 p - 3 rounded - lg cursor - pointer transition - all ${task.completed ? 'bg-emerald-50/50 opacity-60' : 'bg-white border border-slate-200 hover:border-brand-primary'} `}
+                                                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${task.completed ? 'bg-emerald-50/50 opacity-60' : 'bg-white border border-slate-200 hover:border-brand-primary'}`}
                                             >
-                                                <div className={`w - 5 h - 5 rounded border flex items - center justify - center transition - colors ${task.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-slate-300'} `}>
+                                                <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${task.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-slate-300'}`}>
                                                     {task.completed && <CheckSquare size={14} />}
                                                 </div>
-                                                <span className={`text - sm ${task.completed ? 'line-through text-slate-400' : 'text-slate-700 font-medium'} `}>{task.description}</span>
+                                                <span className={`text-sm ${task.completed ? 'line-through text-slate-400' : 'text-slate-700 font-medium'}`}>{task.description}</span>
                                             </div>
                                         ))}
                                     </div>
