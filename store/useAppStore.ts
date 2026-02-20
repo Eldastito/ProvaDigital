@@ -188,6 +188,7 @@ interface AppActions {
     // --- PHASE 3 ACTIONS ---
     startExamAttempt: (attempt: { examId: string; examVersionId: string; studentId: string }) => Promise<string>;
     logSecurityEvent: (event: { attemptId: string; eventType: string; severity: string; eventData?: any }) => Promise<void>;
+    logSystemAction: (actionType: string, targetResource: string, targetId: string, details?: any) => Promise<void>;
     submitExamAttempt: (attemptId: string, status: 'submitted' | 'timed_out') => Promise<void>;
     reopenExamAttempt: (attemptId: string) => Promise<void>;
     saveExamProgress: (attemptId: string, answers: Record<string, string>, metadata?: any) => Promise<void>;
@@ -1281,15 +1282,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
         });
 
         // 4. Auditoria Preventiva
-        await state.logSecurityEvent({
-            attemptId: 'SYSTEM',
-            eventType: 'USER_CREATE',
-            severity: 'INFO',
-            eventData: {
-                createdUserId: user.id,
-                role: user.role,
-                createdBy: state.currentUser?.email
-            }
+        await state.logSystemAction('USER_CREATE', 'users', user.id, {
+            role: user.role,
+            createdBy: state.currentUser?.email
         });
 
         try {
@@ -1321,12 +1316,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
     deleteUser: async (userId) => {
         const state = get();
-        await state.logSecurityEvent({
-            attemptId: 'SYSTEM',
-            eventType: 'USER_DELETE',
-            severity: 'CRITICAL',
-            eventData: { userId, deletedBy: state.currentUser?.email }
-        });
+        await state.logSystemAction('USER_DELETE', 'users', userId, { deletedBy: state.currentUser?.email });
         try {
             await supabase.from('users').delete().eq('id', userId);
             set((state) => ({ users: state.users.filter(u => u.id !== userId) }));
@@ -1337,12 +1327,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     },
     bulkDeleteUsers: async (userIds) => {
         const state = get();
-        await state.logSecurityEvent({
-            attemptId: 'SYSTEM',
-            eventType: 'BULK_USER_DELETE',
-            severity: 'CRITICAL',
-            eventData: { count: userIds.length, deletedBy: state.currentUser?.email }
-        });
+        await state.logSystemAction('BULK_USER_DELETE', 'users', 'MULTIPLE', { count: userIds.length, deletedBy: state.currentUser?.email });
         try {
             const { error } = await supabase.from('users').delete().in('id', userIds);
             if (error) throw error;
@@ -1371,12 +1356,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     deleteExam: async (examId) => {
         const state = get();
         const exam = state.exams.find(e => e.id === examId);
-        await state.logSecurityEvent({
-            attemptId: 'SYSTEM',
-            eventType: 'EXAM_DELETE',
-            severity: 'CRITICAL',
-            eventData: { examTitle: exam?.title, deletedBy: state.currentUser?.email }
-        });
+        await state.logSystemAction('EXAM_DELETE', 'exams', examId, { examTitle: exam?.title, deletedBy: state.currentUser?.email });
 
         const previousExams = state.exams;
         set((state) => ({ exams: state.exams.filter(e => e.id !== examId) }));
@@ -2109,6 +2089,28 @@ export const useAppStore = create<AppStore>((set, get) => ({
             }).eq('id', attemptId);
         } catch (e) {
             console.error("Error saving progress:", e);
+        }
+    },
+
+    logSystemAction: async (actionType, targetResource, targetId, details) => {
+        const state = get();
+        const tenantId = state.currentUser?.tenantId;
+        if (!tenantId) return;
+
+        try {
+            await supabase.from('audit_logs').insert({
+                tenant_id: tenantId,
+                actor_id: state.currentUser?.id || 'SYSTEM',
+                actor_email: state.currentUser?.email || 'system@examepad.com',
+                action_type: actionType,
+                target_resource: targetResource,
+                target_id: targetId,
+                details: details || {},
+                ip_address: '127.0.0.1',
+                user_agent: 'Sistema ExamePad'
+            });
+        } catch (e) {
+            console.error('Failed to log system action:', e);
         }
     },
 
