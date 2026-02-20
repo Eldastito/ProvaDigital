@@ -301,15 +301,15 @@ Critérios:
             "tri": { "status": "OK" | "WARN", "feedback": "texto CURTO" }
         },
         "overallScore": number,
-        "polishedItems": [...],
-        "variantsSuggested": [...],
-        "itemsToRemove": [...]
+        "polishedItems": [],
+        "variantsSuggested": [],
+        "itemsToRemove": []
     }
     `,
     GENERATE_SYLLABUS: (subject: string, grade: string, topic: string) => `
         Atue como Coordenador Pedagógico alinhado à BNCC(Brasil).
         Crie um Plano de Aula(Syllabus) estruturado para:
-Disciplina: ${subject}
+        Disciplina: ${subject}
 Ano / Série: ${grade}
         Tópico Central: ${topic}
 
@@ -317,8 +317,10 @@ REQUISITOS:
 1. Identifique as Habilidades BNCC(Códigos) pertinentes.
         2. Estruture em 4 Semanas(Módulos).
         3. Para cada semana, defina: Tema, Objetivo e 1 Atividade Prática sugestiva.
+
+    ATENÇÃO: O campo 'week' deve conter apenas o número da semana(ex: 1, 2, 3, 4).Não use notação científica ou números longos.
         
-        Retorne JSON: { "bnccCodes": string[], "overview": string, "weeks": [{ "week": number, "theme": string, "objective": string, "activity": string }] }
+        Retorne JSON no formato: { "bnccCodes": string[], "overview": string, "weeks": [{ "week": number, "theme": string, "objective": string, "activity": string }] }
 `,
     GENERATE_TEXT_ASSET: (theme: string, genre: string) => `
         Atue como um Autor de Material Didático Profissional.
@@ -357,56 +359,56 @@ REQUISITOS:
 }
 `,
     GENERATE_MULTIMODAL_DESCRIPTION: (context: string) => `
-        Analise o contexto pedagógico abaixo e sugira um RECURSO VISUAL (Gráfico, Mapa, Imagem ou Infográfico) que enriqueceria a questão.
+        Analise o contexto pedagógico abaixo e sugira um RECURSO VISUAL(Gráfico, Mapa, Imagem ou Infográfico) que enriqueceria a questão.
 
-        CONTEXTO: "${context}"
+    CONTEXTO: "${context}"
 
-        TAREFA:
-        1. Descreva DETALHADAMENTE o que deve conter nessa imagem (ex: "Um gráfico de barras mostrando a evolução do PIB...").
+TAREFA:
+1. Descreva DETALHADAMENTE o que deve conter nessa imagem(ex: "Um gráfico de barras mostrando a evolução do PIB...").
         2. Explique como esse recurso ajuda a resolver a questão.
-        3. Forneça o "Prompt de Geração" que o professor poderia usar em uma IA de imagem (DALL-E / Midjourney).
+        3. Forneça o "Prompt de Geração" que o professor poderia usar em uma IA de imagem(DALL - E / Midjourney).
 
         Retorne JSON: { "visualType": string, "description": string, "pedagogicalValue": string, "imageGeneratorPrompt": string }
-    `,
+`,
     VOCATIONAL_ANALYSIS: (grades: string, assessments: string, interests: string) => `
-        Você é um Orientador Vocacional de Alto Nível e Especialista em "Design de Vida" (Life Design), inspirado na metodologia "Comece pelo Porquê" de Simon Sinek e no conceito de IKIGAI.
+        Você é um Orientador Vocacional de Alto Nível e Especialista em "Design de Vida"(Life Design), inspirado na metodologia "Comece pelo Porquê" de Simon Sinek e no conceito de IKIGAI.
         
         DADOS DO ALUNO:
-        - Desempenho Acadêmico (O QUE faz bem): "${grades}"
-        - Perfil Comportamental (COMO age): "${assessments}"
-        - Interesses Pessoais (O QUE ama): "${interests}"
- 
-        TAREFA:
-        1. Golden Circle (Simon Sinek): Identifique o "PORQUÊ" (Causa / Crença) do aluno. O que motiva ele profundamente?
-        2. Analise os dados para encontrar o "Ponto Doce" do Ikigai.
-        3. Escreva uma "Declaração de Propósito" (Why Statement) impactante. Ex: "Inspirar pessoas a superar limites através da tecnologia."
-        4. Sugira 3 Carreiras Modernas alinhadas a esse PORQUÊ.
+- Desempenho Acadêmico(O QUE faz bem): "${grades}"
+    - Perfil Comportamental(COMO age): "${assessments}"
+        - Interesses Pessoais(O QUE ama): "${interests}"
+
+TAREFA:
+1. Golden Circle(Simon Sinek): Identifique o "PORQUÊ"(Causa / Crença) do aluno.O que motiva ele profundamente ?
+    2. Analise os dados para encontrar o "Ponto Doce" do Ikigai.
+        3. Escreva uma "Declaração de Propósito"(Why Statement) impactante.Ex: "Inspirar pessoas a superar limites através da tecnologia."
+4. Sugira 3 Carreiras Modernas alinhadas a esse PORQUÊ.
         
-        Retorne estritamente em JSON conforme o schema de VocationalProfile. O campo 'purposeStatement' deve ser o 'Manifesto do Porquê'.
+        Retorne estritamente em JSON conforme o schema de VocationalProfile.O campo 'purposeStatement' deve ser o 'Manifesto do Porquê'.
     `,
     PREDICT_STUDENT_OUTCOME: (history: string) => `
         Você é um Analista de Dados Educacionais Sênior e Cientista de Comportamento.
         Sua tarefa é analisar o histórico de um aluno e prever seu desempenho futuro e risco de evasão.
 
-        HISTÓRICO DO ALUNO (JSON):
+        HISTÓRICO DO ALUNO(JSON):
         ${history}
 
-        TAREFA:
-        1. Identifique Padrões: Notas em queda, frequência irregular ou platôs.
+TAREFA:
+1. Identifique Padrões: Notas em queda, frequência irregular ou platôs.
         2. Projete o Próximo Bimestre: Estimativa de nota média.
         3. Calcule Probabilidade de Evasão: Baseado em desengajamento.
-        4. Gere Insights Acionáveis: O que o professor deve fazer HOJE para mudar essa trajetória?
+        4. Gere Insights Acionáveis: O que o professor deve fazer HOJE para mudar essa trajetória ?
 
-        RETORNE EM JSON:
-        {
-            "predictedScore": number,
-            "evasionRiskProbability": number,
+    RETORNE EM JSON:
+{
+    "predictedScore": number,
+        "evasionRiskProbability": number,
             "trend": "UP" | "DOWN" | "STABLE",
-            "criticalAlerts": string[],
-            "aiInsight": string,
-            "recommendedIntervention": string
-        }
-    `,
+                "criticalAlerts": string[],
+                    "aiInsight": string,
+                        "recommendedIntervention": string
+}
+`,
     COUNCIL_MINUTES: (transcription: string, context: string) => `
         Você é um Secretário Acadêmico Especialista em Conselhos de Classe.
         Sua tarefa é gerar uma ATA FORMAL E EXECUTIVA com base na transcrição da reunião de conselho.
@@ -414,65 +416,65 @@ REQUISITOS:
         CONTEXTO DO ALUNO:
         ${context}
 
-        TRANSCRIÇÃO DA REUNIÃO (Áudio Bruto):
-        "${transcription}"
+        TRANSCRIÇÃO DA REUNIÃO(Áudio Bruto):
+"${transcription}"
 
-        OBJETIVO:
-        1. Identificar a Decisão Final (Aprovado, Retido, Conselho, Recuperação).
-        2. Sintetizar os pontos principais discutidos (Pedagógico e Comportamental).
-        3. Listar os encaminhamentos definidos (O que será feito?).
+OBJETIVO:
+1. Identificar a Decisão Final(Aprovado, Retido, Conselho, Recuperação).
+        2. Sintetizar os pontos principais discutidos(Pedagógico e Comportamental).
+        3. Listar os encaminhamentos definidos(O que será feito ?).
 
         RETORNE EM JSON:
-        {
-            "decision": "APROVADO" | "RETIDO" | "CONSELHO" | "RECUPERACAO",
-            "summary": "Resumo formal e impessoal do que foi discutido.",
+{
+    "decision": "APROVADO" | "RETIDO" | "CONSELHO" | "RECUPERACAO",
+        "summary": "Resumo formal e impessoal do que foi discutido.",
             "actions": ["Ação 1", "Ação 2"],
-            "confidentialNotes": "Notas sensíveis apenas para a coordenação."
-        }
-    `,
+                "confidentialNotes": "Notas sensíveis apenas para a coordenação."
+}
+`,
     GENERATE_PRE_EXAM_BRIEFING: (topics: string[]) => `
-        Você é um Tutor Educacional Motivacional (O Corujão 🦉).
+        Você é um Tutor Educacional Motivacional(O Corujão 🦉).
         O aluno está prestes a iniciar uma prova sobre: ${topics.join(', ')}.
 
-        OBJETIVO: Preparar o aluno mentalmente, reduzindo a ansiedade e ativando conhecimentos prévios, SEM DAR RESPOSTAS.
+OBJETIVO: Preparar o aluno mentalmente, reduzindo a ansiedade e ativando conhecimentos prévios, SEM DAR RESPOSTAS.
 
-        TAREFA:
-        1. Crie uma mensagem curta de encorajamento (1 frase).
-        2. Liste 3 "Pontos de Atenção" gerais para esses tópicos (ex: "Em crase, lembre-se de verificar o gênero da palavra seguinte").
-        3. Dê uma dica de gestão de tempo/estratégia de prova.
+    TAREFA:
+1. Crie uma mensagem curta de encorajamento(1 frase).
+        2. Liste 3 "Pontos de Atenção" gerais para esses tópicos(ex: "Em crase, lembre-se de verificar o gênero da palavra seguinte").
+        3. Dê uma dica de gestão de tempo / estratégia de prova.
 
-        IMPORTANTE: NÃO forneça exemplos de questões ou gabaritos. O foco é estratégia e calma.
+    IMPORTANTE: NÃO forneça exemplos de questões ou gabaritos.O foco é estratégia e calma.
 
         RETORNE EM JSON:
-        {
-            "motivationalQuote": "string",
-            "keyReminders": ["string", "string", "string"],
+{
+    "motivationalQuote": "string",
+        "keyReminders": ["string", "string", "string"],
             "strategyTip": "string"
-        }
-    `,
+}
+`,
     GENERATE_POST_EXAM_REVIEW: (examTitle: string, studentAnswers: any[]) => `
-        Você é um Tutor Pós-Prova (O Corujão 🦉) focado em Pedagogia do Erro.
+        Você é um Tutor Pós - Prova(O Corujão 🦉) focado em Pedagogia do Erro.
         O aluno acabou de finalizar a prova: "${examTitle}".
 
-        DADOS DO DESEMPENHO (JSON):
+        DADOS DO DESEMPENHO(JSON):
         ${JSON.stringify(studentAnswers)}
 
-        TAREFA:
-        1. Analise os erros cometidos. Identifique se foi falta de atenção, erro conceitual ou "chute".
-        2. Para cada erro significativo, forneça uma explicação curta do PORQUÊ a resposta estava errada (Pedagogia do Erro).
-        3. Sugira 2 tópicos específicos para revisão baseados nas fraquezas mostradas.
+TAREFA:
+1. Analise os erros cometidos.Identifique se foi falta de atenção, erro conceitual ou "chute".
+        2. Para cada erro significativo, forneça uma explicação curta do PORQUÊ a resposta estava errada(Pedagogia do Erro).
+3. Sugira 2 tópicos específicos para revisão baseados nas fraquezas mostradas.
 
         RETORNE EM JSON:
-        {
-            "overallFeedback": "Comentário geral sobre o desempenho (encorajador mas realista)",
-            "mistakeAnalysis": [
-                { "questionId": "id", "analysis": "Por que errou?", "topicToReview": "Tópico" }
-            ],
+{
+    "overallFeedback": "Comentário geral sobre o desempenho (encorajador mas realista)",
+        "mistakeAnalysis": [
+            { "questionId": "id", "analysis": "Por que errou?", "topicToReview": "Tópico" }
+        ],
             "studyRecommendations": ["Tópico 1", "Tópico 2"]
-        }
-    `,
+}
+`,
     ANALYZE_EXAM_BALANCE: (examTitle: string, itemsJson: string) => `
-        Você é um Auditor Pedagógico Sênior (Padrão INEP/BNCC).
+        Você é um Auditor Pedagógico Sênior(Padrão INEP / BNCC).
     Analise o equilíbrio e a qualidade da prova "${examTitle}" baseando - se nos itens abaixo:
 
 ITENS(JSON):
@@ -499,28 +501,28 @@ TAREFA:
             }
         ]
 }
-    `,
+`,
     ANALYZE_RISK_DATA: (contextJson: string) => `
         Você é um Analista de Dados Educacionais Sênior.
         Analise os dados de risco de evasão abaixo:
-        
-        DADOS (JSON):
+
+DADOS(JSON):
         ${contextJson}
-        
-        TAREFA:
-        1. Identifique tendências críticas (vulnerabilidades, queda de frequência, etc).
+
+TAREFA:
+1. Identifique tendências críticas(vulnerabilidades, queda de frequência, etc).
         2. Sugira 3 ações estratégicas imediatas para a gestão escolar.
         3. Destaque os fatores mais impactantes no momento.
         
         RETORNE EM JSON:
-        {
-            "summary": "Resumo executivo da situação",
-            "insights": [
-                { "title": "Título", "description": "Detalhes", "impact": "HIGH" | "MEDIUM" | "LOW" }
-            ],
+{
+    "summary": "Resumo executivo da situação",
+        "insights": [
+            { "title": "Título", "description": "Detalhes", "impact": "HIGH" | "MEDIUM" | "LOW" }
+        ],
             "recommendations": ["Recomendação 1", "Recomendação 2", "Recomendação 3"]
-        }
-    `,
+}
+`,
     MAP_BATCH_COLUMNS: (headers: string[], sampleRows: string[]) => `
         Você é um Especialista em Engenharia de Dados e Migração Escolar.
         Sua tarefa é mapear os cabeçalhos de uma planilha "suja" para o padrão do sistema ExamePad.
@@ -528,30 +530,30 @@ TAREFA:
         CABEÇALHOS IDENTIFICADOS:
         ${headers.join(', ')}
 
-        AMOSTRA DE DADOS (3 primeiras linhas):
+        AMOSTRA DE DADOS(3 primeiras linhas):
         ${sampleRows.join('\n')}
 
-        CAMPOS ALVO (Padronizados):
-        - name: Nome completo do Aluno/Professor.
-        - email: Endereço de e-mail institucional ou pessoal.
-        - registrationNumber: Número de matrícula escolar (Identidade Imutável).
-        - phone: Telefone ou WhatsApp (Formatar: +55...).
-        - role: Cargo (ALUNO, PROFESSOR, PAIS).
-        - classId: Identificador da Turma (Ex: 8A, 9B).
+        CAMPOS ALVO(Padronizados):
+- name: Nome completo do Aluno / Professor.
+        - email: Endereço de e - mail institucional ou pessoal.
+        - registrationNumber: Número de matrícula escolar(Identidade Imutável).
+        - phone: Telefone ou WhatsApp(Formatar: +55...).
+        - role: Cargo(ALUNO, PROFESSOR, PAIS).
+        - classId: Identificador da Turma(Ex: 8A, 9B).
         - schoolId: Identificador da Escola.
 
-        TAREFA:
-        1. Identifique qual cabeçalho da planilha corresponde a cada campo alvo.
+    TAREFA:
+1. Identifique qual cabeçalho da planilha corresponde a cada campo alvo.
         2. Se não houver correspondência clara, ignore o cabeçalho.
-        3. Se 'role' não estiver explícito, use como padrão 'ALUNO' (a menos que a amostra sugira o contrário).
+        3. Se 'role' não estiver explícito, use como padrão 'ALUNO'(a menos que a amostra sugira o contrário).
         
         RETORNE EM JSON:
-        {
-            "mapping": { "targetField": "headerName" },
-            "confidence": number,
-            "notes": "Explicação curta do mapeamento"
-        }
-    `
+{
+    "mapping": { "targetField": "headerName" },
+    "confidence": number,
+        "notes": "Explicação curta do mapeamento"
+}
+`
 };
 
 // --- Interfaces ---
@@ -807,6 +809,30 @@ const getApiKey = (): string | undefined => {
 
 // --- Helper Functions ---
 
+/**
+ * Limpa o texto retornado pela IA para garantir que seja um JSON válido.
+ * Remove blocos de código markdown, caracteres de controle e lida com alucinações numéricas.
+ */
+const cleanAIJSON = (text: string): string => {
+    try {
+        // 1. Remove blocos de código Markdown
+        // Escapamos os backticks para evitar confusão no parser de algumas IDEs
+        let cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+        // 2. Remove caracteres de controle invisíveis
+        cleaned = cleaned.replace(/[\x00-\x1F\x7F-\x9F]/g, "");
+
+        // 3. Corrige alucinações numéricas (ex: notação científica infinita ou números gigantes que quebram o parser)
+        cleaned = cleaned.replace(/:\s*\d+[eE][-+]?\d{10,}/g, ': 0');
+        cleaned = cleaned.replace(/:\s*\d{20,}/g, ': 0');
+
+        return cleaned;
+    } catch (e) {
+        console.warn("[GeminiService] Erro ao limpar JSON:", e);
+        return text;
+    }
+};
+
 async function callGeminiAPI<T>(
     contents: string | any,
     responseSchema: any | undefined
@@ -870,16 +896,11 @@ async function callGeminiAPI<T>(
             }
 
             if (responseSchema) {
-                // Sanitize Markdown code blocks if present
-                if (text.startsWith('```json')) {
-                    text = text.replace(/^```json\n/, '').replace(/\n```$/, '');
-                } else if (text.startsWith('```')) {
-                    text = text.replace(/^```\n/, '').replace(/\n```$/, '');
-                }
+                const cleanedText = cleanAIJSON(text);
                 try {
-                    return JSON.parse(text) as T;
+                    return JSON.parse(cleanedText) as T;
                 } catch (jsonError) {
-                    console.error("JSON Parse Error:", jsonError, "Raw Text:", text);
+                    console.error("JSON Parse Error:", jsonError, "Raw Text:", text, "Cleaned Text:", cleanedText);
                     throw new Error("A IA gerou um formato inválido. Tente simplificar o pedido.");
                 }
             }
