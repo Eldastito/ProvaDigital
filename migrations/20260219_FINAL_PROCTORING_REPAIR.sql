@@ -20,7 +20,7 @@ DROP POLICY IF EXISTS "Students can start own attempts" ON public.exam_attempts;
 CREATE POLICY "Allow students and professors to start attempts" 
 ON public.exam_attempts FOR INSERT 
 WITH CHECK (
-    student_id = auth.uid()::text 
+    student_id = auth.uid() 
     OR (SELECT role FROM public.users WHERE id = auth.uid()) IN ('PROFESSOR', 'DIRETOR', 'TENANT_ADMIN', 'STATE_ADMIN')
 );
 
@@ -29,7 +29,7 @@ DROP POLICY IF EXISTS "Students can update own attempts" ON public.exam_attempts
 CREATE POLICY "Allow students and professors to update attempts" 
 ON public.exam_attempts FOR UPDATE 
 USING (
-    student_id = auth.uid()::text 
+    student_id = auth.uid() 
     OR (SELECT role FROM public.users WHERE id = auth.uid()) IN ('PROFESSOR', 'DIRETOR', 'TENANT_ADMIN', 'STATE_ADMIN')
 );
 
@@ -42,7 +42,7 @@ WITH CHECK (
         SELECT 1 FROM public.exam_attempts
         WHERE exam_attempts.id = attempt_id
         AND (
-            exam_attempts.student_id = auth.uid()::text 
+            exam_attempts.student_id = auth.uid() 
             OR (SELECT role FROM public.users WHERE id = auth.uid()) IN ('PROFESSOR', 'DIRETOR', 'TENANT_ADMIN', 'STATE_ADMIN')
         )
     )
