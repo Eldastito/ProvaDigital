@@ -2100,7 +2100,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         try {
             await supabase.from('audit_logs').insert({
                 tenant_id: tenantId,
-                actor_id: state.currentUser?.id || 'SYSTEM',
+                actor_id: state.currentUser?.id || null, // MUST be a real UUID or null, 'SYSTEM' throws 400
                 actor_email: state.currentUser?.email || 'system@examepad.com',
                 action_type: actionType,
                 target_resource: targetResource,
