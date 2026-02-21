@@ -112,7 +112,8 @@ export const OwlTutorView = () => {
             inputText,
             student.name,
             context,
-            forbiddenTopics // Pass Active Exam Subjects to Block Cheating
+            forbiddenTopics, // Pass Active Exam Subjects to Block Cheating
+            student.tenantId // RAG Scope (Tenant Isolation)
         );
 
         setMessages([...newMessages, { role: 'model', text: responseText }]);

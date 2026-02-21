@@ -1043,13 +1043,89 @@ export const gradeEssayAnswer = async (
     return callGeminiAPI<EssayGrade>(prompt, schema);
 };
 
+// ============================================================================
+// NEW RAG ARCHITECTURE: Embedding & Knowledge Base (Anti-Hallucination)
+// ============================================================================
+
+/**
+ * Gera o vetor matemático (embedding) de um texto para busca semântica
+ */
+export async function generateDocEmbedding(text: string): Promise<number[] | null> {
+    try {
+        const apiKey = localStorage.getItem('googleApiKey');
+        if (!apiKey) throw new Error("API Key do Google não encontrada para embeddings.");
+
+        const ai = new GoogleGenAI({ apiKey });
+
+        // Chamada oficial da nova SDK do GoogleGenAI
+        const response = await ai.models.embedContent({
+            model: 'text-embedding-004',
+            contents: text,
+        });
+
+        // Retorna o array de números de 768 dimensões
+        return response.embeddings?.[0]?.values || null;
+    } catch (error) {
+        console.error("Erro ao gerar embedding RAG:", error);
+        return null;
+    }
+}
+
+/**
+ * Realiza a busca vetorial no Supabase (Cofre de Conhecimento)
+ */
+export async function searchKnowledgeBase(query: string, tenantId: string, limit = 3): Promise<string> {
+    try {
+        // 1. Gera o vetor da pergunta
+        const queryEmbedding = await generateDocEmbedding(query);
+        if (!queryEmbedding) return "";
+
+        // 2. Importa o cliente Supabase dinamicamente para evitar ciclo
+        const { supabase } = await import('./supabaseClient');
+
+        // 3. Executa a RPC de mach_knowledge criada na migration
+        const { data, error } = await supabase.rpc('match_knowledge', {
+            query_embedding: queryEmbedding,
+            match_threshold: 0.70, // Relevância mínima estrita
+            match_count: limit,
+            filter_tenant: tenantId
+        });
+
+        if (error || !data || data.length === 0) {
+            return "";
+        }
+
+        // 4. Concatena os trechos encontrados
+        const contextTexts = data.map((doc: any) => doc.content).join("\n\n---\n\n");
+        return `\n\n[DADOS RAG RECUPERADOS DO SISTEMA DA ESCOLA]:\n${contextTexts}\n\n`;
+
+    } catch (error) {
+        console.error("Erro na busca semântica RAG:", error);
+        return "";
+    }
+}
+
+
 export const askOwlTutor = async (
     history: { role: 'user' | 'model'; text: string }[],
     lastUserMessage: string,
     studentName: string,
     context: string,
-    forbiddenTopics: string[] = []
+    forbiddenTopics: string[] = [],
+    tenantId?: string // Opcional por retrocompatibilidade, mas ideal injetar
 ): Promise<string> => {
+
+    // 1. Fase RAG (Retrieval) - Tenta buscar contexto interno se o tenant existir
+    let ragContext = "";
+    if (tenantId) {
+        ragContext = await searchKnowledgeBase(lastUserMessage, tenantId, 4);
+    }
+
+    // 2. Montar Instrução Rígida Anti-Alucinação caso haja dados RAG
+    if (ragContext) {
+        context += `\n\nATENÇÃO MÁXIMA (ANTI-ALUCINAÇÃO): O Coordenador forneceu os seguintes dados oficiais extraídos do material didático da escola do aluno:\n${ragContext}\n\n`;
+        context += "DIRETRIZ ESTRITA: Se a pergunta do aluno for sobre conteúdo pedagógico ou regras e estiver respondida nos DADOS RAG RECUPERADOS acima, você DEVE basear sua resposta EXCLUSIVAMENTE neles. Se não estiver nos dados e não for conhecimento basal, não invente.";
+    }
 
     let prompt = PROMPTS.TUTOR_SYSTEM(studentName, context, forbiddenTopics) + "\nHistórico da Conversa:\n";
 
