@@ -1308,7 +1308,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 responsible_phone: user.responsiblePhone || null,
                 document_number: user.documentNumber || null,
                 birth_date: user.birthDate || null,
-                address: user.address || null
+                address_street: user.address?.street || null,
+                address_number: user.address?.number || null,
+                address_complement: user.address?.complement || null,
+                address_neighborhood: user.address?.neighborhood || null,
+                address_city: user.address?.city || null,
+                address_state: user.address?.state || null,
+                address_zip: user.address?.zip || null
             });
 
             if (error) {
@@ -1618,7 +1624,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 responsible_phone: user.responsiblePhone || null,
                 document_number: user.documentNumber || null,
                 birth_date: user.birthDate || null,
-                address: user.address || null
+                address_street: user.address?.street || null,
+                address_number: user.address?.number || null,
+                address_complement: user.address?.complement || null,
+                address_neighborhood: user.address?.neighborhood || null,
+                address_city: user.address?.city || null,
+                address_state: user.address?.state || null,
+                address_zip: user.address?.zip || null
             }).eq('id', user.id);
 
             if (error) {
