@@ -12,8 +12,8 @@ export const userService = {
      * Check if email is already in use by another user
      * Flexibilizado: Permite que Alunos menores compartilhem e-mail com Pais.
      */
-    isEmailTaken: (email: string, excludeId?: string, role?: UserRole, birthDate?: string): boolean => {
-        if (!email) return false;
+    isEmailTaken: (email: string, excludeId?: string, role?: UserRole, birthDate?: string): string | null => {
+        if (!email) return null;
         const users = useAppStore.getState().users || [];
 
         const existingUsersWithEmail = users.filter(u =>
@@ -22,7 +22,7 @@ export const userService = {
             u.id !== excludeId
         );
 
-        if (existingUsersWithEmail.length === 0) return false;
+        if (existingUsersWithEmail.length === 0) return null;
 
         // Se o usuário a ser criado for um Aluno, verificar se ele compartilha APENAS com PAIS ou outros ALUNOS irmãos
         const isAluno = role === UserRole.ALUNO;
@@ -31,12 +31,19 @@ export const userService = {
         const isParent = role === UserRole.PAIS;
 
         if (isAluno || isParent) {
-            // Conta de Aluno ou Pais pode compartilhar o e-mail livremente 
-            return false;
+            // Verifica se o e-mail está associado a alguém fora da família (ex: outro professor ou diretor)
+            const takenByNonFamily = existingUsersWithEmail.some(u => u.role !== UserRole.PAIS && u.role !== UserRole.ALUNO);
+
+            if (takenByNonFamily) {
+                return 'Este e-mail pertence a um usuário com nível de acesso superior (Professores ou Gestão) e não pode ser compartilhado com Alunos/Pais por motivos de segurança. Por favor, utilize um e-mail diferente para este cadastro.';
+            }
+
+            // Conta de Aluno ou Pais pode compartilhar o e-mail livremente APENAS entre si
+            return null;
         }
 
-        // Para os demais cenários, bloqueio estrito
-        return true;
+        // Para os demais cenários (Professores, Gestão), o e-mail deve ser totalmente exclusivo
+        return 'E-mail já está em uso por outro usuário. Cada colaborador/gestor deve ter um e-mail exclusivo no sistema.';
     },
 
     /**
@@ -55,8 +62,9 @@ export const userService = {
      * Create a new user with validation
      */
     createUser: async (userData: Omit<User, 'id' | 'status' | 'createdAt'>): Promise<User> => {
-        if (userService.isEmailTaken(userData.email, undefined, userData.role, userData.birthDate)) {
-            throw new Error('E-mail já cadastrado de forma exclusiva no sistema (este email não é de um Responsável/PAIS ou o aluno não é menor de idade).');
+        const emailError = userService.isEmailTaken(userData.email, undefined, userData.role, userData.birthDate);
+        if (emailError) {
+            throw new Error(emailError);
         }
 
         const newUser: User = {
@@ -91,8 +99,11 @@ export const userService = {
         const checkRole = updates.role || existing.role;
         const checkBirthDate = updates.birthDate !== undefined ? updates.birthDate : existing.birthDate;
 
-        if (updates.email && userService.isEmailTaken(updates.email, id, checkRole, checkBirthDate)) {
-            throw new Error('E-mail já está em uso por outro usuário restrito.');
+        if (updates.email) {
+            const emailError = userService.isEmailTaken(updates.email, id, checkRole, checkBirthDate);
+            if (emailError) {
+                throw new Error(emailError);
+            }
         }
 
         const updatedUser = {
