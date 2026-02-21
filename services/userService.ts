@@ -10,15 +10,38 @@ import { uuidv4 } from '../utils/helpers';
 export const userService = {
     /**
      * Check if email is already in use by another user
+     * Flexibilizado: Permite que Alunos menores compartilhem e-mail com Pais.
      */
-    isEmailTaken: (email: string, excludeId?: string): boolean => {
+    isEmailTaken: (email: string, excludeId?: string, role?: UserRole, birthDate?: string): boolean => {
         if (!email) return false;
         const users = useAppStore.getState().users || [];
-        return users.some(u =>
+
+        const existingUsersWithEmail = users.filter(u =>
             u.email &&
             u.email.toLowerCase() === email.toLowerCase() &&
             u.id !== excludeId
         );
+
+        if (existingUsersWithEmail.length === 0) return false;
+
+        // Se o usuário a ser criado for um Aluno Menor, verificar se ele compartilha APENAS com PAIS ou outros ALUNOS irmãos
+        const isMinorAluno = role === UserRole.ALUNO && birthDate &&
+            (new Date().getFullYear() - new Date(birthDate).getFullYear() < 18);
+
+        // Se a pessoa atual for um PAI, ela também pode reutilizar o email de um filho que já foi cadastrado
+        const isParent = role === UserRole.PAIS;
+
+        if (isMinorAluno || isParent) {
+            // Verifica se o e-mail está associado a alguém fora da família (ex: outro professor ou diretor)
+            const takenByNonFamily = existingUsersWithEmail.some(u => u.role !== UserRole.PAIS && u.role !== UserRole.ALUNO);
+            if (takenByNonFamily) return true; // Bloqueia
+
+            // Libera compartilhamento
+            return false;
+        }
+
+        // Para os demais cenários, bloqueio estrito
+        return true;
     },
 
     /**
@@ -37,8 +60,8 @@ export const userService = {
      * Create a new user with validation
      */
     createUser: async (userData: Omit<User, 'id' | 'status' | 'createdAt'>): Promise<User> => {
-        if (userService.isEmailTaken(userData.email)) {
-            throw new Error('E-mail já cadastrado no sistema.');
+        if (userService.isEmailTaken(userData.email, undefined, userData.role, userData.birthDate)) {
+            throw new Error('E-mail já cadastrado de forma exclusiva no sistema (este email não é de um Responsável/PAIS ou o aluno não é menor de idade).');
         }
 
         const newUser: User = {
@@ -69,8 +92,12 @@ export const userService = {
 
         if (!existing) throw new Error('Usuário não encontrado.');
 
-        if (updates.email && userService.isEmailTaken(updates.email, id)) {
-            throw new Error('E-mail já em uso por outro usuário.');
+        // Use the new birthdate or role if provided, otherwise fallback to existing
+        const checkRole = updates.role || existing.role;
+        const checkBirthDate = updates.birthDate !== undefined ? updates.birthDate : existing.birthDate;
+
+        if (updates.email && userService.isEmailTaken(updates.email, id, checkRole, checkBirthDate)) {
+            throw new Error('E-mail já está em uso por outro usuário restrito.');
         }
 
         const updatedUser = {
