@@ -3,6 +3,7 @@ import { User, UserRole, School } from '../../../types';
 import { UserFilters } from './UserFilters';
 import { UserList } from './UserList';
 import { UserFormModal } from './UserFormModal';
+import { UserViewModal } from './UserViewModal';
 import { userService } from '../../../services/userService';
 import { useSafeAppStore } from '../../../store/useAppStore';
 import { Plus, Table, X, Lock, Unlock, AlertTriangle } from 'lucide-react';
@@ -38,8 +39,10 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
     const [searchTerm, setSearchTerm] = useState('');
     const [roleFilter, setRoleFilter] = useState<UserRole | 'ALL'>(forcedRole);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [isBatchImportOpen, setIsBatchImportOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
+    const [viewingUser, setViewingUser] = useState<User | null>(null);
 
     // Filter Logic
     const filteredUsers = useMemo(() => {
@@ -71,6 +74,11 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
     const handleAdd = () => {
         setEditingUser(null);
         setIsModalOpen(true);
+    };
+
+    const handleView = (user: User) => {
+        setViewingUser(user);
+        setIsViewModalOpen(true);
     };
 
     const handleEdit = (user: User) => {
@@ -180,6 +188,7 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                 selectedUserIds={selectedUserIds}
                 onToggleSelection={toggleUserSelection}
                 onSelectAll={selectAllVisibleUsers}
+                onView={handleView}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onToggleStatus={handleToggleStatus}
@@ -197,6 +206,15 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                 allStudents={users.filter(u => u.role === UserRole.ALUNO)}
                 currentTenantId={currentUser?.tenantId || ''}
                 isTenantAdmin={isTenantAdmin}
+            />
+
+            <UserViewModal
+                isOpen={isViewModalOpen}
+                onClose={() => setIsViewModalOpen(false)}
+                user={viewingUser}
+                schools={schools}
+                classes={classes}
+                allUsers={users}
             />
 
             {isBatchImportOpen && (

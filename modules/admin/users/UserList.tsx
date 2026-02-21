@@ -1,6 +1,6 @@
 import React from 'react';
 import { User, UserRole, School, SchoolClass } from '../../../types';
-import { Settings, ShieldCheck, Users, X, Lock, Unlock, Building2, GraduationCap, AlertCircle } from 'lucide-react';
+import { Settings, ShieldCheck, Users, X, Lock, Unlock, Building2, GraduationCap, AlertCircle, Eye } from 'lucide-react';
 import { translateUserRole } from '../../../utils/translations';
 
 interface UserListProps {
@@ -10,6 +10,7 @@ interface UserListProps {
     selectedUserIds: string[];
     onToggleSelection: (userId: string) => void;
     onSelectAll: (userIds: string[]) => void;
+    onView: (user: User) => void;
     onEdit: (user: User) => void;
     onDelete: (user: User) => void;
     onResetPassword: (email: string) => void;
@@ -24,6 +25,7 @@ export const UserList: React.FC<UserListProps> = ({
     selectedUserIds,
     onToggleSelection,
     onSelectAll,
+    onView,
     onEdit,
     onDelete,
     onResetPassword,
@@ -198,6 +200,13 @@ export const UserList: React.FC<UserListProps> = ({
                                     {canManageUsers && (
                                         <td className="p-4 text-right">
                                             <div className="flex justify-end gap-1">
+                                                <button
+                                                    onClick={() => onView(user)}
+                                                    className="p-2 rounded text-slate-400 hover:text-brand-primary hover:bg-brand-light transition"
+                                                    title="Visualizar"
+                                                >
+                                                    <Eye size={16} />
+                                                </button>
                                                 <button
                                                     onClick={() => onEdit(user)}
                                                     className="p-2 rounded text-slate-400 hover:text-brand-primary hover:bg-brand-light transition"
