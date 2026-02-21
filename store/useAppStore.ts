@@ -1300,7 +1300,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 phone: user.phone || null,
                 registration_number: user.registrationNumber || null,
                 subject_ids: user.subjectIds || [],
-                status: user.status || 'ACTIVE'
+                status: user.status || 'ACTIVE',
+                gender: user.gender || null,
+                mother_name: user.motherName || null,
+                father_name: user.fatherName || null,
+                responsible_email: user.responsibleEmail || null,
+                responsible_phone: user.responsiblePhone || null,
+                document_number: user.documentNumber || null,
+                birth_date: user.birthDate || null,
+                address: user.address || null
             });
 
             if (error) {
@@ -1602,7 +1610,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 phone: user.phone || null,
                 registration_number: user.registrationNumber || null,
                 subject_ids: user.subjectIds || [],
-                status: user.status
+                status: user.status,
+                gender: user.gender || null,
+                mother_name: user.motherName || null,
+                father_name: user.fatherName || null,
+                responsible_email: user.responsibleEmail || null,
+                responsible_phone: user.responsiblePhone || null,
+                document_number: user.documentNumber || null,
+                birth_date: user.birthDate || null,
+                address: user.address || null
             }).eq('id', user.id);
 
             if (error) {
