@@ -24,14 +24,13 @@ export const userService = {
 
         if (existingUsersWithEmail.length === 0) return false;
 
-        // Se o usuário a ser criado for um Aluno Menor, verificar se ele compartilha APENAS com PAIS ou outros ALUNOS irmãos
-        const isMinorAluno = role === UserRole.ALUNO && birthDate &&
-            (new Date().getFullYear() - new Date(birthDate).getFullYear() < 18);
+        // Se o usuário a ser criado for um Aluno, verificar se ele compartilha APENAS com PAIS ou outros ALUNOS irmãos
+        const isAluno = role === UserRole.ALUNO;
 
         // Se a pessoa atual for um PAI, ela também pode reutilizar o email de um filho que já foi cadastrado
         const isParent = role === UserRole.PAIS;
 
-        if (isMinorAluno || isParent) {
+        if (isAluno || isParent) {
             // Verifica se o e-mail está associado a alguém fora da família (ex: outro professor ou diretor)
             const takenByNonFamily = existingUsersWithEmail.some(u => u.role !== UserRole.PAIS && u.role !== UserRole.ALUNO);
             if (takenByNonFamily) return true; // Bloqueia

@@ -202,8 +202,8 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
                 onSubmit={handleSubmit}
                 editingUser={editingUser}
                 availableSchools={schools}
-                availableClasses={classes} // Passing classes to modal
-                allStudents={users.filter(u => u.role === UserRole.ALUNO)}
+                availableClasses={classes}
+                allUsers={users}
                 currentTenantId={currentUser?.tenantId || ''}
                 isTenantAdmin={isTenantAdmin}
             />

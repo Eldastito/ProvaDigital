@@ -11,7 +11,7 @@ interface UserFormModalProps {
     editingUser?: User | null;
     availableSchools: School[];
     availableClasses: SchoolClass[];
-    allStudents: User[]; // All students in the tenant for parent linkage
+    allUsers: User[]; // Todos os usuários para auto-completar dados
     currentTenantId: string;
     isTenantAdmin: boolean;
 }
@@ -23,7 +23,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
     editingUser,
     availableSchools,
     availableClasses,
-    allStudents,
+    allUsers,
     currentTenantId,
     isTenantAdmin
 }) => {
@@ -148,6 +148,45 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
         }
     }, [isOpen, editingUser]);
 
+    // Otimização: Auto-preenchimento de dados de pai/mãe baseado no E-mail
+    useEffect(() => {
+        if (formData.responsibleEmail && formData.responsibleEmail.includes('@') && allUsers) {
+            const rel = allUsers.find(u =>
+                (u.role === UserRole.PAIS && u.email === formData.responsibleEmail) ||
+                u.responsibleEmail === formData.responsibleEmail
+            );
+            if (rel && rel.id !== editingUser?.id) {
+                setFormData(prev => ({
+                    ...prev,
+                    motherName: prev.motherName || rel.motherName || '',
+                    fatherName: prev.fatherName || rel.fatherName || '',
+                    responsiblePhone: prev.responsiblePhone || rel.responsiblePhone || rel.phone || '',
+                    documentNumber: prev.documentNumber || rel.documentNumber || ''
+                }));
+            }
+        }
+    }, [formData.responsibleEmail, allUsers, editingUser?.id]);
+
+    // Persistência: Recuperar e salvar rascunho (apenas para NOVO usuário)
+    useEffect(() => {
+        if (isOpen && !editingUser) {
+            const draft = sessionStorage.getItem('userFormDraft');
+            if (draft && JSON.stringify(formData) === JSON.stringify({
+                name: '', email: '', role: UserRole.PROFESSOR, schoolId: '', classIds: [], childrenIds: [], phone: '', registrationNumber: '', subjectIds: [], birthDate: '', gender: '', motherName: '', fatherName: '', responsibleEmail: '', responsiblePhone: '', documentNumber: '', address: { street: '', number: '', complement: '', neighborhood: '', city: '', state: '', zip: '' }
+            })) {
+                try {
+                    setFormData(JSON.parse(draft));
+                } catch { /* ignore parse error */ }
+            }
+        }
+    }, [isOpen, editingUser]);
+
+    useEffect(() => {
+        if (isOpen && !editingUser) {
+            sessionStorage.setItem('userFormDraft', JSON.stringify(formData));
+        }
+    }, [formData, isOpen, editingUser]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
@@ -160,6 +199,9 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
 
             // Call parent submit
             await onSubmit(formData);
+            if (!editingUser) {
+                sessionStorage.removeItem('userFormDraft');
+            }
             onClose();
         } catch (err: any) {
             setError(err.message || 'Erro ao salvar usuário');
@@ -568,7 +610,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                             <div className="space-y-2">
                                 <div className="max-h-48 overflow-y-auto custom-scrollbar border rounded-lg p-2 bg-white">
                                     <div className="grid grid-cols-1 gap-1">
-                                        {allStudents.map(student => (
+                                        {allUsers.filter(u => u.role === UserRole.ALUNO).map(student => (
                                             <label key={student.id} className="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer border-b border-slate-100 last:border-0 group">
                                                 <input
                                                     type="checkbox"
@@ -589,7 +631,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                                                 </div>
                                             </label>
                                         ))}
-                                        {allStudents.length === 0 && (
+                                        {allUsers.filter(u => u.role === UserRole.ALUNO).length === 0 && (
                                             <div className="text-center py-4 text-slate-400 text-xs italic">Nenhum aluno cadastrado para vínculo.</div>
                                         )}
                                     </div>
