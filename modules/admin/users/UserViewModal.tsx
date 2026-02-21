@@ -19,6 +19,11 @@ export const UserViewModal: React.FC<UserViewModalProps> = ({ isOpen, onClose, u
     const userClasses = classes.filter(c => user.classIds?.includes(c.id));
     const children = allUsers.filter(u => user.childrenIds?.includes(u.id));
 
+    // Find all professors that share at least one class with the student (if the user is a student)
+    const linkedProfessors = user.role === UserRole.ALUNO && user.classIds && user.classIds.length > 0
+        ? allUsers.filter(p => p.role === UserRole.PROFESSOR && p.classIds?.some(id => user.classIds?.includes(id)))
+        : [];
+
     return (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden border border-slate-200">
@@ -95,7 +100,7 @@ export const UserViewModal: React.FC<UserViewModalProps> = ({ isOpen, onClose, u
                                     </div>
                                 </>
                             )}
-                            {(user.role === UserRole.PROFESSOR || user.role === UserRole.GESTAO_ESCOLAR) && (
+                            {(user.role === UserRole.PROFESSOR || user.role === UserRole.DIRETOR || user.role === UserRole.SUPERVISOR) && (
                                 <div>
                                     <label className="text-[10px] uppercase font-bold text-slate-500">Registro Funcional (SIAPE / Nº)</label>
                                     <div className="text-sm font-medium text-slate-800 flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
@@ -120,6 +125,23 @@ export const UserViewModal: React.FC<UserViewModalProps> = ({ isOpen, onClose, u
                                                 </span>
                                             ))
                                         ) : <span className="text-slate-400 italic">Nenhuma turma</span>}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Linked Professors For Students */}
+                            {user.role === UserRole.ALUNO && linkedProfessors.length > 0 && (
+                                <div className="md:col-span-2">
+                                    <label className="text-[10px] uppercase font-bold text-slate-500">Professores Vinculados às Turmas</label>
+                                    <div className="text-sm font-medium text-slate-800 bg-slate-50 p-3 rounded-lg border border-slate-100 flex flex-wrap gap-2">
+                                        {linkedProfessors.map(prof => (
+                                            <span key={prof.id} className="bg-emerald-50 border border-emerald-100 text-emerald-700 px-2 py-1 rounded-md text-xs flex items-center gap-1.5 shadow-sm">
+                                                <UserIcon size={10} /> {prof.name}
+                                                {prof.subjectIds && prof.subjectIds.length > 0 && (
+                                                    <span className="text-[9px] text-emerald-500 font-bold ml-1 uppercase">({prof.subjectIds.join(', ')})</span>
+                                                )}
+                                            </span>
+                                        ))}
                                     </div>
                                 </div>
                             )}
