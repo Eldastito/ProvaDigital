@@ -31,11 +31,7 @@ export const userService = {
         const isParent = role === UserRole.PAIS;
 
         if (isAluno || isParent) {
-            // Verifica se o e-mail está associado a alguém fora da família (ex: outro professor ou diretor)
-            const takenByNonFamily = existingUsersWithEmail.some(u => u.role !== UserRole.PAIS && u.role !== UserRole.ALUNO);
-            if (takenByNonFamily) return true; // Bloqueia
-
-            // Libera compartilhamento
+            // Conta de Aluno ou Pais pode compartilhar o e-mail livremente 
             return false;
         }
 

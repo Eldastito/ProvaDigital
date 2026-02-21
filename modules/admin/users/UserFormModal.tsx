@@ -86,67 +86,80 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
 
     useEffect(() => {
         if (isOpen) {
-            if (editingUser) {
-                setFormData({
-                    name: editingUser.name || '',
-                    email: editingUser.email || '',
-                    role: editingUser.role,
-                    schoolId: editingUser.schoolId || '',
-                    classIds: editingUser.classIds || [],
-                    childrenIds: editingUser.childrenIds || [],
-                    phone: editingUser.phone || '',
-                    registrationNumber: editingUser.registrationNumber || '',
-                    subjectIds: editingUser.subjectIds || [],
-                    birthDate: editingUser.birthDate || '',
-                    gender: editingUser.gender || '',
-                    motherName: editingUser.motherName || '',
-                    fatherName: editingUser.fatherName || '',
-                    responsibleEmail: editingUser.responsibleEmail || '',
-                    responsiblePhone: editingUser.responsiblePhone || '',
-                    documentNumber: editingUser.documentNumber || '',
-                    address: {
-                        street: editingUser.address?.street || '',
-                        number: editingUser.address?.number || '',
-                        complement: editingUser.address?.complement || '',
-                        neighborhood: editingUser.address?.neighborhood || '',
-                        city: editingUser.address?.city || '',
-                        state: editingUser.address?.state || '',
-                        zip: editingUser.address?.zip || ''
+            const baseData = editingUser ? {
+                name: editingUser.name || '',
+                email: editingUser.email || '',
+                role: editingUser.role,
+                schoolId: editingUser.schoolId || '',
+                classIds: editingUser.classIds || [],
+                childrenIds: editingUser.childrenIds || [],
+                phone: editingUser.phone || '',
+                registrationNumber: editingUser.registrationNumber || '',
+                subjectIds: editingUser.subjectIds || [],
+                birthDate: editingUser.birthDate || '',
+                gender: editingUser.gender || '',
+                motherName: editingUser.motherName || '',
+                fatherName: editingUser.fatherName || '',
+                responsibleEmail: editingUser.responsibleEmail || '',
+                responsiblePhone: editingUser.responsiblePhone || '',
+                documentNumber: editingUser.documentNumber || '',
+                address: {
+                    street: editingUser.address?.street || '',
+                    number: editingUser.address?.number || '',
+                    complement: editingUser.address?.complement || '',
+                    neighborhood: editingUser.address?.neighborhood || '',
+                    city: editingUser.address?.city || '',
+                    state: editingUser.address?.state || '',
+                    zip: editingUser.address?.zip || ''
+                }
+            } : {
+                name: '',
+                email: '',
+                role: UserRole.PROFESSOR,
+                schoolId: '',
+                classIds: [],
+                childrenIds: [],
+                phone: '',
+                registrationNumber: '',
+                subjectIds: [],
+                birthDate: '',
+                gender: '',
+                motherName: '',
+                fatherName: '',
+                responsibleEmail: '',
+                responsiblePhone: '',
+                documentNumber: '',
+                address: {
+                    street: '',
+                    number: '',
+                    complement: '',
+                    neighborhood: '',
+                    city: '',
+                    state: '',
+                    zip: ''
+                }
+            };
+
+            const draftKey = editingUser ? `userFormDraft_${editingUser.id}` : 'userFormDraft_NEW';
+            const draft = sessionStorage.getItem(draftKey);
+
+            if (draft) {
+                try {
+                    const parsed = JSON.parse(draft);
+                    if (parsed && typeof parsed === 'object') {
+                        setFormData({ ...baseData, ...parsed });
+                        setActiveTab('BASIC');
+                        setError(null);
+                        return;
                     }
-                });
-            } else {
-                setFormData({
-                    name: '',
-                    email: '',
-                    role: UserRole.PROFESSOR,
-                    schoolId: '',
-                    classIds: [],
-                    childrenIds: [],
-                    phone: '',
-                    registrationNumber: '',
-                    subjectIds: [],
-                    birthDate: '',
-                    gender: '',
-                    motherName: '',
-                    fatherName: '',
-                    responsibleEmail: '',
-                    responsiblePhone: '',
-                    documentNumber: '',
-                    address: {
-                        street: '',
-                        number: '',
-                        complement: '',
-                        neighborhood: '',
-                        city: '',
-                        state: '',
-                        zip: ''
-                    }
-                });
+                } catch { /* ignore parse errors */ }
             }
+
+            setFormData(baseData);
             setActiveTab('BASIC');
             setError(null);
         }
-    }, [isOpen, editingUser]);
+    }, [isOpen, editingUser?.id]);
 
     // Otimização: Auto-preenchimento de dados de pai/mãe baseado no E-mail
     useEffect(() => {
@@ -167,25 +180,13 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
         }
     }, [formData.responsibleEmail, allUsers, editingUser?.id]);
 
-    // Persistência: Recuperar e salvar rascunho (apenas para NOVO usuário)
+    // Persistência: Recuperar e salvar rascunho (agora para novos E edições)
     useEffect(() => {
-        if (isOpen && !editingUser) {
-            const draft = sessionStorage.getItem('userFormDraft');
-            if (draft && JSON.stringify(formData) === JSON.stringify({
-                name: '', email: '', role: UserRole.PROFESSOR, schoolId: '', classIds: [], childrenIds: [], phone: '', registrationNumber: '', subjectIds: [], birthDate: '', gender: '', motherName: '', fatherName: '', responsibleEmail: '', responsiblePhone: '', documentNumber: '', address: { street: '', number: '', complement: '', neighborhood: '', city: '', state: '', zip: '' }
-            })) {
-                try {
-                    setFormData(JSON.parse(draft));
-                } catch { /* ignore parse error */ }
-            }
+        if (isOpen) {
+            const draftKey = editingUser ? `userFormDraft_${editingUser.id}` : 'userFormDraft_NEW';
+            sessionStorage.setItem(draftKey, JSON.stringify(formData));
         }
-    }, [isOpen, editingUser]);
-
-    useEffect(() => {
-        if (isOpen && !editingUser) {
-            sessionStorage.setItem('userFormDraft', JSON.stringify(formData));
-        }
-    }, [formData, isOpen, editingUser]);
+    }, [formData, isOpen, editingUser?.id]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -199,9 +200,8 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
 
             // Call parent submit
             await onSubmit(formData);
-            if (!editingUser) {
-                sessionStorage.removeItem('userFormDraft');
-            }
+            const draftKey = editingUser ? `userFormDraft_${editingUser.id}` : 'userFormDraft_NEW';
+            sessionStorage.removeItem(draftKey);
             onClose();
         } catch (err: any) {
             setError(err.message || 'Erro ao salvar usuário');
