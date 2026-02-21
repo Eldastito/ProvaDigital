@@ -47,28 +47,16 @@ export const LoginPage = () => {
 
 
         try {
-            if (isSignUp) {
-                const { data, error: signUpError } = await supabase.auth.signUp({
-                    email,
-                    password,
-                });
-                if (signUpError) throw signUpError;
+            const { data, error: signInError } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+            if (signInError) throw signInError;
 
-                // Success Sign Up
-                alert("Cadastro realizado com sucesso! \n\nSe o login não ocorrer automaticamente, utilize suas credenciais para entrar.");
-                setIsSignUp(false); // Switch to login mode automatically
-            } else {
-                const { data, error: signInError } = await supabase.auth.signInWithPassword({
-                    email,
-                    password,
-                });
-                if (signInError) throw signInError;
-
-                if (data.session) {
-                    console.log("Login Successful:", data.user?.email);
-                    // Force a check/redirect if App.tsx listener lags
-                    window.location.hash = '/';
-                }
+            if (data.session) {
+                console.log("Login Successful:", data.user?.email);
+                // Force a check/redirect if App.tsx listener lags
+                window.location.hash = '/';
             }
         } catch (err: any) {
             console.error("Login Error:", err);
@@ -183,7 +171,7 @@ export const LoginPage = () => {
                                 </>
                             ) : (
                                 <>
-                                    {isSignUp ? 'Criar Conta' : 'Entrar na Plataforma'}
+                                    Entrar na Plataforma
                                     <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                                 </>
                             )}
@@ -215,16 +203,6 @@ export const LoginPage = () => {
                         {!isClaiming && (
                             <button
                                 type="button"
-                                onClick={() => { setIsSignUp(!isSignUp); setError(null); }}
-                                className="text-sm font-bold text-brand-primary hover:text-emerald-400 transition-colors"
-                            >
-                                {isSignUp ? 'Já tem conta? Voltar para Login' : 'Não tem conta? Cadastrar-se (Primeiro Acesso)'}
-                            </button>
-                        )}
-
-                        {!isSignUp && !isClaiming && (
-                            <button
-                                type="button"
                                 onClick={() => { setIsClaiming(true); setClaimEmail(email); }}
                                 className="flex items-center justify-center gap-2 text-sm font-bold text-indigo-400 hover:text-indigo-300 transition-colors bg-indigo-500/10 py-2 rounded-xl border border-indigo-500/20"
                             >
@@ -233,7 +211,7 @@ export const LoginPage = () => {
                             </button>
                         )}
 
-                        {!isSignUp && <a href="#" className="text-sm text-slate-400 hover:text-emerald-400 transition-colors">Esqueceu sua senha?</a>}
+                        <a href="#" className="text-sm text-slate-400 hover:text-emerald-400 transition-colors">Esqueceu sua senha?</a>
                     </div>
                 </div>
 

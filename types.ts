@@ -372,6 +372,7 @@ export interface Student {
   classId: string;
   schoolId: string;
   tenantId: string;
+  birthDate?: string;
 }
 
 // --- CLASS DIARY QUALITATIVE DATA ---
