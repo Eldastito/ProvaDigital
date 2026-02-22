@@ -10,7 +10,6 @@ import { BusinessCalculator } from './components/BusinessCalculator';
 import { AIAdvisorDashboard } from './components/AIAdvisorDashboard';
 import { TenantFormModal } from './components/TenantFormModal';
 import { calculateBusinessMetrics, calculateLogistics, generateAIInsights } from '../../utils/saasCalculators';
-import { ragSeederService } from '../../services/ragSeederService';
 
 const MetricCard = ({ title, value, detail, icon: Icon, trend }: any) => (
     <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group">
@@ -112,18 +111,6 @@ export const SaaSControlPanelView = () => {
                         className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-600 font-bold text-sm shadow-sm hover:bg-slate-50 flex items-center gap-2 transition-all hover:scale-105"
                     >
                         <Calculator size={18} /> Calculadora de Negócios
-                    </button>
-                    <button
-                        onClick={async () => {
-                            const btn = document.getElementById('rag-test-btn');
-                            if (btn) btn.innerText = 'Injetando Vetores...';
-                            await ragSeederService.runHallucinationTestMock('SYSTEM');
-                            if (btn) btn.innerText = '✓ Base RAG Atualizada';
-                        }}
-                        id="rag-test-btn"
-                        className="px-4 py-2 bg-slate-900 text-brand-secondary rounded-xl font-bold text-sm shadow-sm hover:scale-105 transition-transform active:scale-95 flex items-center gap-2 border border-brand-secondary/30"
-                    >
-                        <Shield size={18} /> Injetar Teste RAG
                     </button>
                     <button
                         onClick={() => setIsTenantModalOpen(true)}

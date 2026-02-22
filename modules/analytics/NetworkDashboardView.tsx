@@ -1,13 +1,11 @@
 
 import React, { useRef, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, Users, ShieldAlert, Zap, School, MapPin, Globe, Cloud, FileText, RefreshCw, BarChart2, BookOpen, AlertCircle, ArrowUpRight, Search, Filter } from 'lucide-react';
+import { TrendingUp, Users, ShieldAlert, Zap, School, MapPin, Globe, Cloud, FileText, RefreshCw, BarChart2, BookOpen, AlertCircle, ArrowUpRight, Search, Filter, Download } from 'lucide-react';
 import { AppState, TenantType, UserRole } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
 import { AnalyticsService } from '../../services/analyticsService';
 import { reportingService } from '../../services/reportingService';
-import { Download, ShieldCheck } from 'lucide-react';
-import { ragSeederService } from '../../services/ragSeederService';
 
 import { GlobalRankingView } from './GlobalRankingView';
 import { GeoMap } from './GeoMap';
@@ -283,18 +281,6 @@ export const NetworkDashboardView = () => {
                         className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition shadow-sm"
                     >
                         <Globe size={16} className="text-indigo-600" /> Portal OCDE
-                    </button>
-                    <button
-                        onClick={async () => {
-                            const btn = document.getElementById('rag-test-btn');
-                            if (btn) btn.innerText = 'Injetando...';
-                            await ragSeederService.runHallucinationTestMock(currentUser?.tenantId || 'SYSTEM');
-                            if (btn) btn.innerText = '✓ RAG Injetado';
-                        }}
-                        id="rag-test-btn"
-                        className="flex items-center gap-2 bg-slate-900 border border-brand-secondary/30 hover:bg-slate-800 text-brand-secondary px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition shadow-sm whitespace-nowrap"
-                    >
-                        <ShieldCheck size={16} /> Injetar Teste RAG
                     </button>
                     <div className="flex-1 sm:flex-none flex items-center gap-2 bg-slate-100 px-3 md:px-4 py-2 rounded-lg border border-slate-200">
                         <Filter size={14} className="text-slate-400" />
