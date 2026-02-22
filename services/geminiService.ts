@@ -720,9 +720,16 @@ export const batchGradeAnswers = async (answers: AnswerContext[]): Promise<Batch
 export const gradeFullEssay = async (
     topic: string,
     motivationalText: string,
-    studentText: string
+    studentText: string,
+    tenantId?: string // RAG Phase 3C
 ): Promise<any> => {
-    const prompt = PROMPTS.GRADE_FULL_ESSAY(topic, motivationalText, studentText);
+    // RAG: inject school-specific evaluation criteria
+    let extraCtx = '';
+    if (tenantId) {
+        const ragCtx = await searchKnowledgeBase(`critérios correção redação ${topic}`, tenantId, 3);
+        if (ragCtx) extraCtx = `\n\n[CRITÉRIOS OFICIAIS DA ESCOLA]:\n${ragCtx}\nConsidere esses critérios ao corrigir.`;
+    }
+    const prompt = PROMPTS.GRADE_FULL_ESSAY(topic, motivationalText, studentText) + extraCtx;
 
     // Schema definition for structure guarantee
     const schema = {
@@ -1040,10 +1047,16 @@ export const gradeEssayAnswer = async (
     question: string,
     expectedAnswer: string,
     studentAnswer: string,
-    maxScore: number
+    maxScore: number,
+    tenantId?: string // RAG Phase 3C
 ): Promise<EssayGrade> => {
-
-    const prompt = PROMPTS.GRADE_ESSAY(question, expectedAnswer, studentAnswer, maxScore);
+    // RAG: inject school-specific grading rubrics
+    let extraCtx = '';
+    if (tenantId) {
+        const ragCtx = await searchKnowledgeBase(`gabarito correção discursiva ${question.slice(0, 60)}`, tenantId, 3);
+        if (ragCtx) extraCtx = `\n\n[RUBRICA OFICIAL]:\n${ragCtx}`;
+    }
+    const prompt = PROMPTS.GRADE_ESSAY(question, expectedAnswer, studentAnswer, maxScore) + extraCtx;
 
     const schema = {
         type: Type.OBJECT,
@@ -1154,8 +1167,17 @@ export const askOwlTutor = async (
 
 // --- Tutor Agent Services (Phase 2) ---
 
-export const generatePreExamBriefing = async (topics: string[]): Promise<PreExamBriefing> => {
-    const prompt = PROMPTS.GENERATE_PRE_EXAM_BRIEFING(topics);
+export const generatePreExamBriefing = async (
+    topics: string[],
+    tenantId?: string // RAG Phase 3C
+): Promise<PreExamBriefing> => {
+    // RAG: inject relevant study content for the exam topics
+    let extraCtx = '';
+    if (tenantId) {
+        const ragCtx = await searchKnowledgeBase(topics.join(' '), tenantId, 3);
+        if (ragCtx) extraCtx = `\n\n[CONTEÚDA DISPONÍVEL PARA REVISÃO]:\n${ragCtx}\nConsidere esses materiais ao elaborar dicas.`;
+    }
+    const prompt = PROMPTS.GENERATE_PRE_EXAM_BRIEFING(topics) + extraCtx;
     const schema = {
         type: Type.OBJECT,
         properties: {
@@ -1167,15 +1189,17 @@ export const generatePreExamBriefing = async (topics: string[]): Promise<PreExam
     return callGeminiAPI<PreExamBriefing>(prompt, schema);
 };
 
-export const generatePostExamReview = async (examTitle: string, studentAnswers: any[]): Promise<PostExamReview> => {
-    // Filter only wrong answers to save tokens and focus analysis
+export const generatePostExamReview = async (
+    examTitle: string,
+    studentAnswers: any[],
+    tenantId?: string // RAG Phase 3C
+): Promise<PostExamReview> => {
     const mistakes = studentAnswers.filter(a => !a.isCorrect).map(a => ({
         questionId: a.itemId,
         selectedId: a.selectedAlternativeId,
         wasEssay: !!a.text
     }));
 
-    // If perfect score, return generic praise locally to save API call
     if (mistakes.length === 0) {
         return {
             overallFeedback: "Desempenho perfeito! Você dominou todos os tópicos desta avaliação. Continue assim! 🦉✨",
@@ -1184,7 +1208,13 @@ export const generatePostExamReview = async (examTitle: string, studentAnswers: 
         };
     }
 
-    const prompt = PROMPTS.GENERATE_POST_EXAM_REVIEW(examTitle, mistakes);
+    // RAG: inject pedagogical feedback references
+    let extraCtx = '';
+    if (tenantId) {
+        const ragCtx = await searchKnowledgeBase(`feedback pedagógico erro ${examTitle}`, tenantId, 3);
+        if (ragCtx) extraCtx = `\n\n[ORIENTAÇÕES PEDAGÓGICAS]:\n${ragCtx}`;
+    }
+    const prompt = PROMPTS.GENERATE_POST_EXAM_REVIEW(examTitle, mistakes) + extraCtx;
 
     const schema = {
         type: Type.OBJECT,
@@ -1245,10 +1275,16 @@ Se possível, inclua referências a esses materiais no plano de estudo.`;
 export const generateLessonPlanSuggestions = async (
     subject: string,
     grade: string,
-    topic: string
+    topic: string,
+    tenantId?: string // RAG Phase 3C
 ): Promise<LessonPlanSuggestion> => {
-
-    const prompt = PROMPTS.GENERATE_SYLLABUS(subject, grade, topic);
+    // RAG: inject school's official curriculum alignment
+    let enrichedTopic = topic;
+    if (tenantId) {
+        const ragCtx = await searchKnowledgeBase(`${subject} ${grade} ${topic} plano de aula`, tenantId, 3);
+        if (ragCtx) enrichedTopic += `\n\n[CONTEÚDA OFICIAL DISPONÍVEL]:\n${ragCtx}\nConsidere este conteúdo ao estruturar o plano.`;
+    }
+    const prompt = PROMPTS.GENERATE_SYLLABUS(subject, grade, enrichedTopic);
 
     const schema = {
         type: Type.OBJECT,
@@ -1276,10 +1312,16 @@ export const generateLessonPlanSuggestions = async (
 export const generateAssessmentReport = async (
     userName: string,
     testType: AssessmentType,
-    answers: { question: string; answer: string }[]
+    answers: { question: string; answer: string }[],
+    tenantId?: string // RAG Phase 3C
 ): Promise<AssessmentReport> => {
-
-    const prompt = PROMPTS.ASSESSMENT_REPORT(userName, testType, JSON.stringify(answers));
+    // RAG: inject pedagogical report guidelines from the school
+    const basePrompt = PROMPTS.ASSESSMENT_REPORT(userName, testType, JSON.stringify(answers));
+    let prompt = basePrompt;
+    if (tenantId) {
+        const ragCtx = await searchKnowledgeBase(`relatório avaliação ${testType} aluno`, tenantId, 3);
+        if (ragCtx) prompt += `\n\n[ORIENTAÇÕES DA ESCOLA PARA RELATÓRIOS]:\n${ragCtx}`;
+    }
 
     const schema = {
         type: Type.OBJECT,
@@ -1305,8 +1347,18 @@ const schema = {
     items: { type: Type.STRING }
 };
 
-export const generateCouncilMinutes = async (transcription: string, context: string): Promise<CouncilMinutes> => {
-    const prompt = (PROMPTS as any).COUNCIL_MINUTES(transcription, context);
+export const generateCouncilMinutes = async (
+    transcription: string,
+    context: string,
+    tenantId?: string // RAG Phase 3C
+): Promise<CouncilMinutes> => {
+    // RAG: inject council deliberation guidelines from the school
+    let enrichedContext = context;
+    if (tenantId) {
+        const ragCtx = await searchKnowledgeBase('conselho de classe deliberação aprovação retenção', tenantId, 3);
+        if (ragCtx) enrichedContext += `\n\n[REGRAS OFICIAIS DO CONSELHO]:\n${ragCtx}`;
+    }
+    const prompt = (PROMPTS as any).COUNCIL_MINUTES(transcription, enrichedContext);
 
     const schema = {
         type: Type.OBJECT,

@@ -30,35 +30,51 @@ export const ragSeederService = {
 
     /**
      * Generic: chunk, embed, and save any text document to the knowledge vault.
+     * @param onProgress Optional callback(processed, total) for real-time progress reporting.
      */
-    seedFromText: async (tenantId: string, title: string, fullText: string): Promise<boolean> => {
+    seedFromText: async (
+        tenantId: string,
+        title: string,
+        fullText: string,
+        onProgress?: (processed: number, total: number) => void
+    ): Promise<boolean> => {
         try {
             console.log(`📚 Indexando RAG: "${title}" [tenant: ${tenantId}]`);
             const chunks = ragSeederService.chunkText(fullText);
-            console.log(`✂️ ${chunks.length} blocos gerados.`);
-            let successCount = 0;
+            const total = chunks.length;
+            console.log(`✂️ ${total} blocos gerados.`);
 
-            for (let i = 0; i < chunks.length; i++) {
-                const embedding = await generateDocEmbedding(chunks[i]);
-                if (!embedding) {
-                    console.error(`❌ Embedding falhou no bloco ${i}`);
-                    continue;
-                }
-                const { error } = await supabase.from('knowledge_base').insert({
-                    tenant_id: tenantId,
-                    title,
-                    chunk_index: i,
-                    content: chunks[i],
-                    embedding,
-                    metadata: { source: 'knowledge_vault', is_active: true }
-                });
-                if (error) {
-                    console.error(`❌ DB error em bloco ${i}:`, error.message);
-                } else {
-                    successCount++;
-                }
+            let successCount = 0;
+            const BATCH_SIZE = 5;
+
+            for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
+                const batch = chunks.slice(i, i + BATCH_SIZE);
+
+                await Promise.all(batch.map(async (chunk, batchIndex) => {
+                    const chunkIndex = i + batchIndex;
+                    const embedding = await generateDocEmbedding(chunk);
+                    if (!embedding) {
+                        console.error(`❌ Embedding falhou no bloco ${chunkIndex}`);
+                        return;
+                    }
+                    const { error } = await supabase.from('knowledge_base').insert({
+                        tenant_id: tenantId,
+                        title,
+                        chunk_index: chunkIndex,
+                        content: chunk,
+                        embedding,
+                        metadata: { source: 'knowledge_vault', is_active: true }
+                    });
+                    if (error) {
+                        console.error(`❌ DB error em bloco ${chunkIndex}:`, error.message);
+                    } else {
+                        successCount++;
+                        onProgress?.(Math.min(i + batchIndex + 1, total), total);
+                    }
+                }));
             }
-            console.log(`✅ ${successCount}/${chunks.length} blocos salvos.`);
+
+            console.log(`✅ ${successCount}/${total} blocos salvos.`);
             return successCount > 0;
         } catch (err) {
             console.error('🔥 Erro crítico no RAG seeder:', err);
