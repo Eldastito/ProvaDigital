@@ -23,15 +23,16 @@ export const AuditLogView = () => {
         reportService.exportToCSV('audit_logs', filteredLogs);
     };
 
-    const filteredLogs = logs.filter(log =>
-        log.actorEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.actionType?.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredLogs = (logs || []).filter(log =>
+        (typeof log?.actorEmail === 'string' && log.actorEmail.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (typeof log?.actionType === 'string' && log.actionType.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    const getActionColor = (type: string) => {
-        if (type.includes('DELETE')) return 'text-red-600 bg-red-50';
-        if (type.includes('UPDATE')) return 'text-amber-600 bg-amber-50';
-        if (type.includes('LOGIN')) return 'text-blue-600 bg-blue-50';
+    const getActionColor = (type?: string) => {
+        const safeType = String(type || '').toUpperCase();
+        if (safeType.includes('DELETE')) return 'text-red-600 bg-red-50';
+        if (safeType.includes('UPDATE')) return 'text-amber-600 bg-amber-50';
+        if (safeType.includes('LOGIN')) return 'text-blue-600 bg-blue-50';
         return 'text-slate-600 bg-slate-50';
     };
 
