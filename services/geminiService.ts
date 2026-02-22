@@ -1052,8 +1052,8 @@ export const gradeEssayAnswer = async (
  */
 export async function generateDocEmbedding(text: string): Promise<number[] | null> {
     try {
-        const apiKey = localStorage.getItem('googleApiKey');
-        if (!apiKey) throw new Error("API Key do Google não encontrada para embeddings.");
+        const apiKey = getApiKey();
+        if (!apiKey) throw new Error("Chave da API Gemini não configurada (VITE_GEMINI_API_KEY). Verifique as variáveis de ambiente.");
 
         const ai = new GoogleGenAI({ apiKey });
 
