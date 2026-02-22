@@ -963,10 +963,24 @@ export const generateQuestionsFromText = async (
     quantity: number,
     type: QuestionType,
     difficulty: DifficultyLevel,
-    subject: string
+    subject: string,
+    tenantId?: string // RAG: allow injection of school-specific curricula
 ): Promise<GeneratedQuestion[]> => {
 
-    const prompt = PROMPTS.GENERATE_QUESTIONS(quantity, subject, type, difficulty, contextText);
+    // RAG Phase 2A: enrich context with school-specific knowledge
+    let enrichedContext = contextText;
+    if (tenantId) {
+        const ragCtx = await searchKnowledgeBase(`${subject} questão ${difficulty}`, tenantId, 3);
+        if (ragCtx) {
+            enrichedContext += `
+
+[CONTEXTO OFICIAL DA ESCOLA — USE COMO BASE PEDAGÓGICA]:
+${ragCtx}
+Se as habilidades e conteúdos descritos acima estiverem relacionados à disciplina, priorize-os na elaboração.`;
+        }
+    }
+
+    const prompt = PROMPTS.GENERATE_QUESTIONS(quantity, subject, type, difficulty, enrichedContext);
 
     const schema = {
         type: Type.OBJECT,
@@ -1199,10 +1213,22 @@ export const generatePostExamReview = async (examTitle: string, studentAnswers: 
 export const generateStudyPlanSuggestions = async (
     studentName: string,
     weakSubject: string,
-    recentGrade: number
+    recentGrade: number,
+    tenantId?: string // RAG: inject school-specific materials
 ): Promise<StudyPlanSuggestion> => {
 
-    const prompt = PROMPTS.STUDY_PLAN(studentName, weakSubject, recentGrade);
+    // RAG Phase 2A: search for school resources related to the weak subject
+    let extraContext = '';
+    if (tenantId) {
+        const ragCtx = await searchKnowledgeBase(`${weakSubject} material didático`, tenantId, 3);
+        if (ragCtx) extraContext = `
+
+[MATERIAIS OFICIAIS DA ESCOLA DISPONÍVEIS PARA ESTUDO]:
+${ragCtx}
+Se possível, inclua referências a esses materiais no plano de estudo.`;
+    }
+
+    const prompt = PROMPTS.STUDY_PLAN(studentName, weakSubject, recentGrade) + extraContext;
 
     const schema = {
         type: Type.OBJECT,

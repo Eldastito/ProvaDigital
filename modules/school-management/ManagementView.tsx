@@ -1,11 +1,11 @@
 import React from 'react';
-import { GraduationCap, Briefcase, Users, Settings, Plus, X, School as SchoolIcon, Upload, Radio, FileText, Download, Network, GitMerge, ArrowRight, ShieldCheck, Database, AlertTriangle } from 'lucide-react';
+import { GraduationCap, Briefcase, Users, Settings, Plus, X, School as SchoolIcon, Upload, Radio, FileText, Download, Network, GitMerge, ArrowRight, ShieldCheck, Database, AlertTriangle, BookOpen } from 'lucide-react';
 import { UserRole } from '../../types';
 import { useSchoolManagement } from './hooks/useSchoolManagement';
 import { CommandCenter } from './components/CommandCenter';
 import { ManagementForms } from './components/ManagementForms';
 import { UserManagementTab } from '../../modules/admin/users/UserManagementTab';
-import { ragSeederService } from '../../services/ragSeederService';
+import { KnowledgeVaultView } from './components/KnowledgeVaultView';
 
 export const ManagementView = () => {
     const {
@@ -41,20 +41,6 @@ export const ManagementView = () => {
                     )}
                 </h1>
                 <div className="flex w-full sm:w-auto gap-2">
-                    {(isTenantAdmin || isDirector) && (
-                        <button
-                            onClick={async () => {
-                                const btn = document.getElementById('rag-test-btn');
-                                if (btn) btn.innerText = 'Injetando...';
-                                await ragSeederService.runHallucinationTestMock(currentTenantId || 'SYSTEM');
-                                if (btn) btn.innerText = '✓ RAG Injetado';
-                            }}
-                            id="rag-test-btn"
-                            className="flex-1 sm:flex-none justify-center bg-slate-900 text-brand-secondary border border-brand-secondary/30 px-3 md:px-4 py-2 rounded-lg hover:bg-slate-800 transition flex items-center gap-2 shadow-sm text-xs md:text-sm font-medium"
-                        >
-                            <ShieldCheck size={18} /> <span className="sm:inline">Injetar Teste RAG</span>
-                        </button>
-                    )}
                     {activeTab === 'STUDENTS' && (
                         <button onClick={() => csvInputRef.current?.click()} className="flex-1 sm:flex-none justify-center bg-white text-slate-600 border border-slate-300 px-3 md:px-4 py-2 rounded-lg hover:bg-slate-50 transition flex items-center gap-2 text-xs md:text-sm font-medium">
                             <Upload size={18} /> <span className="sm:inline">Importar</span> CSV
@@ -106,6 +92,11 @@ export const ManagementView = () => {
                 <button onClick={() => setActiveTab('SETTINGS')} className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'SETTINGS' ? 'border-brand-dark text-brand-dark' : 'border-transparent text-slate-500'}`}>
                     <ShieldCheck size={18} /> Governança & LGPD
                 </button>
+                {(isTenantAdmin || isDirector) && (
+                    <button onClick={() => setActiveTab('KNOWLEDGE_VAULT')} className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'KNOWLEDGE_VAULT' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
+                        <BookOpen size={18} /> Base de Conhecimento
+                    </button>
+                )}
                 {isTenantAdmin && (
                     <button onClick={() => setActiveTab('TENANT_SETTINGS')} className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'TENANT_SETTINGS' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500'}`}>
                         <Settings size={18} /> Configuração do Tenant
@@ -465,6 +456,10 @@ export const ManagementView = () => {
                             </div>
                         </div>
                     </div>
+                )}
+
+                {activeTab === 'KNOWLEDGE_VAULT' && (
+                    <KnowledgeVaultView />
                 )}
             </div>
 
