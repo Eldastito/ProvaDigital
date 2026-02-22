@@ -11,7 +11,6 @@ import { ragSeederService } from '../../services/ragSeederService';
 
 import { GlobalRankingView } from './GlobalRankingView';
 import { GeoMap } from './GeoMap';
-import { AuditLogView } from '../admin/components/AuditLogView';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { OECDPortalView } from './OECDPortalView';
 
@@ -39,32 +38,11 @@ export const NetworkDashboardView = () => {
     const [showSyncModal, setShowSyncModal] = useState(false);
     const [selectedRegion, setSelectedRegion] = useState<string | null>(null); // Filtro pelo mapa
     const [selectedState, setSelectedState] = useState<string | null>(null); // Estado para o modal de Ranking
-    const [viewMode, setViewMode] = useState<'DASHBOARD' | 'GOVERNANCE' | 'OECD_PORTAL'>('DASHBOARD');
+    const [viewMode, setViewMode] = useState<'DASHBOARD' | 'OECD_PORTAL'>('DASHBOARD');
     const [chartMode, setChartMode] = useState<'IDEB' | 'PISA'>('IDEB');
 
     // ... (Map logic remains)
 
-    // --- RENDER GOVERNANCE VIEW ---
-    if (viewMode === 'GOVERNANCE') {
-        return (
-            <div className="min-h-screen bg-slate-50 font-sans">
-                {/* Header Simples com Voltar */}
-                <div className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <button onClick={() => setViewMode('DASHBOARD')} className="bg-slate-100 p-2 rounded hover:bg-slate-200 transition">
-                            <TrendingUp size={20} className="text-slate-600" />
-                        </button>
-                        <h1 className="text-xl font-bold text-slate-800">Central de Governança</h1>
-                    </div>
-                </div>
-                <div className="p-4 md:p-8 max-w-[1400px] mx-auto">
-                    <ErrorBoundary>
-                        <AuditLogView />
-                    </ErrorBoundary>
-                </div>
-            </div>
-        );
-    }
 
     /* 
     if (viewMode === 'OECD_PORTAL') {
@@ -307,12 +285,6 @@ export const NetworkDashboardView = () => {
                         <Globe size={16} className="text-indigo-600" /> Portal OCDE
                     </button>
                     <button
-                        onClick={() => setViewMode('GOVERNANCE')}
-                        className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition shadow-sm"
-                    >
-                        <ShieldAlert size={16} className="text-amber-600" /> Governança & Auditoria
-                    </button>
-                    <button
                         onClick={async () => {
                             const btn = document.getElementById('rag-test-btn');
                             if (btn) btn.innerText = 'Injetando...';
@@ -340,7 +312,7 @@ export const NetworkDashboardView = () => {
                                 'Média IDG': p.value.toFixed(2),
                                 'Risco': p.status === 'CRITICAL' ? 'Alto' : p.status === 'WARNING' ? 'Médio' : 'Baixo'
                             }));
-                            ReportingService.generateExcelExport(data, `Relatorio_Rede_${new Date().toISOString().split('T')[0]}`)
+                            reportingService.generateExcelExport(data, `Relatorio_Rede_${new Date().toISOString().split('T')[0]}`)
                                 .then(blob => {
                                     const url = window.URL.createObjectURL(blob);
                                     const a = document.createElement('a');
