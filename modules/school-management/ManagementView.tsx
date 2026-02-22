@@ -5,6 +5,7 @@ import { useSchoolManagement } from './hooks/useSchoolManagement';
 import { CommandCenter } from './components/CommandCenter';
 import { ManagementForms } from './components/ManagementForms';
 import { UserManagementTab } from '../../modules/admin/users/UserManagementTab';
+import { ragSeederService } from '../../services/ragSeederService';
 
 export const ManagementView = () => {
     const {
@@ -40,6 +41,20 @@ export const ManagementView = () => {
                     )}
                 </h1>
                 <div className="flex w-full sm:w-auto gap-2">
+                    {(isTenantAdmin || isDirector) && (
+                        <button
+                            onClick={async () => {
+                                const btn = document.getElementById('rag-test-btn');
+                                if (btn) btn.innerText = 'Injetando...';
+                                await ragSeederService.runHallucinationTestMock(currentTenantId || 'SYSTEM');
+                                if (btn) btn.innerText = '✓ RAG Injetado';
+                            }}
+                            id="rag-test-btn"
+                            className="flex-1 sm:flex-none justify-center bg-slate-900 text-brand-secondary border border-brand-secondary/30 px-3 md:px-4 py-2 rounded-lg hover:bg-slate-800 transition flex items-center gap-2 shadow-sm text-xs md:text-sm font-medium"
+                        >
+                            <ShieldCheck size={18} /> <span className="sm:inline">Injetar Teste RAG</span>
+                        </button>
+                    )}
                     {activeTab === 'STUDENTS' && (
                         <button onClick={() => csvInputRef.current?.click()} className="flex-1 sm:flex-none justify-center bg-white text-slate-600 border border-slate-300 px-3 md:px-4 py-2 rounded-lg hover:bg-slate-50 transition flex items-center gap-2 text-xs md:text-sm font-medium">
                             <Upload size={18} /> <span className="sm:inline">Importar</span> CSV
