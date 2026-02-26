@@ -1,0 +1,184 @@
+import { StateCreator } from 'zustand';
+import { Exam, ExamVariant, ExamVariantOverride, ExamVersion, ExamStatus, ExamModel } from '../../types';
+import { AppStore } from '../useAppStore';
+import { supabase } from '../../services/supabaseClient';
+import { v4 as uuidv4 } from 'uuid';
+
+export interface ExamSlice {
+    exams: Exam[];
+    networkExams: Exam[];
+    examVariants: ExamVariant[];
+    variantOverrides: ExamVariantOverride[];
+    examVersions: ExamVersion[];
+    examAttempts: any[]; // Using any for large complex types
+    examAttemptEvents: any[];
+    liveQuizSessions: any[];
+    liveQuizResults: any[];
+    examEncryptionKey: string | null;
+
+    addExam: (exam: Exam) => void;
+    deleteExam: (examId: string) => Promise<void>;
+    activateExam: (examId: string) => Promise<void>;
+    distributeOECDExam: (examId: string) => Promise<void>;
+    fetchExamItems: (examId: string) => Promise<void>;
+    fetchNetworkExams: () => Promise<void>;
+    sealExam: (examId: string) => Promise<any>;
+    addExamVersion: (version: ExamVersion) => Promise<void>;
+    addExamVariant: (variant: ExamVariant) => Promise<void>;
+    loadExamVariants: (examId: string) => Promise<void>;
+    saveOverride: (override: any) => Promise<void>;
+    getRecommendedVariant: (examId: string, studentId: string) => Promise<string | null>;
+    startExamAttempt: (data: { examId: string; examVersionId: string; studentId: string }) => Promise<string>;
+    logSecurityEvent: (data: { attemptId: string; eventType: any; severity: any; eventData: any }) => Promise<void>;
+    submitExamAttempt: (attemptId: string, status?: string) => Promise<void>;
+    reopenExamAttempt: (attemptId: string) => Promise<void>;
+    saveExamProgress: (attemptId: string, answers: any, metadata?: any) => Promise<void>;
+    initializeExamEvents: (examId?: string) => Promise<void>;
+    leaveExamChannel: (examId?: string) => void;
+    calculateAndSaveResult: (examId: string, studentId: string) => Promise<void>;
+    updatePedagogicalFeedback: (resultId: string, feedback: string) => Promise<void>;
+    updateExamAllocation: (examId: string, classIds: string[]) => Promise<void>;
+}
+
+export const createExamSlice: StateCreator<AppStore, [], [], ExamSlice> = (set, get) => ({
+    exams: [],
+    networkExams: [],
+    examVariants: [],
+    variantOverrides: [],
+    examVersions: [],
+    examAttempts: [],
+    examAttemptEvents: [],
+    liveQuizSessions: [],
+    liveQuizResults: [],
+    examEncryptionKey: null,
+
+    addExam: async (exam) => {
+        set((state) => ({ exams: [...state.exams, exam] }));
+        try {
+            await supabase.from('exams').insert({
+                id: exam.id,
+                title: exam.title,
+                tenant_id: exam.tenantId,
+                school_id: exam.schoolId,
+                creator_id: exam.creatorId,
+                subject: exam.subject,
+                status: exam.status,
+                items_config: exam.items,
+                class_ids: exam.classIds,
+                model: exam.model,
+                duration_minutes: exam.durationMinutes,
+                max_score: exam.maxScore,
+                scheduled_date: exam.scheduledDate,
+                created_at: exam.createdAt
+            });
+        } catch (e) {
+            console.error("Error adding exam:", e);
+        }
+    },
+
+    deleteExam: async (id) => set((state) => ({
+        exams: state.exams.filter(e => e.id !== id)
+    })),
+
+    activateExam: async (id) => {
+        // ...
+    },
+
+    distributeOECDExam: async (examId) => {
+        // ...
+    },
+
+    fetchExamItems: async (examId) => {
+        // ...
+    },
+
+    fetchNetworkExams: async () => {
+        // ...
+    },
+
+    sealExam: async (examId) => {
+        // ...
+    },
+
+    addExamVersion: async (version) => set((state) => ({
+        examVersions: [...state.examVersions, version]
+    })),
+
+    addExamVariant: async (variant) => set((state) => ({
+        examVariants: [...state.examVariants, variant]
+    })),
+
+    loadExamVariants: async (examId) => {
+        const { data } = await supabase.from('exam_variants').select('*').eq('exam_id', examId);
+        if (data) set({ examVariants: data });
+    },
+
+    saveOverride: async (override) => {
+        set((state) => ({ variantOverrides: [...state.variantOverrides, override] }));
+        await supabase.from('exam_variant_overrides').insert(override);
+    },
+
+    getRecommendedVariant: async (examId, studentId) => {
+        // Logic would go here (RAG/AI matching)
+        return null;
+    },
+
+    startExamAttempt: async (data) => {
+        const attempt = { id: uuidv4(), ...data, status: 'started', startedAt: new Date().toISOString() };
+        set((state) => ({ examAttempts: [...state.examAttempts, attempt] }));
+        return attempt.id;
+    },
+
+    logSecurityEvent: async (data) => {
+        const securityEvent = { ...data, id: uuidv4(), createdAt: new Date().toISOString() };
+        set((state) => ({ examAttemptEvents: [...state.examAttemptEvents, securityEvent] }));
+    },
+
+    submitExamAttempt: async (attemptId, status = 'submitted') => {
+        set((state) => ({
+            examAttempts: state.examAttempts.map(a => a.id === attemptId ? { ...a, status, submittedAt: new Date().toISOString() } : a)
+        }));
+    },
+
+    reopenExamAttempt: async (attemptId) => {
+        set((state) => ({
+            examAttempts: state.examAttempts.map(a => a.id === attemptId ? { ...a, status: 'started' } : a)
+        }));
+    },
+
+    saveExamProgress: async (attemptId, answers, metadata) => {
+        set((state) => ({
+            examAttempts: state.examAttempts.map(a => a.id === attemptId ? { ...a, metadata: { ...(a.metadata || {}), savedAnswers: answers, ...metadata } } : a)
+        }));
+    },
+
+    initializeExamEvents: async (examId) => {
+        console.log(`Realtime channel initialized for exam ${examId}`);
+    },
+
+    leaveExamChannel: (examId) => {
+        console.log(`Left channel for exam ${examId}`);
+    },
+
+    calculateAndSaveResult: async (examId, studentId) => {
+        // ... calculation logic
+    },
+
+    updatePedagogicalFeedback: async (resultId, feedback) => {
+        set((state) => ({
+            results: state.results.map(r => r.id === resultId ? { ...r, pedagogicalFeedback: feedback } : r)
+        }));
+        try {
+            await supabase.from('exam_results').update({ pedagogical_feedback: feedback }).eq('id', resultId);
+        } catch (e) {
+            console.error(e);
+        }
+    },
+
+    updateExamAllocation: async (examId, classIds) => {
+        set((state) => ({
+            exams: state.exams.map(e => e.id === examId ? { ...e, classIds } : e)
+        }));
+        await supabase.from('exams').update({ class_ids: classIds }).eq('id', examId);
+    }
+});

@@ -16,7 +16,7 @@ import { ReportType, ReportFilter } from '../../types';
 
 export const ReportGeneratorView: React.FC = () => {
     const { schools, classes, exams } = useAppStore();
-    const [selectedReport, setSelectedReport] = useState<ReportType | null>(null);
+    const [selectedReport, setSelectedReport] = useState<any>(null);
     const [filters, setFilters] = useState<ReportFilter>({});
     const [isGenerating, setIsGenerating] = useState(false);
     const [previewData, setPreviewData] = useState<any[]>([]);

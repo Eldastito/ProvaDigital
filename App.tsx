@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useLocation, useRoutes } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { UserRole, ExamResult } from './types';
 import { useAppStore } from './store/useAppStore';
-import { appRoutes } from './routes';
+import { appRoutes, PageLoader } from './routes';
 import { checkConnection, supabase } from './services/supabaseClient';
-import { LoginPage } from './modules/auth/LoginPage';
 import { uuidv4 } from './utils/helpers';
 import { INITIAL_TENANTS, INITIAL_SCHOOLS } from './utils/mockData';
 
@@ -197,7 +196,9 @@ export default function App() {
 
   return (
     <div className={`${currentTheme} ${userRoleClass} min-h-screen bg-primary transition-colors duration-300`}>
-      {element}
+      <Suspense fallback={<PageLoader />}>
+        {element}
+      </Suspense>
       {!hasConsented && (
         <PrivacyPolicyModal
           onAccept={() => { setHasConsented(true); localStorage.setItem('lgpd_consent', 'true'); }}

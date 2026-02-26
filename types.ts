@@ -1162,6 +1162,7 @@ export interface AppState {
   exams: Exam[];
   networkExams: Exam[]; // 🌐 Banco de Provas da Rede (Public)
   liveQuizSessions: LiveQuizSession[]; // Separate from formal exams
+  liveQuizResults: any[];
   // examVariants and variantOverrides moved below to avoid duplication
   registrations: ExamRegistration[];
   results: ExamResult[];
@@ -1195,6 +1196,7 @@ export interface AppState {
   // Logistics Extensions
   logisticsAssets: LogisticsAsset[];
   logisticsCases: LogisticsCase[];
+  logisticsSuitcases: LogisticsCase[]; // Alias for compatibility
   logisticsSeals: LogisticsSeal[];
   custodyTransfers: CustodyTransfer[];
   logisticsIncidents: LogisticsIncident[];
@@ -1228,7 +1230,7 @@ export interface BNCCCompetency {
   studentsBelowAverage: number;
 }
 
-export type ReportType = 'student' | 'class' | 'subject' | 'bncc' | 'risk';
+export type ReportType = 'student' | 'class' | 'subject' | 'bncc' | 'risk' | 'CLASS_REPORT' | 'EXAM_ANALYSIS' | 'STUDENT_BULLETIN' | 'AUDIT_LOG';
 export type ReportFormat = 'pdf' | 'excel' | 'csv';
 
 export interface ReportConfig {
@@ -1393,6 +1395,43 @@ export interface DualValidationResult {
   overallScore: number; // 0-100%
   approved: boolean;
   flaggedQuestions: string[];
+}
+
+export interface ReportFilter {
+  schoolId?: string;
+  classId?: string;
+  examId?: string;
+  studentId?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface GeneratedQuestion {
+  id?: string;
+  statement: string;
+  type: QuestionType;
+  difficulty: DifficultyLevel;
+  subject: string;
+  alternatives: {
+    id: string;
+    text: string;
+    isCorrect: boolean;
+    justification?: string;
+  }[];
+  correctAnswerJustification?: string;
+  bnccCodes?: string[];
+  triParams?: {
+    a: number;
+    b: number;
+    c: number;
+  };
+  bloomLevel?: string;
+  governanceMetadata?: {
+    generatedAt: string;
+    model: string;
+    promptVersion: string;
+    tenantId?: string;
+  };
 }
 
 export interface ExamCoverData {
