@@ -171,15 +171,16 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, [isInitialized]); // FIX: Add isInitialized dependency
 
-  // --- 4. THEME INITIALIZATION ---
+  // --- 4. THEME SYNC ---
   useEffect(() => {
-    const savedTheme = localStorage.getItem('examepad_theme') as 'light' | 'dark' | null;
-    if (savedTheme && savedTheme !== store.settings.theme) {
-      useAppStore.setState(state => ({
-        settings: { ...state.settings, theme: savedTheme }
-      }));
+    const theme = store.settings.theme || 'light';
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
     }
-  }, []);
+    localStorage.setItem('examepad_theme', theme);
+  }, [store.settings.theme]);
 
   const element = useRoutes(appRoutes);
   const currentTheme = store.settings.theme || 'light';
@@ -195,7 +196,7 @@ export default function App() {
   }
 
   return (
-    <div className={`${currentTheme} ${userRoleClass} min-h-screen bg-primary transition-colors duration-300`}>
+    <div className={`min-h-screen bg-secondary transition-colors duration-300 ${userRoleClass}`}>
       <Suspense fallback={<PageLoader />}>
         {element}
       </Suspense>

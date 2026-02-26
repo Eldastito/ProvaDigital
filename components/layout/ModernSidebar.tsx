@@ -140,8 +140,13 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
             {/* Logo Section */}
             <div className="h-24 flex items-center px-6">
                 <div className={`flex items-center gap-4 ${collapsed ? 'justify-center w-full' : ''}`}>
-                    <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-emerald-400 shadow-xl shadow-slate-900/10 shrink-0 transform hover:rotate-3 transition-transform neon-owl">
-                        <Owl size={24} fill="currentColor" strokeWidth={1.5} />
+                    <div className={`shrink-0 transform hover:rotate-3 transition-transform ${collapsed ? 'w-10 h-10' : 'w-12 h-12'} relative group`}>
+                        <img
+                            src="/examepad_logo.png"
+                            alt="Logo"
+                            className="w-full h-full object-contain drop-shadow-xl"
+                        />
+                        <div className="absolute inset-0 bg-brand-primary/20 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                     {!collapsed && (
                         <div className="animate-in fade-in slide-in-from-left-4 duration-700">

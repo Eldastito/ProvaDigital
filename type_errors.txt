@@ -1,0 +1,111 @@
+App.tsx(22,47): error TS2339: Property 'loadRemoteData' does not exist on type 'AppStore'.
+App.tsx(22,63): error TS2339: Property 'isInitialized' does not exist on type 'AppStore'.
+App.tsx(32,30): error TS2353: Object literal may only specify known properties, and 'isInitialized' does not exist in type 'AppStore | Partial<AppStore> | ((state: AppStore) => AppStore | Partial<AppStore>)'.
+components/Calendar/CalendarView.tsx(143,58): error TS2339: Property 'title' does not exist on type 'CalendarEvent'.
+components/DashboardLayout.tsx(11,10): error TS2724: '"../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+components/ExamVariantsManager.tsx(13,62): error TS2339: Property 'loadExamVariants' does not exist on type 'AppStore'.
+components/ExamVariantsManager.tsx(13,96): error TS2339: Property 'saveOverride' does not exist on type 'AppStore'.
+components/ItemsListView.tsx(6,10): error TS2724: '"../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+components/layout/ModernSidebar.tsx(23,10): error TS2724: '"../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+hooks/useProctoring.ts(3,10): error TS2724: '"../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+hooks/useSafeAppStore.ts(24,28): error TS2339: Property 'owlSessions' does not exist on type 'AppStore'.
+hooks/useSafeAppStore.ts(30,23): error TS2339: Property 'events' does not exist on type 'AppStore'.
+modules/academic/StudyPlansView.tsx(22,42): error TS2339: Property 'updateStudyPlan' does not exist on type 'AppStore'.
+modules/academic/StudyPlansView.tsx(71,44): error TS2345: Argument of type 'AppStore' is not assignable to parameter of type 'AppState'.
+  Type 'AppStore' is missing the following properties from type 'AppState': identityKeys, liveQuizSessions, mentorships, events, and 4 more.
+modules/admin/components/CapabilitiesView.tsx(35,32): error TS2339: Property 'updatePermissions' does not exist on type 'AppStore'.
+modules/admin/components/GovernanceView.tsx(105,41): error TS2339: Property 'updateArcadeGame' does not exist on type 'AppStore'.
+modules/admin/components/GovernanceView.tsx(105,59): error TS2339: Property 'deleteArcadeGame' does not exist on type 'AppStore'.
+modules/admin/components/TenantFormModal.tsx(5,10): error TS2724: '"../../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/admin/SaaSControlPanelView.tsx(8,10): error TS2724: '"../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/admin/users/UserManagementTab.tsx(8,10): error TS2724: '"../../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/analytics/PedagogicalDashboard.tsx(12,44): error TS2345: Argument of type 'AppStore' is not assignable to parameter of type 'AppState'.
+  Type 'AppStore' is missing the following properties from type 'AppState': identityKeys, liveQuizSessions, mentorships, events, and 4 more.
+modules/analytics/PredictiveRiskDashboard.tsx(17,59): error TS2345: Argument of type 'AppStore' is not assignable to parameter of type 'AppState'.
+  Type 'AppStore' is missing the following properties from type 'AppState': identityKeys, liveQuizSessions, mentorships, events, and 4 more.
+modules/analytics/ProfessorDashboardView.tsx(42,44): error TS2345: Argument of type 'AppStore' is not assignable to parameter of type 'AppState'.
+  Type 'AppStore' is missing the following properties from type 'AppState': identityKeys, liveQuizSessions, mentorships, events, and 4 more.
+modules/analytics/risk/RiskDashboard.tsx(2,10): error TS2724: '"../../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/analytics/SchoolPrincipalDashboard.tsx(108,48): error TS2740: Type 'AppStore' is missing the following properties from type 'AppState': identityKeys, liveQuizSessions, mentorships, events, and 4 more.
+modules/builder/AIQuestionGeneratorView.tsx(5,10): error TS2724: '"../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/builder/components/BNCCCodeSuggester.tsx(3,10): error TS2724: '"../../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/builder/hooks/useExamBuilder.ts(6,10): error TS2724: '"../../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/builder/hooks/useItemEditor.ts(11,10): error TS2724: '"../../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/builder/PrintableExamView.tsx(5,10): error TS2724: '"../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/class-diary/ClassDiaryView.tsx(63,45): error TS2339: Property 'addDiaryEntries' does not exist on type 'AppStore'.
+modules/communication/CommunicationView.tsx(18,32): error TS2339: Property 'updateMessages' does not exist on type 'AppStore'.
+modules/coordinator/ExamScheduler.tsx(12,10): error TS2724: '"../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/demo/phases/LiveDemoSetup.tsx(54,15): error TS2339: Property 'loadRemoteData' does not exist on type 'AppStore'.
+modules/grading/AllocationView.tsx(7,10): error TS2724: '"../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/grading/ExamsListView.tsx(8,10): error TS2724: '"../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/grading/ResultsEntryView.tsx(8,10): error TS2724: '"../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/neuro-screening/ScreeningReportModal.tsx(42,26): error TS2339: Property 'addNeuroReportDelivery' does not exist on type 'AppStore'.
+modules/parents/ParentsDashboardView.tsx(49,50): error TS2339: Property 'simulatedAttendance' does not exist on type 'RiskAssessment'.
+modules/professor/tabs/ProfessorPerformanceTab.tsx(37,44): error TS2345: Argument of type 'AppStore' is not assignable to parameter of type 'AppState'.
+  Type 'AppStore' is missing the following properties from type 'AppState': identityKeys, liveQuizSessions, mentorships, events, and 4 more.
+modules/reports/ReportGeneratorView.tsx(15,22): error TS2305: Module '"../../types"' has no exported member 'ReportFilter'.
+modules/reports/ReportGeneratorView.tsx(151,31): error TS2367: This comparison appears to be unintentional because the types 'ReportType' and '"CLASS_REPORT"' have no overlap.
+modules/reports/ReportGeneratorView.tsx(151,68): error TS2367: This comparison appears to be unintentional because the types 'ReportType' and '"STUDENT_BULLETIN"' have no overlap.
+modules/reports/ReportGeneratorView.tsx(165,31): error TS2367: This comparison appears to be unintentional because the types 'ReportType' and '"EXAM_ANALYSIS"' have no overlap.
+modules/reports/ReportGeneratorView.tsx(165,69): error TS2367: This comparison appears to be unintentional because the types 'ReportType' and '"STUDENT_BULLETIN"' have no overlap.
+modules/runner/features/AdvancedReviewPipeline.tsx(5,10): error TS2724: '"../../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/runner/features/BatchReviewPanel.tsx(3,10): error TS2724: '"../../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/runner/features/BatchReviewPanel.tsx(19,70): error TS2339: Property 'forceFetchBatchItems' does not exist on type 'AppStore'.
+modules/runner/features/ExamLauncher.tsx(8,33): error TS2339: Property 'getRecommendedVariant' does not exist on type 'AppStore'.
+modules/runner/features/LiveExamMonitorView.tsx(7,10): error TS2724: '"../../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/runner/features/OnlineExamRunner.tsx(52,13): error TS2339: Property 'startExamAttempt' does not exist on type 'AppStore'.
+modules/runner/features/OnlineExamRunner.tsx(52,31): error TS2339: Property 'logSecurityEvent' does not exist on type 'AppStore'.
+modules/runner/features/OnlineExamRunner.tsx(52,49): error TS2339: Property 'submitExamAttempt' does not exist on type 'AppStore'.
+modules/runner/features/OnlineExamRunner.tsx(52,68): error TS2339: Property 'initializeExamEvents' does not exist on type 'AppStore'.
+modules/runner/features/OnlineExamRunner.tsx(52,90): error TS2339: Property 'leaveExamChannel' does not exist on type 'AppStore'.
+modules/runner/features/OnlineExamRunner.tsx(52,108): error TS2339: Property 'saveExamProgress' does not exist on type 'AppStore'.
+modules/runner/features/ResultFeedbackView.tsx(14,49): error TS2339: Property 'updatePedagogicalFeedback' does not exist on type 'AppStore'.
+modules/runner/offline/OfflineMonitorView.tsx(11,10): error TS2724: '"../../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/runner/offline/OfflineSubmissionFlow.tsx(95,45): error TS2339: Property 'length' does not exist on type 'Promise<string[]>'.
+modules/runner/offline/OfflineSubmissionFlow.tsx(97,25): error TS2345: Argument of type 'Promise<string[]>' is not assignable to parameter of type 'SetStateAction<string[]>'.
+modules/runner/student-app/CoordinatorApp.tsx(9,10): error TS2724: '"../../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/runner/student-app/ProfessorApp.tsx(12,10): error TS2724: '"../../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/runner/student-app/StudentApp.tsx(14,10): error TS2724: '"../../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/runner/student-app/StudentApp.tsx(199,23): error TS2339: Property 'logSecurityEvent' does not exist on type 'AppStore'.
+modules/runner/student-app/StudentApp.tsx(827,35): error TS2551: Property 'startExamAttempt' does not exist on type 'AppStore'. Did you mean 'examAttempts'?
+modules/runner/student-app/TabletLauncher.tsx(6,10): error TS2724: '"../../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/school-management/components/CommandCenter.tsx(223,40): error TS2551: Property 'logisticsSuitcases' does not exist on type 'AppState'. Did you mean 'logisticsCases'?
+modules/school-management/components/CommandCenter.tsx(223,79): error TS2551: Property 'logisticsSuitcases' does not exist on type 'AppState'. Did you mean 'logisticsCases'?
+modules/school-management/hooks/useSchoolManagement.ts(5,10): error TS2724: '"../../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/student-portal/components/dashboard/MentorshipBoard.tsx(3,10): error TS2724: '"../../../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/student-portal/hooks/useStudentDashboard.ts(2,10): error TS2724: '"../../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/student-portal/OwlTutorView.tsx(8,10): error TS2724: '"../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/student-portal/StudentBattleView.tsx(6,10): error TS2724: '"../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+modules/student-portal/SurvivalView.tsx(6,10): error TS2724: '"../../store/useAppStore"' has no exported member named 'useSafeAppStore'. Did you mean 'useAppStore'?
+routes.tsx(125,26): error TS2339: Property 'calculateAndSaveResult' does not exist on type 'AppStore'.
+scripts/db-tools/validateRiskEngine.ts(7,29): error TS2307: Cannot find module '../store/useAppStore' or its corresponding type declarations.
+scripts/db-tools/validateRiskEngine.ts(8,57): error TS2307: Cannot find module './riskDetectionEngine' or its corresponding type declarations.
+scripts/db-tools/validateRiskEngine.ts(9,27): error TS2307: Cannot find module '../types' or its corresponding type declarations.
+scripts/verify_models.ts(27,53): error TS2551: Property 'response' does not exist on type 'GenerateContentResponse'. Did you mean 'responseId'?
+services/ai/clusteringService.ts(142,21): error TS2353: Object literal may only specify known properties, and 'avgSimilarity' does not exist in type 'AnswerCluster'.
+services/geminiService_material_addon.ts(14,15): error TS2304: Cannot find name 'QuestionType'.
+services/geminiService_material_addon.ts(15,21): error TS2304: Cannot find name 'DifficultyLevel'.
+services/geminiService_material_addon.ts(46,30): error TS2304: Cannot find name 'generateQuestionsFromText'.
+services/geminiService_material_addon.ts(67,30): error TS2304: Cannot find name 'DEFAULT_MODEL'.
+services/geminiService_material_addon.ts(68,36): error TS2304: Cannot find name 'PROMPT_VERSION'.
+services/grading/autoGradingService.test.ts(51,75): error TS2345: Argument of type '{ id: string; type: QuestionType; score: number; alternatives: { id: string; isCorrect: boolean; }[]; }' is not assignable to parameter of type 'Item'.
+  Type '{ id: string; type: QuestionType; score: number; alternatives: { id: string; isCorrect: boolean; }[]; }' is missing the following properties from type 'Item': tenantId, ownerId, knowledgeArea, subject, and 7 more.
+services/grading/autoGradingService.test.ts(59,75): error TS2345: Argument of type '{ id: string; type: QuestionType; score: number; alternatives: { id: string; isCorrect: boolean; }[]; }' is not assignable to parameter of type 'Item'.
+  Type '{ id: string; type: QuestionType; score: number; alternatives: { id: string; isCorrect: boolean; }[]; }' is missing the following properties from type 'Item': tenantId, ownerId, knowledgeArea, subject, and 7 more.
+services/grading/autoGradingService.test.ts(75,76): error TS2345: Argument of type '{ id: string; type: QuestionType; score: number; correctAnswerJustification: string; }' is not assignable to parameter of type 'Item'.
+  Type '{ id: string; type: QuestionType; score: number; correctAnswerJustification: string; }' is missing the following properties from type 'Item': tenantId, ownerId, knowledgeArea, subject, and 7 more.
+services/grading/autoGradingService.test.ts(90,76): error TS2345: Argument of type '{ id: string; type: QuestionType; score: number; correctAnswerJustification: string; }' is not assignable to parameter of type 'Item'.
+  Type '{ id: string; type: QuestionType; score: number; correctAnswerJustification: string; }' is missing the following properties from type 'Item': tenantId, ownerId, knowledgeArea, subject, and 7 more.
+services/grading/autoGradingService.test.ts(104,76): error TS2345: Argument of type '{ id: string; type: QuestionType; score: number; correctAnswerJustification: string; }' is not assignable to parameter of type 'Item'.
+  Type '{ id: string; type: QuestionType; score: number; correctAnswerJustification: string; }' is missing the following properties from type 'Item': tenantId, ownerId, knowledgeArea, subject, and 7 more.
+services/grading/autoGradingService.test.ts(114,76): error TS2345: Argument of type '{ id: string; type: QuestionType; score: number; correctAnswerJustification: string; }' is not assignable to parameter of type 'Item'.
+  Type '{ id: string; type: QuestionType; score: number; correctAnswerJustification: string; }' is missing the following properties from type 'Item': tenantId, ownerId, knowledgeArea, subject, and 7 more.
+services/grading/catEngine.test.ts(47,19): error TS2339: Property 'toBeCloseTo' does not exist on type 'Assertion'.
+services/grading/catEngine.test.ts(56,26): error TS2339: Property 'toBeDefined' does not exist on type 'Assertion'.
+services/grading/catEngine.test.ts(60,67): error TS2551: Property 'toBeLessThan' does not exist on type 'Assertion'. Did you mean 'lessThan'?
+services/grading/catEngine.test.ts(100,54): error TS2551: Property 'toBeLessThan' does not exist on type 'Assertion'. Did you mean 'lessThan'?
+services/meshNetworkService.ts(79,17): error TS2322: Type '"PROFESSOR" | "COORDINATOR" | "STUDENT" | "ROUTER"' is not assignable to type '"PROFESSOR" | "COORDINATOR" | "STUDENT"'.
+  Type '"ROUTER"' is not assignable to type '"PROFESSOR" | "COORDINATOR" | "STUDENT"'.
+services/userService.ts(115,21): error TS2339: Property 'updateUser' does not exist on type 'AppStore'.
+services/userService.ts(139,15): error TS2339: Property 'resetUserPassword' does not exist on type 'AppStore'.
+services/userService.ts(159,29): error TS2339: Property 'updateUser' does not exist on type 'AppStore'.

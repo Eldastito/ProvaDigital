@@ -1,34 +1,83 @@
 /* Custom Overrides & Theme System */
 :root {
-  --brand-primary: #00A3E0;
-  --brand-secondary: #00CDAC;
+  --brand-primary: #1b6ca8;
+  --brand-secondary: #0ca3e1;
+  --brand-accent: #46c4f3;
+  --brand-success: #1cd3a2;
+  --brand-teal: #00ae84;
 
-  /* Light Theme Variables */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8fafc;
+  /* Light Theme Variables - Educational Clean */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #f1f5f9;
   --bg-surface: #ffffff;
-  --text-primary: #0f172a;
+  --text-primary: #112131;
+  /* Navy */
   --text-secondary: #475569;
-  --border-color: #e2e8f0;
-  --sidebar-bg: #0f172a;
+  --border-color: #cbd5e1;
+  --sidebar-bg: #112131;
   --sidebar-text: #f8fafc;
-  --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
   --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-border: rgba(17, 33, 49, 0.1);
 }
 
 .dark {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-surface: #1e293b;
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --border-color: #334155;
-  --sidebar-bg: #020617;
+  --bg-primary: #0a111a;
+  --bg-secondary: #112131;
+  --bg-surface: #162a42;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --border-color: #1e2a3a;
+  --sidebar-bg: #050a0f;
   --sidebar-text: #f8fafc;
-  --card-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.5);
-  --glass-bg: rgba(15, 23, 42, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --card-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.4);
+  --glass-bg: rgba(17, 33, 49, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.05);
+}
+
+/* Dark Mode Global Cleanup - Force common Tailwind classes to use variables */
+.dark .bg-white,
+.dark .bg-slate-50,
+.dark .bg-gray-50 {
+  background-color: var(--bg-surface) !important;
+}
+
+.dark .bg-slate-100,
+.dark .bg-slate-200,
+.dark .bg-slate-300 {
+  background-color: var(--bg-secondary) !important;
+}
+
+.dark .bg-emerald-50,
+.dark .bg-indigo-50,
+.dark .bg-blue-50,
+.dark .bg-slate-100\/50 {
+  background-color: rgba(27, 108, 168, 0.1) !important;
+}
+
+.dark .text-slate-900,
+.dark .text-gray-900,
+.dark .text-slate-800,
+.dark .text-slate-700 {
+  color: var(--text-primary) !important;
+}
+
+.dark .text-slate-500,
+.dark .text-slate-400,
+.dark .text-slate-300 {
+  color: var(--text-secondary) !important;
+}
+
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-gray-200 {
+  border-color: var(--border-color) !important;
+}
+
+.dark .shadow-sm,
+.dark .shadow-md,
+.dark .shadow-lg {
+  box-shadow: var(--card-shadow) !important;
 }
 
 /* Glassmorphism utility */

@@ -88,8 +88,12 @@ export const LoginPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#0f1d2e] flex flex-col items-center justify-center p-4">
-            <div className="w-full max-w-md">
+        <div className="min-h-screen bg-brand-navy flex flex-col items-center justify-center p-4 relative overflow-hidden">
+            {/* Visual Flair: Animated Mesh Gradients */}
+            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-primary/20 blur-[120px] rounded-full animate-pulse" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-secondary/20 blur-[120px] rounded-full animate-pulse delay-1000" />
+
+            <div className="w-full max-w-md relative z-10">
 
                 {/* Header / Logo */}
                 <div className="text-center mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 flex flex-col items-center">
@@ -114,7 +118,7 @@ export const LoginPage = () => {
                 </div>
 
                 {/* Login Card */}
-                <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700 p-6 md:p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-500">
+                <div className="glass-effect p-6 md:p-8 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-500 bg-white/5 border-white/10">
                     {/* ... (rest of the form remains same, mostly) ... */}
 
                     {error && (
@@ -134,7 +138,7 @@ export const LoginPage = () => {
                                 <input
                                     type="email"
                                     required
-                                    className="w-full bg-slate-900/80 border border-slate-600 text-white rounded-xl py-4 pl-12 pr-4 outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all placeholder:text-slate-600"
+                                    className="w-full bg-black/20 border border-white/10 text-white rounded-xl py-4 pl-12 pr-4 outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all placeholder:text-slate-500"
                                     placeholder="admin@escola.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
@@ -151,7 +155,7 @@ export const LoginPage = () => {
                                 <input
                                     type="password"
                                     required
-                                    className="w-full bg-slate-900/80 border border-slate-600 text-white rounded-xl py-4 pl-12 pr-4 outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all placeholder:text-slate-600"
+                                    className="w-full bg-black/20 border border-white/10 text-white rounded-xl py-4 pl-12 pr-4 outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all placeholder:text-slate-500"
                                     placeholder="••••••••"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
@@ -162,7 +166,7 @@ export const LoginPage = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-gradient-to-r from-brand-primary to-brand-dark text-white font-bold py-4 rounded-xl shadow-lg shadow-brand-primary/25 hover:shadow-brand-primary/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 group disabled:opacity-70 disabled:pointer-events-none"
+                            className="w-full bg-gradient-to-r from-brand-primary to-brand-secondary text-white font-bold py-4 rounded-xl shadow-lg shadow-brand-primary/25 hover:shadow-brand-primary/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 group disabled:opacity-70 disabled:pointer-events-none"
                         >
                             {loading ? (
                                 <>

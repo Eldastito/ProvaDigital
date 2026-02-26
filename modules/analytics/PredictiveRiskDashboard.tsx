@@ -14,7 +14,7 @@ export const PredictiveRiskDashboard: React.FC = () => {
             setIsLoading(true);
             // Limitamos a 5 alunos para o demo para não estourar tokens
             const subsetIds = students.slice(0, 5).map(s => s.id);
-            const results = await predictBatch(subsetIds, state);
+            const results = await predictBatch(subsetIds, state as any);
             setPredictions(results);
             setIsLoading(false);
         };
@@ -25,19 +25,19 @@ export const PredictiveRiskDashboard: React.FC = () => {
     const avgScorePrediction = predictions.reduce((sum, p) => sum + p.predictedScore, 0) / (predictions.length || 1);
 
     return (
-        <div className="p-8 space-y-8 bg-slate-50 min-h-screen">
+        <div className="p-8 space-y-8 bg-secondary min-h-screen transition-colors duration-500">
             {/* Header - Refined Card Layout */}
-            <div className="mx-0 mt-2 mb-8 bg-white border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-md z-20">
+            <div className="mx-0 mt-2 mb-8 glass-effect bg-surface/50 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl z-20">
                 <div className="flex items-center gap-4">
-                    <div className="bg-indigo-50 p-3 rounded-xl text-indigo-600">
+                    <div className="bg-brand-primary/20 p-3 rounded-xl text-brand-primary border border-brand-primary/30">
                         <Brain size={28} />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-black text-slate-800 tracking-tight">Dashboard de Predição IA</h1>
-                        <p className="text-slate-500 text-sm font-medium">Análise preditiva de retenção e sucesso acadêmico (v4.0 Alpha)</p>
+                        <h1 className="text-2xl font-black text-primary tracking-tight">Dashboard de Predição IA</h1>
+                        <p className="text-secondary text-sm font-medium">Análise preditiva de retenção e sucesso acadêmico (v4.0 Alpha)</p>
                     </div>
                 </div>
-                <div className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 text-[10px] font-black text-slate-500 flex items-center gap-2 uppercase tracking-widest">
+                <div className="bg-surface/30 px-4 py-2 rounded-xl border border-divider text-[10px] font-black text-secondary flex items-center gap-2 uppercase tracking-widest">
                     <Calendar size={14} />
                     Projeção: Próximo Bimestre
                 </div>
@@ -55,14 +55,14 @@ export const PredictiveRiskDashboard: React.FC = () => {
                     <div className="text-sm font-bold text-slate-400 uppercase tracking-wider">Alertas de Evasão</div>
                 </div>
 
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <div className="bg-surface p-6 rounded-3xl border border-divider shadow-sm group hover:border-brand-primary/50 transition-colors">
                     <div className="flex justify-between items-start mb-4">
-                        <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
+                        <div className="p-3 bg-brand-primary/10 text-brand-primary rounded-2xl">
                             <Target className="w-6 h-6" />
                         </div>
                     </div>
-                    <div className="text-3xl font-black text-slate-900">{avgScorePrediction.toFixed(1)}</div>
-                    <div className="text-sm font-bold text-slate-400 uppercase tracking-wider">Média Projetada</div>
+                    <div className="text-3xl font-black text-primary">{avgScorePrediction.toFixed(1)}</div>
+                    <div className="text-sm font-bold text-secondary uppercase tracking-wider">Média Projetada</div>
                 </div>
 
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
@@ -119,23 +119,23 @@ export const PredictiveRiskDashboard: React.FC = () => {
                                             </div>
                                         </div>
 
-                                        <div className="w-48 space-y-4 border-l border-slate-100 pl-6">
+                                        <div className="w-48 space-y-4 border-l border-divider pl-6">
                                             <div>
-                                                <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase mb-1">
+                                                <div className="flex justify-between text-[10px] font-black text-secondary uppercase mb-1">
                                                     <span>Risco Evasão</span>
                                                     <span>{Math.round(p.evasionRiskProbability * 100)}%</span>
                                                 </div>
-                                                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                                                    <div className={`h-full transition-all duration-1000 ${p.evasionRiskProbability > 0.6 ? 'bg-red-500' : 'bg-indigo-500'}`} style={{ width: `${p.evasionRiskProbability * 100}%` }}></div>
+                                                <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+                                                    <div className={`h-full transition-all duration-1000 ${p.evasionRiskProbability > 0.6 ? 'bg-rose-500' : 'bg-brand-primary'}`} style={{ width: `${p.evasionRiskProbability * 100}%` }}></div>
                                                 </div>
                                             </div>
                                             <div>
-                                                <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase mb-1">
+                                                <div className="flex justify-between text-[10px] font-black text-secondary uppercase mb-1">
                                                     <span>Nota Projetada</span>
                                                     <span>{p.predictedScore.toFixed(1)}</span>
                                                 </div>
-                                                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-slate-800 transition-all duration-1000" style={{ width: `${p.predictedScore * 10}%` }}></div>
+                                                <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+                                                    <div className="h-full bg-brand-navy transition-all duration-1000" style={{ width: `${p.predictedScore * 10}%` }}></div>
                                                 </div>
                                             </div>
                                         </div>

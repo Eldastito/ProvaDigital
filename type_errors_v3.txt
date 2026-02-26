@@ -1,0 +1,74 @@
+components/Calendar/CalendarView.tsx(143,58): error TS2339: Property 'title' does not exist on type 'CalendarEvent'.
+hooks/useProctoring.ts(200,31): error TS2554: Expected 1 arguments, but got 2.
+modules/academic/StudyPlansView.tsx(71,44): error TS2345: Argument of type 'AppStore' is not assignable to parameter of type 'AppState'.
+  Type 'AppStore' is missing the following properties from type 'AppState': liveQuizSessions, mentorships
+modules/analytics/PedagogicalDashboard.tsx(12,44): error TS2345: Argument of type 'AppStore' is not assignable to parameter of type 'AppState'.
+  Type 'AppStore' is missing the following properties from type 'AppState': liveQuizSessions, mentorships
+modules/analytics/PredictiveRiskDashboard.tsx(17,59): error TS2345: Argument of type 'AppStore' is not assignable to parameter of type 'AppState'.
+  Type 'AppStore' is missing the following properties from type 'AppState': liveQuizSessions, mentorships
+modules/analytics/ProfessorDashboardView.tsx(42,44): error TS2345: Argument of type 'AppStore' is not assignable to parameter of type 'AppState'.
+  Type 'AppStore' is missing the following properties from type 'AppState': liveQuizSessions, mentorships
+modules/analytics/risk/RiskDashboard.tsx(130,53): error TS2345: Argument of type '{ items: Item[]; exams: Exam[]; students: Student[]; schools: School[]; classes: SchoolClass[]; users: User[]; tenants: Tenant[]; results: ExamResult[]; ... 136 more ...; loadRemoteData: () => Promise<void>; }' is not assignable to parameter of type 'AppState'.
+  Type '{ items: Item[]; exams: Exam[]; students: Student[]; schools: School[]; classes: SchoolClass[]; users: User[]; tenants: Tenant[]; results: ExamResult[]; ... 136 more ...; loadRemoteData: () => Promise<...>; }' is missing the following properties from type 'AppState': liveQuizSessions, mentorships
+modules/analytics/SchoolPrincipalDashboard.tsx(108,48): error TS2739: Type 'AppStore' is missing the following properties from type 'AppState': liveQuizSessions, mentorships
+modules/parents/ParentsDashboardView.tsx(49,50): error TS2339: Property 'simulatedAttendance' does not exist on type 'RiskAssessment'.
+modules/professor/tabs/ProfessorPerformanceTab.tsx(37,44): error TS2345: Argument of type 'AppStore' is not assignable to parameter of type 'AppState'.
+  Type 'AppStore' is missing the following properties from type 'AppState': liveQuizSessions, mentorships
+modules/reports/ReportGeneratorView.tsx(15,22): error TS2305: Module '"../../types"' has no exported member 'ReportFilter'.
+modules/reports/ReportGeneratorView.tsx(151,31): error TS2367: This comparison appears to be unintentional because the types 'ReportType' and '"CLASS_REPORT"' have no overlap.
+modules/reports/ReportGeneratorView.tsx(151,68): error TS2367: This comparison appears to be unintentional because the types 'ReportType' and '"STUDENT_BULLETIN"' have no overlap.
+modules/reports/ReportGeneratorView.tsx(165,31): error TS2367: This comparison appears to be unintentional because the types 'ReportType' and '"EXAM_ANALYSIS"' have no overlap.
+modules/reports/ReportGeneratorView.tsx(165,69): error TS2367: This comparison appears to be unintentional because the types 'ReportType' and '"STUDENT_BULLETIN"' have no overlap.
+modules/runner/features/LiveExamMonitorView.tsx(27,17): error TS2554: Expected 1 arguments, but got 0.
+modules/runner/features/OnlineExamRunner.tsx(162,21): error TS2322: Type 'void' is not assignable to type 'string'.
+modules/runner/features/OnlineExamRunner.tsx(162,38): error TS2554: Expected 2 arguments, but got 1.
+modules/runner/features/OnlineExamRunner.tsx(229,13): error TS2554: Expected 1 arguments, but got 0.
+modules/runner/features/OnlineExamRunner.tsx(272,17): error TS2554: Expected 2 arguments, but got 1.
+modules/runner/features/OnlineExamRunner.tsx(309,21): error TS2554: Expected 2 arguments, but got 1.
+modules/runner/features/OnlineExamRunner.tsx(424,60): error TS2554: Expected 2 arguments, but got 3.
+modules/runner/features/OnlineExamRunner.tsx(482,46): error TS2554: Expected 1 arguments, but got 2.
+modules/runner/features/OnlineExamRunner.tsx(547,46): error TS2554: Expected 1 arguments, but got 2.
+modules/runner/offline/OfflineSubmissionFlow.tsx(95,45): error TS2339: Property 'length' does not exist on type 'Promise<string[]>'.
+modules/runner/offline/OfflineSubmissionFlow.tsx(97,25): error TS2345: Argument of type 'Promise<string[]>' is not assignable to parameter of type 'SetStateAction<string[]>'.
+modules/runner/student-app/StudentApp.tsx(199,23): error TS2554: Expected 2 arguments, but got 1.
+modules/runner/student-app/StudentApp.tsx(827,35): error TS2554: Expected 2 arguments, but got 1.
+modules/school-management/components/CommandCenter.tsx(223,40): error TS2551: Property 'logisticsSuitcases' does not exist on type 'AppState'. Did you mean 'logisticsCases'?
+modules/school-management/components/CommandCenter.tsx(223,79): error TS2551: Property 'logisticsSuitcases' does not exist on type 'AppState'. Did you mean 'logisticsCases'?
+modules/school-management/ManagementView.tsx(258,36): error TS2739: Type '{ items: Item[]; exams: Exam[]; students: Student[]; schools: School[]; classes: SchoolClass[]; users: User[]; tenants: Tenant[]; results: ExamResult[]; ... 136 more ...; loadRemoteData: () => Promise<...>; }' is missing the following properties from type 'AppState': liveQuizSessions, mentorships
+modules/student-portal/components/dashboard/MentorshipBoard.tsx(14,35): error TS2339: Property 'acceptMentorshipRequest' does not exist on type '{ items: Item[]; exams: Exam[]; students: Student[]; schools: School[]; classes: SchoolClass[]; users: User[]; tenants: Tenant[]; results: ExamResult[]; ... 136 more ...; loadRemoteData: () => Promise<...>; }'.
+modules/student-portal/components/dashboard/MentorshipBoard.tsx(14,60): error TS2339: Property 'confirmMentorship' does not exist on type '{ items: Item[]; exams: Exam[]; students: Student[]; schools: School[]; classes: SchoolClass[]; users: User[]; tenants: Tenant[]; results: ExamResult[]; ... 136 more ...; loadRemoteData: () => Promise<...>; }'.
+modules/student-portal/components/dashboard/MentorshipBoard.tsx(76,26): error TS2339: Property 'mentorships' does not exist on type '{ items: Item[]; exams: Exam[]; students: Student[]; schools: School[]; classes: SchoolClass[]; users: User[]; tenants: Tenant[]; results: ExamResult[]; ... 136 more ...; loadRemoteData: () => Promise<...>; }'.
+modules/student-portal/components/dashboard/MentorshipBoard.tsx(76,47): error TS2339: Property 'mentorships' does not exist on type '{ items: Item[]; exams: Exam[]; students: Student[]; schools: School[]; classes: SchoolClass[]; users: User[]; tenants: Tenant[]; results: ExamResult[]; ... 136 more ...; loadRemoteData: () => Promise<...>; }'.
+modules/student-portal/components/dashboard/MentorshipBoard.tsx(84,25): error TS2339: Property 'mentorships' does not exist on type '{ items: Item[]; exams: Exam[]; students: Student[]; schools: School[]; classes: SchoolClass[]; users: User[]; tenants: Tenant[]; results: ExamResult[]; ... 136 more ...; loadRemoteData: () => Promise<...>; }'.
+modules/student-portal/components/dashboard/MentorshipBoard.tsx(108,25): error TS2339: Property 'mentorships' does not exist on type '{ items: Item[]; exams: Exam[]; students: Student[]; schools: School[]; classes: SchoolClass[]; users: User[]; tenants: Tenant[]; results: ExamResult[]; ... 136 more ...; loadRemoteData: () => Promise<...>; }'.
+modules/student-portal/hooks/useStudentDashboard.ts(10,32): error TS2339: Property 'registerStudentToEvent' does not exist on type '{ items: Item[]; exams: Exam[]; students: Student[]; schools: School[]; classes: SchoolClass[]; users: User[]; tenants: Tenant[]; results: ExamResult[]; ... 136 more ...; loadRemoteData: () => Promise<...>; }'.
+modules/student-portal/hooks/useStudentDashboard.ts(40,44): error TS2345: Argument of type '{ items: Item[]; exams: Exam[]; students: Student[]; schools: School[]; classes: SchoolClass[]; users: User[]; tenants: Tenant[]; results: ExamResult[]; ... 136 more ...; loadRemoteData: () => Promise<void>; }' is not assignable to parameter of type 'AppState'.
+  Type '{ items: Item[]; exams: Exam[]; students: Student[]; schools: School[]; classes: SchoolClass[]; users: User[]; tenants: Tenant[]; results: ExamResult[]; ... 136 more ...; loadRemoteData: () => Promise<...>; }' is missing the following properties from type 'AppState': liveQuizSessions, mentorships
+scripts/db-tools/validateRiskEngine.ts(7,29): error TS2307: Cannot find module '../store/useAppStore' or its corresponding type declarations.
+scripts/db-tools/validateRiskEngine.ts(8,57): error TS2307: Cannot find module './riskDetectionEngine' or its corresponding type declarations.
+scripts/db-tools/validateRiskEngine.ts(9,27): error TS2307: Cannot find module '../types' or its corresponding type declarations.
+scripts/verify_models.ts(27,53): error TS2551: Property 'response' does not exist on type 'GenerateContentResponse'. Did you mean 'responseId'?
+services/ai/clusteringService.ts(142,21): error TS2353: Object literal may only specify known properties, and 'avgSimilarity' does not exist in type 'AnswerCluster'.
+services/geminiService_material_addon.ts(14,15): error TS2304: Cannot find name 'QuestionType'.
+services/geminiService_material_addon.ts(15,21): error TS2304: Cannot find name 'DifficultyLevel'.
+services/geminiService_material_addon.ts(46,30): error TS2304: Cannot find name 'generateQuestionsFromText'.
+services/geminiService_material_addon.ts(67,30): error TS2304: Cannot find name 'DEFAULT_MODEL'.
+services/geminiService_material_addon.ts(68,36): error TS2304: Cannot find name 'PROMPT_VERSION'.
+services/grading/autoGradingService.test.ts(51,75): error TS2345: Argument of type '{ id: string; type: QuestionType; score: number; alternatives: { id: string; isCorrect: boolean; }[]; }' is not assignable to parameter of type 'Item'.
+  Type '{ id: string; type: QuestionType; score: number; alternatives: { id: string; isCorrect: boolean; }[]; }' is missing the following properties from type 'Item': tenantId, ownerId, knowledgeArea, subject, and 7 more.
+services/grading/autoGradingService.test.ts(59,75): error TS2345: Argument of type '{ id: string; type: QuestionType; score: number; alternatives: { id: string; isCorrect: boolean; }[]; }' is not assignable to parameter of type 'Item'.
+  Type '{ id: string; type: QuestionType; score: number; alternatives: { id: string; isCorrect: boolean; }[]; }' is missing the following properties from type 'Item': tenantId, ownerId, knowledgeArea, subject, and 7 more.
+services/grading/autoGradingService.test.ts(75,76): error TS2345: Argument of type '{ id: string; type: QuestionType; score: number; correctAnswerJustification: string; }' is not assignable to parameter of type 'Item'.
+  Type '{ id: string; type: QuestionType; score: number; correctAnswerJustification: string; }' is missing the following properties from type 'Item': tenantId, ownerId, knowledgeArea, subject, and 7 more.
+services/grading/autoGradingService.test.ts(90,76): error TS2345: Argument of type '{ id: string; type: QuestionType; score: number; correctAnswerJustification: string; }' is not assignable to parameter of type 'Item'.
+  Type '{ id: string; type: QuestionType; score: number; correctAnswerJustification: string; }' is missing the following properties from type 'Item': tenantId, ownerId, knowledgeArea, subject, and 7 more.
+services/grading/autoGradingService.test.ts(104,76): error TS2345: Argument of type '{ id: string; type: QuestionType; score: number; correctAnswerJustification: string; }' is not assignable to parameter of type 'Item'.
+  Type '{ id: string; type: QuestionType; score: number; correctAnswerJustification: string; }' is missing the following properties from type 'Item': tenantId, ownerId, knowledgeArea, subject, and 7 more.
+services/grading/autoGradingService.test.ts(114,76): error TS2345: Argument of type '{ id: string; type: QuestionType; score: number; correctAnswerJustification: string; }' is not assignable to parameter of type 'Item'.
+  Type '{ id: string; type: QuestionType; score: number; correctAnswerJustification: string; }' is missing the following properties from type 'Item': tenantId, ownerId, knowledgeArea, subject, and 7 more.
+services/grading/catEngine.test.ts(47,19): error TS2339: Property 'toBeCloseTo' does not exist on type 'Assertion'.
+services/grading/catEngine.test.ts(56,26): error TS2339: Property 'toBeDefined' does not exist on type 'Assertion'.
+services/grading/catEngine.test.ts(60,67): error TS2551: Property 'toBeLessThan' does not exist on type 'Assertion'. Did you mean 'lessThan'?
+services/grading/catEngine.test.ts(100,54): error TS2551: Property 'toBeLessThan' does not exist on type 'Assertion'. Did you mean 'lessThan'?
+services/meshNetworkService.ts(79,17): error TS2322: Type '"PROFESSOR" | "COORDINATOR" | "STUDENT" | "ROUTER"' is not assignable to type '"PROFESSOR" | "COORDINATOR" | "STUDENT"'.
+  Type '"ROUTER"' is not assignable to type '"PROFESSOR" | "COORDINATOR" | "STUDENT"'.
