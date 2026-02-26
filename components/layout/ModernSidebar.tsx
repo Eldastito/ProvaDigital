@@ -142,7 +142,7 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
                 <div className={`flex items-center gap-4 ${collapsed ? 'justify-center w-full' : ''}`}>
                     <div className={`shrink-0 transform hover:rotate-3 transition-transform ${collapsed ? 'w-10 h-10' : 'w-12 h-12'} relative group`}>
                         <img
-                            src="/examepad_logo.png"
+                            src="/social1.png"
                             alt="Logo"
                             className="w-full h-full object-contain drop-shadow-xl"
                         />

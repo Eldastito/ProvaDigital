@@ -98,7 +98,7 @@ export const LoginPage = () => {
                 {/* Header / Logo */}
                 <div className="text-center mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 flex flex-col items-center">
                     <img
-                        src="/examepad_logo.png"
+                        src="/social1.png"
                         alt="ExamePad"
                         className="h-20 md:h-28 mb-4 object-contain hover:scale-105 transition-transform drop-shadow-2xl"
                         onError={(e) => {
