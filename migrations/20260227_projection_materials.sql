@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS public.projection_materials (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
     school_id UUID NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
-    owner_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    owner_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     type VARCHAR(50) NOT NULL CHECK (type IN ('3D_MODEL', 'VIDEO', 'DOCUMENT', 'MIND_MAP')),
     category TEXT NOT NULL,
@@ -22,7 +22,7 @@ ALTER TABLE public.projection_materials ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view projection materials in their school"
     ON public.projection_materials FOR SELECT
     USING (school_id IN (
-        SELECT school_id FROM public.profiles WHERE id = auth.uid()
+        SELECT school_id FROM public.users WHERE id = auth.uid()
     ));
 
 CREATE POLICY "Professors can insert projection materials into their school"

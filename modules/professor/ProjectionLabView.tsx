@@ -20,6 +20,63 @@ import { Interactive3DViewer } from '../../components/3d/Interactive3DViewer';
 import { useAppStore } from '../../store/useAppStore';
 import { ProjectionMaterial } from '../../types';
 
+const DEFAULT_MATERIALS: ProjectionMaterial[] = [
+    {
+        id: 'sys-1',
+        title: 'Anatomia do Coração Humano',
+        type: '3D_MODEL',
+        category: 'Biologia',
+        url: 'sketchfab:3f8072336ce94d18b3d0d055a1ece089?autostart=1&ui_inspector=1&ui_infos=0',
+        description: 'Modelo 3D interativo do coração humano com separador anatômico.',
+        tenantId: 'system', schoolId: 'system', ownerId: 'system'
+    },
+    {
+        id: 'sys-2',
+        title: 'Sistema do Corpo Humano',
+        type: '3D_MODEL',
+        category: 'Biologia',
+        url: 'sketchfab:9311f4f8fa1a4fe4bb0027ff7e8fd795?autostart=1&ui_inspector=1&ui_infos=0',
+        description: 'Corpo humano completo para dissecação virtual dos sistemas.',
+        tenantId: 'system', schoolId: 'system', ownerId: 'system'
+    },
+    {
+        id: 'sys-3',
+        title: 'Cérebro Humano 3D',
+        type: '3D_MODEL',
+        category: 'Biologia',
+        url: 'sketchfab:7a27c17fd6c0488bb31ab093236a47fb?autostart=1&ui_inspector=1&ui_infos=0',
+        description: 'Estrutura detalhada do cérebro humano com visualização de hemisférios e lobos.',
+        tenantId: 'system', schoolId: 'system', ownerId: 'system'
+    },
+    {
+        id: 'sys-4',
+        title: 'Aulas INEP: Metodologia TRI',
+        type: 'VIDEO',
+        category: 'Pedagogia',
+        url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+        description: 'Explicação didática sobre como funciona a Teoria de Resposta ao Item.',
+        tenantId: 'system', schoolId: 'system', ownerId: 'system'
+    },
+    {
+        id: 'sys-5',
+        title: 'Slides: Revolução Industrial (PPT)',
+        type: 'DOCUMENT',
+        category: 'História',
+        url: 'https://docs.google.com/viewer?url=https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf&embedded=true',
+        description: 'Material de apoio completo sobre a 1ª e 2ª Revolução Industrial.',
+        tenantId: 'system', schoolId: 'system', ownerId: 'system'
+    },
+    {
+        id: 'sys-6',
+        title: 'Mapa Mental: Ciclo da Água',
+        type: 'MIND_MAP',
+        category: 'Geografia / Ciências',
+        url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Watercyclesummary.jpg/1200px-Watercyclesummary.jpg',
+        description: 'Esquema visual detalhando os processos de evaporação, condensação e precipitação.',
+        tenantId: 'system', schoolId: 'system', ownerId: 'system'
+    }
+];
+
 export const ProjectionLabView = () => {
     const {
         projectionMaterials,
@@ -49,7 +106,8 @@ export const ProjectionLabView = () => {
         loadProjectionMaterials();
     }, [loadProjectionMaterials]);
 
-    const filteredLibrary = projectionMaterials.filter(item => {
+    const combinedLibrary = [...DEFAULT_MATERIALS, ...projectionMaterials];
+    const filteredLibrary = combinedLibrary.filter(item => {
         const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             item.description?.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesFilter = activeFilter === 'ALL' || item.type === activeFilter;
@@ -267,7 +325,7 @@ export const ProjectionLabView = () => {
                                         </div>
                                     </div>
 
-                                    {currentUser?.id === item.ownerId && (
+                                    {currentUser?.id === item.ownerId && item.ownerId !== 'system' && (
                                         <button
                                             onClick={(e) => handleDelete(e, item)}
                                             className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md opacity-0 group-hover:opacity-100 transition-all"
