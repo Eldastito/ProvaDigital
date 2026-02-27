@@ -104,6 +104,7 @@ export const ProjectionLabView = () => {
         url: '',
         description: ''
     });
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
     useEffect(() => {
         loadProjectionMaterials();
@@ -170,6 +171,28 @@ export const ProjectionLabView = () => {
                 return;
             }
 
+            let materialUrl = newMaterial.url!;
+
+            if (newMaterial.type === 'MIND_MAP' && selectedFile) {
+                const fileExt = selectedFile.name.split('.').pop();
+                const fileName = `${Math.random()}.${fileExt}`;
+                const filePath = `${resolvedTenantId}/${resolvedSchoolId}/${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('lab_materials')
+                    .upload(filePath, selectedFile);
+
+                if (uploadError) {
+                    throw new Error("Erro ao fazer upload da imagem.");
+                }
+
+                const { data: publicUrlData } = supabase.storage
+                    .from('lab_materials')
+                    .getPublicUrl(filePath);
+
+                materialUrl = publicUrlData.publicUrl;
+            }
+
             await addProjectionMaterial({
                 tenantId: resolvedTenantId,
                 schoolId: resolvedSchoolId,
@@ -177,11 +200,12 @@ export const ProjectionLabView = () => {
                 title: newMaterial.title!,
                 type: newMaterial.type as any,
                 category: newMaterial.category || 'Geral',
-                url: newMaterial.url!,
+                url: materialUrl,
                 description: newMaterial.description
             });
             setIsAddModalOpen(false);
             setNewMaterial({ type: 'VIDEO', title: '', category: '', url: '', description: '' });
+            setSelectedFile(null);
         } catch (error) {
             console.error(error);
             alert("Erro ao adicionar material.");
@@ -511,24 +535,71 @@ export const ProjectionLabView = () => {
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">URL / Link *</label>
-                                    <input
-                                        type="url"
-                                        required
-                                        value={newMaterial.url}
-                                        onChange={e => setNewMaterial({ ...newMaterial, url: e.target.value })}
-                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                        placeholder={
-                                            newMaterial.type === 'VIDEO' ? 'https://www.youtube.com/embed/...' :
-                                                newMaterial.type === '3D_MODEL' ? 'sketchfab:ID_AQUI?autostart=1...' :
-                                                    'https://...'
-                                        }
-                                    />
-                                    <p className="text-[11px] text-slate-500 mt-1">
-                                        {newMaterial.type === 'VIDEO' && 'Para vídeos do YouTube, use o link de incorporação (embed).'}
-                                        {newMaterial.type === '3D_MODEL' && 'Use o ID da API do Sketchfab com o prefixo sketchfab:'}
-                                        {newMaterial.type === 'DOCUMENT' && 'Para slides, use o Google Docs Viewer ou link público do PDF.'}
-                                    </p>
+                                    {newMaterial.type === 'MIND_MAP' ? (
+                                        <>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">Mídia do Mapa Mental *</label>
+                                            <div className="flex flex-col gap-3">
+                                                <div className={`border-2 border-dashed ${selectedFile ? 'border-emerald-500 bg-emerald-50' : 'border-slate-300'} rounded-lg p-4 text-center cursor-pointer hover:bg-slate-50 transition-colors relative`}>
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        onChange={e => {
+                                                            const file = e.target.files?.[0];
+                                                            if (file) {
+                                                                setSelectedFile(file);
+                                                                setNewMaterial({ ...newMaterial, url: 'upload' });
+                                                            }
+                                                        }}
+                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                    />
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <ImageIcon size={24} className={selectedFile ? 'text-emerald-500' : 'text-slate-400'} />
+                                                        <span className={`text-sm font-medium ${selectedFile ? 'text-emerald-700' : 'text-slate-600'}`}>
+                                                            {selectedFile ? selectedFile.name : 'Clique para enviar uma imagem do computador'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-2">
+                                                    <hr className="flex-1 border-slate-200" />
+                                                    <span className="text-xs text-slate-400 font-medium">Ou use um Link do Canva / Web</span>
+                                                    <hr className="flex-1 border-slate-200" />
+                                                </div>
+
+                                                <input
+                                                    type="url"
+                                                    value={newMaterial.url === 'upload' ? '' : newMaterial.url}
+                                                    onChange={e => {
+                                                        setSelectedFile(null);
+                                                        setNewMaterial({ ...newMaterial, url: e.target.value });
+                                                    }}
+                                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                                    placeholder="Ex: https://canva.com/..."
+                                                />
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">URL / Link *</label>
+                                            <input
+                                                type="url"
+                                                required
+                                                value={newMaterial.url}
+                                                onChange={e => setNewMaterial({ ...newMaterial, url: e.target.value })}
+                                                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                                placeholder={
+                                                    newMaterial.type === 'VIDEO' ? 'https://www.youtube.com/embed/...' :
+                                                        newMaterial.type === '3D_MODEL' ? 'sketchfab:ID_AQUI?autostart=1...' :
+                                                            'https://...'
+                                                }
+                                            />
+                                            <p className="text-[11px] text-slate-500 mt-1">
+                                                {newMaterial.type === 'VIDEO' && 'Para vídeos do YouTube, use o link de incorporação (embed).'}
+                                                {newMaterial.type === '3D_MODEL' && 'Use o ID da API do Sketchfab com o prefixo sketchfab:'}
+                                                {newMaterial.type === 'DOCUMENT' && 'Para slides, use o Google Docs Viewer ou link público do PDF.'}
+                                            </p>
+                                        </>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Breve Descrição</label>
@@ -554,7 +625,7 @@ export const ProjectionLabView = () => {
                             <button
                                 type="submit"
                                 form="add-material-form"
-                                disabled={isSubmitting || !newMaterial.title || !newMaterial.url}
+                                disabled={isSubmitting || !newMaterial.title || (!newMaterial.url && !selectedFile)}
                                 className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
