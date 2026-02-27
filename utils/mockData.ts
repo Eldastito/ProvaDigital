@@ -80,6 +80,35 @@ export const INITIAL_ITEMS: Item[] = [
     createdAt: new Date().toISOString()
   },
   {
+    id: "3d-mock-02",
+    tenantId: "t-default",
+    ownerId: "u-456",
+    knowledgeArea: "Ciências da Natureza",
+    subject: "Biologia",
+    type: QuestionType.MULTIPLE_CHOICE,
+    statement: "<p>Analise a estrutura interativa abaixo. Observe as diferentes cores que conectam as duas fitas principais. Identifique qual estrutura biológica ela representa.</p>",
+    multimedia: [
+      {
+        type: '3D_MODEL',
+        url: 'preset:dna_helix',
+        description: 'Hélice dupla de DNA'
+      }
+    ],
+    alternatives: [
+      { id: "alt-A", text: "Cadeia de RNA mensageiro", isCorrect: false },
+      { id: "alt-B", text: "Hélice de Colágeno", isCorrect: false },
+      { id: "alt-C", text: "Dupla Hélice de DNA", isCorrect: true },
+      { id: "alt-D", text: "Bicamada Lipídica", isCorrect: false }
+    ],
+    correctAnswerJustification: "A estrutura mostra a clássica dupla hélice com as pontes de hidrogênio (bases nitrogenadas) ligando as duas fitas, característica principal da molécula de DNA.",
+    difficulty: DifficultyLevel.EASY,
+    score: 1.0,
+    origin: ItemOrigin.MANUAL,
+    tags: ["Genética", "Biologia", "DNA", "Interativo", "3D"],
+    usageCount: 0,
+    createdAt: new Date().toISOString()
+  },
+  {
     id: MOCK_ITEM_ID, tenantId: MOCK_TENANT_ID, schoolId: MOCK_SCHOOL_ID, ownerId: MOCK_USER_ID,
     knowledgeArea: 'Humanas', subject: 'História', type: QuestionType.MULTIPLE_CHOICE,
     statement: 'Qual foi o principal motivo da vinda da Família Real?',
@@ -90,6 +119,23 @@ export const INITIAL_ITEMS: Item[] = [
 ];
 
 export const INITIAL_EXAMS: Exam[] = [
+  {
+    id: 'exam-3d-test',
+    tenantId: MOCK_TENANT_ID,
+    schoolId: MOCK_SCHOOL_ID,
+    creatorId: MOCK_USER_ID,
+    title: '⚠️ EXAME TESTE: Visualizador 3D',
+    subject: 'Ciências da Natureza',
+    model: ExamModel.SOMATIVO,
+    durationMinutes: 30,
+    targetQuestionCount: 2,
+    status: ExamStatus.PUBLISHED,
+    items: [{ itemId: '3d-mock-01', order: 1 }, { itemId: '3d-mock-02', order: 2 }],
+    classIds: [MOCK_CLASS_ID],
+    createdAt: new Date().toISOString(),
+    scheduledDate: new Date().toISOString().split('T')[0],
+    maxScore: 10.0
+  },
   {
     id: MOCK_EXAM_ID, tenantId: MOCK_TENANT_ID, schoolId: MOCK_SCHOOL_ID, creatorId: MOCK_USER_ID,
     title: 'História - 9º Ano', subject: 'História', model: ExamModel.SOMATIVO, durationMinutes: 50, targetQuestionCount: 10,
