@@ -83,7 +83,8 @@ export const ProjectionLabView = () => {
         loadProjectionMaterials,
         addProjectionMaterial,
         deleteProjectionMaterial,
-        currentUser
+        currentUser,
+        schools
     } = useAppStore();
 
     const [selectedItem, setSelectedItem] = useState<ProjectionMaterial | null>(null);
@@ -140,9 +141,21 @@ export const ProjectionLabView = () => {
 
         setIsSubmitting(true);
         try {
+            const fallbackSchoolId = schools && schools.length > 0 ? schools[0].id : undefined;
+            const fallbackTenantId = schools && schools.length > 0 ? schools[0].tenantId : undefined;
+
+            const resolvedTenantId = currentUser.tenantId || fallbackTenantId;
+            const resolvedSchoolId = currentUser.schoolId || fallbackSchoolId;
+
+            if (!resolvedTenantId || !resolvedSchoolId) {
+                alert("Erro: Não foi possível identificar a Escola ou Tenant para vincular este material.");
+                setIsSubmitting(false);
+                return;
+            }
+
             await addProjectionMaterial({
-                tenantId: currentUser.tenantId || 'default-tenant-id', // fallback se currentUser n tiver
-                schoolId: currentUser.schoolId || 'default-school-id',
+                tenantId: resolvedTenantId,
+                schoolId: resolvedSchoolId,
                 ownerId: currentUser.id,
                 title: newMaterial.title!,
                 type: newMaterial.type as any,
