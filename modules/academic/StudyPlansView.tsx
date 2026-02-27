@@ -5,6 +5,8 @@ import { uuidv4 } from '../../utils/helpers';
 import { AnalyticsService } from '../../services/analyticsService';
 import { generateStudyPlanSuggestions, generateLessonPlanSuggestions, LessonPlanSuggestion } from '../../services/geminiService';
 import { useAppStore } from '../../store/useAppStore';
+import { RichTextRenderer } from '../../components/RichTextRenderer';
+import { Interactive3DViewer } from '../../components/3d/Interactive3DViewer';
 
 interface StudyPlansViewProps {
     state: AppState;
@@ -685,11 +687,23 @@ export const StudyPlansView = () => {
                                 </div>
                             </div>
 
-                            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-6 min-h-[120px] flex items-center">
+                            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-6 min-h-[120px]">
                                 {currentQuestion ? (
-                                    <p className="text-lg font-medium text-slate-800">{currentQuestion.statement}</p>
+                                    <div className="space-y-6">
+                                        <RichTextRenderer
+                                            content={currentQuestion.statement}
+                                            className="text-lg font-medium text-slate-800"
+                                        />
+
+                                        {/* 3D Model Viewer (if multimedia includes 3D_MODEL) */}
+                                        {currentQuestion.multimedia?.filter(m => m.type === '3D_MODEL').map((m, i) => (
+                                            <div key={`3d-${i}`} className="my-4">
+                                                <Interactive3DViewer preset={m.url} description={m.description} />
+                                            </div>
+                                        ))}
+                                    </div>
                                 ) : (
-                                    <div className="w-full text-center py-4"><span className="animate-spin text-2xl">⏳</span></div>
+                                    <div className="w-full text-center py-4 flex items-center justify-center"><span className="animate-spin text-2xl">⏳</span></div>
                                 )}
                             </div>
 
@@ -707,8 +721,8 @@ export const StudyPlansView = () => {
                                                 : 'border-slate-200 hover:border-slate-300'
                                                 }`}
                                         >
-                                            <span>{alt.text}</span>
-                                            {currentQuestion && simAnswers[currentQuestion.id] === alt.id && <CheckCircle size={20} className="text-brand-primary" />}
+                                            <RichTextRenderer content={alt.text} className="text-sm" />
+                                            {currentQuestion && simAnswers[currentQuestion.id] === alt.id && <CheckCircle size={20} className="text-brand-primary shrink-0" />}
                                         </button>
                                     ))
                                 ) : (
