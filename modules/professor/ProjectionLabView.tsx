@@ -205,6 +205,32 @@ export const ProjectionLabView = () => {
     };
 
     const renderMedia = (item: ProjectionMaterial) => {
+        const getEmbedUrl = (url: string, type: string) => {
+            if (!url) return '';
+            try {
+                if (type === 'VIDEO') {
+                    if (url.includes('youtube.com/watch?v=')) {
+                        const videoId = url.split('v=')[1]?.split('&')[0];
+                        return `https://www.youtube.com/embed/${videoId}`;
+                    }
+                    if (url.includes('youtu.be/')) {
+                        const videoId = url.split('youtu.be/')[1]?.split('?')[0];
+                        return `https://www.youtube.com/embed/${videoId}`;
+                    }
+                }
+                if (type === 'DOCUMENT') {
+                    // Check if it's already a Google Docs viewer link or Canva, etc.
+                    if (!url.includes('docs.google.com/viewer') && !url.includes('canva.com') && !url.includes('docs.google.com/presentation')) {
+                        // For direct PDF/PPT files, use Google Docs Viewer
+                        return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+                    }
+                }
+            } catch (e) {
+                console.error("Erro ao parsear URL", e);
+            }
+            return url;
+        };
+
         switch (item.type) {
             case '3D_MODEL':
                 return (
@@ -215,7 +241,7 @@ export const ProjectionLabView = () => {
             case 'VIDEO':
                 return (
                     <iframe
-                        src={item.url}
+                        src={getEmbedUrl(item.url, item.type)}
                         className="w-full h-full border-0"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen
@@ -225,7 +251,7 @@ export const ProjectionLabView = () => {
             case 'DOCUMENT':
                 return (
                     <iframe
-                        src={item.url}
+                        src={getEmbedUrl(item.url, item.type)}
                         className="w-full h-full border-0 bg-white"
                         title={item.title}
                     />
