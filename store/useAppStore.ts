@@ -17,20 +17,19 @@ import { supabase } from '../services/supabaseClient';
 export type AppStore = AuthSlice & ItemSlice & ExamSlice & AcademicSlice & AdminSlice & ExtraSlice & UISlice & LogisticsSlice & SystemSlice;
 
 const PRODUCTION_MODE = import.meta.env.VITE_PRODUCTION_MODE === 'true';
-// SAFELY FORCING MOCKS TO TRUE: The production environment explicitly sets VITE_USE_MOCK_DATA=false
-// which crashes all the views because we don't have the Supabase fetch logic wired up yet.
-const USE_MOCK_DATA = true;
+// FORCING MOCKS based on environment variable
+const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true' || import.meta.env.VITE_USE_MOCK_DATA === undefined;
 
-export const useAppStore = create<AppStore>()((...a) => ({
-    ...createAuthSlice(...a),
-    ...createItemSlice(...a),
-    ...createExamSlice(...a),
-    ...createAcademicSlice(...a),
-    ...createAdminSlice(...a),
-    ...createExtraSlice(...a),
-    ...createUISlice(...a),
-    ...createLogisticsSlice(...a),
-    ...createSystemSlice(...a),
+export const useAppStore = create<AppStore>()((set, get, api) => ({
+    ...createAuthSlice(set, get, api),
+    ...createItemSlice(set, get, api),
+    ...createExamSlice(set, get, api),
+    ...createAcademicSlice(set, get, api),
+    ...createAdminSlice(set, get, api),
+    ...createExtraSlice(set, get, api),
+    ...createUISlice(set, get, api),
+    ...createLogisticsSlice(set, get, api),
+    ...createSystemSlice(set, get, api),
 
     // Overrides/Initialization for Mock Data
     tenants: USE_MOCK_DATA ? INITIAL_TENANTS : [],
@@ -64,6 +63,22 @@ export const useAppStore = create<AppStore>()((...a) => ({
     // Multi-slice orchestration (Main actions)
     loadRemoteData: async () => {
         console.log("🔄 Sincronizando dados com a nuvem (Modular)...");
-        // This could call slice-specific loaders in the future
+        if (USE_MOCK_DATA) {
+            console.log("⏭️ Mock data ativo, pulando busca remota.");
+            return;
+        }
+
+        const state = get();
+        await Promise.all([
+            state.loadTenants?.(),
+            state.loadItems?.(),
+            state.loadSchools?.(),
+            state.loadClasses?.(),
+            state.loadStudents?.(),
+            state.loadUsers?.(),
+            state.loadGenerationBatches?.()
+        ]);
+
+        console.log("✅ Dados sincronizados.");
     }
 }));

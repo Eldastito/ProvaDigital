@@ -21,6 +21,7 @@ export interface ItemSlice {
     discardOneItem: (itemId: string) => Promise<void>;
     setActiveBatchId: (id: string | null) => void;
     loadGenerationBatches: () => Promise<void>;
+    loadItems: () => Promise<void>;
     forceFetchBatchItems: (batchId: string) => Promise<Item[] | void>;
     deleteGenerationBatch: (batchId: string) => Promise<void>;
 }
@@ -109,6 +110,15 @@ export const createItemSlice: StateCreator<AppStore, [], [], ItemSlice> = (set, 
     loadGenerationBatches: async () => {
         const { data } = await supabase.from('item_generation_batches').select('*');
         if (data) set({ itemGenerationBatches: data as any });
+    },
+
+    loadItems: async () => {
+        const { data, error } = await supabase.from('items').select('*');
+        if (error) {
+            console.error("Error loading items:", error);
+            return;
+        }
+        if (data) set({ items: data as Item[] });
     },
 
     forceFetchBatchItems: async (batchId) => {

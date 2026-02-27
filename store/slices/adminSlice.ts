@@ -25,7 +25,9 @@ export const createAdminSlice: StateCreator<AppStore, [], [], AdminSlice> = (set
     },
 
     loadTenants: async () => {
-        // ...
+        const { data, error } = await supabase.from('tenants').select('*');
+        if (data) set({ tenants: data as Tenant[] });
+        if (error) console.error("Error loading tenants:", error);
     },
 
     fetchAuditLogs: async (tenantId) => {

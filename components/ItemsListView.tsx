@@ -126,6 +126,13 @@ export const ItemsListView = () => {
     const normalizeText = (text: string) =>
         text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
+    // AUTO-LOAD on MOUNT
+    React.useEffect(() => {
+        if (state.items.length === 0) {
+            state.loadItems?.();
+        }
+    }, []);
+
     // FILTER LOGIC
     const filteredItems = (state.items || []).filter(i => {
         // More lenient tenant check: allow if same tenant OR if current user is super admin

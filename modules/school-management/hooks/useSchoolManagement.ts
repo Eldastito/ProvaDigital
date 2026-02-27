@@ -94,6 +94,11 @@ export const useSchoolManagement = () => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
     }, [schoolForm, classForm, studentForm, userForm]);
 
+    // AUTO-LOAD on MOUNT (Academic Data)
+    useEffect(() => {
+        state.loadRemoteData?.();
+    }, []);
+
     // --- BATCH UPLOAD SCHOOLS ---
     const handleBatchSchoolImport = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];

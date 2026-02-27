@@ -1,6 +1,7 @@
 import { StateCreator } from 'zustand';
 import { User, UserRole, PermissionMatrix, UserProfileExtended, OwlTutorContext } from '../../types';
 import { AppStore } from '../useAppStore';
+import { supabase } from '../../services/supabaseClient';
 
 export interface AuthSlice {
     currentUser: User | null;
@@ -45,8 +46,18 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
     updatePermissions: (matrix) => set({ globalPermissions: matrix }),
 
     initIdentity: async () => {
-        // Implementation logic from useAppStore
         console.log("🔐 Initializing Identity...");
-        // ... (This would be moved from the main store)
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            const { data: profile } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+
+            if (profile) {
+                set({ currentUser: profile as User });
+            }
+        }
     }
 });

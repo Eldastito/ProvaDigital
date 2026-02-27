@@ -1,6 +1,7 @@
 import { StateCreator } from 'zustand';
 import { School, SchoolClass, Student, ExamRegistration, ExamResult, StudentProfile, UserProfileExtended, User } from '../../types';
 import { AppStore } from '../useAppStore';
+import { supabase } from '../../services/supabaseClient';
 
 export interface AcademicSlice {
     schools: School[];
@@ -32,6 +33,10 @@ export interface AcademicSlice {
     bulkUpdateUserStatus: (userIds: string[], status: 'ACTIVE' | 'BLOCKED') => Promise<void>;
     updateUser: (user: User) => void;
     resetUserPassword: (email: string) => Promise<void>;
+    loadSchools: () => Promise<void>;
+    loadClasses: () => Promise<void>;
+    loadStudents: () => Promise<void>;
+    loadUsers: () => Promise<void>;
 }
 
 export const createAcademicSlice: StateCreator<AppStore, [], [], AcademicSlice> = (set, get) => ({
@@ -100,5 +105,29 @@ export const createAcademicSlice: StateCreator<AppStore, [], [], AcademicSlice> 
 
     resetUserPassword: async (email) => {
         console.log(`Password reset requested for ${email}`);
+    },
+
+    loadSchools: async () => {
+        const { data, error } = await supabase.from('schools').select('*');
+        if (data) set({ schools: data as School[] });
+        if (error) console.error("Error loading schools:", error);
+    },
+
+    loadClasses: async () => {
+        const { data, error } = await supabase.from('classes').select('*');
+        if (data) set({ classes: data as SchoolClass[] });
+        if (error) console.error("Error loading classes:", error);
+    },
+
+    loadStudents: async () => {
+        const { data, error } = await supabase.from('students').select('*');
+        if (data) set({ students: data as Student[] });
+        if (error) console.error("Error loading students:", error);
+    },
+
+    loadUsers: async () => {
+        const { data, error } = await supabase.from('users').select('*');
+        if (data) set({ users: data as User[] });
+        if (error) console.error("Error loading users:", error);
     }
 });
