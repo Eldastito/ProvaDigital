@@ -49,7 +49,7 @@ const MOCK_LIBRARY: MediaItem[] = [
         title: 'Cérebro Humano 3D',
         type: '3D_MODEL',
         category: 'Biologia',
-        url: 'sketchfab:a54160408542456ab7fdf51bfdfa40ab?autostart=1&ui_inspector=1&ui_infos=0',
+        url: 'sketchfab:1972b22606ea4cdab6009ed4ae082dc0?autostart=1&ui_inspector=1&ui_infos=0',
         description: 'Estrutura detalhada do cérebro humano com visualização de hemisférios e lobos.'
     },
     {
