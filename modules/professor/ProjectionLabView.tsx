@@ -219,9 +219,16 @@ export const ProjectionLabView = () => {
                     }
                 }
                 if (type === 'DOCUMENT') {
-                    // Check if it's already a Google Docs viewer link or Canva, etc.
+                    if (url.includes('canva.com/design/')) {
+                        // Converte links normais de design do Canva para a versão incorporável (?embed)
+                        const match = url.match(/(canva\.com\/design\/[a-zA-Z0-9_-]+)/);
+                        if (match) {
+                            return `https://www.${match[1]}/view?embed`;
+                        }
+                    }
+                    // Check se é Google Docs ou se já foi tratado
                     if (!url.includes('docs.google.com/viewer') && !url.includes('canva.com') && !url.includes('docs.google.com/presentation')) {
-                        // For direct PDF/PPT files, use Google Docs Viewer
+                        // Usa o leitor de PDF/PPT do Google
                         return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
                     }
                 }
