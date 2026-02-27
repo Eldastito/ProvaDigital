@@ -3,6 +3,7 @@ import { Item, ItemGenerationBatch, ItemOrigin, QuestionType, DifficultyLevel } 
 import { AppStore } from '../useAppStore';
 import { supabase } from '../../services/supabaseClient';
 import { v4 as uuidv4 } from 'uuid';
+import { INITIAL_ITEMS } from '../../utils/mockData';
 
 export interface ItemSlice {
     items: Item[];
@@ -118,7 +119,12 @@ export const createItemSlice: StateCreator<AppStore, [], [], ItemSlice> = (set, 
             console.error("Error loading items:", error);
             return;
         }
-        if (data) set({ items: data as Item[] });
+
+        // Always ensure the 3D Mock Models are injected into the list for demonstration purposes
+        const mock3DItems = INITIAL_ITEMS.filter(i => i.id.startsWith('3d-mock-'));
+        const dbItems = (data || []) as Item[];
+
+        set({ items: [...dbItems, ...mock3DItems] });
     },
 
     forceFetchBatchItems: async (batchId) => {

@@ -46,11 +46,11 @@ const MOCK_LIBRARY: MediaItem[] = [
     },
     {
         id: '3',
-        title: 'Célula Animal 3D',
+        title: 'Cérebro Humano 3D',
         type: '3D_MODEL',
         category: 'Biologia',
-        url: 'sketchfab:8a62378877f842f1b88e1db4e2467d58?autostart=1&ui_inspector=1&ui_infos=0', // Exemplo
-        description: 'Estrutura detalhada de uma célula eucarionte animal.'
+        url: 'sketchfab:a54160408542456ab7fdf51bfdfa40ab?autostart=1&ui_inspector=1&ui_infos=0',
+        description: 'Estrutura detalhada do cérebro humano com visualização de hemisférios e lobos.'
     },
     {
         id: '4',
@@ -237,9 +237,9 @@ export const ProjectionLabView = () => {
                                 >
                                     <div className="flex gap-3">
                                         <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${item.type === '3D_MODEL' ? 'bg-blue-100 text-blue-600' :
-                                                item.type === 'VIDEO' ? 'bg-red-100 text-red-600' :
-                                                    item.type === 'DOCUMENT' ? 'bg-emerald-100 text-emerald-600' :
-                                                        'bg-purple-100 text-purple-600'
+                                            item.type === 'VIDEO' ? 'bg-red-100 text-red-600' :
+                                                item.type === 'DOCUMENT' ? 'bg-emerald-100 text-emerald-600' :
+                                                    'bg-purple-100 text-purple-600'
                                             }`}>
                                             {getIconForType(item.type)}
                                         </div>
