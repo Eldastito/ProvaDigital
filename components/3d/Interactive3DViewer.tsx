@@ -246,15 +246,22 @@ export const Interactive3DViewer: React.FC<Interactive3DViewerProps> = ({
             {/* WebGL Viewport or Iframe */}
             <div className="interactive-3d-canvas-wrapper" aria-label={description}>
                 {isSketchfab ? (
-                    <iframe
-                        title={description}
-                        src={`https://sketchfab.com/models/${preset.split(':')[1]}/embed`}
-                        allow="autoplay; fullscreen; xr-spatial-tracking"
-                        execution-while-out-of-viewport="true"
-                        execution-while-not-rendered="true"
-                        web-share="true"
-                        className="w-full h-full border-0 absolute inset-0"
-                    ></iframe>
+                    (() => {
+                        const raw = preset.replace('sketchfab:', '');
+                        const [uid, queryStr] = raw.split('?');
+                        const src = `https://sketchfab.com/models/${uid}/embed${queryStr ? '?' + queryStr : ''}`;
+                        return (
+                            <iframe
+                                title={description}
+                                src={src}
+                                allow="autoplay; fullscreen; xr-spatial-tracking"
+                                execution-while-out-of-viewport="true"
+                                execution-while-not-rendered="true"
+                                web-share="true"
+                                className="w-full h-full border-0 absolute inset-0"
+                            ></iframe>
+                        );
+                    })()
                 ) : (
                     <Suspense fallback={
                         <div className="absolute inset-0 flex items-center justify-center text-slate-400">
