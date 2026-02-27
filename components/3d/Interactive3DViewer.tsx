@@ -203,8 +203,9 @@ export const Interactive3DViewer: React.FC<Interactive3DViewerProps> = ({
     }, [preset]); // Re-eval if remounts
 
     const ModelComponent = PRESET_MAP[preset] || ModelCube;
+    const isSketchfab = preset.startsWith('sketchfab:');
 
-    if (!supportsWebGL) {
+    if (!supportsWebGL && !isSketchfab) {
         return (
             <div className="p-4 bg-slate-100 border rounded-xl text-center text-slate-500 mb-6 py-12">
                 <p>O seu navegador ou dispositivo atual não suporta visualização em 3D.</p>
@@ -242,42 +243,54 @@ export const Interactive3DViewer: React.FC<Interactive3DViewerProps> = ({
                 </div>
             </div>
 
-            {/* WebGL Viewport */}
+            {/* WebGL Viewport or Iframe */}
             <div className="interactive-3d-canvas-wrapper" aria-label={description}>
-                <Suspense fallback={
-                    <div className="absolute inset-0 flex items-center justify-center text-slate-400">
-                        <RefreshCw className="animate-spin" size={24} />
-                    </div>
-                }>
-                    <Canvas camera={{ position: [0, 0, 5], fov: 50 }} shadows>
-                        <ambientLight intensity={0.5} />
-                        <pointLight position={[10, 10, 10]} intensity={1.5} castShadow />
-                        <pointLight position={[-10, -10, -10]} intensity={0.5} />
+                {isSketchfab ? (
+                    <iframe
+                        title={description}
+                        src={`https://sketchfab.com/models/${preset.split(':')[1]}/embed`}
+                        allow="autoplay; fullscreen; xr-spatial-tracking"
+                        execution-while-out-of-viewport="true"
+                        execution-while-not-rendered="true"
+                        web-share="true"
+                        className="w-full h-full border-0 absolute inset-0"
+                    ></iframe>
+                ) : (
+                    <Suspense fallback={
+                        <div className="absolute inset-0 flex items-center justify-center text-slate-400">
+                            <RefreshCw className="animate-spin" size={24} />
+                        </div>
+                    }>
+                        <Canvas camera={{ position: [0, 0, 5], fov: 50 }} shadows>
+                            <ambientLight intensity={0.5} />
+                            <pointLight position={[10, 10, 10]} intensity={1.5} castShadow />
+                            <pointLight position={[-10, -10, -10]} intensity={0.5} />
 
-                        <Environment preset="city" />
+                            <Environment preset="city" />
 
-                        <group position={[0, -0.5, 0]}>
-                            <ModelComponent />
-                            <ContactShadows
-                                position={[0, -2, 0]}
-                                opacity={0.4}
-                                scale={10}
-                                blur={2}
-                                far={4}
-                                color="#000000"
+                            <group position={[0, -0.5, 0]}>
+                                <ModelComponent />
+                                <ContactShadows
+                                    position={[0, -2, 0]}
+                                    opacity={0.4}
+                                    scale={10}
+                                    blur={2}
+                                    far={4}
+                                    color="#000000"
+                                />
+                            </group>
+
+                            <OrbitControls
+                                enablePan={true}
+                                enableZoom={true}
+                                enableRotate={true}
+                                makeDefault
+                                minDistance={2}
+                                maxDistance={10}
                             />
-                        </group>
-
-                        <OrbitControls
-                            enablePan={true}
-                            enableZoom={true}
-                            enableRotate={true}
-                            makeDefault
-                            minDistance={2}
-                            maxDistance={10}
-                        />
-                    </Canvas>
-                </Suspense>
+                        </Canvas>
+                    </Suspense>
+                )}
             </div>
         </div>
     );

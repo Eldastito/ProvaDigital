@@ -197,6 +197,64 @@ export const INITIAL_ITEMS: Item[] = [
     createdAt: new Date().toISOString()
   },
   {
+    id: "3d-mock-06",
+    tenantId: "t-default",
+    ownerId: "u-456",
+    knowledgeArea: "Ciências da Natureza",
+    subject: "Biologia",
+    type: QuestionType.MULTIPLE_CHOICE,
+    statement: "<p>Utilize o <strong>Inspetor 3D</strong> (ícone de engrenagem/cubo no player) para separar as partes do Coração Humano abaixo. Qual câmara é responsável por bombear o sangue oxigenado para a aorta?</p>",
+    multimedia: [
+      {
+        type: '3D_MODEL',
+        url: 'sketchfab:3f8072336ce94d18b3d0d055a1ece089?autostart=1&ui_inspector=1&ui_infos=0',
+        description: 'Anatomia do Coração Humano'
+      }
+    ],
+    alternatives: [
+      { id: "alt-A", text: "Átrio Direito", isCorrect: false },
+      { id: "alt-B", text: "Átrio Esquerdo", isCorrect: false },
+      { id: "alt-C", text: "Ventrículo Direito", isCorrect: false },
+      { id: "alt-D", text: "Ventrículo Esquerdo", isCorrect: true }
+    ],
+    correctAnswerJustification: "O ventrículo esquerdo é a câmara mais espessa do coração, responsável por bombear o sangue arterial (oxigenado) para a maior artéria do corpo, a aorta.",
+    difficulty: DifficultyLevel.MEDIUM,
+    score: 1.0,
+    origin: ItemOrigin.MANUAL,
+    tags: ["Biologia", "Anatomia", "Coração", "3D"],
+    usageCount: 0,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "3d-mock-07",
+    tenantId: "t-default",
+    ownerId: "u-456",
+    knowledgeArea: "Ciências da Natureza",
+    subject: "Biologia",
+    type: QuestionType.MULTIPLE_CHOICE,
+    statement: "<p>Utilize a ferramenta <strong>Explodir</strong> (no Inspetor do modelo) para remover a pele e visualizar os órgãos. Localize o Fígado. Em qual lado da cavidade abdominal ele está majoritariamente posicionado?</p>",
+    multimedia: [
+      {
+        type: '3D_MODEL',
+        url: 'sketchfab:9311f4f8fa1a4fe4bb0027ff7e8fd795?autostart=1&ui_inspector=1&ui_infos=0&ui_stop=0',
+        description: 'Sistema do Corpo Humano'
+      }
+    ],
+    alternatives: [
+      { id: "alt-A", text: "Superior Direito", isCorrect: true },
+      { id: "alt-B", text: "Superior Esquerdo", isCorrect: false },
+      { id: "alt-C", text: "Inferior Direito", isCorrect: false },
+      { id: "alt-D", text: "Inferior Esquerdo", isCorrect: false }
+    ],
+    correctAnswerJustification: "O fígado é o maior órgão interno maciço e fica localizado predominantemente no quadrante superior direito do abdome, logo abaixo do diafragma.",
+    difficulty: DifficultyLevel.HARD,
+    score: 1.0,
+    origin: ItemOrigin.MANUAL,
+    tags: ["Biologia", "Anatomia", "Sistemas", "3D"],
+    usageCount: 0,
+    createdAt: new Date().toISOString()
+  },
+  {
     id: MOCK_ITEM_ID, tenantId: MOCK_TENANT_ID, schoolId: MOCK_SCHOOL_ID, ownerId: MOCK_USER_ID,
     knowledgeArea: 'Humanas', subject: 'História', type: QuestionType.MULTIPLE_CHOICE,
     statement: 'Qual foi o principal motivo da vinda da Família Real?',
@@ -223,7 +281,9 @@ export const INITIAL_EXAMS: Exam[] = [
       { itemId: '3d-mock-02', order: 2 },
       { itemId: '3d-mock-03', order: 3 },
       { itemId: '3d-mock-04', order: 4 },
-      { itemId: '3d-mock-05', order: 5 }
+      { itemId: '3d-mock-05', order: 5 },
+      { itemId: '3d-mock-06', order: 6 },
+      { itemId: '3d-mock-07', order: 7 }
     ],
     classIds: [MOCK_CLASS_ID],
     createdAt: new Date().toISOString(),
