@@ -263,16 +263,30 @@ export const ProjectionLabView = () => {
                         title={item.title}
                     />
                 );
-            case 'MIND_MAP':
+            case 'MIND_MAP': {
+                const isDirectImage = item.url.toLowerCase().match(/\.(jpeg|jpg|gif|png|webp|svg|bmp)($|\?)/) || item.url.startsWith('data:image');
+                // Se for uma imagem direta, renderiza a tag <img>
+                if (isDirectImage && !item.url.includes('canva.com')) {
+                    return (
+                        <div className="w-full h-full bg-slate-50 flex items-center justify-center p-8 overflow-auto">
+                            <img
+                                src={item.url}
+                                alt={item.title}
+                                className="max-w-full max-h-full object-contain shadow-lg border border-slate-200"
+                            />
+                        </div>
+                    );
+                }
+
+                // Se não for imagem direta (ex: link do Canva, PDF, arquivo Drive), tenta usar iframe
                 return (
-                    <div className="w-full h-full bg-slate-50 flex items-center justify-center p-8 overflow-auto">
-                        <img
-                            src={item.url}
-                            alt={item.title}
-                            className="max-w-full max-h-full object-contain shadow-lg border border-slate-200"
-                        />
-                    </div>
+                    <iframe
+                        src={getEmbedUrl(item.url, 'DOCUMENT')} // Reusa o parser de documento para transformar links Canva/Drive
+                        className="w-full h-full border-0 bg-slate-50"
+                        title={item.title}
+                    />
                 );
+            }
             default:
                 return <div className="flex items-center justify-center h-full">Mídia não suportada</div>;
         }
