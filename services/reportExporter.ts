@@ -10,6 +10,7 @@ import {
     BNCCCompetency
 } from '../types';
 import { generatePedagogicalNarrative } from './NarrativeReportService';
+import { AccessibilityAdaptationService, AccessibilityConfig } from './AccessibilityAdaptationService';
 
 /**
  * Report Exporter - Phase 11
@@ -20,30 +21,13 @@ import { generatePedagogicalNarrative } from './NarrativeReportService';
 // PDF Generation
 // ============================================
 
-interface AccessibilityStyles {
-    fontSizeBase: number;
-    titleSize: number;
-    lineSpacing: number;
-    fontFamily: string;
-}
-
-const getAccessibilityStyles = (needs: string[] = []): AccessibilityStyles => {
-    if (needs.includes('VISUAL')) {
-        return { fontSizeBase: 16, titleSize: 20, lineSpacing: 1.5, fontFamily: 'helvetica' };
-    }
-    if (needs.includes('TDAH') || needs.includes('TEA')) {
-        return { fontSizeBase: 13, titleSize: 16, lineSpacing: 1.3, fontFamily: 'courier' }; // Courier is more "spaced"
-    }
-    return { fontSizeBase: 10, titleSize: 14, lineSpacing: 1.15, fontFamily: 'helvetica' };
-};
-
 export const generateStudentReportPDF = async (data: StudentReportData, config: ReportConfig): Promise<jsPDF> => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
 
     // Accessibility Skill logic
     const specialNeeds = (data.student as any).specialNeeds || [];
-    const styles = getAccessibilityStyles(specialNeeds);
+    const styles: AccessibilityConfig = await AccessibilityAdaptationService.getDynamicPdfStyles(specialNeeds);
     doc.setFont(styles.fontFamily);
 
     // Header

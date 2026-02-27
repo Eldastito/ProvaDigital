@@ -17,7 +17,9 @@ import { supabase } from '../services/supabaseClient';
 export type AppStore = AuthSlice & ItemSlice & ExamSlice & AcademicSlice & AdminSlice & ExtraSlice & UISlice & LogisticsSlice & SystemSlice;
 
 const PRODUCTION_MODE = import.meta.env.VITE_PRODUCTION_MODE === 'true';
-const USE_MOCK_DATA = !PRODUCTION_MODE && import.meta.env.VITE_USE_MOCK_DATA === 'true';
+// Safely load Mocks whenever the environment variable isn't explicitly false.
+// Essential because sections like Tutor & Governance don't have Supabase backend yet.
+const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA !== 'false';
 
 export const useAppStore = create<AppStore>()((...a) => ({
     ...createAuthSlice(...a),

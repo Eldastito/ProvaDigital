@@ -148,12 +148,17 @@ export const KnowledgeVaultView: React.FC = () => {
         setSeedingBase(true);
         setUploadStatus('idle');
         let seededCount = 0;
+        let missingCount = 0;
 
         for (const doc of BASE_PLATFORM_DOCS) {
             try {
                 setProgress({ phase: 'extracting', current: 0, total: 0, docTitle: doc.title });
                 const response = await fetch(doc.url);
-                if (!response.ok) { console.warn(`Pulando ${doc.title}: ${response.status}`); continue; }
+                if (!response.ok) {
+                    console.warn(`Pulando ${doc.title}: ${response.status} - Arquivo não encontrado no servidor.`);
+                    missingCount++;
+                    continue;
+                }
                 const blob = await response.blob();
                 const file = new File([blob], doc.url.split('/').pop() || doc.title);
                 const content = await processFile(file);
@@ -168,6 +173,7 @@ export const KnowledgeVaultView: React.FC = () => {
                 if (ok) seededCount++;
             } catch (err) {
                 console.warn(`Erro ao processar ${doc.title}:`, err);
+                missingCount++;
             }
         }
 
@@ -175,11 +181,11 @@ export const KnowledgeVaultView: React.FC = () => {
         setSeedingBase(false);
         if (seededCount > 0) {
             setUploadStatus('success');
-            setStatusMessage(`${seededCount} documento(s) base indexados com sucesso!`);
+            setStatusMessage(`${seededCount} documento(s) base indexados com sucesso! ${missingCount > 0 ? `(${missingCount} não encontrados na pasta public do servidor)` : ''}`);
             await loadDocs();
         } else {
             setUploadStatus('error');
-            setStatusMessage('Nenhum documento base foi indexado. Os PDFs podem não estar disponíveis no servidor.');
+            setStatusMessage(`Falha. Verifique se copiou os PDFs originais do INEP para a pasta '/public' (Tentou ler ${BASE_PLATFORM_DOCS.length} arquivos, e 0 foram encontrados).`);
         }
     };
 
