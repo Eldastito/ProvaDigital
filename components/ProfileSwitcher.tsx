@@ -5,7 +5,8 @@ import { ChevronDown, User, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const PROFILE_OPTIONS = [
-    { role: 'SYSTEM_ADMIN' as UserRole, label: '🚀 GESTÃO SAAS (MASTER)', color: 'emerald', description: 'Controle Total & Business Intel' },
+    { role: 'MASTER_SAAS' as UserRole, label: '🚀 GESTÃO SAAS (MASTER)', color: 'emerald', description: 'Controle Total & Business Intel' },
+    { role: 'SYSTEM_ADMIN' as UserRole, label: '⚙️ ADMIN DO SISTEMA', color: 'slate', description: 'Gestão Técnica do SaaS' },
     { role: 'SUPER_ADMIN' as UserRole, label: '🏛️ MEC (SUPERADMIN)', color: 'purple', description: 'Visão Nacional' },
     { role: 'STATE_ADMIN' as UserRole, label: '🏢 Secretaria Estadual', color: 'indigo', description: 'Gestão Estadual' },
     { role: 'TENANT_ADMIN' as UserRole, label: '🌐 Secretaria Municipal', color: 'blue', description: 'Gestão Municipal' },
@@ -37,13 +38,19 @@ export const ProfileSwitcher: React.FC = () => {
         // Update store immediately
         setCurrentUser(updatedUser);
 
-        console.log('🧪 ProfileSwitcher: Switched to', role, '- Redirecting...');
-
         // Redirect to appropriate dashboard
-        if (role === UserRole.ALUNO) navigate('/aluno');
-        else navigate('/dashboard');
+        const targetPath = role === UserRole.ALUNO ? '/aluno' : '/dashboard';
+        navigate(targetPath);
 
         setIsOpen(false);
+
+        // Force a full reload to clear all global state/permissions/filters
+        // This ensures the new profile starts with a clean slate
+        console.log('🔄 ProfileSwitcher: Hard reload initiated...');
+        setTimeout(() => {
+            window.location.href = targetPath;
+            window.location.reload();
+        }, 100);
     };
 
     return (

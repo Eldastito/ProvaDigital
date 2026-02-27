@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, CheckSquare, Plus, BookOpen, Target, Brain, User as UserIcon, GraduationCap, ChevronRight, Sparkles, Trash2, Save, X, History, Clock, Play, Pause, RotateCcw, CheckCircle, XCircle, AlertCircle, Timer, Trophy } from 'lucide-react';
-import { AppState, User, UserRole, LessonPlan, StudyPlan, QuestionType } from '../../types';
+import { AppState, User, UserRole, LessonPlan, StudyPlan, QuestionType, DifficultyLevel } from '../../types';
 import { uuidv4 } from '../../utils/helpers';
 import { AnalyticsService } from '../../services/analyticsService';
 import { generateStudyPlanSuggestions, generateLessonPlanSuggestions, LessonPlanSuggestion } from '../../services/geminiService';
 import { useAppStore } from '../../store/useAppStore';
 import { RichTextRenderer } from '../../components/RichTextRenderer';
 import { Interactive3DViewer } from '../../components/3d/Interactive3DViewer';
+import { generateQuestionsFromText } from '../../services/geminiService';
 
 interface StudyPlansViewProps {
     state: AppState;
@@ -33,6 +34,11 @@ export const StudyPlansView = () => {
     useEffect(() => {
         if (isProfessor) setActiveTab('CURRICULUM');
         else setActiveTab('STUDY');
+
+        // Force sync items from Supabase on mount
+        if (state.items.length === 0) {
+            state.loadItems();
+        }
     }, [isProfessor]);
 
     // Data
@@ -65,6 +71,7 @@ export const StudyPlansView = () => {
     const [simAnswers, setSimAnswers] = useState<Record<string, string>>({}); // itemId -> optionId
     const [simTimeLeft, setSimTimeLeft] = useState(0);
     const [simFinished, setSimFinished] = useState(false);
+    const [isGeneratingSimulator, setIsGeneratingSimulator] = useState(false);
 
     // Bimester selection
     const [selectedBimester, setSelectedBimester] = useState(1);
@@ -299,25 +306,54 @@ export const StudyPlansView = () => {
 
     // --- SIMULATOR LOGIC ---
     const availableSubjects = useMemo(() => {
-        return Array.from(new Set(state.items.map(i => i.subject)));
+        // Normalize subjects: Remove accents and lowercase to avoid duplicates like "Matemática" vs "matematica"
+        const normalize = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+        const subjectsSet = new Set<string>();
+        const subjectMap = new Map<string, string>(); // Normalized -> Original (to keep pretty display)
+
+        state.items.forEach(i => {
+            if (!i.subject) return;
+            const norm = normalize(i.subject);
+            if (!subjectsSet.has(norm)) {
+                subjectsSet.add(norm);
+                // Keep the "best" version (usually capitalized)
+                const currentBest = subjectMap.get(norm);
+                if (!currentBest || i.subject.charAt(0) === i.subject.charAt(0).toUpperCase()) {
+                    subjectMap.set(norm, i.subject);
+                }
+            }
+        });
+
+        return Array.from(subjectMap.values()).sort();
     }, [state.items]);
 
     const startSimulator = () => {
         if (!simConfig.subject) return alert("Selecione uma matéria.");
 
-        // 1. Filter items
+        const normalize = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+        const targetNormalized = normalize(simConfig.subject);
+
+        // 1. Filter items using normalized comparison
         const subjectItems = state.items.filter(i =>
-            i.subject === simConfig.subject &&
+            i.subject &&
+            normalize(i.subject) === targetNormalized &&
             (i.type === QuestionType.MULTIPLE_CHOICE || i.type === QuestionType.TRUE_FALSE)
         );
 
-        if (subjectItems.length === 0) return alert("Não há questões suficientes desta matéria no banco.");
+        if (subjectItems.length < simConfig.count) {
+            const proceed = window.confirm(`O banco possui apenas ${subjectItems.length} questões desta matéria. Deseja gerar questões inéditas com IA para completar seu simulado?`);
+            if (proceed) {
+                handleGenerateSimulatorItems();
+                return;
+            } else if (subjectItems.length === 0) {
+                return;
+            }
+        }
 
         // 2. Randomize and Slice (Simulate shuffle)
         const shuffled = [...subjectItems].sort(() => 0.5 - Math.random());
         const selected = shuffled.slice(0, simConfig.count);
-
-        if (selected.length === 0) return alert("Erro ao gerar questões.");
 
         setSimQuestions(selected);
         setSimCurrentQ(0);
@@ -325,6 +361,42 @@ export const StudyPlansView = () => {
         setSimTimeLeft(simConfig.timeMinutes * 60);
         setSimFinished(false);
         setSimStep('TAKING');
+    };
+
+    const handleGenerateSimulatorItems = async () => {
+        setIsGeneratingSimulator(true);
+        try {
+            const qtyNeeded = simConfig.count;
+            const newQuestions = await generateQuestionsFromText(
+                `Simulado de ${simConfig.subject} para o ${user.role === UserRole.ALUNO ? '9º ano' : 'Ensino Fundamental'}`,
+                qtyNeeded,
+                QuestionType.MULTIPLE_CHOICE,
+                DifficultyLevel.MEDIUM,
+                simConfig.subject
+            );
+
+            // Map GeneratedQuestion to Item type
+            const items: any[] = newQuestions.map(q => ({
+                id: `ai-${uuidv4()}`,
+                statement: q.statement,
+                alternatives: q.alternatives.map(a => ({ id: uuidv4(), text: a.text, isCorrect: a.isCorrect })),
+                subject: simConfig.subject,
+                difficulty: q.difficulty as any,
+                type: QuestionType.MULTIPLE_CHOICE,
+            }));
+
+            setSimQuestions(items);
+            setSimCurrentQ(0);
+            setSimAnswers({});
+            setSimTimeLeft(simConfig.timeMinutes * 60);
+            setSimFinished(false);
+            setSimStep('TAKING');
+        } catch (error) {
+            console.error(error);
+            alert("Erro ao gerar questões com IA.");
+        } finally {
+            setIsGeneratingSimulator(false);
+        }
     };
 
     const finishSimulator = () => {
@@ -666,12 +738,27 @@ export const StudyPlansView = () => {
                                         />
                                     </div>
                                 </div>
-                                <button
-                                    onClick={startSimulator}
-                                    className="w-full py-3 bg-brand-primary text-white font-bold rounded-lg hover:bg-brand-dark transition"
-                                >
-                                    Iniciar Simulado
-                                </button>
+                                <div className="flex gap-2 pt-2">
+                                    <button
+                                        onClick={startSimulator}
+                                        disabled={isGeneratingSimulator}
+                                        className="flex-1 py-3 bg-brand-primary text-white font-bold rounded-lg hover:bg-brand-dark transition disabled:opacity-50"
+                                    >
+                                        {isGeneratingSimulator ? 'Processando...' : 'Iniciar Simulado'}
+                                    </button>
+                                    <button
+                                        onClick={handleGenerateSimulatorItems}
+                                        disabled={isGeneratingSimulator || !simConfig.subject}
+                                        className="px-4 py-3 bg-slate-900 text-white font-bold rounded-lg hover:bg-slate-800 transition disabled:opacity-50 flex items-center gap-2"
+                                        title="Gerar questões inéditas com IA"
+                                    >
+                                        <Sparkles size={18} className={isGeneratingSimulator ? 'animate-spin' : 'text-yellow-400'} />
+                                        {isGeneratingSimulator ? 'Gerando...' : 'IA'}
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-2">
+                                    {isGeneratingSimulator ? 'Aguarde, o Corujão está elaborando questões inéditas...' : 'Dica: Clique em IA para gerar questões se o banco estiver vazio.'}
+                                </p>
                             </div>
                         </div>
                     )}
