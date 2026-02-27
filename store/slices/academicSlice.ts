@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand';
-import { School, SchoolClass, Student, ExamRegistration, ExamResult, StudentProfile, UserProfileExtended, User } from '../../types';
+import { School, SchoolClass, Student, ExamRegistration, ExamResult, StudentProfile, UserProfileExtended, User, ProjectionMaterial } from '../../types';
 import { AppStore } from '../useAppStore';
 import { supabase } from '../../services/supabaseClient';
 
@@ -13,6 +13,7 @@ export interface AcademicSlice {
     studentProfiles: StudentProfile[];
     userProfiles: UserProfileExtended[];
     selectedUserIds: string[];
+    projectionMaterials: ProjectionMaterial[];
 
     addSchool: (school: School) => Promise<void>;
     updateSchool: (school: School) => Promise<void>;
@@ -37,6 +38,9 @@ export interface AcademicSlice {
     loadClasses: () => Promise<void>;
     loadStudents: () => Promise<void>;
     loadUsers: () => Promise<void>;
+    loadProjectionMaterials: () => Promise<void>;
+    addProjectionMaterial: (material: Omit<ProjectionMaterial, 'id' | 'createdAt'>) => Promise<void>;
+    deleteProjectionMaterial: (id: string, ownerId: string) => Promise<void>;
 }
 
 export const createAcademicSlice: StateCreator<AppStore, [], [], AcademicSlice> = (set, get) => ({
@@ -49,6 +53,7 @@ export const createAcademicSlice: StateCreator<AppStore, [], [], AcademicSlice> 
     studentProfiles: [],
     userProfiles: [],
     selectedUserIds: [],
+    projectionMaterials: [],
 
     addSchool: async (school) => set((state) => ({ schools: [...state.schools, school] })),
     updateSchool: async (school) => set((state) => ({
@@ -129,5 +134,73 @@ export const createAcademicSlice: StateCreator<AppStore, [], [], AcademicSlice> 
         const { data, error } = await supabase.from('users').select('*');
         if (data) set({ users: data as User[] });
         if (error) console.error("Error loading users:", error);
+    },
+
+    loadProjectionMaterials: async () => {
+        const { data, error } = await supabase.from('projection_materials').select('*');
+        if (data) {
+            const formatted = data.map(item => ({
+                id: item.id,
+                tenantId: item.tenant_id,
+                schoolId: item.school_id,
+                ownerId: item.owner_id,
+                title: item.title,
+                type: item.type as any,
+                category: item.category,
+                url: item.url,
+                thumbnail: item.thumbnail,
+                description: item.description,
+                createdAt: item.created_at
+            })) as ProjectionMaterial[];
+            set({ projectionMaterials: formatted });
+        }
+        if (error) console.error("Error loading projection materials:", error);
+    },
+
+    addProjectionMaterial: async (material) => {
+        const { data, error } = await supabase.from('projection_materials').insert({
+            tenant_id: material.tenantId,
+            school_id: material.schoolId,
+            owner_id: material.ownerId,
+            title: material.title,
+            type: material.type,
+            category: material.category,
+            url: material.url,
+            thumbnail: material.thumbnail,
+            description: material.description
+        }).select().single();
+
+        if (error) {
+            console.error("Error adding projection material:", error);
+            throw error;
+        }
+
+        if (data) {
+            const newMaterial: ProjectionMaterial = {
+                id: data.id,
+                tenantId: data.tenant_id,
+                schoolId: data.school_id,
+                ownerId: data.owner_id,
+                title: data.title,
+                type: data.type as any,
+                category: data.category,
+                url: data.url,
+                thumbnail: data.thumbnail,
+                description: data.description,
+                createdAt: data.created_at
+            };
+            set(state => ({ projectionMaterials: [...state.projectionMaterials, newMaterial] }));
+        }
+    },
+
+    deleteProjectionMaterial: async (id, ownerId) => {
+        set(state => ({ projectionMaterials: state.projectionMaterials.filter(m => m.id !== id) }));
+
+        const { error } = await supabase.from('projection_materials').delete().eq('id', id).eq('owner_id', ownerId);
+        if (error) {
+            console.error("Error deleting projection material:", error);
+            get().loadProjectionMaterials(); // Revert state on error
+            throw error;
+        }
     }
 });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     MonitorPlay,
     Library,
@@ -10,82 +10,46 @@ import {
     Youtube,
     Box,
     Share2,
-    Image as ImageIcon
+    Image as ImageIcon,
+    Plus,
+    Trash2,
+    X,
+    Loader2
 } from 'lucide-react';
 import { Interactive3DViewer } from '../../components/3d/Interactive3DViewer';
-
-type MediaType = '3D_MODEL' | 'VIDEO' | 'DOCUMENT' | 'MIND_MAP';
-
-interface MediaItem {
-    id: string;
-    title: string;
-    type: MediaType;
-    category: string;
-    url: string;
-    thumbnail?: string;
-    description?: string;
-}
-
-// Temporary Mock Data for the Library
-const MOCK_LIBRARY: MediaItem[] = [
-    {
-        id: '1',
-        title: 'Anatomia do Coração Humano',
-        type: '3D_MODEL',
-        category: 'Biologia',
-        url: 'sketchfab:3f8072336ce94d18b3d0d055a1ece089?autostart=1&ui_inspector=1&ui_infos=0',
-        description: 'Modelo 3D interativo do coração humano com separador anatômico.'
-    },
-    {
-        id: '2',
-        title: 'Sistema do Corpo Humano',
-        type: '3D_MODEL',
-        category: 'Biologia',
-        url: 'sketchfab:9311f4f8fa1a4fe4bb0027ff7e8fd795?autostart=1&ui_inspector=1&ui_infos=0',
-        description: 'Corpo humano completo para dissecação virtual dos sistemas.'
-    },
-    {
-        id: '3',
-        title: 'Cérebro Humano 3D',
-        type: '3D_MODEL',
-        category: 'Biologia',
-        url: 'sketchfab:7a27c17fd6c0488bb31ab093236a47fb?autostart=1&ui_inspector=1&ui_infos=0',
-        description: 'Estrutura detalhada do cérebro humano com visualização de hemisférios e lobos.'
-    },
-    {
-        id: '4',
-        title: 'Aulas INEP: Metodologia TRI',
-        type: 'VIDEO',
-        category: 'Pedagogia',
-        url: 'https://www.youtube.com/embed/dQw4w9WgXcQ', // Placeholder
-        description: 'Explicação didática sobre como funciona a Teoria de Resposta ao Item.'
-    },
-    {
-        id: '5',
-        title: 'Slides: Revolução Industrial (PPT)',
-        type: 'DOCUMENT',
-        category: 'História',
-        // Using Google Docs Viewer for a public PPT file (Placeholder URL)
-        url: 'https://docs.google.com/viewer?url=https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf&embedded=true',
-        description: 'Material de apoio completo sobre a 1ª e 2ª Revolução Industrial.'
-    },
-    {
-        id: '6',
-        title: 'Mapa Mental: Ciclo da Água',
-        type: 'MIND_MAP',
-        category: 'Geografia / Ciências',
-        url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Watercyclesummary.jpg/1200px-Watercyclesummary.jpg',
-        description: 'Esquema visual detalhando os processos de evaporação, condensação e precipitação.'
-    }
-];
+import { useAppStore } from '../../store/useAppStore';
+import { ProjectionMaterial } from '../../types';
 
 export const ProjectionLabView = () => {
-    const [selectedItem, setSelectedItem] = useState<MediaItem | null>(null);
+    const {
+        projectionMaterials,
+        loadProjectionMaterials,
+        addProjectionMaterial,
+        deleteProjectionMaterial,
+        currentUser
+    } = useAppStore();
+
+    const [selectedItem, setSelectedItem] = useState<ProjectionMaterial | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeFilter, setActiveFilter] = useState<MediaType | 'ALL'>('ALL');
+    const [activeFilter, setActiveFilter] = useState<ProjectionMaterial['type'] | 'ALL'>('ALL');
     const [isFullscreen, setIsFullscreen] = useState(false);
 
-    const filteredLibrary = MOCK_LIBRARY.filter(item => {
+    // Add Material Modal State
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [newMaterial, setNewMaterial] = useState<Partial<ProjectionMaterial>>({
+        type: 'VIDEO',
+        title: '',
+        category: '',
+        url: '',
+        description: ''
+    });
+
+    useEffect(() => {
+        loadProjectionMaterials();
+    }, [loadProjectionMaterials]);
+
+    const filteredLibrary = projectionMaterials.filter(item => {
         const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             item.description?.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesFilter = activeFilter === 'ALL' || item.type === activeFilter;
@@ -109,7 +73,50 @@ export const ProjectionLabView = () => {
         return () => document.removeEventListener('fullscreenchange', handleFSChange);
     }, []);
 
-    const renderMedia = (item: MediaItem) => {
+    const handleAddSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!currentUser) {
+            alert("Sessão expirada. Faça login novamente.");
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            await addProjectionMaterial({
+                tenantId: currentUser.tenantId || 'default-tenant-id', // fallback se currentUser n tiver
+                schoolId: currentUser.schoolId || 'default-school-id',
+                ownerId: currentUser.id,
+                title: newMaterial.title!,
+                type: newMaterial.type as any,
+                category: newMaterial.category || 'Geral',
+                url: newMaterial.url!,
+                description: newMaterial.description
+            });
+            setIsAddModalOpen(false);
+            setNewMaterial({ type: 'VIDEO', title: '', category: '', url: '', description: '' });
+        } catch (error) {
+            console.error(error);
+            alert("Erro ao adicionar material.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleDelete = async (e: React.MouseEvent, material: ProjectionMaterial) => {
+        e.stopPropagation();
+        if (window.confirm(`Tem certeza que deseja excluir "${material.title}"?`)) {
+            try {
+                await deleteProjectionMaterial(material.id, currentUser?.id || '');
+                if (selectedItem?.id === material.id) {
+                    setSelectedItem(null);
+                }
+            } catch (err) {
+                alert("Erro ao excluir material.");
+            }
+        }
+    };
+
+    const renderMedia = (item: ProjectionMaterial) => {
         switch (item.type) {
             case '3D_MODEL':
                 return (
@@ -150,12 +157,13 @@ export const ProjectionLabView = () => {
         }
     };
 
-    const getIconForType = (type: MediaType) => {
+    const getIconForType = (type: string) => {
         switch (type) {
             case '3D_MODEL': return <Box size={16} />;
             case 'VIDEO': return <Youtube size={16} />;
             case 'DOCUMENT': return <FileText size={16} />;
             case 'MIND_MAP': return <ImageIcon size={16} />;
+            default: return <FileText size={16} />;
         }
     };
 
@@ -171,6 +179,13 @@ export const ProjectionLabView = () => {
                         <p className="text-sm text-slate-500">Ferramenta para exibição de mídias riicas em sala de aula.</p>
                     </div>
                 </div>
+                <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                    <Plus size={16} />
+                    Adicionar Material
+                </button>
             </header>
 
             <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
@@ -233,7 +248,7 @@ export const ProjectionLabView = () => {
                                 <div
                                     key={item.id}
                                     onClick={() => setSelectedItem(item)}
-                                    className={`p-3 rounded-xl border cursor-pointer transition-all hover:shadow-md ${selectedItem?.id === item.id ? 'border-orange-500 bg-orange-50' : 'border-slate-200 hover:border-slate-300'}`}
+                                    className={`p-3 rounded-xl border cursor-pointer transition-all hover:shadow-md relative group ${selectedItem?.id === item.id ? 'border-orange-500 bg-orange-50' : 'border-slate-200 hover:border-slate-300'}`}
                                 >
                                     <div className="flex gap-3">
                                         <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${item.type === '3D_MODEL' ? 'bg-blue-100 text-blue-600' :
@@ -243,7 +258,7 @@ export const ProjectionLabView = () => {
                                             }`}>
                                             {getIconForType(item.type)}
                                         </div>
-                                        <div className="flex-1 min-w-0">
+                                        <div className="flex-1 min-w-0 pr-8">
                                             <div className="flex items-center gap-2 mb-1">
                                                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-white px-1.5 rounded-sm border border-slate-100">{item.category}</span>
                                             </div>
@@ -251,6 +266,16 @@ export const ProjectionLabView = () => {
                                             <p className="text-xs text-slate-500 line-clamp-2 mt-1">{item.description}</p>
                                         </div>
                                     </div>
+
+                                    {currentUser?.id === item.ownerId && (
+                                        <button
+                                            onClick={(e) => handleDelete(e, item)}
+                                            className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md opacity-0 group-hover:opacity-100 transition-all"
+                                            title="Excluir Material"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    )}
                                 </div>
                             ))
                         )}
@@ -297,6 +322,113 @@ export const ProjectionLabView = () => {
                     )}
                 </div>
             </div>
+
+            {/* Modal de Adicionar Material */}
+            {isAddModalOpen && (
+                <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                <Plus size={20} className="text-blue-500" />
+                                Cadastrar Novo Material
+                            </h2>
+                            <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto">
+                            <form id="add-material-form" onSubmit={handleAddSubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Título do Material *</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={newMaterial.title}
+                                        onChange={e => setNewMaterial({ ...newMaterial, title: e.target.value })}
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                        placeholder="Ex: Sistema Solar 3D"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Tipo de Mídia *</label>
+                                        <select
+                                            value={newMaterial.type}
+                                            onChange={e => setNewMaterial({ ...newMaterial, type: e.target.value as any })}
+                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                        >
+                                            <option value="VIDEO">Vídeo (YouTube/Vimeo)</option>
+                                            <option value="3D_MODEL">Modelo 3D (Sketchfab)</option>
+                                            <option value="DOCUMENT">Documento (PDF/PPT/DOC)</option>
+                                            <option value="MIND_MAP">Mapa Mental (Imagem)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Categoria</label>
+                                        <input
+                                            type="text"
+                                            value={newMaterial.category}
+                                            onChange={e => setNewMaterial({ ...newMaterial, category: e.target.value })}
+                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                            placeholder="Ex: Ciências"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">URL / Link *</label>
+                                    <input
+                                        type="url"
+                                        required
+                                        value={newMaterial.url}
+                                        onChange={e => setNewMaterial({ ...newMaterial, url: e.target.value })}
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                        placeholder={
+                                            newMaterial.type === 'VIDEO' ? 'https://www.youtube.com/embed/...' :
+                                                newMaterial.type === '3D_MODEL' ? 'sketchfab:ID_AQUI?autostart=1...' :
+                                                    'https://...'
+                                        }
+                                    />
+                                    <p className="text-[11px] text-slate-500 mt-1">
+                                        {newMaterial.type === 'VIDEO' && 'Para vídeos do YouTube, use o link de incorporação (embed).'}
+                                        {newMaterial.type === '3D_MODEL' && 'Use o ID da API do Sketchfab com o prefixo sketchfab:'}
+                                        {newMaterial.type === 'DOCUMENT' && 'Para slides, use o Google Docs Viewer ou link público do PDF.'}
+                                    </p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Breve Descrição</label>
+                                    <textarea
+                                        value={newMaterial.description}
+                                        onChange={e => setNewMaterial({ ...newMaterial, description: e.target.value })}
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none h-20"
+                                        placeholder="Opcional. Adicione contexto para este material."
+                                    ></textarea>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setIsAddModalOpen(false)}
+                                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors"
+                                disabled={isSubmitting}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                form="add-material-form"
+                                disabled={isSubmitting || !newMaterial.title || !newMaterial.url}
+                                className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                                Salvar na Biblioteca
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -386,6 +386,21 @@ export interface DiaryEntry {
   teacherId: string;
 }
 
+// --- PROJECTION LAB ---
+export interface ProjectionMaterial {
+  id: string;
+  tenantId: string;
+  schoolId: string;
+  ownerId: string;
+  title: string;
+  type: '3D_MODEL' | 'VIDEO' | 'DOCUMENT' | 'MIND_MAP';
+  category: string;
+  url: string;
+  thumbnail?: string;
+  description?: string;
+  createdAt?: string;
+}
+
 // --- AUDIT & METADATA TYPES ---
 
 export interface QuestionMetadata {
