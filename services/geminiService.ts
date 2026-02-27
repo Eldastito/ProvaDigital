@@ -840,6 +840,21 @@ const cleanAIJSON = (text: string): string => {
     }
 };
 
+// --- Base API Call ---
+
+/**
+ * Generic content generation (No Schema / Text only)
+ */
+export const generateContent = async (prompt: string): Promise<string> => {
+    try {
+        const result = await callGeminiAPI<string>(prompt, undefined);
+        return result;
+    } catch (error) {
+        console.error("Erro na geração genérica de conteúdo:", error);
+        throw error;
+    }
+};
+
 async function callGeminiAPI<T>(
     contents: string | any,
     responseSchema: any | undefined

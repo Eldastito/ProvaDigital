@@ -463,7 +463,7 @@ export interface Item {
   isAccessible?: boolean; // Se a questão foi adaptada para PCD/Neuro
   accessibilityInstructions?: string; // Orientações p/ ledor/transcritor
   multimedia?: {
-    type: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'SIMULATION';
+    type: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'SIMULATION' | '3D_MODEL';
     url: string;
     description?: string; // Alt text p/ acessibilidade
   }[];

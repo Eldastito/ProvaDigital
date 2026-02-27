@@ -13,9 +13,22 @@ export const AIAdvisorDashboard: React.FC<AIAdvisorDashboardProps> = ({ insights
     const navigate = useNavigate();
 
     useEffect(() => {
-        const timer = setTimeout(() => setIsThinking(false), 1500);
-        return () => clearTimeout(timer);
-    }, []);
+        const fetchStrategicInsights = async () => {
+            // If insights prop is empty, we fetch strategic ones
+            if (!insights || insights.length === 0) {
+                const { getStrategicInsights } = await import('../../../services/StrategicAdvisorService');
+                const stratInsights = await getStrategicInsights('current-tenant');
+                setLocalInsights(stratInsights);
+            } else {
+                setLocalInsights(insights);
+            }
+            setIsThinking(false);
+        };
+
+        fetchStrategicInsights();
+    }, [insights]);
+
+    const [localInsights, setLocalInsights] = useState<AIInsight[]>([]);
 
     const handleAction = (insight: AIInsight) => {
         if (insight.targetPath) {
@@ -57,7 +70,7 @@ export const AIAdvisorDashboard: React.FC<AIAdvisorDashboardProps> = ({ insights
                         <div key={i} className="h-32 bg-white/5 rounded-xl animate-pulse border border-white/5" />
                     ))
                 ) : (
-                    insights.map((insight) => (
+                    localInsights.map((insight) => (
                         <div
                             key={insight.id}
                             className={`p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] cursor-default flex flex-col justify-between ${insight.type === 'critical' ? 'bg-rose-500/10 border-rose-500/20 shadow-lg shadow-rose-500/5' :

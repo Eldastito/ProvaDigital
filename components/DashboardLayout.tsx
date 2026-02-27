@@ -13,7 +13,7 @@ import { UserRole, TenantType, ExamModel } from '../types';
 import { usePermissions } from '../hooks/usePermissions';
 import { ProfileSwitcher } from './ProfileSwitcher';
 import { ModernSidebar } from './layout/ModernSidebar';
-import { FloatingOwlHelp } from './layout/FloatingOwlHelp';
+import { AIOrb3D } from './layout/AIOrb3D';
 import { OECDPortalView } from '../modules/analytics/OECDPortalView';
 import { supabase } from '../services/supabaseClient';
 
@@ -147,8 +147,8 @@ export const DashboardLayout = () => {
                     <Outlet />
                 </main>
 
-                {/* 🦉 Corujinha Flutuante */}
-                <FloatingOwlHelp />
+                {/* 🧠 AI Orb 3D Mascot */}
+                <AIOrb3D />
             </div>
         </div>
     );

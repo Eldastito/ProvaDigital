@@ -9,6 +9,7 @@ import {
     SubjectPerformance,
     BNCCCompetency
 } from '../types';
+import { generatePedagogicalNarrative } from './NarrativeReportService';
 
 /**
  * Report Exporter - Phase 11
@@ -19,18 +20,46 @@ import {
 // PDF Generation
 // ============================================
 
-export const generateStudentReportPDF = (data: StudentReportData, config: ReportConfig): jsPDF => {
+interface AccessibilityStyles {
+    fontSizeBase: number;
+    titleSize: number;
+    lineSpacing: number;
+    fontFamily: string;
+}
+
+const getAccessibilityStyles = (needs: string[] = []): AccessibilityStyles => {
+    if (needs.includes('VISUAL')) {
+        return { fontSizeBase: 16, titleSize: 20, lineSpacing: 1.5, fontFamily: 'helvetica' };
+    }
+    if (needs.includes('TDAH') || needs.includes('TEA')) {
+        return { fontSizeBase: 13, titleSize: 16, lineSpacing: 1.3, fontFamily: 'courier' }; // Courier is more "spaced"
+    }
+    return { fontSizeBase: 10, titleSize: 14, lineSpacing: 1.15, fontFamily: 'helvetica' };
+};
+
+export const generateStudentReportPDF = async (data: StudentReportData, config: ReportConfig): Promise<jsPDF> => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // Header
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.text(config.customTitle || 'Relatório Individual de Desempenho', pageWidth / 2, 20, { align: 'center' });
+    // Accessibility Skill logic
+    const specialNeeds = (data.student as any).specialNeeds || [];
+    const styles = getAccessibilityStyles(specialNeeds);
+    doc.setFont(styles.fontFamily);
 
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Aluno: ${data.student.name}`, 14, 35);
+    // Header
+    doc.setFontSize(styles.titleSize + 6);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 255, 255);
+    doc.text('BOLETIM ESCOLAR', 14, 15);
+    doc.setFontSize(styles.fontSizeBase);
+    doc.text(`Data: ${config.dateRange.start} a ${config.dateRange.end}`, 14, 22);
+
+    // Student Info
+    doc.setTextColor(33, 33, 33);
+    doc.setFontSize(styles.titleSize);
+    doc.text(`ALUNO: ${data.student.name}`, 14, 40);
+    doc.setFontSize(styles.fontSizeBase);
+    doc.text(`Matrícula: ${data.student.registrationNumber}`, 14, 47);
     doc.text(`Período: ${new Date(config.dateRange.start).toLocaleDateString()} - ${new Date(config.dateRange.end).toLocaleDateString()}`, 14, 42);
 
     // Overall Metrics
@@ -129,8 +158,25 @@ export const generateStudentReportPDF = (data: StudentReportData, config: Report
         }
     }
 
+    // AI Narrative (New Skill)
+    if (config.includeRecommendations) {
+        doc.addPage();
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(79, 70, 229); // Brand Indigo
+        doc.text('Análise Pedagógica Inteligente (IA)', 14, 20);
+        doc.setTextColor(33, 33, 33);
+
+        const narrative = await generatePedagogicalNarrative(data, 'STUDENT', (config as any).schoolId);
+
+        doc.setFontSize(styles.fontSizeBase + 1);
+        doc.setFont('helvetica', 'normal');
+        doc.text(narrative, 14, 30, { maxWidth: pageWidth - 28, align: 'justify', lineHeightFactor: styles.lineSpacing });
+    }
+
     // Recommendations
     if (config.includeRecommendations && data.recommendations.length > 0) {
+        // ... (existing code for recommendations)
         doc.addPage();
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
@@ -167,7 +213,7 @@ export const generateStudentReportPDF = (data: StudentReportData, config: Report
     return doc;
 };
 
-export const generateClassReportPDF = (data: ClassReportData, config: ReportConfig): jsPDF => {
+export const generateClassReportPDF = async (data: ClassReportData, config: ReportConfig): Promise<jsPDF> => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -269,6 +315,22 @@ export const generateClassReportPDF = (data: ClassReportData, config: ReportConf
         theme: 'striped',
         headStyles: { fillColor: [79, 70, 229] }
     });
+
+    // AI Narrative (New Skill)
+    if (config.includeRecommendations) {
+        doc.addPage();
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(79, 70, 229);
+        doc.text('Análise Pedagógica da Turma (IA)', 14, 20);
+        doc.setTextColor(33, 33, 33);
+
+        const narrative = await generatePedagogicalNarrative(data, 'CLASS', (config as any).schoolId);
+
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+        doc.text(narrative, 14, 30, { maxWidth: pageWidth - 28, align: 'justify' });
+    }
 
     // Footer
     const pageCount = doc.getNumberOfPages();

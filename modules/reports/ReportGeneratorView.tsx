@@ -12,7 +12,8 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { reportService } from '../../services/reportService';
-import { ReportType, ReportFilter } from '../../types';
+import * as reportExporter from '../../services/reportExporter';
+import { ReportType, ReportFilter, StudentReportData, ClassReportData } from '../../types';
 
 export const ReportGeneratorView: React.FC = () => {
     const { schools, classes, exams } = useAppStore();
@@ -71,11 +72,31 @@ export const ReportGeneratorView: React.FC = () => {
                     ? schools.find(s => s.id === filters.schoolId)?.name
                     : 'Rede Municipal de Ensino';
 
-                await reportService.exportToPDF(selectedReportId, columns, previewData, {
-                    orientation: 'p',
-                    schoolName: schoolName,
-                    // logoUrl: '...' // Optional: Add logic to fetch school logo later
-                });
+                // We need to fetch the actual data object for the report
+                // This is a simplified integration for the demo
+                const reportData = selectedReportId === 'STUDENT_BULLETIN'
+                    ? await reportService.getStudentData(filters)
+                    : await reportService.getClassData(filters);
+
+                const reportDoc = selectedReportId === 'STUDENT_BULLETIN'
+                    ? await reportExporter.generateStudentReportPDF(reportData as StudentReportData, {
+                        type: 'student',
+                        format: 'pdf',
+                        includeCharts: true,
+                        targetIds: [filters.studentId || ''],
+                        dateRange: { start: filters.startDate, end: filters.endDate },
+                        includeRecommendations: true
+                    })
+                    : await reportExporter.generateClassReportPDF(reportData as ClassReportData, {
+                        type: 'class',
+                        format: 'pdf',
+                        includeCharts: true,
+                        targetIds: [filters.classId || ''],
+                        dateRange: { start: filters.startDate, end: filters.endDate },
+                        includeRecommendations: true
+                    });
+
+                reportExporter.downloadPDF(reportDoc, `relatorio_${selectedReportId}.pdf`);
             } else {
                 reportService.exportToCSV(`relatorio_${selectedReport}`, previewData);
             }

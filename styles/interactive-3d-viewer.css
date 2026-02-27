@@ -1,0 +1,153 @@
+/* ==================================
+   Interactive 3D Viewer styles
+   ================================== */
+
+.interactive-3d-viewer {
+    --viewer-border: #cbd5e1;
+    --viewer-bg: #f8fafc;
+    --viewer-header-bg: #f1f5f9;
+    --viewer-text: #64748b;
+    --viewer-text-strong: #334155;
+}
+
+.dark .interactive-3d-viewer {
+    --viewer-border: #334155;
+    --viewer-bg: #0f172a;
+    --viewer-header-bg: #1e293b;
+    --viewer-text: #94a3b8;
+    --viewer-text-strong: #e2e8f0;
+}
+
+.interactive-3d-viewer-container {
+    display: flex;
+    flex-direction: column;
+    border-radius: 1rem;
+    border: 1px solid var(--viewer-border);
+    background-color: var(--viewer-bg);
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.interactive-3d-viewer-container.fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    border-radius: 0;
+    margin: 0;
+    border: none;
+}
+
+.interactive-3d-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background-color: var(--viewer-header-bg);
+    border-bottom: 1px solid var(--viewer-border);
+    user-select: none;
+}
+
+.interactive-3d-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.interactive-3d-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.5rem;
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border-radius: 0.375rem;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.interactive-3d-dot {
+    width: 6px;
+    height: 6px;
+    background-color: #10b981;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+.interactive-3d-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--viewer-text-strong);
+}
+
+.interactive-3d-instructions {
+    font-size: 0.75rem;
+    color: var(--viewer-text);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    opacity: 0.8;
+}
+
+.interactive-3d-actions button {
+    padding: 0.375rem;
+    border-radius: 0.375rem;
+    color: var(--viewer-text);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.interactive-3d-actions button:hover {
+    background: rgba(148, 163, 184, 0.2);
+    color: var(--viewer-text-strong);
+}
+
+.interactive-3d-canvas-wrapper {
+    position: relative;
+    width: 100%;
+    height: 350px;
+    background: radial-gradient(circle at center, var(--viewer-header-bg) 0%, var(--viewer-bg) 100%);
+    cursor: grab;
+}
+
+.interactive-3d-canvas-wrapper:active {
+    cursor: grabbing;
+}
+
+.interactive-3d-viewer-container.fullscreen .interactive-3d-canvas-wrapper {
+    height: calc(100vh - 53px);
+    /* Minus header height */
+}
+
+/* 3D Label overlays (served via Html component from Drei) */
+.vr-label {
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(4px);
+    color: white;
+    padding: 0.2rem 0.6rem;
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    font-family: monospace;
+    pointer-events: none;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    white-space: nowrap;
+    transform: translate3d(-50%, -50%, 0);
+    opacity: 0;
+    animation: fade-in 0.5s forwards 0.5s;
+}
+
+@keyframes fade-in {
+    to {
+        opacity: 1;
+    }
+}

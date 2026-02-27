@@ -1,0 +1,133 @@
+/* ============================
+   AI Orb 3D — Floating Mascot
+   ============================ */
+
+.ai-orb-container {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.75rem;
+    pointer-events: none;
+}
+
+.ai-orb-container>* {
+    pointer-events: auto;
+}
+
+/* The WebGL canvas wrapper */
+.ai-orb-canvas-wrapper {
+    width: 80px;
+    height: 80px;
+    cursor: pointer;
+    position: relative;
+    border-radius: 50%;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ai-orb-canvas-wrapper:hover {
+    transform: scale(1.15);
+}
+
+/* External glow ring (CSS) */
+.ai-orb-glow {
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(12, 163, 225, 0.35) 0%, transparent 70%);
+    animation: orb-pulse 3s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes orb-pulse {
+
+    0%,
+    100% {
+        opacity: 0.5;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+/* Tooltip */
+.ai-orb-tooltip {
+    background: #0f172a;
+    color: #f8fafc;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.5rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid #334155;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    animation: tooltip-in 0.3s ease forwards;
+    white-space: nowrap;
+}
+
+@keyframes tooltip-in {
+    from {
+        opacity: 0;
+        transform: translateX(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* 2D Fallback button */
+.ai-orb-fallback {
+    width: 64px;
+    height: 64px;
+    border-radius: 1rem;
+    background: #0f172a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    transition: all 0.4s ease;
+}
+
+.ai-orb-fallback:hover {
+    background: #10b981;
+    transform: scale(1.1) rotate(3deg);
+    box-shadow: 0 20px 40px rgba(16, 185, 129, 0.3);
+}
+
+.ai-orb-fallback svg {
+    color: #10b981;
+    transition: color 0.4s ease;
+}
+
+.ai-orb-fallback:hover svg {
+    color: #ffffff;
+}
+
+/* Responsive — smaller on mobile */
+@media (max-width: 640px) {
+    .ai-orb-container {
+        bottom: 1rem;
+        right: 1rem;
+    }
+
+    .ai-orb-canvas-wrapper {
+        width: 60px;
+        height: 60px;
+    }
+
+    .ai-orb-fallback {
+        width: 48px;
+        height: 48px;
+    }
+}

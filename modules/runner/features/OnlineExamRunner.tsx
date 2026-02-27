@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
-import { Item, Exam, StudentAnswer } from '../../../types';
+import { Item, Exam } from '../../../types';
 import { AccessibilityConfig, DEFAULT_ACCESSIBILITY_CONFIG } from './types';
 import { Loader2, AlertTriangle, Clock, CheckCircle, XCircle, HelpCircle, Trophy, Target, ChevronRight, X, ZoomIn, ZoomOut, Volume2, VolumeX, Eye, EyeOff, Monitor, Brain, FileText, Minimize, CloudUpload, ChevronLeft, Download, DownloadCloud, CloudCheck } from 'lucide-react';
 import { offlineCacheService, registerCachedExam } from '../../../services/offlineCacheService';
 import { RichTextRenderer } from '../../../components/RichTextRenderer';
 import { SimulationRenderer } from './SimulationRenderer';
+import { StudentAnswer } from '../../../types';
+import { Interactive3DViewer } from '../../../components/3d/Interactive3DViewer';
 import { DrawingCanvas } from './DrawingCanvas';
 import { AccessibilityToolbar } from './AccessibilityToolbar';
 import { EssayQuestionRenderer } from './EssayQuestionRenderer';
@@ -994,6 +996,13 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                             onLibrasDetected={(url) => setA11y(prev => ({ ...prev, librasVideoUrl: url }))}
                         />
                     </div>
+
+                    {/* 3D Model Viewer (if multimedia includes 3D_MODEL) */}
+                    {currentItem.multimedia?.filter(m => m.type === '3D_MODEL').map((m, i) => (
+                        <div key={`3d-${i}`} className="mb-6">
+                            <Interactive3DViewer preset={m.url} description={m.description} />
+                        </div>
+                    ))}
 
                     {/* Essay / Redaction Renderer */}
                     {(currentItem.type === 'ESSAY' || currentItem.type === 'REDACTION') ? (

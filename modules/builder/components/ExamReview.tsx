@@ -1,6 +1,8 @@
 import React from 'react';
 import { Check, Info, Save, ShieldCheck, Loader2, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Item } from '../../../types';
+import { auditExamPedagogically } from '../../../services/PredictivePedagogicalService';
+import { Target, AlertTriangle, CheckCircle, Lightbulb, Clock } from 'lucide-react';
 
 interface ExamReviewProps {
     config: {
@@ -26,6 +28,15 @@ export const ExamReview = ({
 }: ExamReviewProps) => {
 
     const [isSaving, setIsSaving] = React.useState(false);
+    const [auditReport, setAuditReport] = React.useState<any>(null);
+
+    React.useEffect(() => {
+        const runAudit = async () => {
+            const report = await auditExamPedagogically(selectedItems, (config as any).schoolId || 'demo-tenant');
+            setAuditReport(report);
+        };
+        runAudit();
+    }, [selectedItems, config]);
 
     return (
         <div className="max-w-4xl mx-auto space-y-8 pb-12">
@@ -94,6 +105,86 @@ export const ExamReview = ({
                                 </span>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                {/* AI SKILL INSIGHTS */}
+                <div className="mt-8 bg-slate-900 rounded-2xl p-6 border border-slate-800 shadow-2xl relative overflow-hidden">
+                    {/* Animated background element */}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-3xl rounded-full -mr-32 -mt-32"></div>
+
+                    <div className="flex items-center gap-3 mb-6 relative">
+                        <div className="p-2 bg-indigo-500/20 rounded-lg">
+                            <Target className="text-indigo-400" size={24} />
+                        </div>
+                        {auditReport ? (
+                            <>
+                                <div>
+                                    <h4 className="text-white font-bold text-lg">Insights da Skill de Auditoria</h4>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-slate-400 text-xs uppercase tracking-widest font-bold">Health Score:</span>
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="w-24 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                                                <div
+                                                    className={`h-full transition-all duration-1000 ${auditReport.score > 70 ? 'bg-emerald-500' : auditReport.score > 40 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                                                    style={{ width: `${auditReport.score}%` }}
+                                                ></div>
+                                            </div>
+                                            <span className={`text-sm font-black ${auditReport.score > 70 ? 'text-emerald-400' : auditReport.score > 40 ? 'text-amber-400' : 'text-rose-400'}`}>
+                                                {auditReport.score}/100
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="ml-auto flex items-center gap-4">
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-[10px] font-bold text-slate-500 uppercase">Tempo Est.</span>
+                                        <div className="flex items-center gap-1 text-white font-bold">
+                                            <Clock size={14} className="text-indigo-400" />
+                                            {auditReport.metrics.estimatedTimeMinutes} min
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div>
+                                <h4 className="text-white font-bold text-lg flex items-center gap-2">
+                                    <Loader2 className="animate-spin text-indigo-400" size={20} />
+                                    Analisando com IA...
+                                </h4>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
+                        {auditReport?.insights.map((insight: any, i: number) => (
+                            <div
+                                key={i}
+                                className={`p-4 rounded-xl border flex gap-3 transition-all hover:scale-[1.02] ${insight.type === 'SUCCESS' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-100' :
+                                    insight.type === 'DANGER' ? 'bg-rose-500/10 border-rose-500/20 text-rose-100' :
+                                        insight.type === 'WARNING' ? 'bg-amber-500/10 border-amber-500/20 text-amber-100' :
+                                            'bg-slate-800 border-slate-700 text-slate-200'
+                                    }`}
+                            >
+                                <div className="mt-0.5">
+                                    {insight.type === 'SUCCESS' ? <CheckCircle size={18} className="text-emerald-400" /> :
+                                        insight.type === 'DANGER' ? <AlertTriangle size={18} className="text-rose-400" /> :
+                                            insight.type === 'WARNING' ? <AlertTriangle size={18} className="text-amber-400" /> :
+                                                <Lightbulb size={18} className="text-slate-400" />
+                                    }
+                                </div>
+                                <div>
+                                    <div className="text-sm font-bold mb-1">{insight.title}</div>
+                                    <div className="text-xs opacity-80 leading-relaxed">{insight.message}</div>
+                                    {insight.actionLabel && (
+                                        <button className="mt-3 text-[10px] font-black uppercase tracking-widest bg-white/10 hover:bg-white/20 transition px-3 py-1.5 rounded-lg">
+                                            {insight.actionLabel}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
 

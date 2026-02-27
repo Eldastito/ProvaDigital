@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import { ReportFilter, StudentReportData, ClassReportData } from '../types';
 
 // Augment jsPDF type for autotable
 declare module 'jspdf' {
@@ -135,6 +136,35 @@ export class ReportService {
             ];
         }
         return [];
+    }
+
+    static async getStudentData(filters: ReportFilter): Promise<StudentReportData> {
+        return {
+            student: { id: filters.studentId || '1', name: 'Aluno Demonstrativo' },
+            overallMetrics: { averageScore: 78.5, completionRate: 95, timeSpent: 120 },
+            subjectPerformance: [
+                { subject: 'Português', averageScore: 82, totalQuestions: 10, correctAnswers: 8 },
+                { subject: 'Matemática', averageScore: 65, totalQuestions: 10, correctAnswers: 6 }
+            ],
+            bnccCompetencies: [
+                { code: 'EF01LP01', description: 'Leitura', mastery: 0.8 },
+                { code: 'EF01MA01', description: 'Números', mastery: 0.6 }
+            ],
+            recommendations: []
+        } as any;
+    }
+
+    static async getClassData(filters: ReportFilter): Promise<ClassReportData> {
+        return {
+            class: { id: filters.classId || 'class-1', name: 'Turma A' },
+            overallMetrics: { averageScore: 72, standardDeviation: 12, participationRate: 88 },
+            subjectBreakdown: [
+                { subject: 'Português', averageScore: 75 },
+                { subject: 'Matemática', averageScore: 68 }
+            ],
+            atRiskStudents: [],
+            bnccGapAnalysis: []
+        } as any;
     }
 }
 

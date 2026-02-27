@@ -51,6 +51,35 @@ export const INITIAL_USERS: User[] = [
 // --- 6. ITEMS & EXAMS ---
 export const INITIAL_ITEMS: Item[] = [
   {
+    id: "3d-mock-01",
+    tenantId: "t-default",
+    ownerId: "u-456",
+    knowledgeArea: "Ciências da Natureza",
+    subject: "Biologia",
+    type: QuestionType.MULTIPLE_CHOICE,
+    statement: "<p>Analise a estrutura molecular abaixo interativamente (gire e aproxime). Identifique qual substância fundamental para a vida na Terra ela representa baseando-se na proporção de átomos (1 vermelho central, 2 brancos laterais).</p>",
+    multimedia: [
+      {
+        type: '3D_MODEL',
+        url: 'preset:molecule_h2o',
+        description: 'Molécula de Água (H2O)'
+      }
+    ],
+    alternatives: [
+      { id: "alt-A", text: "Dióxido de Carbono (CO2)", isCorrect: false },
+      { id: "alt-B", text: "Água (H2O)", isCorrect: true },
+      { id: "alt-C", text: "Metano (CH4)", isCorrect: false },
+      { id: "alt-D", text: "Ozônio (O3)", isCorrect: false }
+    ],
+    correctAnswerJustification: "A estrutura mostra um átomo de oxigênio (vermelho) ligado a dois átomos de hidrogênio (brancos), formando H2O.",
+    difficulty: DifficultyLevel.EASY,
+    score: 1.0,
+    origin: ItemOrigin.MANUAL,
+    tags: ["Química", "Biologia", "H2O", "Interativo", "3D"],
+    usageCount: 0,
+    createdAt: new Date().toISOString()
+  },
+  {
     id: MOCK_ITEM_ID, tenantId: MOCK_TENANT_ID, schoolId: MOCK_SCHOOL_ID, ownerId: MOCK_USER_ID,
     knowledgeArea: 'Humanas', subject: 'História', type: QuestionType.MULTIPLE_CHOICE,
     statement: 'Qual foi o principal motivo da vinda da Família Real?',
