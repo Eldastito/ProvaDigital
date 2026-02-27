@@ -117,7 +117,18 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
     const isManagement = isSystemAdmin || isMecAdmin || isStrategic || currentUser.role === UserRole.DIRETOR || currentUser.role === UserRole.SUPERVISOR;
     const canManageCapabilities = isSystemAdmin || isMecAdmin || isStrategic || currentUser.role === UserRole.DIRETOR;
 
-    const activeModule = modules.find(m => m.allowedRoles.includes(currentUser.role));
+    // Get all modules allowed for current role
+    const activeModules = modules.filter(m => m.allowedRoles.includes(currentUser.role));
+
+    // Aggregate and deduplicate items by path
+    const allItems = activeModules.reduce((acc, mod) => {
+        mod.sidebarItems.forEach(item => {
+            if (!acc.find(prev => prev.path === item.path)) {
+                acc.push(item);
+            }
+        });
+        return acc;
+    }, [] as any[]);
 
     const myChildren = isParent && currentUser.childrenIds && students
         ? students.filter(s => currentUser.childrenIds?.includes(s.id))
@@ -219,26 +230,22 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
 
                 {/* 3. Role-Based Navigation */}
 
-                {/* Dynamic Modules (Aluno, Professor, Admin, Estratégico, Gestão, Pais) */}
-                {activeModule && (
-                    <>
-                        <SectionHeader label={activeModule.id.replace('-', ' ').toUpperCase()} collapsed={collapsed} />
-                        {activeModule.sidebarItems
-                            .filter(item => !item.resource || canView(item.resource))
-                            .map(item => (
-                                <NavItem
-                                    key={item.path}
-                                    icon={item.icon}
-                                    label={item.label}
-                                    path={item.path}
-                                    active={currentPath === item.path}
-                                    onClick={() => navigate(item.path)}
-                                    collapsed={collapsed}
-                                />
-                            ))
-                        }
-                    </>
-                )}
+                {/* Unified Access Tools */}
+                <SectionHeader label="Ferramentas" collapsed={collapsed} />
+                {allItems
+                    .filter(item => !item.resource || canView(item.resource))
+                    .map(item => (
+                        <NavItem
+                            key={item.path}
+                            icon={item.icon}
+                            label={item.label}
+                            path={item.path}
+                            active={currentPath === item.path}
+                            onClick={() => navigate(item.path)}
+                            collapsed={collapsed}
+                        />
+                    ))
+                }
 
                 {/* Parent Selection Context (Keep if parent and no child selected yet) */}
                 {isParent && myChildren.length > 0 && selectedChildId === '' && !collapsed && (

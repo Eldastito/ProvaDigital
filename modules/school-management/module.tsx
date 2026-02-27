@@ -28,7 +28,7 @@ const S = ({ children }: { children: React.ReactNode }) => (
 
 export const managementModule: AppModule = {
     id: 'school-management',
-    allowedRoles: [UserRole.DIRETOR, UserRole.SUPERVISOR],
+    allowedRoles: [UserRole.DIRETOR, UserRole.SUPERVISOR, UserRole.SYSTEM_ADMIN, UserRole.MASTER_SAAS],
     routes: [
         { path: 'admin/gestao', element: <S><ManagementView /></S> },
         { path: 'coordinator/council', element: <S><ClassCouncilView /></S> },
@@ -45,8 +45,8 @@ export const managementModule: AppModule = {
         { path: 'neuro-screening', element: <S><NeuroScreeningView /></S> },
     ],
     sidebarItems: [
-        { icon: LayoutDashboard, label: 'Painel Gestão', path: '/dashboard' },
-        { icon: Users, label: 'Rede', path: '/admin/gestao' },
+        { icon: LayoutDashboard, label: 'Início', path: '/dashboard' },
+        { icon: Users, label: 'Rede (Escolas/Usuários)', path: '/admin/gestao' },
         { icon: Users, label: 'Conselho Digital (IA)', path: '/coordinator/council' },
         { icon: MessageCircle, label: 'Comunicação', path: '/communication' },
         { icon: FileText, label: 'Banco de Itens', path: '/items' },

@@ -2,7 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import { UserRole } from '../../types';
 import { AppModule } from '../core/types';
 import {
-    Shield, Truck, History, Settings, FileUp, Terminal, Target, Gamepad2, Package, Users
+    Shield, Truck, History, Settings, FileUp, Terminal, Target, Gamepad2, Package, Users, FileText, BookOpen
 } from 'lucide-react';
 import { ProtectedRoute } from '../../components/ProtectedRoute';
 
@@ -43,6 +43,8 @@ export const adminModule: AppModule = {
         { icon: Truck, label: 'Logística Master', path: '/admin/logistica', resource: 'LOGISTICS_MASTER' },
         { icon: Shield, label: 'Central SaaS', path: '/admin/saas' },
         { icon: Users, label: 'Rede (Escolas/Usuários)', path: '/admin/gestao' },
+        { icon: FileText, label: 'Banco de Itens', path: '/items' },
+        { icon: BookOpen, label: 'Minhas Provas', path: '/exams' },
         { icon: History, label: 'Auditoria', path: '/admin/audit', resource: 'SYSTEM_MGMT' },
         { icon: Target, label: 'Governança', path: '/admin/capabilities' },
         { icon: Gamepad2, label: 'Governança Arcade', path: '/admin/governanca' },

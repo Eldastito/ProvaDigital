@@ -3,7 +3,7 @@ import { UserRole } from '../../types';
 import { AppModule } from '../core/types';
 import {
     PieChart, Calendar, Home, Activity, CalendarCheck,
-    FileText, FlaskConical, BookOpen, GraduationCap, BarChart
+    FileText, FlaskConical, BookOpen, GraduationCap, BarChart, LayoutDashboard
 } from 'lucide-react';
 import { ProtectedRoute } from '../../components/ProtectedRoute';
 
@@ -19,7 +19,7 @@ const S = ({ children }: { children: React.ReactNode }) => (
 
 export const professorModule: AppModule = {
     id: 'professor',
-    allowedRoles: [UserRole.PROFESSOR],
+    allowedRoles: [UserRole.PROFESSOR, UserRole.DIRETOR, UserRole.SYSTEM_ADMIN, UserRole.MASTER_SAAS],
     routes: [
         { path: 'class-diary', element: <S><ClassDiaryView /></S> },
         { path: 'professor/logistics', element: <S><ProfessorApp onBack={() => window.history.back()} /></S> },
@@ -35,12 +35,12 @@ export const professorModule: AppModule = {
         },
     ],
     sidebarItems: [
-        { icon: PieChart, label: 'Minhas Turmas', path: '/dashboard' },
+        { icon: LayoutDashboard, label: 'Início', path: '/dashboard' },
         { icon: Calendar, label: 'Diário', path: '/class-diary' },
         { icon: Home, label: 'Logística Professor', path: '/professor/logistics' },
         { icon: Activity, label: 'Painel de Controle', path: '/central-comando', resource: 'COMMAND_CENTER' },
         { icon: CalendarCheck, label: 'Agendamento', path: '/agendamento', resource: 'SCHEDULING' },
-        { icon: FileText, label: 'Banco de Questões', path: '/items' },
+        { icon: FileText, label: 'Banco de Itens', path: '/items' },
         { icon: FlaskConical, label: 'Lab Multimodal', path: '/items/multimodal-lab' },
         { icon: BookOpen, label: 'Minhas Provas', path: '/exams' },
         { icon: GraduationCap, label: 'Aplicação', path: '/online-exam' },
