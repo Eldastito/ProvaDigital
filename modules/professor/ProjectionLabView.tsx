@@ -19,6 +19,7 @@ import {
 import { Interactive3DViewer } from '../../components/3d/Interactive3DViewer';
 import { useAppStore } from '../../store/useAppStore';
 import { ProjectionMaterial } from '../../types';
+import { supabase } from '../../services/supabaseClient';
 
 const DEFAULT_MATERIALS: ProjectionMaterial[] = [
     {
@@ -84,7 +85,8 @@ export const ProjectionLabView = () => {
         addProjectionMaterial,
         deleteProjectionMaterial,
         currentUser,
-        schools
+        schools,
+        loadSchools
     } = useAppStore();
 
     const [selectedItem, setSelectedItem] = useState<ProjectionMaterial | null>(null);
@@ -105,7 +107,8 @@ export const ProjectionLabView = () => {
 
     useEffect(() => {
         loadProjectionMaterials();
-    }, [loadProjectionMaterials]);
+        loadSchools();
+    }, [loadProjectionMaterials, loadSchools]);
 
     const combinedLibrary = [...DEFAULT_MATERIALS, ...projectionMaterials];
     const filteredLibrary = combinedLibrary.filter(item => {
@@ -144,11 +147,25 @@ export const ProjectionLabView = () => {
             const fallbackSchoolId = schools && schools.length > 0 ? schools[0].id : undefined;
             const fallbackTenantId = schools && schools.length > 0 ? schools[0].tenantId : undefined;
 
-            const resolvedTenantId = currentUser.tenantId || fallbackTenantId;
-            const resolvedSchoolId = currentUser.schoolId || fallbackSchoolId;
+            const userAny = currentUser as any;
+            const resolvedTenantId = currentUser.tenantId || userAny.tenant_id || fallbackTenantId;
+            let resolvedSchoolId = currentUser.schoolId || userAny.school_id || fallbackSchoolId;
+
+            // Failsafe: se ainda não achou schoolId, busca a 1ª escola do tenant logado no Supabase
+            if (!resolvedSchoolId && resolvedTenantId) {
+                const { data: firstSchool } = await supabase
+                    .from('schools')
+                    .select('id')
+                    .eq('tenant_id', resolvedTenantId)
+                    .limit(1)
+                    .single();
+                if (firstSchool) {
+                    resolvedSchoolId = firstSchool.id;
+                }
+            }
 
             if (!resolvedTenantId || !resolvedSchoolId) {
-                alert("Erro: Não foi possível identificar a Escola ou Tenant para vincular este material.");
+                alert("Erro: Não foi possível identificar a Escola ou Tenant para vincular este material. O usuário precisa estar vinculado a uma escola.");
                 setIsSubmitting(false);
                 return;
             }
