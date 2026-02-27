@@ -22,8 +22,19 @@ export const OwlTutorView = () => {
     if (!user) return null;
 
     const student = state.students.find(s => s.id === user.id) || state.students[0];
+
+    // Fallback student for simulation/admin preview if no students exist in state
+    const effectiveStudent = student || {
+        id: user.id || 'test-student',
+        name: user.name || 'Estudante de Teste',
+        tenantId: user.tenantId || 't-default',
+        schoolId: '',
+        classId: '',
+        registrationNumber: 'TEST-001'
+    };
+
     const analytics = new AnalyticsService();
-    const stats = student ? analytics.getStudentStats(student.id) : null;
+    const stats = effectiveStudent ? analytics.getStudentStats(effectiveStudent.id) : null;
 
     // Identify Active Exams (Today + Published)
     const activeExams = state.exams.filter(e =>
@@ -37,15 +48,15 @@ export const OwlTutorView = () => {
 
     // Initialize messages after finding student
     useEffect(() => {
-        if (student && messages.length === 0) {
+        if (effectiveStudent && messages.length === 0) {
             setMessages([
                 {
                     role: 'model',
-                    text: `Olá ${student.name.split(' ')[0]}! Sou o Corujão 🦉. ${stats ? `Vi que seu ponto forte é ${stats.strongestSubject} e podemos melhorar em ${stats.weakestSubject}.` : ''} Como posso ajudar hoje?`
+                    text: `Olá ${effectiveStudent.name.split(' ')[0]}! Sou o Corujão 🦉. ${stats ? `Vi que seu ponto forte é ${stats.strongestSubject} e podemos melhorar em ${stats.weakestSubject}.` : ''} Como posso ajudar hoje?`
                 }
             ]);
         }
-    }, [student, stats]);
+    }, [effectiveStudent, stats]);
 
     const [inputText, setInputText] = useState('');
     const [loading, setLoading] = useState(false);
@@ -55,8 +66,8 @@ export const OwlTutorView = () => {
 
     // --- RATE LIMITING (Client Side) ---
     const checkRateLimit = () => {
-        if (!student) return false;
-        const STORAGE_KEY = `owl_rate_limit_${student.id}_${new Date().toISOString().split('T')[0]}`;
+        if (!effectiveStudent) return false;
+        const STORAGE_KEY = `owl_rate_limit_${effectiveStudent.id}_${new Date().toISOString().split('T')[0]}`;
         const currentCount = parseInt(localStorage.getItem(STORAGE_KEY) || '0');
         const LIMIT = 20; // safe daily limit for demo
         if (currentCount >= LIMIT) {
@@ -105,15 +116,15 @@ export const OwlTutorView = () => {
             context += `\n[CONTEXTO ESPECÍFICO]: ${owlTutorContext.contextData}`;
         }
 
-        if (!student) return;
+        if (!effectiveStudent) return;
 
         const responseText = await askOwlTutor(
             messages,
             inputText,
-            student.name,
+            effectiveStudent.name,
             context,
             forbiddenTopics, // Pass Active Exam Subjects to Block Cheating
-            student.tenantId // RAG Scope (Tenant Isolation)
+            effectiveStudent.tenantId // RAG Scope (Tenant Isolation)
         );
 
         setMessages([...newMessages, { role: 'model', text: responseText }]);
@@ -123,19 +134,9 @@ export const OwlTutorView = () => {
     // --- TABS STATE ---
     const [activeTab, setActiveTab] = useState<'chat' | 'history'>('chat');
 
-    if (!student) {
-        return (
-            <div className="h-[calc(100vh-140px)] flex flex-col items-center justify-center bg-white rounded-xl border border-brand-primary/20 shadow-lg max-w-4xl mx-auto p-12 text-center">
-                <Brain size={64} className="text-brand-primary/20 animate-pulse mb-6" />
-                <h2 className="text-xl font-bold text-slate-700 mb-2">Sincronizando com o Corujão...</h2>
-                <p className="text-slate-500">Estamos preparando seu ambiente de estudos personalizado.</p>
-            </div>
-        );
-    }
-
     // --- HISTORY DATA (Computed only if student exists) ---
     const studentResults = (state.results || [])
-        .filter(r => r && r.studentId === student.id)
+        .filter(r => r && r.studentId === effectiveStudent.id)
         .sort((a, b) => new Date(b.gradedAt || 0).getTime() - new Date(a.gradedAt || 0).getTime());
 
     const getExamTitle = (examId: string) => (state.exams || []).find(e => e && e.id === examId)?.title || 'Prova Removida';
