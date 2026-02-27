@@ -110,6 +110,93 @@ export const INITIAL_ITEMS: Item[] = [
     createdAt: new Date().toISOString()
   },
   {
+    id: "3d-mock-03",
+    tenantId: "t-default",
+    ownerId: "u-456",
+    knowledgeArea: "Matemática",
+    subject: "Matemática",
+    type: QuestionType.MULTIPLE_CHOICE,
+    statement: "<p>Inspecione o poliedro regular abaixo. Identifique quantos vértices possui esta figura geométrica.</p>",
+    multimedia: [
+      {
+        type: '3D_MODEL',
+        url: 'preset:cube',
+        description: 'Cubo (Hexaedro)'
+      }
+    ],
+    alternatives: [
+      { id: "alt-A", text: "4 vértices", isCorrect: false },
+      { id: "alt-B", text: "6 vértices", isCorrect: false },
+      { id: "alt-C", text: "8 vértices", isCorrect: true },
+      { id: "alt-D", text: "12 vértices", isCorrect: false }
+    ],
+    correctAnswerJustification: "Um cubo possui 8 vértices (pontos de encontro das arestas).",
+    difficulty: DifficultyLevel.EASY,
+    score: 1.0,
+    origin: ItemOrigin.MANUAL,
+    tags: ["Geometria", "Matemática", "3D"],
+    usageCount: 0,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "3d-mock-04",
+    tenantId: "t-default",
+    ownerId: "u-456",
+    knowledgeArea: "Matemática",
+    subject: "Matemática",
+    type: QuestionType.MULTIPLE_CHOICE,
+    statement: "<p>Analise a pirâmide de base quadrada abaixo. Se a aresta da base mede 3cm e a altura é de 4cm, qual o volume deste sólido?</p>",
+    multimedia: [
+      {
+        type: '3D_MODEL',
+        url: 'preset:pyramid',
+        description: 'Pirâmide de Base Quadrada'
+      }
+    ],
+    alternatives: [
+      { id: "alt-A", text: "12 cm³", isCorrect: true },
+      { id: "alt-B", text: "36 cm³", isCorrect: false },
+      { id: "alt-C", text: "9 cm³", isCorrect: false },
+      { id: "alt-D", text: "15 cm³", isCorrect: false }
+    ],
+    correctAnswerJustification: "V = (Área da Base * h) / 3 = (3² * 4) / 3 = (9 * 4) / 3 = 36 / 3 = 12 cm³.",
+    difficulty: DifficultyLevel.MEDIUM,
+    score: 1.0,
+    origin: ItemOrigin.MANUAL,
+    tags: ["Geometria", "Matemática", "3D"],
+    usageCount: 0,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "3d-mock-05",
+    tenantId: "t-default",
+    ownerId: "u-456",
+    knowledgeArea: "Matemática",
+    subject: "Matemática",
+    type: QuestionType.MULTIPLE_CHOICE,
+    statement: "<p>Gire o corpo redondo abaixo. Identifique qual fórmula representa a área da base deste cilindro.</p>",
+    multimedia: [
+      {
+        type: '3D_MODEL',
+        url: 'preset:cylinder',
+        description: 'Cilindro'
+      }
+    ],
+    alternatives: [
+      { id: "alt-A", text: "2πr", isCorrect: false },
+      { id: "alt-B", text: "πr²", isCorrect: true },
+      { id: "alt-C", text: "2πrh", isCorrect: false },
+      { id: "alt-D", text: "4/3 πr³", isCorrect: false }
+    ],
+    correctAnswerJustification: "A base de um cilindro é um círculo, cuja área é πr².",
+    difficulty: DifficultyLevel.EASY,
+    score: 1.0,
+    origin: ItemOrigin.MANUAL,
+    tags: ["Geometria", "Matemática", "3D"],
+    usageCount: 0,
+    createdAt: new Date().toISOString()
+  },
+  {
     id: MOCK_ITEM_ID, tenantId: MOCK_TENANT_ID, schoolId: MOCK_SCHOOL_ID, ownerId: MOCK_USER_ID,
     knowledgeArea: 'Humanas', subject: 'História', type: QuestionType.MULTIPLE_CHOICE,
     statement: 'Qual foi o principal motivo da vinda da Família Real?',
@@ -131,7 +218,13 @@ export const INITIAL_EXAMS: Exam[] = [
     durationMinutes: 30,
     targetQuestionCount: 2,
     status: ExamStatus.PUBLISHED,
-    items: [{ itemId: '3d-mock-01', order: 1 }, { itemId: '3d-mock-02', order: 2 }],
+    items: [
+      { itemId: '3d-mock-01', order: 1 },
+      { itemId: '3d-mock-02', order: 2 },
+      { itemId: '3d-mock-03', order: 3 },
+      { itemId: '3d-mock-04', order: 4 },
+      { itemId: '3d-mock-05', order: 5 }
+    ],
     classIds: [MOCK_CLASS_ID],
     createdAt: new Date().toISOString(),
     scheduledDate: new Date().toISOString().split('T')[0],
