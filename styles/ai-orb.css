@@ -12,6 +12,20 @@
     align-items: flex-end;
     gap: 0.75rem;
     pointer-events: none;
+    transition: bottom 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+        right 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+        transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ai-orb-container.expanded {
+    bottom: 50%;
+    right: 50%;
+    transform: translate(50%, 50%);
+    z-index: 9999;
+}
+
+.ai-orb-container.expanded .ai-orb-tooltip {
+    display: none;
 }
 
 .ai-orb-container>* {
@@ -25,10 +39,18 @@
     cursor: pointer;
     position: relative;
     border-radius: 50%;
-    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+        height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+        transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.ai-orb-canvas-wrapper:hover {
+.ai-orb-canvas-wrapper.expanded {
+    width: 320px;
+    height: 320px;
+    cursor: default;
+}
+
+.ai-orb-container:not(.expanded) .ai-orb-canvas-wrapper:hover {
     transform: scale(1.15);
 }
 
