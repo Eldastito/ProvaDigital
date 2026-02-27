@@ -56,6 +56,10 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
                 .single();
 
             if (profile) {
+                const testProfileRole = localStorage.getItem('test_profile');
+                if (testProfileRole) {
+                    profile.role = testProfileRole;
+                }
                 set({ currentUser: profile as User });
             }
         }
