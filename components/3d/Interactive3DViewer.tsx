@@ -265,20 +265,22 @@ export const Interactive3DViewer: React.FC<Interactive3DViewerProps> = ({
                             const raw = preset.replace('sketchfab:', '');
                             const split = raw.split('?');
                             uid = split[0];
-                            // Default params if not provided: autostart, inspector ON, infos OFF
-                            queryStr = split[1] || 'autostart=1&ui_inspector=1&ui_infos=0';
+                            // Default params: autostart, inspector ON, infos OFF, settings ON
+                            queryStr = split[1] || 'autostart=1&ui_inspector=1&ui_infos=0&ui_settings=1&ui_help=0';
                         } else if (preset.includes('sketchfab.com/3d-models/')) {
                             // URL format: https://sketchfab.com/3d-models/name-ID
                             const urlObj = preset.split('?');
                             const pathParts = urlObj[0].split('-');
                             uid = pathParts[pathParts.length - 1];
                             // Default params
-                            queryStr = urlObj[1] || 'autostart=1&ui_inspector=1&ui_infos=0';
+                            queryStr = urlObj[1] || 'autostart=1&ui_inspector=1&ui_infos=0&ui_settings=1&ui_help=0';
                         }
 
-                        // Ensure essential params are present if not already in queryStr
+                        // Force these to ensure visibility of the "Model Inspector" button
                         if (!queryStr.includes('ui_inspector')) queryStr += '&ui_inspector=1';
+                        if (!queryStr.includes('ui_settings')) queryStr += '&ui_settings=1';
                         if (!queryStr.includes('ui_infos')) queryStr += '&ui_infos=0';
+                        if (!queryStr.includes('ui_help')) queryStr += '&ui_help=0';
                         if (!queryStr.includes('autostart')) queryStr += '&autostart=1';
 
                         const src = `https://sketchfab.com/models/${uid}/embed?${queryStr}`;
