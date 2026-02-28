@@ -150,8 +150,35 @@ const ModelDNA = () => {
     );
 };
 
-const ModelGLB = ({ url }: { url: string }) => {
+const ModelGLB = ({ url, explodeFactor = 0 }: { url: string; explodeFactor?: number }) => {
     const { scene } = useGLTF(url);
+    const originalPositions = useRef<Map<THREE.Object3D, THREE.Vector3>>(new Map());
+
+    // Capture and apply displacement
+    useFrame(() => {
+        scene.traverse((obj) => {
+            if (obj instanceof THREE.Mesh || obj instanceof THREE.Group) {
+                // Initialize original positions if not already stored
+                if (!originalPositions.current.has(obj)) {
+                    originalPositions.current.set(obj, obj.position.clone());
+                }
+
+                const origPos = originalPositions.current.get(obj)!;
+
+                // Explode logic: move away from model center
+                // Simple version: use relative world direction from (0,0,0)
+                const dir = origPos.clone().normalize();
+
+                // If it's at world zero, give it a tiny random push so it moves
+                if (dir.lengthSq() === 0) dir.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize();
+
+                obj.position.x = origPos.x + dir.x * explodeFactor * 5;
+                obj.position.y = origPos.y + dir.y * explodeFactor * 5;
+                obj.position.z = origPos.z + dir.z * explodeFactor * 5;
+            }
+        });
+    });
+
     return <primitive object={scene} scale={1.5} />;
 };
 
@@ -198,12 +225,16 @@ export const Interactive3DViewer: React.FC<Interactive3DViewerProps> = ({
         return () => document.removeEventListener('fullscreenchange', handleFSChange);
     }, []);
 
-    const supportsWebGL = useMemo(() => {
+    const [supportsWebGL, setSupportsWebGL] = useState(true);
+    const [explodeFactor, setExplodeFactor] = useState(0);
+
+    // Check WebGL support
+    React.useEffect(() => {
         try {
             const canvas = document.createElement('canvas');
-            return !!(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
+            setSupportsWebGL(!!(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl'))));
         } catch {
-            return false;
+            setSupportsWebGL(false);
         }
     }, [preset]); // Re-eval if remounts
 
@@ -213,7 +244,7 @@ export const Interactive3DViewer: React.FC<Interactive3DViewerProps> = ({
     // Determine which component to use
     let ModelComponent: React.FC<any> = PRESET_MAP[preset] || ModelCube;
     if (isGLB && !isSketchfab) {
-        ModelComponent = () => <ModelGLB url={preset} />;
+        ModelComponent = () => <ModelGLB url={preset} explodeFactor={explodeFactor} />;
     }
 
     if (!supportsWebGL && !isSketchfab) {
@@ -252,6 +283,33 @@ export const Interactive3DViewer: React.FC<Interactive3DViewerProps> = ({
                         </button>
                     </div>
                 </div>
+
+                {/* NATIVE EXPLODE TOOLBAR (Only for GLB) */}
+                {isGLB && !isSketchfab && (
+                    <div className="bg-indigo-50/80 border-b border-indigo-100 px-4 py-2 flex items-center gap-4">
+                        <div className="flex items-center gap-2 text-xs font-bold text-indigo-700 whitespace-nowrap">
+                            <RefreshCw size={14} className={explodeFactor > 0 ? "animate-pulse" : ""} />
+                            DECOMPOR PEÇAS:
+                        </div>
+                        <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={explodeFactor}
+                            onChange={(e) => setExplodeFactor(parseFloat(e.target.value))}
+                            className="flex-1 accent-indigo-600 h-1.5 bg-indigo-200 rounded-lg appearance-none cursor-pointer"
+                        />
+                        <span className="text-[10px] font-mono text-indigo-500 w-8">{Math.round(explodeFactor * 100)}%</span>
+                        <button
+                            onClick={() => setExplodeFactor(0)}
+                            className="p-1 hover:bg-white rounded transition-colors text-indigo-600"
+                            title="Resetar"
+                        >
+                            <RefreshCw size={14} />
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* WebGL Viewport or Iframe */}
