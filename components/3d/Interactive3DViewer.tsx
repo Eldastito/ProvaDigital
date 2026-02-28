@@ -203,7 +203,7 @@ export const Interactive3DViewer: React.FC<Interactive3DViewerProps> = ({
     }, [preset]); // Re-eval if remounts
 
     const ModelComponent = PRESET_MAP[preset] || ModelCube;
-    const isSketchfab = preset.startsWith('sketchfab:');
+    const isSketchfab = preset.startsWith('sketchfab:') || preset.includes('sketchfab.com/3d-models/');
 
     if (!supportsWebGL && !isSketchfab) {
         return (
@@ -247,9 +247,23 @@ export const Interactive3DViewer: React.FC<Interactive3DViewerProps> = ({
             <div className="interactive-3d-canvas-wrapper" aria-label={description}>
                 {isSketchfab ? (
                     (() => {
-                        const raw = preset.replace('sketchfab:', '');
-                        const [uid, queryStr] = raw.split('?');
-                        const src = `https://sketchfab.com/models/${uid}/embed${queryStr ? '?' + queryStr : ''}`;
+                        let uid = '';
+                        let queryStr = 'autostart=1';
+
+                        if (preset.startsWith('sketchfab:')) {
+                            const raw = preset.replace('sketchfab:', '');
+                            const split = raw.split('?');
+                            uid = split[0];
+                            if (split[1]) queryStr = split[1];
+                        } else if (preset.includes('sketchfab.com/3d-models/')) {
+                            // URL format: https://sketchfab.com/3d-models/name-ID
+                            const urlObj = preset.split('?');
+                            const pathParts = urlObj[0].split('-');
+                            uid = pathParts[pathParts.length - 1]; // O ID é sempre a última parte após o hífen
+                            if (urlObj[1]) queryStr = urlObj[1];
+                        }
+
+                        const src = `https://sketchfab.com/models/${uid}/embed?${queryStr}`;
                         return (
                             <iframe
                                 title={description}
