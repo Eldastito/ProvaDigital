@@ -114,10 +114,23 @@ export class LocalServerService {
             res.send(`<h1>ExamePad Local Server</h1><p>Online: ${this.peers.size} peers</p>`);
         });
 
+        // 🛡️ Middleware de Segurança para Rotas Sink/Mesh
+        const authMiddleware = (req: any, res: any, next: any) => {
+            const authHeader = req.headers.authorization;
+            if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                return res.status(401).json({ error: 'Acesso Negado: Token não fornecido.' });
+            }
+            const token = authHeader.split(' ')[1];
+            if (!token || token.length < 10) { // Validação básica de tamanho (ex: eventId ou signed token)
+                return res.status(403).json({ error: 'Acesso Negado: Token inválido.' });
+            }
+            next();
+        };
+
         // --- MESH SYNC ENDPOINTS (PHASE 7) ---
 
         // 1. Download Exam (Student -> Teacher)
-        this.app.get('/sync/exam/:id', async (req: any, res: any) => {
+        this.app.get('/sync/exam/:id', authMiddleware, async (req: any, res: any) => {
             try {
                 const examId = req.params.id;
                 // Import Dynamically to avoid circular dependencies if needed, or just standard import if safe
@@ -168,7 +181,7 @@ export class LocalServerService {
         });
 
         // 2. Submit Answers (Student -> Teacher)
-        this.app.post('/sync/submit', async (req: any, res: any) => {
+        this.app.post('/sync/submit', authMiddleware, async (req: any, res: any) => {
             try {
                 const submission = req.body; // Expects OfflineSubmission shape
 
