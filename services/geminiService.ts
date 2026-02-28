@@ -8,7 +8,7 @@ const PROMPT_VERSION = '1.2.1-stability-fix';
 
 // --- Prompts ---
 const PROMPTS = {
-    GENERATE_QUESTIONS: (qty: number, subject: string, type: QuestionType, difficulty: string, context: string) => `
+    GENERATE_QUESTIONS: (qty: number, subject: string, type: QuestionType, difficulty: string, context: string, model3dContext?: string) => `
         Você é um Especialista em Elaboração de Itens para Avaliações de Larga Escala (INEP/SAEB/ENEM), com profundo conhecimento da BNCC e Teoria de Resposta ao Item (TRI).
 
         OBJETIVO: Construir um banco de **${qty} ITENS** de ALTA PRECISÃO PEDAGÓGICA, seguindo rigorosamente as fases de elaboração técnica.
@@ -16,6 +16,12 @@ const PROMPTS = {
         TEXTO DE CONTEXTO:
         "${context.substring(0, 15000)}"
         
+${model3dContext ? `        [ATENÇÃO - INSTRUÇÃO OBRIGATÓRIA PARA 3D]
+        MODELO 3D DE REFERÊNCIA: ${model3dContext}
+        
+        O aluno terá do lado esquerdo da sua tela um simulador 3D interativo contendo este modelo.
+        É **OBRIGATÓRIO** que as questões elaboradas exijam que o aluno interaja, rotacione, dê zoom ou use o inspetor (explode) neste modelo 3D para chegar à resposta. Cite o modelo 3D no enunciado e faça perguntas anatômicas, espaciais ou estruturais baseadas somente nele.` : ''}
+
         ESTRUTURA OBRIGATÓRIA DE CADA ITEM (Modelo INEP):
         1. TEXTO-BASE (Suporte): Deve ser motivador e necessário para a resolução. Se usar imagem, descreva-a (Acessibilidade).
         2. ENUNCIADO (Comando): Deve ser uma oração incompleta ou pergunta direta, clara e livre de ambiguidades. O comando deve exigir a mobilização da habilidade cognitiva, NÃO apenas memorização.
@@ -986,7 +992,8 @@ export const generateQuestionsFromText = async (
     type: QuestionType,
     difficulty: DifficultyLevel,
     subject: string,
-    tenantId?: string // RAG: allow injection of school-specific curricula
+    tenantId?: string, // RAG: allow injection of school-specific curricula
+    model3dContext?: string
 ): Promise<GeneratedQuestion[]> => {
 
     // RAG Phase 2A: enrich context with school-specific knowledge
@@ -1002,7 +1009,7 @@ Se as habilidades e conteúdos descritos acima estiverem relacionados à discipl
         }
     }
 
-    const prompt = PROMPTS.GENERATE_QUESTIONS(quantity, subject, type, difficulty, enrichedContext);
+    const prompt = PROMPTS.GENERATE_QUESTIONS(quantity, subject, type, difficulty, enrichedContext, model3dContext);
 
     const schema = {
         type: Type.OBJECT,

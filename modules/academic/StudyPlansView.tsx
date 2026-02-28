@@ -39,6 +39,9 @@ export const StudyPlansView = () => {
         if (state.items.length === 0) {
             state.loadItems();
         }
+        if (!state.projectionMaterials || state.projectionMaterials.length === 0) {
+            state.loadProjectionMaterials();
+        }
     }, [isProfessor]);
 
     // Data
@@ -65,7 +68,7 @@ export const StudyPlansView = () => {
 
     // SIMULATOR STATE
     const [simStep, setSimStep] = useState<'CONFIG' | 'TAKING' | 'RESULT'>('CONFIG');
-    const [simConfig, setSimConfig] = useState({ subject: '', count: 5, timeMinutes: 10 });
+    const [simConfig, setSimConfig] = useState({ subject: '', count: 5, timeMinutes: 10, model3dId: '' });
     const [simQuestions, setSimQuestions] = useState<any[]>([]);
     const [simCurrentQ, setSimCurrentQ] = useState(0);
     const [simAnswers, setSimAnswers] = useState<Record<string, string>>({}); // itemId -> optionId
@@ -367,12 +370,21 @@ export const StudyPlansView = () => {
         setIsGeneratingSimulator(true);
         try {
             const qtyNeeded = simConfig.count;
+            const selectedModel = state.projectionMaterials?.find(m => m.id === simConfig.model3dId);
+
+            let model3dContextStr = undefined;
+            if (selectedModel) {
+                model3dContextStr = `Título: ${selectedModel.title} | Link original: ${selectedModel.url} | Descrição: ${selectedModel.description || 'Modelo 3D interativo'}`;
+            }
+
             const newQuestions = await generateQuestionsFromText(
                 `Simulado de ${simConfig.subject} para o ${user.role === UserRole.ALUNO ? '9º ano' : 'Ensino Fundamental'}`,
                 qtyNeeded,
                 QuestionType.MULTIPLE_CHOICE,
                 DifficultyLevel.MEDIUM,
-                simConfig.subject
+                simConfig.subject,
+                undefined, // tenantId is optional
+                model3dContextStr
             );
 
             // Map GeneratedQuestion to Item type
@@ -383,6 +395,12 @@ export const StudyPlansView = () => {
                 subject: simConfig.subject,
                 difficulty: q.difficulty as any,
                 type: QuestionType.MULTIPLE_CHOICE,
+                ...(selectedModel ? {
+                    simulationConfig: {
+                        url: selectedModel.url,
+                        title: selectedModel.title
+                    }
+                } : {})
             }));
 
             setSimQuestions(items);
@@ -737,6 +755,22 @@ export const StudyPlansView = () => {
                                             min={1} max={180}
                                         />
                                     </div>
+                                </div>
+                                <div className="mt-4">
+                                    <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center justify-between">
+                                        <span>Modelo 3D <span className="text-[10px] font-normal text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full ml-2">Experimental (Apenas IA)</span></span>
+                                    </label>
+                                    <select
+                                        value={simConfig.model3dId || ''}
+                                        onChange={e => setSimConfig({ ...simConfig, model3dId: e.target.value })}
+                                        className="w-full p-3 border border-slate-300 rounded-lg bg-indigo-50/20"
+                                    >
+                                        <option value="">Nenhum (Gerar questões teóricas tradicionais)</option>
+                                        {state.projectionMaterials?.filter(m => m.type === '3D_MODEL').map(m => (
+                                            <option key={m.id} value={m.id}>🎲 {m.title}</option>
+                                        ))}
+                                    </select>
+                                    <p className="text-xs text-slate-500 mt-1">Ao selecionar um modelo 3D, a opção "Gerar com IA" focará as questões na exploração deste ambiente virtual interativo.</p>
                                 </div>
                                 <div className="flex gap-2 pt-2">
                                     <button
