@@ -176,7 +176,7 @@ export const ProjectionLabView = () => {
             if (newMaterial.type === 'MIND_MAP' && selectedFile) {
                 const fileExt = selectedFile.name.split('.').pop();
                 const fileName = `${Math.random()}.${fileExt}`;
-                const filePath = `${resolvedTenantId}/${resolvedSchoolId}/${fileName}`;
+                const filePath = `${resolvedTenantId}/${resolvedSchoolId}/mind-maps/${fileName}`;
 
                 const { error: uploadError } = await supabase.storage
                     .from('lab_materials')
@@ -184,6 +184,24 @@ export const ProjectionLabView = () => {
 
                 if (uploadError) {
                     throw new Error("Erro ao fazer upload da imagem.");
+                }
+
+                const { data: publicUrlData } = supabase.storage
+                    .from('lab_materials')
+                    .getPublicUrl(filePath);
+
+                materialUrl = publicUrlData.publicUrl;
+            } else if (newMaterial.type === '3D_MODEL' && selectedFile) {
+                const fileExt = selectedFile.name.split('.').pop();
+                const fileName = `${Math.random()}.${fileExt}`;
+                const filePath = `${resolvedTenantId}/${resolvedSchoolId}/models-3d/${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('lab_materials')
+                    .upload(filePath, selectedFile);
+
+                if (uploadError) {
+                    throw new Error("Erro ao fazer upload do arquivo 3D.");
                 }
 
                 const { data: publicUrlData } = supabase.storage
@@ -535,71 +553,63 @@ export const ProjectionLabView = () => {
                                     </div>
                                 </div>
                                 <div>
-                                    {newMaterial.type === 'MIND_MAP' ? (
-                                        <>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">Mídia do Mapa Mental *</label>
-                                            <div className="flex flex-col gap-3">
-                                                <div className={`border-2 border-dashed ${selectedFile ? 'border-emerald-500 bg-emerald-50' : 'border-slate-300'} rounded-lg p-4 text-center cursor-pointer hover:bg-slate-50 transition-colors relative`}>
-                                                    <input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        onChange={e => {
-                                                            const file = e.target.files?.[0];
-                                                            if (file) {
-                                                                setSelectedFile(file);
-                                                                setNewMaterial({ ...newMaterial, url: 'upload' });
-                                                            }
-                                                        }}
-                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                    />
-                                                    <div className="flex flex-col items-center gap-1">
-                                                        <ImageIcon size={24} className={selectedFile ? 'text-emerald-500' : 'text-slate-400'} />
-                                                        <span className={`text-sm font-medium ${selectedFile ? 'text-emerald-700' : 'text-slate-600'}`}>
-                                                            {selectedFile ? selectedFile.name : 'Clique para enviar uma imagem do computador'}
-                                                        </span>
-                                                    </div>
-                                                </div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                                        {newMaterial.type === 'MIND_MAP' || newMaterial.type === '3D_MODEL' ? 'Arquivo / Upload (Opcional)' : 'URL / Link *'}
+                                    </label>
 
-                                                <div className="flex items-center gap-2">
-                                                    <hr className="flex-1 border-slate-200" />
-                                                    <span className="text-xs text-slate-400 font-medium">Ou use um Link do Canva / Web</span>
-                                                    <hr className="flex-1 border-slate-200" />
-                                                </div>
-
+                                    {(newMaterial.type === 'MIND_MAP' || newMaterial.type === '3D_MODEL') && (
+                                        <div className="mb-3">
+                                            <div className={`border-2 border-dashed ${selectedFile ? 'border-emerald-500 bg-emerald-50' : 'border-slate-300'} rounded-lg p-4 text-center cursor-pointer hover:bg-slate-50 transition-colors relative`}>
                                                 <input
-                                                    type="url"
-                                                    value={newMaterial.url === 'upload' ? '' : newMaterial.url}
+                                                    type="file"
+                                                    accept={newMaterial.type === 'MIND_MAP' ? "image/*" : ".glb"}
                                                     onChange={e => {
-                                                        setSelectedFile(null);
-                                                        setNewMaterial({ ...newMaterial, url: e.target.value });
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            setSelectedFile(file);
+                                                            setNewMaterial({ ...newMaterial, url: 'upload' });
+                                                        }
                                                     }}
-                                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                                    placeholder="Ex: https://canva.com/..."
+                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                                 />
+                                                <div className="flex flex-col items-center gap-1">
+                                                    {newMaterial.type === 'MIND_MAP' ? <ImageIcon size={24} className={selectedFile ? 'text-emerald-500' : 'text-slate-400'} /> : <Box size={24} className={selectedFile ? 'text-emerald-500' : 'text-slate-400'} />}
+                                                    <span className={`text-sm font-medium ${selectedFile ? 'text-emerald-700' : 'text-slate-600'}`}>
+                                                        {selectedFile ? selectedFile.name : (newMaterial.type === 'MIND_MAP' ? 'Anexar imagem (Envio Oficial)' : 'Anexar arquivo .GLB (3D Offline)')}
+                                                    </span>
+                                                </div>
                                             </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">URL / Link *</label>
-                                            <input
-                                                type="url"
-                                                required
-                                                value={newMaterial.url}
-                                                onChange={e => setNewMaterial({ ...newMaterial, url: e.target.value })}
-                                                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                                placeholder={
-                                                    newMaterial.type === 'VIDEO' ? 'https://www.youtube.com/embed/...' :
-                                                        newMaterial.type === '3D_MODEL' ? 'sketchfab:ID_AQUI?autostart=1...' :
-                                                            'https://...'
-                                                }
-                                            />
-                                            <p className="text-[11px] text-slate-500 mt-1">
-                                                {newMaterial.type === 'VIDEO' && 'Para vídeos do YouTube, use o link de incorporação (embed).'}
-                                                {newMaterial.type === '3D_MODEL' && 'Use o ID da API do Sketchfab com o prefixo sketchfab:'}
-                                                {newMaterial.type === 'DOCUMENT' && 'Para slides, use o Google Docs Viewer ou link público do PDF.'}
-                                            </p>
-                                        </>
+
+                                            <div className="flex items-center gap-2 my-2">
+                                                <hr className="flex-1 border-slate-200" />
+                                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">ou use um link externo</span>
+                                                <hr className="flex-1 border-slate-200" />
+                                            </div>
+                                        </div>
                                     )}
+
+                                    <input
+                                        type="url"
+                                        required={!selectedFile}
+                                        value={newMaterial.url === 'upload' ? '' : newMaterial.url}
+                                        onChange={e => {
+                                            setSelectedFile(null);
+                                            setNewMaterial({ ...newMaterial, url: e.target.value });
+                                        }}
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                        placeholder={
+                                            newMaterial.type === 'VIDEO' ? 'https://www.youtube.com/embed/...' :
+                                                newMaterial.type === '3D_MODEL' ? 'https://sketchfab.com/...' :
+                                                    'https://...'
+                                        }
+                                    />
+
+                                    <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
+                                        {newMaterial.type === 'VIDEO' && '💡 Dica: Para o YouTube, use o link de "Incorporar" (embed).'}
+                                        {newMaterial.type === '3D_MODEL' && '🚀 Suporta links diretos do Sketchfab ou arquivos .GLB (para uso offline).'}
+                                        {newMaterial.type === 'DOCUMENT' && '📑 Suporta PDF, PPTX e Google Docs públicos.'}
+                                        {newMaterial.type === 'MIND_MAP' && '🖼️ Envie uma foto ou cole o link público do Canva.'}
+                                    </p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Breve Descrição</label>
@@ -633,8 +643,8 @@ export const ProjectionLabView = () => {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div >
             )}
-        </div>
+        </div >
     );
 };

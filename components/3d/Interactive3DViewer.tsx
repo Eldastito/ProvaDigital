@@ -1,6 +1,6 @@
 import React, { Suspense, useRef, useState, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Html, ContactShadows, Environment, Sphere, Cylinder, Cone, Torus, Box } from '@react-three/drei';
+import { OrbitControls, Html, ContactShadows, Environment, Sphere, Cylinder, Cone, Torus, Box, useGLTF } from '@react-three/drei';
 import { Maximize, Minimize, MousePointer2, RefreshCw } from 'lucide-react';
 import * as THREE from 'three';
 import '../../styles/interactive-3d-viewer.css';
@@ -150,6 +150,11 @@ const ModelDNA = () => {
     );
 };
 
+const ModelGLB = ({ url }: { url: string }) => {
+    const { scene } = useGLTF(url);
+    return <primitive object={scene} scale={1.5} />;
+};
+
 // ==========================================
 // MAIN COMPONENT
 // ==========================================
@@ -202,8 +207,14 @@ export const Interactive3DViewer: React.FC<Interactive3DViewerProps> = ({
         }
     }, [preset]); // Re-eval if remounts
 
-    const ModelComponent = PRESET_MAP[preset] || ModelCube;
     const isSketchfab = preset.startsWith('sketchfab:') || preset.includes('sketchfab.com/3d-models/');
+    const isGLB = preset.endsWith('.glb') || preset.includes('.glb?') || preset.startsWith('https://'); // Supabase URLs or direct links
+
+    // Determine which component to use
+    let ModelComponent: React.FC<any> = PRESET_MAP[preset] || ModelCube;
+    if (isGLB && !isSketchfab) {
+        ModelComponent = () => <ModelGLB url={preset} />;
+    }
 
     if (!supportsWebGL && !isSketchfab) {
         return (
@@ -254,14 +265,21 @@ export const Interactive3DViewer: React.FC<Interactive3DViewerProps> = ({
                             const raw = preset.replace('sketchfab:', '');
                             const split = raw.split('?');
                             uid = split[0];
-                            if (split[1]) queryStr = split[1];
+                            // Default params if not provided: autostart, inspector ON, infos OFF
+                            queryStr = split[1] || 'autostart=1&ui_inspector=1&ui_infos=0';
                         } else if (preset.includes('sketchfab.com/3d-models/')) {
                             // URL format: https://sketchfab.com/3d-models/name-ID
                             const urlObj = preset.split('?');
                             const pathParts = urlObj[0].split('-');
-                            uid = pathParts[pathParts.length - 1]; // O ID é sempre a última parte após o hífen
-                            if (urlObj[1]) queryStr = urlObj[1];
+                            uid = pathParts[pathParts.length - 1];
+                            // Default params
+                            queryStr = urlObj[1] || 'autostart=1&ui_inspector=1&ui_infos=0';
                         }
+
+                        // Ensure essential params are present if not already in queryStr
+                        if (!queryStr.includes('ui_inspector')) queryStr += '&ui_inspector=1';
+                        if (!queryStr.includes('ui_infos')) queryStr += '&ui_infos=0';
+                        if (!queryStr.includes('autostart')) queryStr += '&autostart=1';
 
                         const src = `https://sketchfab.com/models/${uid}/embed?${queryStr}`;
                         return (
