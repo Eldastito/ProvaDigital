@@ -7,6 +7,9 @@ import { AnalyticsService } from '../../services/analyticsService';
 import { useAppStore } from '../../store/useAppStore';
 import { useNavigate } from 'react-router-dom';
 import { translateExamStatus, translateBehaviorCluster, translateSecurityFlag } from '../../utils/translations';
+import { InterventionDashboard } from '../professor/features/InterventionDashboard';
+import { ExamDetailsModal } from '../professor/ExamDetailsModal';
+import { ProfessorPerformanceTab } from '../professor/tabs/ProfessorPerformanceTab';
 
 const DistributionChart = ({ grades }: { grades: number[] }) => {
     const buckets = [0, 0, 0, 0, 0]; // 0-2, 2-4, 4-6, 6-8, 8-10
@@ -55,6 +58,11 @@ export const ProfessorDashboardView = () => {
     if (isProfessor && professorClasses.length > 0 && !selectedClassId) {
         setSelectedClassId(professorClasses[0].id);
     }
+
+    // Total Students from all my classes
+    const totalStudents = professorClasses.reduce((sum, cls) => {
+        return sum + state.students.filter(s => s.classId === cls.id).length;
+    }, 0);
 
     // My Exams (Active/Recent)
     const myExams = state.exams.filter(e => e.creatorId === currentUser?.id || (e.classIds?.some(c => currentUser?.classIds?.includes(c))));
@@ -185,6 +193,56 @@ export const ProfessorDashboardView = () => {
                     </div>
                     {/* Espaço flex para manter o layout não tão esticado caso haja apenas 1 card ao lado */}
                     <div className="flex-1 hidden md:block"></div>
+                </div>
+            )}
+
+            {/* Quick Stats Overview (Merged from old Dashboard) */}
+            {isProfessor && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+                                <Users size={20} />
+                            </div>
+                            <div>
+                                <p className="text-xl font-black text-brand-dark">{professorClasses.length}</p>
+                                <p className="text-xs text-slate-500 font-medium">Turmas</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600">
+                                <Users size={20} />
+                            </div>
+                            <div>
+                                <p className="text-xl font-black text-brand-dark">{totalStudents}</p>
+                                <p className="text-xs text-slate-500 font-medium">Alunos</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center text-orange-600">
+                                <FileText size={20} />
+                            </div>
+                            <div>
+                                <p className="text-xl font-black text-brand-dark">{activeExams.length}</p>
+                                <p className="text-xs text-slate-500 font-medium">Provas Ativas</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600">
+                                <Target size={20} />
+                            </div>
+                            <div>
+                                <p className="text-xl font-black text-brand-dark">{filteredItems.length}</p>
+                                <p className="text-xs text-slate-500 font-medium">Total de Itens</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -488,6 +546,9 @@ export const ProfessorDashboardView = () => {
                     <p className="text-slate-400">Acesse como professor para ver os dados detalhados da turma.</p>
                 </div>
             )}
+
+            {/* Painel de Intervenção Pedagógica (Merged from old dashboard) */}
+            {isProfessor && <InterventionDashboard />}
         </div>
     );
 };
