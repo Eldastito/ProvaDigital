@@ -60,34 +60,193 @@ export const createAcademicSlice: StateCreator<AppStore, [], [], AcademicSlice> 
     projectionMaterials: [],
     institutionalEvents: [],
 
-    addSchool: async (school) => set((state) => ({ schools: [...state.schools, school] })),
-    updateSchool: async (school) => set((state) => ({
-        schools: state.schools.map(s => s.id === school.id ? school : s)
-    })),
-    deleteSchool: async (id) => set((state) => ({
-        schools: state.schools.filter(s => s.id !== id)
-    })),
+    addSchool: async (school) => {
+        const { error } = await supabase.from('schools').insert({
+            id: school.id,
+            tenant_id: school.tenantId,
+            name: school.name,
+            inep: school.inep,
+            resources: school.resources,
+            city: school.city
+        });
 
-    addClass: async (cls) => set((state) => ({ classes: [...state.classes, cls] })),
-    updateClass: async (cls) => set((state) => ({
-        classes: state.classes.map(c => c.id === cls.id ? cls : c)
-    })),
-    deleteClass: async (id) => set((state) => ({
-        classes: state.classes.filter(c => c.id !== id)
-    })),
+        if (error) {
+            console.error("Error adding school:", error);
+            throw error;
+        }
 
-    addStudent: async (student) => set((state) => ({ students: [...state.students, student] })),
-    updateStudent: async (student) => set((state) => ({
-        students: state.students.map(s => s.id === student.id ? student : s)
-    })),
-    deleteStudent: async (id) => set((state) => ({
-        students: state.students.filter(s => s.id !== id)
-    })),
+        set((state) => ({ schools: [...state.schools, school] }));
+    },
+    updateSchool: async (school) => {
+        const { error } = await supabase.from('schools').update({
+            name: school.name,
+            inep: school.inep,
+            resources: school.resources,
+            city: school.city
+        }).eq('id', school.id);
 
-    addUser: async (user) => set((state) => ({ users: [...state.users, user] })),
-    deleteUser: async (id) => set((state) => ({
-        users: state.users.filter(u => u.id !== id)
-    })),
+        if (error) {
+            console.error("Error updating school:", error);
+            throw error;
+        }
+
+        set((state) => ({
+            schools: state.schools.map(s => s.id === school.id ? school : s)
+        }));
+    },
+    deleteSchool: async (id) => {
+        const { error } = await supabase.from('schools').delete().eq('id', id);
+        if (error) {
+            console.error("Error deleting school:", error);
+            throw error;
+        }
+        set((state) => ({
+            schools: state.schools.filter(s => s.id !== id)
+        }));
+    },
+
+    addClass: async (cls) => {
+        const { error } = await supabase.from('classes').insert({
+            id: cls.id,
+            school_id: cls.schoolId,
+            name: cls.name,
+            series: cls.series,
+            shift: cls.shift,
+            room: cls.room
+        });
+
+        if (error) {
+            console.error("Error adding class:", error);
+            throw error;
+        }
+
+        set((state) => ({ classes: [...state.classes, cls] }));
+    },
+    updateClass: async (cls) => {
+        const { error } = await supabase.from('classes').update({
+            school_id: cls.schoolId,
+            name: cls.name,
+            series: cls.series,
+            shift: cls.shift,
+            room: cls.room
+        }).eq('id', cls.id);
+
+        if (error) {
+            console.error("Error updating class:", error);
+            throw error;
+        }
+
+        set((state) => ({
+            classes: state.classes.map(c => c.id === cls.id ? cls : c)
+        }));
+    },
+    deleteClass: async (id) => {
+        const { error } = await supabase.from('classes').delete().eq('id', id);
+        if (error) {
+            console.error("Error deleting class:", error);
+            throw error;
+        }
+        set((state) => ({
+            classes: state.classes.filter(c => c.id !== id)
+        }));
+    },
+
+    addStudent: async (student) => {
+        const { error } = await supabase.from('students').insert({
+            id: student.id,
+            tenant_id: student.tenantId,
+            school_id: student.schoolId,
+            class_id: student.classId,
+            name: student.name,
+            registration_number: student.registrationNumber
+        });
+
+        if (error) {
+            console.error("Error adding student:", error);
+            throw error;
+        }
+
+        set((state) => ({ students: [...state.students, student] }));
+    },
+    updateStudent: async (student) => {
+        const { error } = await supabase.from('students').update({
+            school_id: student.schoolId,
+            class_id: student.classId,
+            name: student.name,
+            registration_number: student.registrationNumber
+        }).eq('id', student.id);
+
+        if (error) {
+            console.error("Error updating student:", error);
+            throw error;
+        }
+
+        set((state) => ({
+            students: state.students.map(s => s.id === student.id ? student : s)
+        }));
+    },
+    deleteStudent: async (id) => {
+        const { error } = await supabase.from('students').delete().eq('id', id);
+        if (error) {
+            console.error("Error deleting student:", error);
+            throw error;
+        }
+        set((state) => ({
+            students: state.students.filter(s => s.id !== id)
+        }));
+    },
+
+    addUser: async (user) => {
+        const { error } = await supabase.from('users').insert({
+            id: user.id,
+            tenant_id: user.tenantId,
+            school_id: user.schoolId,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            status: user.status,
+            subject_ids: user.subjectIds,
+            class_ids: user.classIds
+        });
+
+        if (error) {
+            console.error("Error adding user:", error);
+            throw error;
+        }
+
+        set((state) => ({ users: [...state.users, user] }));
+    },
+    updateUser: async (user) => {
+        const { error } = await supabase.from('users').update({
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            status: user.status,
+            school_id: user.schoolId,
+            tenant_id: user.tenantId,
+            subject_ids: user.subjectIds,
+            class_ids: user.classIds
+        }).eq('id', user.id);
+
+        if (error) {
+            console.error("Error updating user:", error);
+            throw error;
+        }
+
+        set((state) => ({
+            users: state.users.map(u => u.id === user.id ? user : u)
+        }));
+    },
+    deleteUser: async (id) => {
+        const { error } = await supabase.from('users').delete().eq('id', id);
+        if (error) {
+            console.error("Error deleting user:", error);
+            throw error;
+        }
+        set((state) => ({
+            users: state.users.filter(u => u.id !== id)
+        }));
+    },
 
     updateResults: (newResults) => set({ results: newResults }),
 
@@ -101,17 +260,27 @@ export const createAcademicSlice: StateCreator<AppStore, [], [], AcademicSlice> 
 
     selectAllVisibleUsers: (userIds) => set({ selectedUserIds: userIds }),
 
-    bulkDeleteUsers: async (ids) => set((state) => ({
-        users: state.users.filter(u => !ids.includes(u.id))
-    })),
+    bulkDeleteUsers: async (ids) => {
+        const { error } = await supabase.from('users').delete().in('id', ids);
+        if (error) {
+            console.error("Error bulk deleting users:", error);
+            throw error;
+        }
+        set((state) => ({
+            users: state.users.filter(u => !ids.includes(u.id))
+        }));
+    },
 
-    bulkUpdateUserStatus: async (ids, status) => set((state) => ({
-        users: state.users.map(u => ids.includes(u.id) ? { ...u, status } : u)
-    })),
-
-    updateUser: (user) => set((state) => ({
-        users: state.users.map(u => u.id === user.id ? user : u)
-    })),
+    bulkUpdateUserStatus: async (ids, status) => {
+        const { error } = await supabase.from('users').update({ status }).in('id', ids);
+        if (error) {
+            console.error("Error bulk updating users:", error);
+            throw error;
+        }
+        set((state) => ({
+            users: state.users.map(u => ids.includes(u.id) ? { ...u, status } : u)
+        }));
+    },
 
     resetUserPassword: async (email) => {
         console.log(`Password reset requested for ${email}`);
@@ -119,25 +288,68 @@ export const createAcademicSlice: StateCreator<AppStore, [], [], AcademicSlice> 
 
     loadSchools: async () => {
         const { data, error } = await supabase.from('schools').select('*');
-        if (data) set({ schools: data as School[] });
+        if (data) {
+            const formatted = data.map(s => ({
+                id: s.id,
+                tenantId: s.tenant_id,
+                name: s.name,
+                inep: s.inep,
+                resources: s.resources,
+                city: s.city
+            })) as School[];
+            set({ schools: formatted });
+        }
         if (error) console.error("Error loading schools:", error);
     },
 
     loadClasses: async () => {
         const { data, error } = await supabase.from('classes').select('*');
-        if (data) set({ classes: data as SchoolClass[] });
+        if (data) {
+            const formatted = data.map(c => ({
+                id: c.id,
+                schoolId: c.school_id,
+                name: c.name,
+                series: c.series,
+                shift: c.shift,
+                room: c.room
+            })) as SchoolClass[];
+            set({ classes: formatted });
+        }
         if (error) console.error("Error loading classes:", error);
     },
 
     loadStudents: async () => {
         const { data, error } = await supabase.from('students').select('*');
-        if (data) set({ students: data as Student[] });
+        if (data) {
+            const formatted = data.map(s => ({
+                id: s.id,
+                tenantId: s.tenant_id,
+                schoolId: s.school_id,
+                classId: s.class_id,
+                name: s.name,
+                registrationNumber: s.registration_number
+            })) as Student[];
+            set({ students: formatted });
+        }
         if (error) console.error("Error loading students:", error);
     },
 
     loadUsers: async () => {
         const { data, error } = await supabase.from('users').select('*');
-        if (data) set({ users: data as User[] });
+        if (data) {
+            const formatted = data.map(u => ({
+                id: u.id,
+                tenantId: u.tenant_id,
+                schoolId: u.school_id,
+                name: u.name,
+                email: u.email,
+                role: u.role,
+                status: u.status,
+                subjectIds: u.subject_ids,
+                classIds: u.class_ids
+            })) as User[];
+            set({ users: formatted });
+        }
         if (error) console.error("Error loading users:", error);
     },
 
