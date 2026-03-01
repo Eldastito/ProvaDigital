@@ -6,6 +6,7 @@ import { uuidv4 } from '../../../utils/helpers';
 import { useSafeAppStore } from '../../../store/useAppStore';
 import { smartSelectItems, ExamCriteria } from '../../../services/examService';
 import { generateQuestionsFromText } from '../../../services/geminiService';
+import { predictNextExamConfiguration, SmartFormPrediction } from '../../../services/smartFormService';
 import { MOCK_TENANT_ID, MOCK_SCHOOL_ID } from '../../../utils/mockData';
 
 export const useExamBuilder = () => {
@@ -97,6 +98,7 @@ export const useExamBuilder = () => {
     const [showBatchHistory, setShowBatchHistory] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [showRecommendations, setShowRecommendations] = useState(false);
+    const [prediction, setPrediction] = useState<SmartFormPrediction | null>(null);
 
     // --- PERSISTENCE & AUTO-SAVE ---
     useEffect(() => {
@@ -134,6 +136,21 @@ export const useExamBuilder = () => {
         const draft = { config, selectedItems, step, gradingConfig, coverConfig, updatedAt: Date.now() };
         localStorage.setItem(key, JSON.stringify(draft));
     }, [config, selectedItems, step, gradingConfig, coverConfig, state.currentUser?.id]);
+
+    // --- SMART PREDICTION INITIALIZATION ---
+    useEffect(() => {
+        // Run prediction only if creating a new exam from scratch
+        if (!config.title && selectedItems.length === 0 && state.currentUser?.id) {
+            const pred = predictNextExamConfiguration(state, state.currentUser.id);
+            if (pred) {
+                setPrediction(pred);
+                if (pred.suggestedSubject) {
+                    setConfig(prev => ({ ...prev, subject: prev.subject || pred.suggestedSubject! }));
+                    setSmartCriteria(prev => ({ ...prev, subject: pred.suggestedSubject! }));
+                }
+            }
+        }
+    }, [state.currentUser?.id, state.exams]);
 
     // Logic Handlers
     const handleSave = async (publish = false) => {
@@ -322,6 +339,7 @@ export const useExamBuilder = () => {
         handleBatchImport,
         csvImportRef,
         state,
-        navigate
+        navigate,
+        prediction
     };
 };

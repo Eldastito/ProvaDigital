@@ -1,6 +1,9 @@
 import React from 'react';
-import { X, CheckCircle, AlertTriangle, FileText, ThumbsUp, Eye } from 'lucide-react';
+import { X, CheckCircle, AlertTriangle, FileText, ThumbsUp, Eye, Calendar } from 'lucide-react';
 import { DualValidationResult } from '../../../types';
+import { useAppStore } from '../../../store/useAppStore';
+import { mapPedagogicalInsightToTask } from '../../../services/actionableTaskService';
+import { SkillInsight } from '../../../services/PredictivePedagogicalService';
 
 interface ValidationResultsModalProps {
     isOpen: boolean;
@@ -22,6 +25,19 @@ export const ValidationResultsModal: React.FC<ValidationResultsModalProps> = ({
     if (!isOpen || !validationResults) return null;
 
     const { phase1, phase2, overallScore, approved, flaggedQuestions } = validationResults;
+    const { addTask } = useAppStore();
+
+    const handleCreateTask = (issue: any) => {
+        const mockSkillInsight: SkillInsight = {
+            type: 'DANGER',
+            title: `Revisar: ${issue.category}`,
+            message: issue.description,
+            actionLabel: 'Revisar Prova',
+            actionType: 'BNCC'
+        };
+        addTask(mapPedagogicalInsightToTask(mockSkillInsight));
+        alert('Tarefa de revisão agendada com sucesso!');
+    };
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -78,8 +94,8 @@ export const ValidationResultsModal: React.FC<ValidationResultsModalProps> = ({
 
                     {/* Status Banner */}
                     <div className={`p-4 rounded-xl border-2 ${approved
-                            ? 'bg-green-50 border-green-200'
-                            : 'bg-amber-50 border-amber-200'
+                        ? 'bg-green-50 border-green-200'
+                        : 'bg-amber-50 border-amber-200'
                         }`}>
                         <div className="flex items-center gap-3">
                             {approved ? (
@@ -169,8 +185,15 @@ export const ValidationResultsModal: React.FC<ValidationResultsModalProps> = ({
                                 <div className="space-y-2 max-h-40 overflow-y-auto">
                                     {phase2.issues.slice(0, 5).map((issue, idx) => (
                                         <div key={idx} className="text-sm bg-white p-2 rounded border border-amber-200">
-                                            <div className="font-medium text-slate-700">
-                                                Questão #{issue.questionNumber} - {issue.category}
+                                            <div className="font-medium text-slate-700 flex justify-between items-start">
+                                                <span>Questão #{issue.questionNumber} - {issue.category}</span>
+                                                <button
+                                                    onClick={() => handleCreateTask(issue)}
+                                                    className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded flex items-center gap-1 font-bold transition"
+                                                    title="Criar tarefa para resolver depois"
+                                                >
+                                                    <Calendar size={10} /> Agendar para depois
+                                                </button>
                                             </div>
                                             <div className="text-slate-600">{issue.description}</div>
                                             {issue.suggestion && (
@@ -239,14 +262,14 @@ const ScoreCard: React.FC<{ title: string; score: number; icon: string; highligh
     title, score, icon, highlight
 }) => (
     <div className={`p-4 rounded-xl border-2 ${highlight
-            ? 'bg-gradient-to-br from-blue-50 to-sky-50 border-blue-200'
-            : 'bg-white border-slate-200'
+        ? 'bg-gradient-to-br from-blue-50 to-sky-50 border-blue-200'
+        : 'bg-white border-slate-200'
         }`}>
         <div className="text-2xl mb-1">{icon}</div>
         <div className="text-xs text-slate-600 font-medium">{title}</div>
         <div className={`text-2xl font-bold ${score >= 80 ? 'text-green-600' :
-                score >= 70 ? 'text-amber-600' :
-                    'text-red-600'
+            score >= 70 ? 'text-amber-600' :
+                'text-red-600'
             }`}>
             {score}%
         </div>

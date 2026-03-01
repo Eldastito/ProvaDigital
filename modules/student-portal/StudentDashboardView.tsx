@@ -19,6 +19,8 @@ import { CorrectionModal } from './components/dashboard/CorrectionModal';
 import { TrendingUp } from 'lucide-react';
 import { SkillsHeatmapWidget } from './components/dashboard/SkillsHeatmapWidget';
 import { RecommendationsWidget } from './components/dashboard/RecommendationsWidget';
+import { PredictionChart } from './components/dashboard/PredictionChart';
+import { AdaptiveStudyPlanWidget } from './components/dashboard/AdaptiveStudyPlanWidget';
 
 export const StudentDashboardView = () => {
     const {
@@ -90,6 +92,13 @@ export const StudentDashboardView = () => {
                     {/* NEW: AI Recommendations Widget */}
                     <RecommendationsWidget results={recentResults} items={state.items} />
 
+                    {/* NEW: AI Prediction Chart (Phase 3) */}
+                    <PredictionChart
+                        currentScore={stats.idgScore}
+                        projectedScore={Math.min(10, stats.idgScore + 0.8)}
+                        history={[]}
+                    />
+
                     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                         <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><TrendingUp size={18} /> Evolução de Notas</h3>
                         <EvolutionChart data={chartData} />
@@ -99,6 +108,9 @@ export const StudentDashboardView = () => {
                         monthEvents={getAllMonthEvents()}
                         onExpand={() => setShowAgendaModal(true)}
                     />
+
+                    {/* NEW: Adaptive Study Plan (Phase 3) */}
+                    <AdaptiveStudyPlanWidget />
                 </div>
 
                 <div className="lg:col-span-2 space-y-6">

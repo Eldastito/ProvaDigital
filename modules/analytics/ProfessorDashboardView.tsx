@@ -10,6 +10,10 @@ import { translateExamStatus, translateBehaviorCluster, translateSecurityFlag } 
 import { InterventionDashboard } from '../professor/features/InterventionDashboard';
 import { ExamDetailsModal } from '../professor/ExamDetailsModal';
 import { ProfessorPerformanceTab } from '../professor/tabs/ProfessorPerformanceTab';
+import { ActionableTaskPanel } from './components/ActionableTaskPanel';
+import { getStrategicInsights } from '../../services/StrategicAdvisorService';
+import { mapStrategicInsightToTask } from '../../services/actionableTaskService';
+import { useEffect } from 'react';
 
 const DistributionChart = ({ grades }: { grades: number[] }) => {
     const buckets = [0, 0, 0, 0, 0]; // 0-2, 2-4, 4-6, 6-8, 8-10
@@ -133,6 +137,22 @@ export const ProfessorDashboardView = () => {
         SLOW_ERR: studentStats.filter(s => s.behaviorCluster === 'SLOW_ERR').length,
         RAPID_ERR: studentStats.filter(s => s.behaviorCluster === 'RAPID_ERR').length
     };
+
+    // PHASE 2: Trigger AI Actionable Tasks Generation
+    useEffect(() => {
+        const syncTasks = async () => {
+            if (state.tasks.length === 0 && currentUser?.tenantId) {
+                const insights = await getStrategicInsights(currentUser.tenantId);
+                // Filter to only include high impact ones for first load tasks
+                insights.forEach(insight => {
+                    if (insight.impact === 'Urgente' || insight.impact === 'Alto') {
+                        state.addTask(mapStrategicInsightToTask(insight));
+                    }
+                });
+            }
+        };
+        syncTasks();
+    }, [currentUser?.tenantId, state.tasks.length]);
 
     return (
         <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-500">
@@ -392,18 +412,18 @@ export const ProfessorDashboardView = () => {
                             )}
                         </div>
 
-                        {/* AI Insight for Class */}
-                        <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl p-6 text-white shadow-lg relative overflow-hidden">
+                        {/* AI Actionable Tasks Panel (Phase 2) */}
+                        <ActionableTaskPanel />
+
+                        {/* AI Insight for Class (Old Legacy - keeping but styled) */}
+                        <div className="bg-gradient-to-br from-indigo-700 to-indigo-900 rounded-xl p-6 text-white shadow-lg relative overflow-hidden border border-indigo-500">
                             <div className="relative z-10">
-                                <h3 className="font-bold flex items-center gap-2 mb-2"><Brain size={20} className="text-yellow-300" /> Insight da IA</h3>
+                                <h3 className="font-bold flex items-center gap-2 mb-2"><Brain size={20} className="text-yellow-300" /> Diagnóstico da Turma</h3>
                                 <p className="text-sm text-indigo-100 leading-relaxed">
-                                    A turma <strong>{selectedClass?.name}</strong> teve uma queda de 15% em interpretação de texto na última semana. Sugiro focar em exercícios de leitura ativa.
+                                    A turma <strong>{selectedClass?.name}</strong> teve uma queda de 15% em interpretação de texto.
                                 </p>
-                                <button className="mt-4 bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-2 rounded-lg transition flex items-center gap-2">
-                                    Ver Plano de Aula Sugerido <ArrowRight size={14} />
-                                </button>
                             </div>
-                            <Brain size={100} className="absolute -right-4 -bottom-4 opacity-10 text-white" />
+                            <Brain size={80} className="absolute -right-4 -top-4 opacity-10 text-white" />
                         </div>
                     </div>
 

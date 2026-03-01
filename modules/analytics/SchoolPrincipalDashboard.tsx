@@ -573,3 +573,70 @@ export const SchoolPrincipalDashboard = () => {
         </div>
     );
 };
+const ScenarioSimulator: React.FC<{ currentAvg: number }> = ({ currentAvg }) => {
+    const [aiUsage, setAiUsage] = useState(50);
+    const [simulatedAvg, setSimulatedAvg] = useState(currentAvg);
+
+    useEffect(() => {
+        // Simple logic: more AI alignment usually leads to better targeting of gaps
+        const boost = (aiUsage - 50) * 0.015;
+        setSimulatedAvg(currentAvg + boost);
+    }, [aiUsage, currentAvg]);
+
+    return (
+        <div className="bg-slate-900 rounded-2xl p-6 text-white overflow-hidden relative shadow-2xl">
+            <div className="relative z-10">
+                <div className="flex justify-between items-start mb-6">
+                    <div>
+                        <h3 className="text-xl font-bold flex items-center gap-2">
+                            <Zap className="text-yellow-400" size={24} /> Simulador de Impacto IA
+                        </h3>
+                        <p className="text-slate-400 text-xs mt-1">
+                            Preveja como mudanças na estratégia digital impactarão o IDG da escola.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-6">
+                        <div>
+                            <div className="flex justify-between text-xs font-bold mb-2">
+                                <span className="text-slate-400 uppercase">Uso de Itens IA / Alinhamento BNCC</span>
+                                <span className="text-yellow-400">{aiUsage}%</span>
+                            </div>
+                            <input
+                                type="range"
+                                min="0" max="100"
+                                value={aiUsage}
+                                onChange={(e) => setAiUsage(parseInt(e.target.value))}
+                                className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-yellow-400"
+                            />
+                            <div className="flex justify-between text-[10px] text-slate-500 mt-2 italic">
+                                <span>Tradicional</span>
+                                <span>Manual + Digital</span>
+                                <span>IA Driven</span>
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+                            <h4 className="text-xs font-bold text-slate-300 mb-2">Previsão de Desfecho</h4>
+                            <p className="text-[11px] text-slate-400 leading-relaxed">
+                                Aumentar o alinhamento via IA permite identificar gaps em tempo real.
+                                Espera-se uma redução de <strong>12%</strong> no tempo de correção e aumento de <strong>{((simulatedAvg / currentAvg - 1) * 100).toFixed(1)}%</strong> na precisão pedagógica.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col items-center justify-center p-6 bg-yellow-400/10 rounded-3xl border border-yellow-400/20">
+                        <div className="text-[10px] font-black text-yellow-400 uppercase tracking-widest mb-2">IDG Projetado</div>
+                        <div className="text-6xl font-black text-white">{simulatedAvg.toFixed(2)}</div>
+                        <div className={`mt-2 text-xs font-bold px-3 py-1 rounded-full ${simulatedAvg >= currentAvg ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                            {simulatedAvg >= currentAvg ? '+' : ''}{(simulatedAvg - currentAvg).toFixed(2)} pts vs Atual
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <Activity className="absolute -bottom-10 -left-10 text-white/5" size={240} />
+        </div>
+    );
+};

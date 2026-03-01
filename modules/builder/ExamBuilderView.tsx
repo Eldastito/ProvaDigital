@@ -37,7 +37,8 @@ export const ExamBuilderView = () => {
         handleBatchImport,
         csvImportRef,
         state,
-        navigate
+        navigate,
+        prediction
     } = useExamBuilder();
 
     const [isGenerating, setIsGenerating] = useState(false);
@@ -141,24 +142,37 @@ export const ExamBuilderView = () => {
                     />
                 )}
 
-                {/* IMPORT PDF BUTTON (Visible in Step 1) */}
+                {/* SMART PREDICTION / IMPORT PDF BUTTON (Visible in Step 1) */}
                 {step === 1 && (
-                    <div className="mt-4 p-4 bg-purple-50 rounded-xl border border-purple-100 flex items-center justify-between">
-                        <div>
-                            <h4 className="font-bold text-purple-800 flex items-center gap-2">
-                                <FileText size={18} />
-                                Criar Prova contextualizada (PDF)
-                            </h4>
-                            <p className="text-sm text-purple-600">Gere questões automaticamente a partir de um livro ou apostila.</p>
+                    <>
+                        {prediction && !config.title && (
+                            <div className="mb-4 bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex items-start gap-3">
+                                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600 font-bold text-xl leading-none">
+                                    ✨
+                                </div>
+                                <div>
+                                    <h4 className="font-semibold text-indigo-900">Configuração Inteligente</h4>
+                                    <p className="text-sm text-indigo-700 mt-1">{prediction.reasoning}</p>
+                                </div>
+                            </div>
+                        )}
+                        <div className="mt-4 p-4 bg-purple-50 rounded-xl border border-purple-100 flex items-center justify-between">
+                            <div>
+                                <h4 className="font-bold text-purple-800 flex items-center gap-2">
+                                    <FileText size={18} />
+                                    Criar Prova contextualizada (PDF)
+                                </h4>
+                                <p className="text-sm text-purple-600">Gere questões automaticamente a partir de um livro ou apostila.</p>
+                            </div>
+                            <button
+                                onClick={() => setImportModalOpen(true)}
+                                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-bold flex items-center gap-2"
+                            >
+                                <Upload size={18} />
+                                Importar Conteúdo
+                            </button>
                         </div>
-                        <button
-                            onClick={() => setImportModalOpen(true)}
-                            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-bold flex items-center gap-2"
-                        >
-                            <Upload size={18} />
-                            Importar Conteúdo
-                        </button>
-                    </div>
+                    </>
                 )}
 
                 {/* IMPORT MODAL */}

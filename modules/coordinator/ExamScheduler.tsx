@@ -13,6 +13,7 @@ import { schedulingService, ScheduledExam, Conflict } from '../../services/sched
 import { useSafeAppStore } from '../../store/useAppStore';
 import { AdaptiveModeSelector } from './components/AdaptiveModeSelector';
 import { AdaptiveMode, detectDeviceCapability } from '../../services/offlineAdaptiveEngine';
+import { predictNextExamConfiguration, SmartFormPrediction } from '../../services/smartFormService';
 import type { Exam } from '../../types';
 
 interface ExamSchedulerProps {
@@ -43,6 +44,7 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
     const [shuffle, setShuffle] = useState(true);
     const [allowReview, setAllowReview] = useState(false);
     const [deviceCapability] = useState(detectDeviceCapability());
+    const [prediction, setPrediction] = useState<SmartFormPrediction | null>(null);
 
     // Carregar exames se não estiverem no estado
     useEffect(() => {
@@ -71,6 +73,22 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
     // Handler para criar novo agendamento
     const handleNew = () => {
         resetForm();
+
+        // SmartForm: Tentar prever próximos passos
+        if (store.currentUser?.id) {
+            const pred = predictNextExamConfiguration(store, store.currentUser.id);
+            if (pred) {
+                setPrediction(pred);
+                if (pred.suggestedClassIds) {
+                    setSelectedClassIds(pred.suggestedClassIds);
+                }
+                if (pred.suggestedDate) {
+                    setScheduledDate(pred.suggestedDate);
+                    setScheduledTime('08:00'); // Default time
+                }
+            }
+        }
+
         setShowForm(true);
     };
 
@@ -233,6 +251,7 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
         setAllowReview(false);
         setAdaptiveMode('LOCAL');
         setConflicts([]);
+        setPrediction(null);
     };
 
     // Verificar conflitos ao mudar data/turma
@@ -466,6 +485,19 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
 
                         {/* Form */}
                         <div className="p-6 space-y-6">
+                            {/* Smart prediction feedback */}
+                            {prediction && !editingSchedule && (
+                                <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex items-start gap-3">
+                                    <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600 font-bold text-xl leading-none">
+                                        ✨
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-indigo-900">Preenchimento Inteligente</h4>
+                                        <p className="text-sm text-indigo-700 mt-1">{prediction.reasoning}</p>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Conflitos */}
                             {conflicts.length > 0 && (
                                 <div className="bg-red-50 border border-red-200 rounded-xl p-4">
