@@ -250,6 +250,9 @@ export const SchoolPrincipalDashboard = () => {
                         </div>
                     </div>
 
+                    {/* NEW: Scenario Simulator (Phase 3) */}
+                    <ScenarioSimulator currentAvg={totalAvg} />
+
                     {/* Benchmarking & Alerts */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* Benchmarking Card */}

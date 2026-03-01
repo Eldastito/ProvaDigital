@@ -14,7 +14,7 @@ import { useSafeAppStore } from '../../store/useAppStore';
 import { AdaptiveModeSelector } from './components/AdaptiveModeSelector';
 import { AdaptiveMode, detectDeviceCapability } from '../../services/offlineAdaptiveEngine';
 import { predictNextExamConfiguration, SmartFormPrediction } from '../../services/smartFormService';
-import type { Exam } from '../../types';
+import { UserRole, type Exam } from '../../types';
 
 interface ExamSchedulerProps {
     onClose?: () => void;
@@ -45,6 +45,9 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
     const [allowReview, setAllowReview] = useState(false);
     const [deviceCapability] = useState(detectDeviceCapability());
     const [prediction, setPrediction] = useState<SmartFormPrediction | null>(null);
+    const [selectedProfessorId, setSelectedProfessorId] = useState(''); // Novo: Para Gestores
+
+    const isManager = store.currentUser?.role && [UserRole.DIRETOR, UserRole.SUPERVISOR, UserRole.TENANT_ADMIN, UserRole.SYSTEM_ADMIN].includes(store.currentUser.role);
 
     // Carregar exames se não estiverem no estado
     useEffect(() => {
@@ -76,7 +79,13 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
 
         // SmartForm: Tentar prever próximos passos
         if (store.currentUser?.id) {
-            const pred = predictNextExamConfiguration(store, store.currentUser.id);
+            // Se for gestor, usamos o schoolId para predição institucional
+            const pred = predictNextExamConfiguration(
+                store,
+                store.currentUser.id,
+                isManager ? store.currentUser.schoolId : undefined
+            );
+
             if (pred) {
                 setPrediction(pred);
                 if (pred.suggestedClassIds) {
@@ -216,7 +225,8 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                     adaptiveMode: selectedExamId !== 'PENDING' && store.exams?.find(e => e.id === selectedExamId)?.model === 'ADAPTADO' ? adaptiveMode : undefined
                 },
                 status: 'SCHEDULED' as const,
-                createdBy: store.currentUser?.id || 'current-user'
+                createdBy: store.currentUser?.id || 'current-user',
+                professorId: isManager && selectedProfessorId ? selectedProfessorId : store.currentUser?.id
             };
 
             if (editingSchedule) {
@@ -488,13 +498,42 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                             {/* Smart prediction feedback */}
                             {prediction && !editingSchedule && (
                                 <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex items-start gap-3">
-                                    <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600 font-bold text-xl leading-none">
-                                        ✨
+                                    <div className={`p-2 rounded-lg font-bold text-xl leading-none ${isManager ? 'bg-emerald-100 text-emerald-600' : 'bg-indigo-100 text-indigo-600'}`}>
+                                        {isManager ? '🏛️' : '✨'}
                                     </div>
                                     <div>
-                                        <h4 className="font-semibold text-indigo-900">Preenchimento Inteligente</h4>
-                                        <p className="text-sm text-indigo-700 mt-1">{prediction.reasoning}</p>
+                                        <h4 className={`font-semibold ${isManager ? 'text-emerald-900' : 'text-indigo-900'}`}>
+                                            {isManager ? 'Inteligência Institucional' : 'Preenchimento Inteligente'}
+                                        </h4>
+                                        <p className={`text-sm mt-1 ${isManager ? 'text-emerald-700' : 'text-indigo-700'}`}>{prediction.reasoning}</p>
                                     </div>
+                                </div>
+                            )}
+
+                            {/* Seleção de Professor (Apenas Gestores) */}
+                            {isManager && (
+                                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                        Vincular a qual Professor? (Opcional)
+                                    </label>
+                                    <select
+                                        value={selectedProfessorId}
+                                        onChange={(e) => setSelectedProfessorId(e.target.value)}
+                                        className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                                    >
+                                        <option value="">Selecione o Professor</option>
+                                        {store.users
+                                            ?.filter(u => u.role === UserRole.PROFESSOR && (!store.currentUser?.schoolId || u.schoolId === store.currentUser.schoolId))
+                                            .map(prof => (
+                                                <option key={prof.id} value={prof.id}>
+                                                    {prof.name} ({prof.subjectIds?.map(s => s).join(', ') || 'Geral'})
+                                                </option>
+                                            ))
+                                        }
+                                    </select>
+                                    <p className="text-[10px] text-slate-500 mt-2 italic">
+                                        Como Gestor, você está agendando em nome da instituição. A prova aparecerá no dashboard do professor selecionado.
+                                    </p>
                                 </div>
                             )}
 

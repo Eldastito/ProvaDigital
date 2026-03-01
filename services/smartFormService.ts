@@ -15,12 +15,15 @@ export interface SmartFormPrediction {
  */
 export const predictNextExamConfiguration = (
     state: AppState,
-    professorId: string
+    userId: string,
+    schoolId?: string
 ): SmartFormPrediction | null => {
 
-    // 1. Encontrar as provas passadas do professor
+    // 1. Encontrar as provas passadas. 
+    // Se schoolId for provido (perfil Gestor), olhamos a escola toda.
+    // Caso contrário, olhamos apenas as provas criadas pelo usuário.
     const pastExams = state.exams
-        .filter(e => e.creatorId === professorId)
+        .filter(e => schoolId ? e.schoolId === schoolId : e.creatorId === userId)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     if (pastExams.length === 0) {
@@ -82,6 +85,8 @@ export const predictNextExamConfiguration = (
         suggestedDifficulty: 'MEDIUM', // Ponto de partida
         suggestedDate: suggestedDate.toISOString().split('T')[0],
         confidenceScore: 85, // Pode ser refinado
-        reasoning: `Baseado nas últimas avaliações de ${mostCommonSubject}, onde observamos um ritmo quinzenal.`
+        reasoning: schoolId
+            ? `Análise Institucional: Observamos que ${mostCommonSubject} é a disciplina mais frequente nesta época do ano na escola.`
+            : `Baseado nas suas últimas avaliações de ${mostCommonSubject}, onde observamos um ritmo quinzenal.`
     };
 };
