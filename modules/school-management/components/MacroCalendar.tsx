@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
 import { InstitutionalEvent, InstitutionalEventType } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
-import { Calendar as CalendarIcon, Plus, Trash2, AlertTriangle, Info } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Trash2, AlertTriangle, Info, Sparkles } from 'lucide-react';
+import { holidayService } from '../../../services/holidayService';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -79,12 +80,50 @@ export const MacroCalendar = () => {
                     </h3>
                     <p className="text-sm text-slate-500">Gerencie Feriados, Recessos e Pontos Facultativos.</p>
                 </div>
-                <button
-                    onClick={() => setShowForm(!showForm)}
-                    className="bg-brand-primary text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-brand-primary/90 transition-colors"
-                >
-                    <Plus size={18} /> Novo Evento
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={async () => {
+                            if (!schoolId || !currentUser) return;
+                            const year = new Date().getFullYear();
+                            const officialHolidays = holidayService.getNationalHolidays(year);
+                            const nextYearOfficialHolidays = holidayService.getNationalHolidays(year + 1);
+
+                            const allOfficial = [...officialHolidays, ...nextYearOfficialHolidays];
+
+                            // Filtrar apenas os que não existem ainda para essa escola
+                            const existingDates = schoolEvents.map(e => e.date);
+                            const newHolidays = allOfficial.filter(h => !existingDates.includes(h.date));
+
+                            if (newHolidays.length === 0) {
+                                alert("Todos os feriados oficiais já estão no seu calendário.");
+                                return;
+                            }
+
+                            if (window.confirm(`Deseja importar ${newHolidays.length} feriados oficiais para ${year}/${year + 1}? Isso automatizará o bloqueio de agendamentos nessas datas.`)) {
+                                const eventsToCreate = holidayService.mapHolidaysToInstitutionalEvents(
+                                    newHolidays,
+                                    currentUser.tenantId,
+                                    schoolId,
+                                    currentUser.id
+                                );
+
+                                for (const evt of eventsToCreate) {
+                                    await addInstitutionalEvent(evt);
+                                }
+                                alert(`${newHolidays.length} feriados importados com sucesso!`);
+                            }
+                        }}
+                        className="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-emerald-100 transition-colors border border-emerald-200"
+                    >
+                        <Sparkles size={18} /> Puxar Feriados Oficiais
+                    </button>
+                    <button
+                        onClick={() => setShowForm(!showForm)}
+                        className="bg-brand-primary text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-brand-primary/90 transition-colors"
+                    >
+                        <Plus size={18} /> Novo Evento
+                    </button>
+                </div>
             </div>
 
             {showForm && (
@@ -174,8 +213,8 @@ export const MacroCalendar = () => {
                                 <td className="py-3 px-4 text-slate-800 font-medium">{evt.title}</td>
                                 <td className="py-3 px-4">
                                     <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${evt.type === 'FERIADO_PONTO_FACULTATIVO' ? 'bg-amber-100 text-amber-800' :
-                                            evt.type === 'FERIADO' ? 'bg-emerald-100 text-emerald-800' :
-                                                'bg-blue-100 text-blue-800'
+                                        evt.type === 'FERIADO' ? 'bg-emerald-100 text-emerald-800' :
+                                            'bg-blue-100 text-blue-800'
                                         }`}>
                                         {evt.type.replace(/_/g, ' ')}
                                     </span>
