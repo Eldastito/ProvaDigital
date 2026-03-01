@@ -11,6 +11,7 @@ import { INITIAL_TENANTS, INITIAL_SCHOOLS } from './utils/mockData';
 // Infrastructure
 import { PrivacyPolicyModal } from './components/Legal/PrivacyPolicyModal';
 import { nativeBridge } from './services/nativeBridgeService';
+import { PendingExamsAlert } from './components/Alerts/PendingExamsAlert';
 
 export default function App() {
   const store = useAppStore();
@@ -200,6 +201,10 @@ export default function App() {
       <Suspense fallback={<PageLoader />}>
         {element}
       </Suspense>
+      {/* Alertas Globais */}
+      {currentUser && currentUser.role === UserRole.PROFESSOR && (
+        <PendingExamsAlert />
+      )}
       {!hasConsented && (
         <PrivacyPolicyModal
           onAccept={() => { setHasConsented(true); localStorage.setItem('lgpd_consent', 'true'); }}

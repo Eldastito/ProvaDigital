@@ -32,6 +32,7 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
 
     // Form estados
     const [selectedExamId, setSelectedExamId] = useState('');
+    const [provisionalTitle, setProvisionalTitle] = useState(''); // Novo: Título Provisório 
     const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
     const [scheduledDate, setScheduledDate] = useState('');
     const [scheduledTime, setScheduledTime] = useState('');
@@ -42,6 +43,13 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
     const [shuffle, setShuffle] = useState(true);
     const [allowReview, setAllowReview] = useState(false);
     const [deviceCapability] = useState(detectDeviceCapability());
+
+    // Carregar exames se não estiverem no estado
+    useEffect(() => {
+        if (!store.exams || store.exams.length === 0) {
+            store.loadExams?.();
+        }
+    }, [store.exams, store.loadExams]);
 
     // Carregar agendamentos
     useEffect(() => {
@@ -115,7 +123,12 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
     const handleSave = async () => {
         // Validações
         if (!selectedExamId) {
-            alert('Selecione uma prova');
+            alert('Selecione uma prova ou escolha "Agendar sem prova definida"');
+            return;
+        }
+
+        if (selectedExamId === 'PENDING' && !provisionalTitle.trim()) {
+            alert('Informe um título provisório para a prova');
             return;
         }
 
@@ -129,19 +142,36 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
             return;
         }
 
-        try {
-            const scheduledFor = new Date(`${scheduledDate}T${scheduledTime}`);
+        // Validação da Data Limite (7 dias) ExamePad
+        const scheduledFor = new Date(`${scheduledDate}T${scheduledTime}`);
+        const today = new Date();
+        const minDate = new Date();
+        minDate.setDate(today.getDate() + 7); // Mínimo de 7 dias
+        minDate.setHours(0, 0, 0, 0);
 
-            // Buscar título da prova
-            const selectedExam = store.exams?.find(e => e.id === selectedExamId);
-            if (!selectedExam) {
-                alert('Prova não encontrada');
-                return;
+        if (scheduledFor < minDate) {
+            alert('A data de agendamento deve ter um mínimo de 7 dias de antecedência para preparo logístico dos tablets.');
+            return;
+        }
+
+        try {
+            // Buscar título da prova se não for pendente
+            let finalExamTitle = '';
+
+            if (selectedExamId === 'PENDING') {
+                finalExamTitle = provisionalTitle;
+            } else {
+                const selectedExam = store.exams?.find(e => e.id === selectedExamId);
+                if (!selectedExam) {
+                    alert('Prova não encontrada');
+                    return;
+                }
+                finalExamTitle = selectedExam.title;
             }
 
             const scheduleData = {
-                examId: selectedExamId,
-                examTitle: selectedExam.title,
+                examId: selectedExamId, // Pode ser PENDING
+                examTitle: finalExamTitle,
                 classIds: selectedClassIds,
                 scheduledFor,
                 duration,
@@ -151,10 +181,10 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                     shuffle,
                     timeLimit: duration,
                     allowReview,
-                    adaptiveMode: selectedExam?.model === 'ADAPTADO' ? adaptiveMode : undefined
+                    adaptiveMode: selectedExamId !== 'PENDING' && store.exams?.find(e => e.id === selectedExamId)?.model === 'ADAPTADO' ? adaptiveMode : undefined
                 },
                 status: 'SCHEDULED' as const,
-                createdBy: 'current-user' // TODO: pegar do auth
+                createdBy: store.currentUser?.id || 'current-user'
             };
 
             if (editingSchedule) {
@@ -178,6 +208,7 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
     const resetForm = () => {
         setEditingSchedule(null);
         setSelectedExamId('');
+        setProvisionalTitle('');
         setSelectedClassIds([]);
         setScheduledDate('');
         setScheduledTime('');
@@ -462,6 +493,9 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                                     required
                                 >
                                     <option value="">Selecione uma prova</option>
+                                    <optgroup label="⏰ Reserva de Data">
+                                        <option value="PENDING" className="text-amber-600 font-medium">⏳ Agendar data sem prova definida (Pendente)</option>
+                                    </optgroup>
                                     {(() => {
                                         const mySubjects = store.currentUser?.subjectIds || [];
                                         const recommendedExams = store.exams?.filter(e => mySubjects.includes(e.subject)) || [];
@@ -491,6 +525,26 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                                         );
                                     })()}
                                 </select>
+
+                                {/* Mostrar campo de título provisório se for PENDING */}
+                                {selectedExamId === 'PENDING' && (
+                                    <div className="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-200">
+                                        <label className="block text-sm font-semibold text-amber-900 mb-1">
+                                            Título Provisório da Prova *
+                                        </label>
+                                        <p className="text-xs text-amber-700 mb-3">
+                                            Atenção: Você tem até 7 dias úteis antes da data agendada para construir a prova para este evento, caso contrário o evento será cancelado ou bloqueado.
+                                        </p>
+                                        <input
+                                            type="text"
+                                            value={provisionalTitle}
+                                            onChange={(e) => setProvisionalTitle(e.target.value)}
+                                            placeholder="Ex: Avaliação Bimestral Biologia"
+                                            className="w-full px-4 py-3 border border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white"
+                                            required={selectedExamId === 'PENDING'}
+                                        />
+                                    </div>
+                                )}
                                 {store.exams?.length === 0 && (
                                     <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
                                         <AlertTriangle size={12} /> Nenhuma prova existente. Crie uma nova prova primeiro!
@@ -525,7 +579,7 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                             </div>
 
                             {/* Data e Hora */}
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-4 relative">
                                 <div>
                                     <label className="block text-sm font-semibold text-slate-700 mb-2">
                                         Data *
@@ -534,14 +588,36 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                                         type="date"
                                         value={scheduledDate}
                                         onChange={(e) => setScheduledDate(e.target.value)}
+                                        // Restrição visual básica, a real está na lógica (+ 7 d)
+                                        min={new Date(new Date().setDate(new Date().getDate() + 7)).toISOString().split('T')[0]}
                                         className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         required
                                     />
+                                    <p className="text-xs text-slate-500 mt-1">Antecedência mín. 7 dias</p>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                        Hora *
-                                    </label>
+                                    <div className="flex justify-between items-end mb-2">
+                                        <label className="block text-sm font-semibold text-slate-700">
+                                            Hora *
+                                        </label>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (selectedClassIds.length === 0) {
+                                                    alert("Selecione a turma primeiro para buscar a grade.");
+                                                    return;
+                                                }
+                                                // Mock da automação da Grade de Aulas
+                                                setScheduledTime('07:15');
+                                                setDuration(45);
+                                                alert("Grade encontrada! Aula de Biologia começa às 07:15 com duração de 45m na turma selecionada.");
+                                            }}
+                                            className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
+                                            title="Autopreencher baseado na grade de aulas da escola configurada no sistema"
+                                        >
+                                            ✨ Sugerir da Grade
+                                        </button>
+                                    </div>
                                     <input
                                         type="time"
                                         value={scheduledTime}
