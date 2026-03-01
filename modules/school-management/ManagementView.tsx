@@ -6,6 +6,8 @@ import { CommandCenter } from './components/CommandCenter';
 import { ManagementForms } from './components/ManagementForms';
 import { UserManagementTab } from '../../modules/admin/users/UserManagementTab';
 import { KnowledgeVaultView } from './components/KnowledgeVaultView';
+import { MacroCalendar } from './components/MacroCalendar';
+import { Calendar as CalendarIcon } from 'lucide-react';
 
 export const ManagementView = () => {
     const {
@@ -93,9 +95,14 @@ export const ManagementView = () => {
                     <ShieldCheck size={18} /> Governança & LGPD
                 </button>
                 {(isTenantAdmin || isDirector) && (
-                    <button onClick={() => setActiveTab('KNOWLEDGE_VAULT')} className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'KNOWLEDGE_VAULT' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
-                        <BookOpen size={18} /> Base de Conhecimento
-                    </button>
+                    <>
+                        <button onClick={() => setActiveTab('MACRO_CALENDAR')} className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'MACRO_CALENDAR' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
+                            <CalendarIcon size={18} /> Calendário Institucional
+                        </button>
+                        <button onClick={() => setActiveTab('KNOWLEDGE_VAULT')} className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'KNOWLEDGE_VAULT' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
+                            <BookOpen size={18} /> Base de Conhecimento
+                        </button>
+                    </>
                 )}
                 {isTenantAdmin && (
                     <button onClick={() => setActiveTab('TENANT_SETTINGS')} className={`pb-3 text-sm font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap ${activeTab === 'TENANT_SETTINGS' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500'}`}>
@@ -460,6 +467,12 @@ export const ManagementView = () => {
 
                 {activeTab === 'KNOWLEDGE_VAULT' && (
                     <KnowledgeVaultView />
+                )}
+
+                {activeTab === 'MACRO_CALENDAR' && (
+                    <div className="p-4 md:p-8">
+                        <MacroCalendar />
+                    </div>
                 )}
             </div>
 

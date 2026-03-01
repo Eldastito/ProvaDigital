@@ -14,9 +14,10 @@ export interface ExamSlice {
     examAttemptEvents: any[];
     liveQuizSessions: any[];
     liveQuizResults: any[];
-    examEncryptionKey: string | null;
+    examEncryptionKey: any | null;
 
     addExam: (exam: Exam) => void;
+    updateExam: (exam: Exam) => Promise<void>;
     deleteExam: (examId: string) => Promise<void>;
     activateExam: (examId: string) => Promise<void>;
     distributeOECDExam: (examId: string) => Promise<void>;
@@ -74,6 +75,20 @@ export const createExamSlice: StateCreator<AppStore, [], [], ExamSlice> = (set, 
             });
         } catch (e) {
             console.error("Error adding exam:", e);
+        }
+    },
+
+    updateExam: async (exam) => {
+        set((state) => ({ exams: state.exams.map(e => e.id === exam.id ? exam : e) }));
+        // Mock update in Supabase
+        try {
+            await supabase.from('exams').update({
+                title: exam.title,
+                status: exam.status,
+                // ... update fields
+            }).eq('id', exam.id);
+        } catch (e) {
+            console.error(e);
         }
     },
 

@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand';
-import { School, SchoolClass, Student, ExamRegistration, ExamResult, StudentProfile, UserProfileExtended, User, ProjectionMaterial } from '../../types';
+import { School, SchoolClass, Student, ExamRegistration, ExamResult, StudentProfile, UserProfileExtended, User, ProjectionMaterial, InstitutionalEvent } from '../../types';
 import { AppStore } from '../useAppStore';
 import { supabase } from '../../services/supabaseClient';
 
@@ -14,6 +14,7 @@ export interface AcademicSlice {
     userProfiles: UserProfileExtended[];
     selectedUserIds: string[];
     projectionMaterials: ProjectionMaterial[];
+    institutionalEvents: InstitutionalEvent[];
 
     addSchool: (school: School) => Promise<void>;
     updateSchool: (school: School) => Promise<void>;
@@ -41,6 +42,9 @@ export interface AcademicSlice {
     loadProjectionMaterials: () => Promise<void>;
     addProjectionMaterial: (material: Omit<ProjectionMaterial, 'id' | 'createdAt'>) => Promise<void>;
     deleteProjectionMaterial: (id: string, ownerId: string) => Promise<void>;
+    loadInstitutionalEvents: () => Promise<void>;
+    addInstitutionalEvent: (event: Omit<InstitutionalEvent, 'createdAt'>) => Promise<void>;
+    deleteInstitutionalEvent: (id: string) => Promise<void>;
 }
 
 export const createAcademicSlice: StateCreator<AppStore, [], [], AcademicSlice> = (set, get) => ({
@@ -54,6 +58,7 @@ export const createAcademicSlice: StateCreator<AppStore, [], [], AcademicSlice> 
     userProfiles: [],
     selectedUserIds: [],
     projectionMaterials: [],
+    institutionalEvents: [],
 
     addSchool: async (school) => set((state) => ({ schools: [...state.schools, school] })),
     updateSchool: async (school) => set((state) => ({
@@ -202,5 +207,29 @@ export const createAcademicSlice: StateCreator<AppStore, [], [], AcademicSlice> 
             get().loadProjectionMaterials(); // Revert state on error
             throw error;
         }
+    },
+
+    loadInstitutionalEvents: async () => {
+        const stored = localStorage.getItem('examepad_institutional_events');
+        if (stored) {
+            set({ institutionalEvents: JSON.parse(stored) });
+        }
+    },
+
+    addInstitutionalEvent: async (evt) => {
+        const fullEvent = { ...evt, createdAt: new Date().toISOString() } as InstitutionalEvent;
+        set(state => {
+            const newList = [...state.institutionalEvents, fullEvent];
+            localStorage.setItem('examepad_institutional_events', JSON.stringify(newList));
+            return { institutionalEvents: newList };
+        });
+    },
+
+    deleteInstitutionalEvent: async (id) => {
+        set(state => {
+            const newList = state.institutionalEvents.filter(e => e.id !== id);
+            localStorage.setItem('examepad_institutional_events', JSON.stringify(newList));
+            return { institutionalEvents: newList };
+        });
     }
 });

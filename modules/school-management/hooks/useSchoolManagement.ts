@@ -5,7 +5,7 @@ import { uuidv4 } from '../../../utils/helpers';
 import { useSafeAppStore } from '../../../store/useAppStore';
 import { MOCK_TENANT_ID } from '../../../utils/mockData';
 
-export type ManagementTab = 'SCHOOLS' | 'CLASSES' | 'STUDENTS' | 'PROFESSORES' | 'RESPONSAVEIS' | 'USERS' | 'COMMAND_CENTER' | 'SETTINGS' | 'BATCH_IMPORT' | 'HIERARCHY' | 'TENANT_SETTINGS' | 'KNOWLEDGE_VAULT';
+export type ManagementTab = 'SCHOOLS' | 'CLASSES' | 'STUDENTS' | 'PROFESSORES' | 'RESPONSAVEIS' | 'USERS' | 'COMMAND_CENTER' | 'SETTINGS' | 'BATCH_IMPORT' | 'HIERARCHY' | 'TENANT_SETTINGS' | 'KNOWLEDGE_VAULT' | 'MACRO_CALENDAR';
 
 export const useSchoolManagement = () => {
     const state = useSafeAppStore();
@@ -177,13 +177,26 @@ export const useSchoolManagement = () => {
                     resources: schoolForm.resources
                 });
             } else {
+                const newSchoolId = uuidv4();
                 onAddSchool({
-                    id: uuidv4(),
+                    id: newSchoolId,
                     tenantId: currentTenantId,
                     name: schoolForm.name,
                     inep: schoolForm.inep,
                     resources: schoolForm.resources
                 });
+
+                // NOVO: Se o usuário é Diretor/Gestor e não tem escola vinculada ainda, vincular automaticamente
+                if (isDirector && !userSchoolId && currentUser) {
+                    onUpdateUser({
+                        ...currentUser,
+                        schoolId: newSchoolId
+                    });
+                    state.setCurrentUser({
+                        ...currentUser,
+                        schoolId: newSchoolId
+                    });
+                }
             }
         } else if (activeTab === 'CLASSES') {
             if (!classForm.name || !classForm.schoolId) return alert('Campos obrigatórios');

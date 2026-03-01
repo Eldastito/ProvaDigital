@@ -59,6 +59,7 @@ export const useAppStore = create<AppStore>()((set, get, api) => ({
     globalPermissions: DEFAULT_PERMISSIONS,
     studentProfiles: USE_MOCK_DATA ? INITIAL_STUDENT_PROFILES : [],
     userProfiles: USE_MOCK_DATA ? INITIAL_USER_PROFILES : [],
+    institutionalEvents: [],
 
     // Multi-slice orchestration (Main actions)
     loadRemoteData: async () => {

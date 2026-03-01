@@ -527,7 +527,8 @@ export enum ExamStatus {
   DRAFT = 'DRAFT',
   ACTIVE = 'ACTIVE',
   COMPLETED = 'COMPLETED',
-  PUBLISHED = 'PUBLISHED'
+  PUBLISHED = 'PUBLISHED',
+  PENDING_RESCHEDULE = 'PENDING_RESCHEDULE'
 }
 
 // Phase 10: Print Configuration
@@ -1550,5 +1551,31 @@ export interface NeuroReportDelivery {
   disclaimerAccepted: boolean;
   signatureUrl?: string; // Optativo: Placeholder para assinatura digital
 }
+
+// --- INSTITUTIONAL EVENTS (MACRO CALENDAR) ---
+export enum InstitutionalEventType {
+  HOLIDAY = 'FERIADO',
+  OPTIONAL_HOLIDAY = 'FERIADO_PONTO_FACULTATIVO',
+  RECESS = 'RECESSO',
+  SIMULATION = 'SIMULADO',
+  MEETING = 'REUNIAO_PEDAGOGICA',
+  OTHER = 'OUTRO'
+}
+
+export interface InstitutionalEvent {
+  id: string;
+  tenantId: string;
+  schoolId: string;
+  title: string;
+  type: InstitutionalEventType;
+  date: string;
+  endDate?: string;
+  description?: string;
+  appliesToClasses?: string[]; // IDs das turmas (vazio = escola toda)
+  blocksScheduling: boolean; // Impede marcação de provas nesta data
+  createdAt: string;
+  createdBy: string;
+}
+
 
 

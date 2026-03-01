@@ -26,6 +26,7 @@ export const translateExamStatus = (status: ExamStatus): string => {
         [ExamStatus.ACTIVE]: 'Ativa',
         [ExamStatus.COMPLETED]: 'Concluída',
         [ExamStatus.PUBLISHED]: 'Publicada',
+        [ExamStatus.PENDING_RESCHEDULE]: 'Pendente Reagendamento',
     };
     return map[status] || status;
 };

@@ -57,6 +57,8 @@ export const ProfessorDashboardView = () => {
 
     // My Exams (Active/Recent)
     const myExams = state.exams.filter(e => e.creatorId === currentUser?.id || (e.classIds?.some(c => currentUser?.classIds?.includes(c))));
+    const activeExams = myExams.filter(e => e.status !== ExamStatus.PENDING_RESCHEDULE);
+    const cancelledExams = myExams.filter(e => e.status === ExamStatus.PENDING_RESCHEDULE);
 
     const selectedClass = state.classes.find(c => c.id === selectedClassId);
     const classStudents = state.students.filter(s => s.classId === selectedClassId);
@@ -129,6 +131,34 @@ export const ProfessorDashboardView = () => {
                 </div>
             </div>
 
+            {/* CANCELLED EXAMS ALERT (Ponto Facultativo) */}
+            {isProfessor && cancelledExams.length > 0 && (
+                <div className="bg-rose-50 border-2 border-rose-400 rounded-xl p-6 shadow-md mb-8 relative overflow-hidden">
+                    <ShieldAlert size={100} className="absolute -right-4 -bottom-4 opacity-10 text-rose-500" />
+                    <div className="relative z-10">
+                        <h3 className="text-rose-800 font-bold text-lg flex items-center gap-2 mb-2">
+                            <AlertCircle size={24} /> Atenção: Avaliações Invalidadas pelo Calendário
+                        </h3>
+                        <p className="text-rose-700 mb-4 max-w-3xl">
+                            A Gestão da Escola cadastrou um evento institucional (Feriado, Ponto Facultativo, etc) que conflita com as seguintes provas. Elas precisam ser <strong>reagendadas obrigatoriamente</strong> para manterem a validação na plataforma.
+                        </p>
+                        <div className="space-y-3">
+                            {cancelledExams.map(exam => (
+                                <div key={exam.id} className="bg-white/80 border border-rose-200 rounded-lg p-3 flex justify-between items-center">
+                                    <div>
+                                        <div className="font-bold text-rose-900">{exam.title}</div>
+                                        <div className="text-xs text-rose-600 font-medium">Data original cancelada devido a calendário macro e logística.</div>
+                                    </div>
+                                    <button onClick={() => navigate('/exams')} className="text-xs font-bold text-white bg-rose-600 px-4 py-2 rounded-lg shadow hover:bg-rose-700 transition">
+                                        Reagendar Agora
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* OPERATIONAL SECTION: My Exams */}
             {isProfessor && (
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-8">
@@ -137,7 +167,7 @@ export const ProfessorDashboardView = () => {
                         <button onClick={() => navigate('/exams/new')} className="text-xs text-brand-primary font-bold hover:underline">+ Nova Prova</button>
                     </div>
                     <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {myExams.slice(0, 3).map(exam => (
+                        {activeExams.slice(0, 3).map(exam => (
                             <div key={exam.id} className="p-4 border rounded-lg hover:border-brand-primary transition group bg-white shadow-sm">
                                 <div className="flex justify-between mb-2">
                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${exam.status === ExamStatus.PUBLISHED ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{translateExamStatus(exam.status)}</span>
@@ -155,7 +185,7 @@ export const ProfessorDashboardView = () => {
                                 </div>
                             </div>
                         ))}
-                        {myExams.length === 0 && <div className="col-span-3 text-center text-slate-400 py-4 text-sm">Você não tem provas recentes. Clique em "Nova Prova".</div>}
+                        {activeExams.length === 0 && <div className="col-span-3 text-center text-slate-400 py-4 text-sm">Você não tem provas ativas recentes. Clique em "Nova Prova".</div>}
                     </div>
                 </div>
             )}

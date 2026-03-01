@@ -154,6 +154,20 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
             return;
         }
 
+        // --- VALIDAÇÃO DO CALENDÁRIO MACRO (GESTOR) ---
+        const userSchoolId = store.currentUser?.schoolId;
+        if (userSchoolId && store.institutionalEvents) {
+            const dateStr = scheduledDate; // Ex: 2024-11-20
+            const blockedEvent = store.institutionalEvents.find(
+                e => e.schoolId === userSchoolId && e.date === dateStr && e.blocksScheduling
+            );
+
+            if (blockedEvent) {
+                alert(`Data Bloqueada pela Gestão da Escola: ${blockedEvent.title}. Não é possível agendar avaliações para este dia.`);
+                return;
+            }
+        }
+
         try {
             // Buscar título da prova se não for pendente
             let finalExamTitle = '';

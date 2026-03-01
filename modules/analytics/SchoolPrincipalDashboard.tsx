@@ -5,6 +5,7 @@ import { RiskLevel, TenantType } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
 import { reportingService } from '../../services/reportingService';
 import { GlobalRankingView } from './GlobalRankingView';
+import { PedagogicalTrackingView } from './PedagogicalTrackingView';
 import { useAppStore } from '../../store/useAppStore';
 import { Download } from 'lucide-react';
 
@@ -14,7 +15,7 @@ export const SchoolPrincipalDashboard = () => {
     const analytics = new AnalyticsService();
     const schoolId = currentUser?.schoolId;
     const school = state.schools.find(s => s.id === schoolId);
-    const [tab, setTab] = useState<'PERFORMANCE' | 'INFRASTRUCTURE'>('PERFORMANCE');
+    const [tab, setTab] = useState<'PERFORMANCE' | 'INFRASTRUCTURE' | 'TRACKING'>('PERFORMANCE');
     const [showRanking, setShowRanking] = useState(false);
     const [benchmarking, setBenchmarking] = useState<any>(null);
     const [retentionData, setRetentionData] = useState<any>(null);
@@ -151,11 +152,14 @@ export const SchoolPrincipalDashboard = () => {
             </div>
 
             {/* Tab Switcher */}
-            <div className="flex gap-6 border-b border-slate-200 print:hidden">
-                <button onClick={() => setTab('PERFORMANCE')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 ${tab === 'PERFORMANCE' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
+            <div className="flex gap-6 border-b border-slate-200 print:hidden overflow-x-auto">
+                <button onClick={() => setTab('PERFORMANCE')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${tab === 'PERFORMANCE' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
                     <BarChart2 size={18} /> Gestão de Desempenho & Integridade
                 </button>
-                <button onClick={() => setTab('INFRASTRUCTURE')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 ${tab === 'INFRASTRUCTURE' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
+                <button onClick={() => setTab('TRACKING')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${tab === 'TRACKING' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
+                    <ClipboardList size={18} /> Acompanhamento Pedagógico (Logística)
+                </button>
+                <button onClick={() => setTab('INFRASTRUCTURE')} className={`pb-3 text-sm font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${tab === 'INFRASTRUCTURE' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
                     <LayoutGrid size={18} /> Infraestrutura & Recursos
                 </button>
             </div>
@@ -488,6 +492,10 @@ export const SchoolPrincipalDashboard = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {tab === 'TRACKING' && (
+                <PedagogicalTrackingView />
             )}
 
             {/* ... Infrastructure Tab (UNCHANGED, kept for context in real file, omitted for brevity) ... */}
