@@ -211,7 +211,7 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
             }
 
             const scheduleData = {
-                examId: selectedExamId, // Pode ser PENDING
+                examId: selectedExamId === 'PENDING' ? null : selectedExamId, // Pode ser null
                 examTitle: finalExamTitle,
                 classIds: selectedClassIds,
                 scheduledFor,

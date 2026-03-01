@@ -1117,7 +1117,7 @@ export async function generateDocEmbedding(text: string): Promise<number[] | nul
 
         // Chamada oficial da nova SDK do GoogleGenAI
         const response = await ai.models.embedContent({
-            model: 'text-embedding-004',
+            model: 'embedding-001',
             contents: text,
         });
 

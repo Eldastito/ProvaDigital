@@ -10,7 +10,7 @@ import { supabase } from './supabaseClient';
 // Tipos
 export interface ScheduledExam {
     id: string;
-    examId: string;
+    examId: string | null;
     examTitle: string;
     classIds: string[];
     scheduledFor: Date;
