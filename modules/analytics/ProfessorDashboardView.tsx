@@ -42,6 +42,7 @@ export const ProfessorDashboardView = () => {
     const analytics = new AnalyticsService(state);
     const isProfessor = currentUser?.role === UserRole.PROFESSOR;
     const [selectedClassId, setSelectedClassId] = useState<string>('');
+    const [selectedSubject, setSelectedSubject] = useState<string>('ALL');
     const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
     const [showIntegrityFilter, setShowIntegrityFilter] = useState(false);
 
@@ -57,17 +58,30 @@ export const ProfessorDashboardView = () => {
 
     // My Exams (Active/Recent)
     const myExams = state.exams.filter(e => e.creatorId === currentUser?.id || (e.classIds?.some(c => currentUser?.classIds?.includes(c))));
-    const activeExams = myExams.filter(e => e.status !== ExamStatus.PENDING_RESCHEDULE);
-    const cancelledExams = myExams.filter(e => e.status === ExamStatus.PENDING_RESCHEDULE);
+    const filteredExams = selectedSubject === 'ALL' ? myExams : myExams.filter(e => e.subject === selectedSubject);
+    const activeExams = filteredExams.filter(e => e.status !== ExamStatus.PENDING_RESCHEDULE);
+    const cancelledExams = filteredExams.filter(e => e.status === ExamStatus.PENDING_RESCHEDULE);
+
+    // Item Bank Stats Setup
+    const myItems = state.items.filter(i => i.ownerId === currentUser?.id || i.tenantId === currentUser?.tenantId);
+    const filteredItems = selectedSubject === 'ALL' ? myItems : myItems.filter(i => i.subject === selectedSubject || i.knowledgeArea === selectedSubject);
+    const aiGeneratedItems = filteredItems.filter(i => i.metadata?.generatedBy === 'ai');
+    const aiItemsPercentage = filteredItems.length > 0 ? Math.round((aiGeneratedItems.length / filteredItems.length) * 100) : 0;
 
     const selectedClass = state.classes.find(c => c.id === selectedClassId);
     const classStudents = state.students.filter(s => s.classId === selectedClassId);
 
     // Process Stats for Class (Include Cheating Flags from Last Exam)
     const studentStats = classStudents.map(s => {
-        const results = state.results
-            .filter(r => r.studentId === s.id)
-            .sort((a, b) => new Date(b.gradedAt).getTime() - new Date(a.gradedAt).getTime());
+        let results = state.results.filter(r => r.studentId === s.id);
+
+        // Filter student results by the selected subject's exams
+        if (selectedSubject !== 'ALL') {
+            const subjectExamIds = state.exams.filter(e => e.subject === selectedSubject).map(e => e.id);
+            results = results.filter(r => subjectExamIds.includes(r.examId));
+        }
+
+        results = results.sort((a, b) => new Date(b.gradedAt).getTime() - new Date(a.gradedAt).getTime());
 
         const totalViolations = results.reduce((acc, r) => acc + (r.violationCount || 0), 0);
         // Use the most recent exam for detailed flags
@@ -118,7 +132,12 @@ export const ProfessorDashboardView = () => {
             {/* Top Header & Actions */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-brand-dark">Painel do Professor</h1>
+                    <h1 className="text-2xl font-bold text-brand-dark flex items-center gap-3">
+                        Painel do Professor
+                        {isProfessor && currentUser.subjectIds && currentUser.subjectIds.map(sub => (
+                            <span key={sub} className="bg-brand-primary/10 text-brand-primary text-xs px-2 py-1 rounded-full font-bold">{sub}</span>
+                        ))}
+                    </h1>
                     <p className="text-slate-500 mt-1">Gestão de turmas, provas e acompanhamento individualizado.</p>
                 </div>
                 <div className="flex gap-3">
@@ -130,6 +149,44 @@ export const ProfessorDashboardView = () => {
                     </button>
                 </div>
             </div>
+
+            {/* Subject Filter & KPI Cards */}
+            {isProfessor && (
+                <div className="flex flex-col md:flex-row gap-6 mb-8 mt-6">
+                    {/* Filtro por Disciplina */}
+                    {currentUser?.subjectIds && currentUser.subjectIds.length > 0 && (
+                        <div className="flex flex-col gap-2 min-w-[250px]">
+                            <span className="text-sm font-bold text-slate-500">Filtrar por Disciplina:</span>
+                            <select
+                                value={selectedSubject}
+                                onChange={(e) => setSelectedSubject(e.target.value)}
+                                className="border border-slate-300 rounded-lg px-4 py-3 bg-white shadow-sm font-medium text-slate-700 focus:ring-2 focus:ring-brand-primary/20 outline-none"
+                            >
+                                <option value="ALL">Todas as Disciplinas</option>
+                                {currentUser.subjectIds.map(sub => (
+                                    <option key={sub} value={sub}>{sub}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
+                    {/* KPI Card: Banco de Itens */}
+                    <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex-1 flex flex-col justify-between">
+                        <div className="flex justify-between items-start mb-4">
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Banco de Itens Ativo</span>
+                            <div className="text-purple-600"><BookOpen size={24} /></div>
+                        </div>
+                        <div>
+                            <div className="text-4xl font-black text-slate-800 mb-1">{filteredItems.length}</div>
+                            <div className="text-sm font-bold text-purple-600">
+                                {aiGeneratedItems.length} gerados por IA ({aiItemsPercentage}%)
+                            </div>
+                        </div>
+                    </div>
+                    {/* Espaço flex para manter o layout não tão esticado caso haja apenas 1 card ao lado */}
+                    <div className="flex-1 hidden md:block"></div>
+                </div>
+            )}
 
             {/* CANCELLED EXAMS ALERT (Ponto Facultativo) */}
             {isProfessor && cancelledExams.length > 0 && (

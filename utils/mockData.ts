@@ -44,7 +44,7 @@ export const INITIAL_STUDENTS: Student[] = [
 
 // --- 5. USERS ---
 export const INITIAL_USERS: User[] = [
-  { id: MOCK_USER_ID, name: 'Ana Silva', email: 'ana.prof@escola.com', role: UserRole.PROFESSOR, tenantId: MOCK_TENANT_ID, schoolId: MOCK_SCHOOL_ID, classIds: [MOCK_CLASS_ID] },
+  { id: MOCK_USER_ID, name: 'Ana Silva', email: 'ana.prof@escola.com', role: UserRole.PROFESSOR, tenantId: MOCK_TENANT_ID, schoolId: MOCK_SCHOOL_ID, classIds: [MOCK_CLASS_ID], subjectIds: ['Ciências da Natureza', 'Biologia'] },
   { id: 'b7d1e8a9-c2b3-4f5g-6h7i-8j9k0l1m2n3p', name: 'Super Admin', email: 'root@examepad.com', role: UserRole.SUPER_ADMIN, tenantId: MOCK_TENANT_ID },
   { id: MOCK_STUDENT_ID, name: 'João Pedro', email: 'joao.aluno@escola.com', role: UserRole.ALUNO, tenantId: MOCK_TENANT_ID, schoolId: MOCK_SCHOOL_ID, classIds: [MOCK_CLASS_ID], registrationNumber: 'MUN-001' }
 ];

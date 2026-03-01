@@ -4,7 +4,7 @@ import { UserRole, ExamStatus } from '../../types';
 import { Clock, CheckCircle2, AlertCircle, AlertTriangle, Calendar, Search, Filter } from 'lucide-react';
 import { isAfter, parseISO, differenceInDays } from 'date-fns';
 
-export const PedagogicalTrackingView = () => {
+export const PedagogicalTrackingView = ({ selectedSubject = 'ALL' }: { selectedSubject?: string }) => {
     const state = useAppStore();
     const { currentUser, users, exams, classes } = state;
     const schoolId = currentUser?.schoolId;
@@ -13,12 +13,19 @@ export const PedagogicalTrackingView = () => {
     const professorStats = useMemo(() => {
         if (!schoolId) return [];
 
-        const schoolTeachers = users.filter(u => u.schoolId === schoolId && u.role === UserRole.PROFESSOR);
+        let schoolTeachers = users.filter(u => u.schoolId === schoolId && u.role === UserRole.PROFESSOR);
+        if (selectedSubject !== 'ALL') {
+            schoolTeachers = schoolTeachers.filter(t => t.subjectIds?.includes(selectedSubject));
+        }
+
         const schoolClasses = classes.filter(c => c.schoolId === schoolId);
 
         return schoolTeachers.map(teacher => {
             // Pegar todas as provas (DRAFT, SCHEDULED, ACTIVE, etc) criadas por este professor
-            const teacherExams = exams.filter(e => e.creatorId === teacher.id && e.schoolId === schoolId);
+            let teacherExams = exams.filter(e => e.creatorId === teacher.id && e.schoolId === schoolId);
+            if (selectedSubject !== 'ALL') {
+                teacherExams = teacherExams.filter(e => e.subject === selectedSubject);
+            }
 
             let pendingCount = 0;
             let criticalCount = 0; // Atrasados / Perdeu o prazo (menos de 7 dias)
@@ -54,7 +61,7 @@ export const PedagogicalTrackingView = () => {
                 exams: teacherExams,
             };
         }).sort((a, b) => b.criticalCount - a.criticalCount || b.pendingCount - a.pendingCount);
-    }, [schoolId, users, exams, classes]);
+    }, [schoolId, users, exams, classes, selectedSubject]);
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">

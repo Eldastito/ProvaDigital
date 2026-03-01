@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Users, TrendingUp, AlertTriangle, Calendar, Printer, School, GraduationCap, ClipboardList, ArrowDownRight, ArrowUpRight, Package, Check, X, Bus, Shield, Snowflake, Award, BarChart2, LayoutGrid, Edit, Trophy, Target, Activity, ShieldAlert, Zap, Globe } from 'lucide-react';
+import { Users, TrendingUp, AlertTriangle, Calendar, Printer, School, GraduationCap, ClipboardList, ArrowDownRight, ArrowUpRight, Package, Check, X, Bus, Shield, Snowflake, Award, BarChart2, LayoutGrid, Edit, Trophy, Target, Activity, ShieldAlert, Zap, Globe, BookOpen } from 'lucide-react';
 import { RiskLevel, TenantType } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
 import { reportingService } from '../../services/reportingService';
@@ -16,6 +16,7 @@ export const SchoolPrincipalDashboard = () => {
     const schoolId = currentUser?.schoolId;
     const school = state.schools.find(s => s.id === schoolId);
     const [tab, setTab] = useState<'PERFORMANCE' | 'INFRASTRUCTURE' | 'TRACKING'>('PERFORMANCE');
+    const [selectedSubject, setSelectedSubject] = useState<string>('ALL');
     const [showRanking, setShowRanking] = useState(false);
     const [benchmarking, setBenchmarking] = useState<any>(null);
     const [retentionData, setRetentionData] = useState<any>(null);
@@ -36,6 +37,14 @@ export const SchoolPrincipalDashboard = () => {
     const schoolStudents = state.students.filter(s => s.schoolId === schoolId);
     const schoolClasses = state.classes.filter(c => c.schoolId === schoolId);
     const schoolTeachers = state.users.filter(u => u.schoolId === schoolId && u.role === 'PROFESSOR');
+
+    // Filtros e Banco de Itens
+    const availableSubjects = Array.from(new Set(schoolTeachers.flatMap(t => t.subjectIds || []))).sort();
+
+    const schoolItems = state.items.filter(i => i.schoolId === schoolId || (i.tenantId === school?.tenantId));
+    const filteredItems = selectedSubject === 'ALL' ? schoolItems : schoolItems.filter(i => i.subject === selectedSubject || i.knowledgeArea === selectedSubject);
+    const aiGeneratedItems = filteredItems.filter(i => i.metadata?.generatedBy === 'ai');
+    const aiItemsPercentage = filteredItems.length > 0 ? Math.round((aiGeneratedItems.length / filteredItems.length) * 100) : 0;
 
     // Cálculos de Métricas
     const studentsStats = schoolStudents.map(s => analytics.getStudentStats(s.id)).filter(Boolean) as any[];
@@ -163,6 +172,40 @@ export const SchoolPrincipalDashboard = () => {
                     <LayoutGrid size={18} /> Infraestrutura & Recursos
                 </button>
             </div>
+
+            {/* Filtro Global e KPI Banco de Itens (Aparece em Performance e Tracking) */}
+            {(tab === 'PERFORMANCE' || tab === 'TRACKING') && (
+                <div className="flex flex-col md:flex-row gap-6 mb-8 mt-6 print:hidden">
+                    <div className="flex flex-col gap-2 min-w-[250px]">
+                        <span className="text-sm font-bold text-slate-500">Filtro Global por Disciplina:</span>
+                        <select
+                            value={selectedSubject}
+                            onChange={(e) => setSelectedSubject(e.target.value)}
+                            className="border border-slate-300 rounded-lg px-4 py-3 bg-white shadow-sm font-medium text-slate-700 focus:ring-2 focus:ring-brand-primary/20 outline-none"
+                        >
+                            <option value="ALL">Todas as Disciplinas (Escola Inteira)</option>
+                            {availableSubjects.map(sub => (
+                                <option key={sub} value={sub}>{sub}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* KPI Card: Banco de Itens da Escola */}
+                    <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex-1 flex flex-col justify-between">
+                        <div className="flex justify-between items-start mb-4">
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Banco de Itens Institucional</span>
+                            <div className="text-brand-secondary"><BookOpen size={24} /></div>
+                        </div>
+                        <div>
+                            <div className="text-4xl font-black text-slate-800 mb-1">{filteredItems.length}</div>
+                            <div className="text-sm font-bold text-brand-secondary">
+                                {aiGeneratedItems.length} gerados por IA ({aiItemsPercentage}%)
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex-1 hidden md:block"></div>
+                </div>
+            )}
 
             {tab === 'PERFORMANCE' && (
                 <div className="animate-in fade-in slide-in-from-bottom-2 space-y-8">
@@ -495,7 +538,7 @@ export const SchoolPrincipalDashboard = () => {
             )}
 
             {tab === 'TRACKING' && (
-                <PedagogicalTrackingView />
+                <PedagogicalTrackingView selectedSubject={selectedSubject} />
             )}
 
             {/* ... Infrastructure Tab (UNCHANGED, kept for context in real file, omitted for brevity) ... */}
