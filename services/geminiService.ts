@@ -1115,14 +1115,28 @@ export async function generateDocEmbedding(text: string): Promise<number[] | nul
 
         const ai = new GoogleGenAI({ apiKey });
 
-        // Chamada oficial da nova SDK do GoogleGenAI
-        const response = await ai.models.embedContent({
-            model: 'embedding-001',
-            contents: text,
-        });
+        // Lista de modelos para tentar (fallback caso o 004 não esteja disponível na região/versão)
+        const modelsToTry = ['text-embedding-004', 'text-embedding-001', 'embedding-001'];
+        let lastError = null;
 
-        // Retorna o array de números de 768 dimensões
-        return response.embeddings?.[0]?.values || null;
+        for (const modelName of modelsToTry) {
+            try {
+                const response = await ai.models.embedContent({
+                    model: modelName,
+                    contents: text,
+                });
+
+                if (response.embeddings?.[0]?.values) {
+                    console.log(`✅ Embedding gerado com sucesso usando o modelo: ${modelName}`);
+                    return response.embeddings[0].values;
+                }
+            } catch (err) {
+                console.warn(`⚠️ Falha ao usar modelo ${modelName}:`, err);
+                lastError = err;
+            }
+        }
+
+        throw lastError || new Error("Nenhum modelo de embedding disponível funcionou.");
     } catch (error) {
         console.error("Erro ao gerar embedding RAG:", error);
         return null;
