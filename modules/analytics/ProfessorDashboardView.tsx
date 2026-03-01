@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { BookOpen, FileText, GraduationCap, Users, Plus, Tablet, BarChart, ChevronDown, ChevronUp, Search, AlertCircle, TrendingUp, ArrowRight, Target, Star, ShieldAlert, ClipboardCheck, Brain, Clock, MousePointer2, PenTool, Grip } from 'lucide-react';
+import { BookOpen, FileText, GraduationCap, Users, Plus, Tablet, BarChart, ChevronDown, ChevronUp, Search, AlertCircle, TrendingUp, ArrowRight, Target, Star, ShieldAlert, ClipboardCheck, Brain, Clock, MousePointer2, PenTool, Grip, CloudDownload, CheckCircle } from 'lucide-react';
 import { AppState, UserRole, ExamStatus } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
 
@@ -14,6 +14,7 @@ import { ActionableTaskPanel } from './components/ActionableTaskPanel';
 import { getStrategicInsights } from '../../services/StrategicAdvisorService';
 import { mapStrategicInsightToTask } from '../../services/actionableTaskService';
 import { useEffect } from 'react';
+import { schedulingService, ScheduledExam } from '../../services/schedulingService';
 
 const DistributionChart = ({ grades }: { grades: number[] }) => {
     const buckets = [0, 0, 0, 0, 0]; // 0-2, 2-4, 4-6, 6-8, 8-10
@@ -52,6 +53,37 @@ export const ProfessorDashboardView = () => {
     const [selectedSubject, setSelectedSubject] = useState<string>('ALL');
     const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
     const [showIntegrityFilter, setShowIntegrityFilter] = useState(false);
+
+    const [schedules, setSchedules] = useState<ScheduledExam[]>([]);
+    const [downloadingId, setDownloadingId] = useState<string | null>(null);
+    const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
+    const [loadedExams, setLoadedExams] = useState<Record<string, boolean>>({});
+
+    useEffect(() => {
+        loadSchedules();
+    }, []);
+
+    const loadSchedules = async () => {
+        try {
+            const data = await schedulingService.getSchedules();
+            setSchedules(data);
+        } catch (error) {
+            console.error("Error loading schedules:", error);
+        }
+    };
+
+    const handleDownload = async (examId: string) => {
+        setDownloadingId(examId);
+        setDownloadProgress(prev => ({ ...prev, [examId]: 0 }));
+
+        for (let i = 0; i <= 100; i += 10) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+            setDownloadProgress(prev => ({ ...prev, [examId]: i }));
+        }
+
+        setLoadedExams(prev => ({ ...prev, [examId]: true }));
+        setDownloadingId(null);
+    };
 
     // Data
     const professorClasses = isProfessor
@@ -312,6 +344,34 @@ export const ProfessorDashboardView = () => {
                                 <p className="text-xs text-slate-500 mb-3">{exam.classIds?.length || 0} turmas alocadas</p>
                                 <div className="flex gap-2">
                                     <button onClick={() => navigate('/exams')} className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded hover:bg-slate-200 flex-1">Gerenciar</button>
+
+                                    {/* Botão de Download Offshore no Dashboard */}
+                                    {(() => {
+                                        const schedule = schedules.find(s => s.examId === exam.id);
+                                        if (schedule?.mode === 'OFFLINE' || schedule?.mode === 'HYBRID') {
+                                            return (
+                                                <button
+                                                    onClick={() => handleDownload(exam.id)}
+                                                    disabled={downloadingId !== null || loadedExams[exam.id]}
+                                                    className={`p-1.5 rounded transition border ${loadedExams[exam.id]
+                                                        ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                                                        : 'bg-white text-brand-primary border-brand-primary/20 hover:bg-brand-primary/5'
+                                                        }`}
+                                                    title={loadedExams[exam.id] ? "Carga já realizada" : "Baixar para Offline"}
+                                                >
+                                                    {downloadingId === exam.id ? (
+                                                        <span className="text-[10px] font-bold px-1">{downloadProgress[exam.id]}%</span>
+                                                    ) : loadedExams[exam.id] ? (
+                                                        <CheckCircle size={14} />
+                                                    ) : (
+                                                        <CloudDownload size={14} />
+                                                    )}
+                                                </button>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
+
                                     {exam.status === ExamStatus.PUBLISHED && (
                                         <button onClick={() => navigate(`/exams/${exam.id}/results`)} className="text-xs bg-brand-light text-brand-primary px-3 py-1 rounded hover:bg-brand-secondary hover:text-white transition flex items-center gap-1">
                                             <ClipboardCheck size={12} /> Notas

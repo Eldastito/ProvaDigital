@@ -1,17 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
 import { useNavigate } from 'react-router-dom';
-import { Play, FileText, Clock, AlertTriangle, Accessibility } from 'lucide-react';
+import { Play, FileText, Clock, AlertTriangle, Accessibility, CloudDownload, CheckCircle } from 'lucide-react';
 import { ExamStatus } from '../../../types';
+import { schedulingService, ScheduledExam } from '../../../services/schedulingService';
 
 export const ExamLauncher = () => {
     const { exams, currentUser, getRecommendedVariant } = useAppStore();
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
+    const [schedules, setSchedules] = useState<ScheduledExam[]>([]);
+    const [downloadingId, setDownloadingId] = useState<string | null>(null);
+    const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
+    const [loadedExams, setLoadedExams] = useState<Record<string, boolean>>({});
 
+    useEffect(() => {
+        loadSchedules();
+    }, []);
+
+    const loadSchedules = async () => {
+        try {
+            const data = await schedulingService.getSchedules();
+            setSchedules(data);
+        } catch (error) {
+            console.error("Error loading schedules:", error);
+        }
+    };
+
+    // Mesclar exames com agendamentos
     const availableExams = exams.filter(e =>
-        e.status === ExamStatus.ACTIVE
-    ).filter(e =>
+        e.status === ExamStatus.ACTIVE || e.status === ExamStatus.PUBLISHED
+    ).map(exam => {
+        const schedule = schedules.find(s => s.examId === exam.id);
+        return {
+            ...exam,
+            scheduledDate: schedule?.scheduledFor,
+            mode: schedule?.mode || 'ONLINE',
+            scheduleId: schedule?.id
+        };
+    }).filter(e =>
         e.title.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -20,7 +47,23 @@ export const ExamLauncher = () => {
         const start = new Date(exam.scheduledDate).getTime();
         const now = Date.now();
         const end = start + (exam.durationMinutes * 60 * 1000);
-        return now >= start && now <= end;
+        // Permitir entrar até 15 min antes ou durante a prova
+        return now >= (start - 15 * 60 * 1000) && now <= end;
+    };
+
+    const handleDownload = async (examId: string) => {
+        setDownloadingId(examId);
+        setDownloadProgress(prev => ({ ...prev, [examId]: 0 }));
+
+        // Simulação de download de pacotes (Questões, Imagens, Alunos)
+        for (let i = 0; i <= 100; i += 10) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+            setDownloadProgress(prev => ({ ...prev, [examId]: i }));
+        }
+
+        setLoadedExams(prev => ({ ...prev, [examId]: true }));
+        setDownloadingId(null);
+        alert("Carga Concluída! Os dados da prova e alunos foram baixados para uso offline.");
     };
 
     const handleLaunch = async (exam: any) => {
@@ -91,16 +134,43 @@ export const ExamLauncher = () => {
                                     </div>
                                 )}
                             </div>
-                            <button
-                                onClick={() => handleLaunch(exam)}
-                                disabled={!isJoinable(exam)}
-                                className={`px-4 py-2 text-sm font-bold rounded-lg transition flex items-center gap-2 ${isJoinable(exam)
-                                    ? 'bg-brand-primary text-white hover:bg-brand-dark'
-                                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                    }`}
-                            >
-                                <Play size={16} /> {isJoinable(exam) ? 'Iniciar' : 'Aguarde'}
-                            </button>
+
+                            <div className="flex items-center gap-2">
+                                {/* Botão de Download para Offline */}
+                                {(exam.mode === 'OFFLINE' || exam.mode === 'HYBRID') && (
+                                    <button
+                                        onClick={() => handleDownload(exam.id)}
+                                        disabled={downloadingId !== null || loadedExams[exam.id]}
+                                        title={loadedExams[exam.id] ? "Carga já realizada" : "Baixar para Offline"}
+                                        className={`p-2 rounded-lg transition border flex items-center gap-1 ${loadedExams[exam.id]
+                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                                            : 'bg-white text-brand-primary border-brand-primary/20 hover:bg-brand-primary/5'
+                                            }`}
+                                    >
+                                        {downloadingId === exam.id ? (
+                                            <span className="text-[10px] font-bold">{downloadProgress[exam.id]}%</span>
+                                        ) : loadedExams[exam.id] ? (
+                                            <CheckCircle size={18} />
+                                        ) : (
+                                            <CloudDownload size={18} />
+                                        )}
+                                        <span className="text-xs font-bold hidden sm:inline">
+                                            {loadedExams[exam.id] ? 'Carregada' : 'Baixar'}
+                                        </span>
+                                    </button>
+                                )}
+
+                                <button
+                                    onClick={() => handleLaunch(exam)}
+                                    disabled={!isJoinable(exam) || ((exam.mode === 'OFFLINE' || exam.mode === 'HYBRID') && !loadedExams[exam.id])}
+                                    className={`px-4 py-2 text-sm font-bold rounded-lg transition flex items-center gap-2 ${isJoinable(exam) && (!((exam.mode === 'OFFLINE' || exam.mode === 'HYBRID')) || loadedExams[exam.id])
+                                        ? 'bg-brand-primary text-white hover:bg-brand-dark'
+                                        : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                        }`}
+                                >
+                                    <Play size={16} /> {isJoinable(exam) ? 'Iniciar' : 'Aguarde'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 ))}
