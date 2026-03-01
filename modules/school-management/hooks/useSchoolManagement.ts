@@ -43,9 +43,23 @@ export const useSchoolManagement = () => {
     const currentTenantId = currentUser?.tenantId || MOCK_TENANT_ID;
 
     // --- DATA FILTERING (ISOLATION) ---
-    // --- DATA FILTERING (ISOLATION) ---
-    const visibleSchools = isTenantAdmin ? state.schools : state.schools.filter(s => s.id === userSchoolId);
-    const visibleClasses = isTenantAdmin ? state.classes : state.classes.filter(c => c.schoolId === userSchoolId);
+    const visibleSchools = isTenantAdmin
+        ? state.schools
+        : state.schools.filter(s => s.id === userSchoolId || (!userSchoolId && s.tenantId === currentTenantId));
+
+    useEffect(() => {
+        console.log("🔍 School Management Data Debug:", {
+            role: currentUser?.role,
+            userSchoolId,
+            currentTenantId,
+            totalSchools: state.schools.length,
+            visibleSchoolsCount: visibleSchools.length,
+            isTenantAdmin,
+            isDirector
+        });
+    }, [currentUser, userSchoolId, currentTenantId, state.schools.length, visibleSchools.length]);
+
+    const visibleClasses = isTenantAdmin ? state.classes : state.classes.filter(c => c.schoolId === userSchoolId || (!userSchoolId && visibleSchools.some(s => s.id === c.schoolId)));
 
     // SSOT: Derive students and users by role from the central users collection
     const visibleUsers = (isTenantAdmin ? state.users : state.users.filter(u => u.schoolId === userSchoolId))

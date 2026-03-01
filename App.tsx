@@ -77,6 +77,8 @@ export default function App() {
             role: data.role,
             tenantId: data.tenant_id,
             schoolId: data.school_id,
+            classIds: data.class_ids || [],
+            subjectIds: data.subject_ids || [],
             childrenIds: data.children_ids || [],
             status: data.status
           };

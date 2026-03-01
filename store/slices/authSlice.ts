@@ -56,11 +56,24 @@ export const createAuthSlice: StateCreator<AppStore, [], [], AuthSlice> = (set, 
                 .single();
 
             if (profile) {
+                const formattedProfile: User = {
+                    id: profile.id,
+                    name: profile.name,
+                    nickname: profile.nickname,
+                    email: profile.email,
+                    role: profile.role,
+                    tenantId: profile.tenant_id,
+                    schoolId: profile.school_id,
+                    classIds: profile.class_ids,
+                    status: profile.status,
+                    subjectIds: profile.subject_ids
+                };
+
                 const testProfileRole = localStorage.getItem('test_profile');
                 if (testProfileRole) {
-                    profile.role = testProfileRole;
+                    formattedProfile.role = testProfileRole as any;
                 }
-                set({ currentUser: profile as User });
+                set({ currentUser: formattedProfile });
             }
         }
     }
