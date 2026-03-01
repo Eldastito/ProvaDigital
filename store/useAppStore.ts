@@ -76,7 +76,8 @@ export const useAppStore = create<AppStore>()((set, get, api) => ({
             state.loadClasses?.(),
             state.loadStudents?.(),
             state.loadUsers?.(),
-            state.loadGenerationBatches?.()
+            state.loadGenerationBatches?.(),
+            state.loadExams?.()
         ]);
 
         console.log("✅ Dados sincronizados.");

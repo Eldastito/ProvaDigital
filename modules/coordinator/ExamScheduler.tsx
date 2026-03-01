@@ -6,7 +6,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, Plus, Edit2, Trash2, X, Save, AlertTriangle, Check, Clock, Users, Wifi, WifiOff, FileText } from 'lucide-react';
+import { Calendar, Plus, Edit2, Trash2, X, Save, AlertTriangle, Check, Clock, Users, Wifi, WifiOff, FileText, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { CalendarView } from '../../components/Calendar/CalendarView';
 import { schedulingService, ScheduledExam, Conflict } from '../../services/schedulingService';
 import { useSafeAppStore } from '../../store/useAppStore';
@@ -20,6 +21,7 @@ interface ExamSchedulerProps {
 
 export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
     const store = useSafeAppStore();
+    const navigate = useNavigate();
 
     // Estados
     const [schedules, setSchedules] = useState<ScheduledExam[]>([]);
@@ -436,11 +438,23 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                                 </div>
                             )}
 
-                            {/* Seleção de Prova */}
+                            {/* Seleção de Prova com Recomendação Inteligente */}
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                    Prova *
-                                </label>
+                                <div className="flex justify-between items-end mb-2">
+                                    <label className="block text-sm font-semibold text-slate-700">
+                                        Prova *
+                                    </label>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (onClose) onClose();
+                                            navigate('/exams/new');
+                                        }}
+                                        className="text-sm text-brand-secondary font-medium hover:text-brand-primary flex items-center gap-1 transition"
+                                    >
+                                        <Plus size={14} /> Nova Prova
+                                    </button>
+                                </div>
                                 <select
                                     value={selectedExamId}
                                     onChange={(e) => setSelectedExamId(e.target.value)}
@@ -448,12 +462,40 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                                     required
                                 >
                                     <option value="">Selecione uma prova</option>
-                                    {store.exams?.map(exam => (
-                                        <option key={exam.id} value={exam.id}>
-                                            {exam.title}
-                                        </option>
-                                    ))}
+                                    {(() => {
+                                        const mySubjects = store.currentUser?.subjectIds || [];
+                                        const recommendedExams = store.exams?.filter(e => mySubjects.includes(e.subject)) || [];
+                                        const otherExams = store.exams?.filter(e => !mySubjects.includes(e.subject)) || [];
+
+                                        return (
+                                            <>
+                                                {recommendedExams.length > 0 && (
+                                                    <optgroup label="✨ Minhas Disciplinas">
+                                                        {recommendedExams.map(exam => (
+                                                            <option key={exam.id} value={exam.id}>
+                                                                {exam.title}
+                                                            </option>
+                                                        ))}
+                                                    </optgroup>
+                                                )}
+                                                {otherExams.length > 0 && (
+                                                    <optgroup label={recommendedExams.length > 0 ? "Outras Disciplinas" : "Banco de Provas"}>
+                                                        {otherExams.map(exam => (
+                                                            <option key={exam.id} value={exam.id}>
+                                                                {exam.title} ({exam.subject})
+                                                            </option>
+                                                        ))}
+                                                    </optgroup>
+                                                )}
+                                            </>
+                                        );
+                                    })()}
                                 </select>
+                                {store.exams?.length === 0 && (
+                                    <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                                        <AlertTriangle size={12} /> Nenhuma prova existente. Crie uma nova prova primeiro!
+                                    </p>
+                                )}
                             </div>
 
                             {/* Seleção de Turmas */}

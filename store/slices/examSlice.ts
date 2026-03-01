@@ -22,6 +22,7 @@ export interface ExamSlice {
     distributeOECDExam: (examId: string) => Promise<void>;
     fetchExamItems: (examId: string) => Promise<void>;
     fetchNetworkExams: () => Promise<void>;
+    loadExams: () => Promise<void>;
     sealExam: (examId: string) => Promise<any>;
     addExamVersion: (version: ExamVersion) => Promise<void>;
     addExamVariant: (variant: ExamVariant) => Promise<void>;
@@ -94,6 +95,37 @@ export const createExamSlice: StateCreator<AppStore, [], [], ExamSlice> = (set, 
 
     fetchNetworkExams: async () => {
         // ...
+    },
+
+    loadExams: async () => {
+        console.log("Fetching Exams from Supabase...");
+        const { data, error } = await supabase.from('exams').select('*');
+        if (error) {
+            console.error("Error loading exams:", error);
+            return;
+        }
+        if (data) {
+            const parsedExams = data.map(exam => ({
+                id: exam.id,
+                title: exam.title,
+                tenantId: exam.tenant_id,
+                schoolId: exam.school_id,
+                creatorId: exam.creator_id,
+                subject: exam.subject,
+                status: exam.status,
+                items: exam.items_config || [], // Ajustado para array de {itemId, customScore} e outras props
+                classIds: exam.class_ids || [],
+                model: exam.model,
+                durationMinutes: exam.duration_minutes,
+                maxScore: exam.max_score,
+                scheduledDate: exam.scheduled_date,
+                createdAt: exam.created_at,
+                description: exam.description || '',
+                shuffleItems: exam.shuffle_items || true,
+                targetQuestionCount: exam.target_question_count || (exam.items_config ? exam.items_config.length : 0),
+            }));
+            set({ exams: parsedExams as Exam[] });
+        }
     },
 
     sealExam: async (examId) => {
