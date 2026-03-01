@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { ProtectedRoute } from '../../components/ProtectedRoute';
 
-const ProfessorDashboardView = lazy(() => import('./ProfessorDashboardView').then(m => ({ default: m.ProfessorDashboardView })));
+
 const ClassDiaryView = lazy(() => import('../class-diary/ClassDiaryView').then(m => ({ default: m.ClassDiaryView })));
 const ProfessorApp = lazy(() => import('../runner/student-app/ProfessorApp').then(m => ({ default: m.ProfessorApp })));
 const ExamScheduler = lazy(() => import('../coordinator/ExamScheduler').then(m => ({ default: m.ExamScheduler })));
