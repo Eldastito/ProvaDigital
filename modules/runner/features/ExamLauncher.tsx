@@ -27,18 +27,31 @@ export const ExamLauncher = () => {
         }
     };
 
-    // Mesclar exames com agendamentos
-    const availableExams = exams.filter(e =>
-        e.status === ExamStatus.ACTIVE || e.status === ExamStatus.PUBLISHED
-    ).map(exam => {
-        const schedule = schedules.find(s => s.examId === exam.id);
-        return {
-            ...exam,
-            scheduledDate: schedule?.scheduledFor,
-            mode: schedule?.mode || 'ONLINE',
-            scheduleId: schedule?.id
-        };
-    }).filter(e =>
+    // Mesclar exames com agendamentos, incluindo agendamentos sem prova vinculada
+    const availableExams = [
+        ...exams.filter(e => e.status === ExamStatus.ACTIVE || e.status === ExamStatus.PUBLISHED)
+            .map(exam => {
+                const schedule = schedules.find(s => s.examId === exam.id);
+                return {
+                    ...exam,
+                    scheduledDate: schedule?.scheduledFor,
+                    mode: schedule?.mode || 'ONLINE',
+                    scheduleId: schedule?.id,
+                    isProvisional: false
+                };
+            }),
+        ...schedules.filter(s => !s.examId).map(s => ({
+            id: s.id, // Usar ID do agendamento como ID da "prova" temporária
+            title: s.examTitle || 'Sem título (Agendamento)',
+            subject: 'Agendamento Direto',
+            status: ExamStatus.ACTIVE,
+            durationMinutes: s.duration || 60,
+            scheduledDate: s.scheduledFor,
+            mode: s.mode,
+            scheduleId: s.id,
+            isProvisional: true
+        }))
+    ].filter(e =>
         e.title.toLowerCase().includes(searchTerm.toLowerCase())
     );
 

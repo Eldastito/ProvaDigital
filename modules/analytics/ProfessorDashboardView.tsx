@@ -102,7 +102,21 @@ export const ProfessorDashboardView = () => {
 
     // My Exams (Active/Recent)
     const myExams = state.exams.filter(e => e.creatorId === currentUser?.id || (e.classIds?.some(c => currentUser?.classIds?.includes(c))));
-    const filteredExams = selectedSubject === 'ALL' ? myExams : myExams.filter(e => e.subject === selectedSubject);
+
+    // Incluir agendamentos provisórios (sem prova vinculada ainda)
+    const provisionalExams = schedules.filter(s => !s.examId).map(s => ({
+        id: s.id,
+        title: s.examTitle || 'Sem título (Agendamento)',
+        subject: 'Agendamento Direto',
+        status: ExamStatus.PUBLISHED,
+        createdAt: s.createdAt,
+        classIds: s.classIds,
+        creatorId: s.createdBy,
+        isProvisional: true
+    }));
+
+    const allExams = [...myExams, ...provisionalExams];
+    const filteredExams = selectedSubject === 'ALL' ? allExams : allExams.filter(e => e.subject === selectedSubject);
     const activeExams = filteredExams.filter(e => e.status !== ExamStatus.PENDING_RESCHEDULE);
     const cancelledExams = filteredExams.filter(e => e.status === ExamStatus.PENDING_RESCHEDULE);
 
