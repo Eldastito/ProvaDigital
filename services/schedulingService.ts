@@ -8,7 +8,7 @@
 import { supabase } from './supabaseClient';
 
 // Tipos
-import { ScheduledExam, ScheduleConflict as Conflict, ExamScheduleStatus, ScheduleFilters } from '../types';
+import { Exam, SchoolClass, ScheduledExam, ExamScheduleStatus, ScheduleFilters, ScheduleConflict } from '../types';
 
 /**
  * Service para gerenciar agendamentos de provas
@@ -191,9 +191,9 @@ export class SchedulingService {
         classIds: string[],
         scheduledFor: Date,
         duration: number
-    ): Promise<Conflict[]> {
+    ): Promise<ScheduleConflict[]> {
         try {
-            const conflicts: Conflict[] = [];
+            const conflicts: ScheduleConflict[] = [];
             const endTime = new Date(scheduledFor.getTime() + duration * 60000);
 
             // Buscar agendamentos existentes para as turmas
@@ -204,7 +204,7 @@ export class SchedulingService {
 
             for (const existing of existingSchedules) {
                 // Ignorar agendamentos cancelados
-                if (existing.status === 'CANCELLED') continue;
+                if (existing.status === ExamScheduleStatus.CANCELLED) continue;
 
                 // Verificar sobreposição de turmas
                 const hasClassOverlap = existing.classIds.some(id => classIds.includes(id));

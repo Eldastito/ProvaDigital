@@ -55,7 +55,7 @@ export const holidayService = {
             schoolId,
             title: h.title,
             type: h.type,
-            date: h.date,
+            startDate: h.date, // Mapeado para startDate
             blocksScheduling: true, // Por padrão, feriados bloqueiam agendamento
             createdBy: userId
         }));

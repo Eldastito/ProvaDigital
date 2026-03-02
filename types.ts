@@ -1613,7 +1613,7 @@ export interface InstitutionalEvent {
   schoolId: string;
   title: string;
   type: InstitutionalEventType;
-  date: string;
+  startDate: string; // Renomeado de 'date' para suportar ranges
   endDate?: string;
   description?: string;
   appliesToClasses?: string[]; // IDs das turmas (vazio = escola toda)

@@ -9,7 +9,8 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Plus, Edit2, Trash2, X, Save, AlertTriangle, Check, Clock, Users, Wifi, WifiOff, FileText, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarView } from '../../components/Calendar/CalendarView';
-import { schedulingService, ScheduledExam, Conflict } from '../../services/schedulingService';
+import { schedulingService } from '../../services/schedulingService';
+import { ScheduledExam, ScheduleConflict as Conflict, ExamScheduleStatus } from '../../types';
 import { useSafeAppStore } from '../../store/useAppStore';
 import { AdaptiveModeSelector } from './components/AdaptiveModeSelector';
 import { AdaptiveMode, detectDeviceCapability } from '../../services/offlineAdaptiveEngine';
@@ -185,9 +186,12 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
         const userSchoolId = store.currentUser?.schoolId;
         if (userSchoolId && store.institutionalEvents) {
             const dateStr = scheduledDate; // Ex: 2024-11-20
-            const blockedEvent = store.institutionalEvents.find(
-                e => e.schoolId === userSchoolId && e.date === dateStr && e.blocksScheduling
-            );
+            const blockedEvent = store.institutionalEvents.find(e => {
+                if (e.schoolId !== userSchoolId || !e.blocksScheduling) return false;
+                const start = e.startDate;
+                const end = e.endDate || e.startDate;
+                return dateStr >= start && dateStr <= end;
+            });
 
             if (blockedEvent) {
                 alert(`Data Bloqueada pela Gestão da Escola: ${blockedEvent.title}. Não é possível agendar avaliações para este dia.`);
@@ -224,7 +228,7 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                     allowReview,
                     adaptiveMode: selectedExamId !== 'PENDING' && store.exams?.find(e => e.id === selectedExamId)?.model === 'ADAPTADO' ? adaptiveMode : undefined
                 },
-                status: 'SCHEDULED' as const,
+                status: ExamScheduleStatus.SCHEDULED,
                 createdBy: store.currentUser?.id || 'current-user',
                 professorId: isManager && selectedProfessorId ? selectedProfessorId : store.currentUser?.id
             };
@@ -399,20 +403,26 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                         ...schedules,
                         ...(store.institutionalEvents
                             ?.filter(e => e.schoolId === store.currentUser?.schoolId)
-                            .map(evt => ({
-                                id: evt.id,
-                                examId: 'MACRO_EVENT',
-                                examTitle: evt.title + (evt.blocksScheduling ? ' (Bloqueia Provas)' : ''),
-                                classIds: [],
-                                scheduledFor: new Date(evt.date + 'T00:00:00'),
-                                duration: 1440, // Dia todo (24 * 60)
-                                mode: 'ONLINE', // Ignorado visualmente
-                                config: { proctoring: false, shuffle: false, timeLimit: 0, allowReview: false },
-                                status: evt.blocksScheduling ? 'CANCELLED' : 'COMPLETED', // Hack para pintar de vermelho/cinza até ajustarmos o CalendarView
-                                createdBy: 'system',
-                                isInstitutional: true,
-                                eventType: evt.type
-                            } as any)) || [])
+                            .map(evt => {
+                                const start = new Date(evt.startDate + 'T00:00:00');
+                                const end = evt.endDate ? new Date(evt.endDate + 'T23:59:59') : new Date(evt.startDate + 'T23:59:59');
+                                const durationMinutes = Math.floor((end.getTime() - start.getTime()) / 60000);
+
+                                return {
+                                    id: evt.id,
+                                    examId: 'MACRO_EVENT',
+                                    examTitle: evt.title + (evt.blocksScheduling ? ' (Bloqueia Provas)' : ''),
+                                    classIds: [],
+                                    scheduledFor: start,
+                                    duration: durationMinutes,
+                                    mode: 'ONLINE',
+                                    config: { proctoring: false, shuffle: false, timeLimit: 0, allowReview: false },
+                                    status: evt.blocksScheduling ? 'CANCELLED' : 'COMPLETED',
+                                    createdBy: 'system',
+                                    isInstitutional: true,
+                                    eventType: evt.type
+                                } as any;
+                            }) || [])
                     ]}
                     onSelectEvent={handleCalendarSelect}
                     onSelectSlot={handleSlotSelect}

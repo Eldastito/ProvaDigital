@@ -180,9 +180,12 @@ export const useStudentDashboard = () => {
             e.participants?.some(p => p.studentId === student.id) &&
             e.eventDate.startsWith(dateStr)
         );
-        const instEvents = state.institutionalEvents?.filter(e =>
-            e.schoolId === student.schoolId && e.date === dateStr
-        ) || [];
+        const instEvents = state.institutionalEvents?.filter(e => {
+            if (e.schoolId !== student.schoolId) return false;
+            const start = e.startDate;
+            const end = e.endDate || e.startDate;
+            return dateStr >= start && dateStr <= end;
+        }) || [];
 
         return [
             ...exams.map(e => ({
@@ -198,7 +201,7 @@ export const useStudentDashboard = () => {
             ...instEvents.map(e => ({
                 type: e.blocksScheduling ? 'FERIADO' : 'EVENTO',
                 title: e.title,
-                date: e.date
+                date: dateStr // Mostra o evento no dia atual do loop
             })),
             ...announcements.map(a => ({
                 type: a.type === 'AVISO' ? 'OUTRO' : 'EVENTO',

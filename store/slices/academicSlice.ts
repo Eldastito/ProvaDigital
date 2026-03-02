@@ -422,26 +422,66 @@ export const createAcademicSlice: StateCreator<AppStore, [], [], AcademicSlice> 
     },
 
     loadInstitutionalEvents: async () => {
-        const stored = localStorage.getItem('examepad_institutional_events');
-        if (stored) {
-            set({ institutionalEvents: JSON.parse(stored) });
+        const { data, error } = await supabase.from('institutional_events').select('*');
+        if (data) {
+            const formatted = data.map(evt => ({
+                id: evt.id,
+                tenantId: evt.tenant_id,
+                schoolId: evt.school_id,
+                title: evt.title,
+                type: evt.type as any,
+                startDate: evt.start_date,
+                endDate: evt.end_date,
+                description: evt.description,
+                blocksScheduling: evt.blocks_scheduling,
+                createdAt: evt.created_at,
+                createdBy: evt.created_by
+            })) as InstitutionalEvent[];
+            set({ institutionalEvents: formatted });
         }
+        if (error) console.error("Error loading institutional events:", error);
     },
 
     addInstitutionalEvent: async (evt) => {
-        const fullEvent = { ...evt, createdAt: new Date().toISOString() } as InstitutionalEvent;
-        set(state => {
-            const newList = [...state.institutionalEvents, fullEvent];
-            localStorage.setItem('examepad_institutional_events', JSON.stringify(newList));
-            return { institutionalEvents: newList };
+        const { error } = await supabase.from('institutional_events').insert({
+            id: evt.id,
+            tenant_id: evt.tenantId,
+            school_id: evt.schoolId,
+            title: evt.title,
+            type: evt.type,
+            start_date: (evt as any).startDate || (evt as any).date, // Compatibilidade temporária durante a transição
+            end_date: evt.endDate,
+            description: evt.description,
+            blocks_scheduling: evt.blocksScheduling,
+            created_by: evt.createdBy
         });
+
+        if (error) {
+            console.error("Error adding institutional event:", error);
+            throw error;
+        }
+
+        const fullEvent = {
+            ...evt,
+            startDate: (evt as any).startDate || (evt as any).date,
+            createdAt: new Date().toISOString()
+        } as InstitutionalEvent;
+
+        set(state => ({
+            institutionalEvents: [...state.institutionalEvents, fullEvent]
+        }));
     },
 
     deleteInstitutionalEvent: async (id) => {
-        set(state => {
-            const newList = state.institutionalEvents.filter(e => e.id !== id);
-            localStorage.setItem('examepad_institutional_events', JSON.stringify(newList));
-            return { institutionalEvents: newList };
-        });
+        const { error } = await supabase.from('institutional_events').delete().eq('id', id);
+
+        if (error) {
+            console.error("Error deleting institutional event:", error);
+            throw error;
+        }
+
+        set(state => ({
+            institutionalEvents: state.institutionalEvents.filter(e => e.id !== id)
+        }));
     }
 });

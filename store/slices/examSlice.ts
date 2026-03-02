@@ -18,6 +18,7 @@ export interface ExamSlice {
     schedules: ScheduledExam[];
 
     addExam: (exam: Exam) => Promise<void>;
+    updateExam: (exam: Exam) => Promise<void>;
     // ... rest of methods
     loadExams: () => Promise<void>;
     loadSchedules: () => Promise<void>;

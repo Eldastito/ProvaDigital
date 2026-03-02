@@ -12,7 +12,8 @@ export const MacroCalendar = () => {
     const [showForm, setShowForm] = useState(false);
     const [title, setTitle] = useState('');
     const [type, setType] = useState<InstitutionalEventType>(InstitutionalEventType.HOLIDAY);
-    const [date, setDate] = useState('');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
     const [blocksScheduling, setBlocksScheduling] = useState(true);
 
     const schoolId = currentUser?.schoolId;
@@ -20,7 +21,7 @@ export const MacroCalendar = () => {
 
     const handleCreateEvent = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!schoolId || !currentUser.id || !date) return;
+        if (!schoolId || !currentUser.id || !startDate) return;
 
         const newEvent: Omit<InstitutionalEvent, 'createdAt'> = {
             id: uuidv4(),
@@ -28,18 +29,28 @@ export const MacroCalendar = () => {
             schoolId: schoolId,
             title,
             type,
-            date,
+            startDate,
+            endDate: endDate || undefined,
             blocksScheduling,
             createdBy: currentUser.id
         };
 
         // --- LÓGICA DO PONTO FACULTATIVO/FERIADO (REATIVA) ---
         if (blocksScheduling) {
-            // Verifica se há conflito com provas já marcadas para essa data
-            const conflictingExams = exams.filter(ex => ex.schoolId === schoolId && ex.scheduledDate === date && ex.status !== 'COMPLETED' && ex.status !== 'PUBLISHED');
+            // Verifica se há conflito com provas já marcadas para essa data (considerando range)
+            const conflictingExams = exams.filter(ex => {
+                if (ex.schoolId !== schoolId || ex.status === 'COMPLETED' || ex.status === 'PUBLISHED') return false;
+                const examDate = ex.scheduledDate;
+                if (!examDate) return false;
+
+                const start = startDate;
+                const end = endDate || startDate;
+                return examDate >= start && examDate <= end;
+            });
 
             if (conflictingExams.length > 0) {
-                const confirmMsg = `ALERTA: Existem ${conflictingExams.length} prova(s) já agendada(s) para o dia ${format(parseISO(date), 'dd/MM/yyyy')}. \n\nCriar este evento bloqueante irá INVALIDAR essas datas e obrigará os professores a reagendarem. Confirmar?`;
+                const rangeLabel = endDate ? `entre ${format(parseISO(startDate), 'dd/MM')} e ${format(parseISO(endDate), 'dd/MM/yyyy')}` : `no dia ${format(parseISO(startDate), 'dd/MM/yyyy')}`;
+                const confirmMsg = `ALERTA: Existem ${conflictingExams.length} prova(s) já agendada(s) ${rangeLabel}. \n\nCriar este evento bloqueante irá INVALIDAR essas datas e obrigará os professores a reagendarem. Confirmar?`;
                 if (!window.confirm(confirmMsg)) {
                     return; // Aborta
                 }
@@ -64,7 +75,8 @@ export const MacroCalendar = () => {
         await addInstitutionalEvent(newEvent);
         setShowForm(false);
         setTitle('');
-        setDate('');
+        setStartDate('');
+        setEndDate('');
     };
 
     if (!schoolId) {
@@ -91,7 +103,7 @@ export const MacroCalendar = () => {
                             const allOfficial = [...officialHolidays, ...nextYearOfficialHolidays];
 
                             // Filtrar apenas os que não existem ainda para essa escola
-                            const existingDates = schoolEvents.map(e => e.date);
+                            const existingDates = schoolEvents.map(e => e.startDate);
                             const newHolidays = allOfficial.filter(h => !existingDates.includes(h.date));
 
                             if (newHolidays.length === 0) {
@@ -160,15 +172,27 @@ export const MacroCalendar = () => {
                         </select>
                     </div>
 
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Data</label>
-                        <input
-                            type="date"
-                            required
-                            value={date}
-                            onChange={e => setDate(e.target.value)}
-                            className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary"
-                        />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Data Inicial</label>
+                            <input
+                                type="date"
+                                required
+                                value={startDate}
+                                onChange={e => setStartDate(e.target.value)}
+                                className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Data Final (Opcional)</label>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={e => setEndDate(e.target.value)}
+                                min={startDate}
+                                className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary"
+                            />
+                        </div>
                     </div>
 
                     <div className="flex flex-col justify-center mt-6">
@@ -205,10 +229,15 @@ export const MacroCalendar = () => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                        {schoolEvents.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map(evt => (
+                        {schoolEvents.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()).map(evt => (
                             <tr key={evt.id} className="hover:bg-slate-50/50">
                                 <td className="py-3 px-4 font-bold text-slate-700 whitespace-nowrap">
-                                    {format(parseISO(evt.date), "dd 'de' MMMM, yyyy", { locale: ptBR })}
+                                    <div className="flex flex-col">
+                                        <span>{format(parseISO(evt.startDate), "dd 'de' MMM", { locale: ptBR })}</span>
+                                        {evt.endDate && evt.endDate !== evt.startDate && (
+                                            <span className="text-[10px] text-slate-400 font-normal">até {format(parseISO(evt.endDate), "dd/MM/yy", { locale: ptBR })}</span>
+                                        )}
+                                    </div>
                                 </td>
                                 <td className="py-3 px-4 text-slate-800 font-medium">{evt.title}</td>
                                 <td className="py-3 px-4">
