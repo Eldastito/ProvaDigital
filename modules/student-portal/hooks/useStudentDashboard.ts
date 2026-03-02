@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSafeAppStore } from '../../../store/useAppStore';
 import { AnalyticsService } from '../../../services/analyticsService';
-import { UserRole, RiskLevel, Exam, ExamResult, GamifiedEventStatus } from '../../../types';
+import { UserRole, RiskLevel, Exam, ExamResult, GamifiedEventStatus, ScheduledExam } from '../../../types';
 import { useFeatureFlag } from '../../../context/FeatureFlagContext';
 import { MOCK_TENANT_ID } from '../../../utils/mockData';
+import { schedulingService } from '../../../services/schedulingService';
 
 export const useStudentDashboard = () => {
     const state = useSafeAppStore();
@@ -66,6 +67,15 @@ export const useStudentDashboard = () => {
     const [selectedResult, setSelectedResult] = useState<ExamResult | null>(null);
     const [showAgendaModal, setShowAgendaModal] = useState(false);
     const [showEventRules, setShowEventRules] = useState<string | null>(null);
+    const [schedules, setSchedules] = useState<ScheduledExam[]>([]);
+
+    useEffect(() => {
+        let mounted = true;
+        schedulingService.getSchedules().then(data => {
+            if (mounted) setSchedules(data);
+        }).catch(console.error);
+        return () => { mounted = false; };
+    }, []);
 
     // Derived Data
     const recentResults = state.results
@@ -148,20 +158,47 @@ export const useStudentDashboard = () => {
         .map(r => state.exams.find(e => e.id === r.examId))
         .filter(Boolean) as Exam[];
 
+    const studentSchedules = schedules.filter(s => s.classIds.includes(student.classId) && s.status !== 'CANCELLED');
+
     const getEventsForDay = (day: number) => {
-        const dateStr = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toISOString().split('T')[0];
+        const targetDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+        const y = targetDate.getFullYear();
+        const m = String(targetDate.getMonth() + 1).padStart(2, '0');
+        const d = String(targetDate.getDate()).padStart(2, '0');
+        const dateStr = `${y}-${m}-${d}`;
+
         const exams = myExams.filter(e => e.scheduledDate === dateStr);
+        const scheduledExams = studentSchedules.filter(s => {
+            const sy = s.scheduledFor.getFullYear();
+            const sm = String(s.scheduledFor.getMonth() + 1).padStart(2, '0');
+            const sd = String(s.scheduledFor.getDate()).padStart(2, '0');
+            return `${sy}-${sm}-${sd}` === dateStr;
+        });
+
         const announcements = state.announcements.filter(a => a.eventDate === dateStr);
         const gameEvents = state.gamifiedEvents.filter(e =>
             e.participants?.some(p => p.studentId === student.id) &&
             e.eventDate.startsWith(dateStr)
         );
+        const instEvents = state.institutionalEvents?.filter(e =>
+            e.schoolId === student.schoolId && e.date === dateStr
+        ) || [];
 
         return [
             ...exams.map(e => ({
                 type: e.title.toLowerCase().includes('trabalho') ? 'TRABALHO' : 'PROVA',
                 title: e.title,
                 date: e.scheduledDate
+            })),
+            ...scheduledExams.map(s => ({
+                type: s.examTitle.toLowerCase().includes('trabalho') ? 'TRABALHO' : 'PROVA',
+                title: s.examTitle,
+                date: dateStr
+            })),
+            ...instEvents.map(e => ({
+                type: e.blocksScheduling ? 'FERIADO' : 'EVENTO',
+                title: e.title,
+                date: e.date
             })),
             ...announcements.map(a => ({
                 type: a.type === 'AVISO' ? 'OUTRO' : 'EVENTO',

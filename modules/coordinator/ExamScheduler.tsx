@@ -395,7 +395,25 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
             {/* Calendário */}
             <div className="max-w-7xl mx-auto mb-6">
                 <CalendarView
-                    schedules={schedules}
+                    schedules={[
+                        ...schedules,
+                        ...(store.institutionalEvents
+                            ?.filter(e => e.schoolId === store.currentUser?.schoolId)
+                            .map(evt => ({
+                                id: evt.id,
+                                examId: 'MACRO_EVENT',
+                                examTitle: evt.title + (evt.blocksScheduling ? ' (Bloqueia Provas)' : ''),
+                                classIds: [],
+                                scheduledFor: new Date(evt.date + 'T00:00:00'),
+                                duration: 1440, // Dia todo (24 * 60)
+                                mode: 'ONLINE', // Ignorado visualmente
+                                config: { proctoring: false, shuffle: false, timeLimit: 0, allowReview: false },
+                                status: evt.blocksScheduling ? 'CANCELLED' : 'COMPLETED', // Hack para pintar de vermelho/cinza até ajustarmos o CalendarView
+                                createdBy: 'system',
+                                isInstitutional: true,
+                                eventType: evt.type
+                            } as any)) || [])
+                    ]}
                     onSelectEvent={handleCalendarSelect}
                     onSelectSlot={handleSlotSelect}
                 />

@@ -103,6 +103,32 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             borderColor = '#dc2626'; // red-600
         }
 
+        // Se for um evento institucional macro (feriado, recesso)
+        if ((schedule as any).isInstitutional) {
+            if ((schedule as any).status === 'CANCELLED') {
+                // Bloqueia provas
+                backgroundColor = '#fecdd3'; // rose-200
+                borderColor = '#e11d48'; // rose-600
+            } else {
+                // Apenas informativo
+                backgroundColor = '#e0f2fe'; // sky-200
+                borderColor = '#0284c7'; // sky-600
+            }
+            return {
+                style: {
+                    backgroundColor,
+                    borderColor,
+                    borderLeft: `4px solid ${borderColor}`,
+                    borderRadius: '6px',
+                    opacity: 1,
+                    color: borderColor, // Texto escuro para fundos claros
+                    fontWeight: '700',
+                    fontSize: '12px',
+                    padding: '4px 8px'
+                }
+            };
+        }
+
         // Cor diferente para modo offline
         if (schedule.mode === 'OFFLINE') {
             backgroundColor = '#f59e0b'; // amber-500
@@ -132,6 +158,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         const schedule = event.resource;
 
         const getModeIcon = () => {
+            if ((schedule as any).isInstitutional) {
+                return <CalendarIcon size={12} />;
+            }
             if (schedule.mode === 'ONLINE') return <Wifi size={12} />;
             if (schedule.mode === 'OFFLINE') return <WifiOff size={12} />;
             return <Wifi size={12} className="opacity-50" />;
@@ -140,8 +169,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         return (
             <div className="flex items-center gap-1 text-xs h-full">
                 {getModeIcon()}
-                <span className="truncate flex-1">{event.title}</span>
-                <Clock size={12} className="flex-shrink-0" />
+                <span className="truncate flex-1" title={event.title}>{event.title}</span>
+                {!(schedule as any).isInstitutional && <Clock size={12} className="flex-shrink-0" />}
             </div>
         );
     };
@@ -177,8 +206,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     <button
                         onClick={() => onView('month')}
                         className={`px-4 py-2 rounded-lg transition font-medium text-sm ${currentView === 'month'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
                             }`}
                     >
                         Mês
@@ -186,8 +215,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     <button
                         onClick={() => onView('week')}
                         className={`px-4 py-2 rounded-lg transition font-medium text-sm ${currentView === 'week'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
                             }`}
                     >
                         Semana
@@ -195,8 +224,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     <button
                         onClick={() => onView('day')}
                         className={`px-4 py-2 rounded-lg transition font-medium text-sm ${currentView === 'day'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
                             }`}
                     >
                         Dia
@@ -204,8 +233,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     <button
                         onClick={() => onView('agenda')}
                         className={`px-4 py-2 rounded-lg transition font-medium text-sm ${currentView === 'agenda'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
                             }`}
                     >
                         Agenda
@@ -264,6 +293,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     <div className="flex items-center gap-2">
                         <div className="w-4 h-4 bg-violet-500 rounded"></div>
                         <span className="text-slate-600">Modo Híbrido</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-rose-200 border-l-4 border-rose-600 rounded"></div>
+                        <span className="text-slate-600">Feriado/Bloqueio</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-sky-200 border-l-4 border-sky-600 rounded"></div>
+                        <span className="text-slate-600">Evento Informativo</span>
                     </div>
                 </div>
             </div>
