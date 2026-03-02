@@ -17,7 +17,7 @@ export interface ExamSlice {
     examEncryptionKey: any | null;
     schedules: ScheduledExam[];
 
-    addExam: (exam: Exam) => void;
+    addExam: (exam: Exam) => Promise<void>;
     // ... rest of methods
     loadExams: () => Promise<void>;
     loadSchedules: () => Promise<void>;
@@ -37,6 +37,7 @@ export interface ExamSlice {
     calculateAndSaveResult: (examId: string, studentId: string) => Promise<void>;
     updatePedagogicalFeedback: (resultId: string, feedback: string) => Promise<void>;
     updateExamAllocation: (examId: string, classIds: string[]) => Promise<void>;
+    linkExamToSchedule: (examId: string, scheduleId: string) => Promise<void>;
 }
 
 export const createExamSlice: StateCreator<AppStore, [], [], ExamSlice> = (set, get) => ({
@@ -54,25 +55,25 @@ export const createExamSlice: StateCreator<AppStore, [], [], ExamSlice> = (set, 
 
     addExam: async (exam) => {
         set((state) => ({ exams: [...state.exams, exam] }));
-        try {
-            await supabase.from('exams').insert({
-                id: exam.id,
-                title: exam.title,
-                tenant_id: exam.tenantId,
-                school_id: exam.schoolId,
-                creator_id: exam.creatorId,
-                subject: exam.subject,
-                status: exam.status,
-                items_config: exam.items,
-                class_ids: exam.classIds,
-                model: exam.model,
-                duration_minutes: exam.durationMinutes,
-                max_score: exam.maxScore,
-                scheduled_date: exam.scheduledDate,
-                created_at: exam.createdAt
-            });
-        } catch (e) {
-            console.error("Error adding exam:", e);
+        const { error } = await supabase.from('exams').insert({
+            id: exam.id,
+            title: exam.title,
+            tenant_id: exam.tenantId,
+            school_id: exam.schoolId,
+            creator_id: exam.creatorId,
+            subject: exam.subject,
+            status: exam.status,
+            items_config: exam.items,
+            class_ids: exam.classIds,
+            model: exam.model,
+            duration_minutes: exam.durationMinutes,
+            max_score: exam.maxScore,
+            scheduled_date: exam.scheduledDate,
+            created_at: exam.createdAt
+        });
+        if (error) {
+            console.error("Error adding exam:", error);
+            throw error;
         }
     },
 
@@ -252,5 +253,16 @@ export const createExamSlice: StateCreator<AppStore, [], [], ExamSlice> = (set, 
             exams: state.exams.map(e => e.id === examId ? { ...e, classIds } : e)
         }));
         await supabase.from('exams').update({ class_ids: classIds }).eq('id', examId);
+    },
+
+    linkExamToSchedule: async (examId, scheduleId) => {
+        set((state) => ({
+            schedules: state.schedules.map(s => s.id === scheduleId ? { ...s, examId } : s)
+        }));
+        const { error } = await supabase.from('exam_schedules').update({ exam_id: examId }).eq('id', scheduleId);
+        if (error) {
+            console.error("Error linking exam to schedule:", error);
+            throw error;
+        }
     }
 });

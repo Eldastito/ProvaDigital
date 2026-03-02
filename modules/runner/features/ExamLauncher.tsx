@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
 import { useNavigate } from 'react-router-dom';
 import { Play, FileText, Clock, AlertTriangle, Accessibility, CloudDownload, CheckCircle } from 'lucide-react';
-import { ExamStatus } from '../../../types';
-import { schedulingService, ScheduledExam } from '../../../services/schedulingService';
+import { ExamStatus, ScheduledExam } from '../../../types';
+import { schedulingService } from '../../../services/schedulingService';
 
 export const ExamLauncher = () => {
     const { exams, currentUser, getRecommendedVariant } = useAppStore();
@@ -150,7 +150,7 @@ export const ExamLauncher = () => {
 
                             <div className="flex items-center gap-2">
                                 {/* Botão de Download para Offline */}
-                                {(exam.mode === 'OFFLINE' || exam.mode === 'HYBRID') && (
+                                {(exam.mode === 'OFFLINE' || exam.mode === 'HYBRID') && !exam.isProvisional && (
                                     <button
                                         onClick={() => handleDownload(exam.id)}
                                         disabled={downloadingId !== null || loadedExams[exam.id]}

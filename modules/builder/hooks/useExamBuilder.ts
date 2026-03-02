@@ -193,6 +193,23 @@ export const useExamBuilder = () => {
 
             await addExam(newExam);
 
+            // --- VÍNCULO AUTOMÁTICO COM AGENDAMENTO PENDENTE ---
+            // Tenta encontrar um agendamento sem prova que coincida com o título ou disciplina
+            const pendingSchedule = state.schedules.find(s =>
+                !s.examId && (
+                    s.examTitle.toLowerCase() === config.title.toLowerCase() ||
+                    config.title.toLowerCase().includes(s.examTitle.toLowerCase()) ||
+                    s.examTitle.toLowerCase().includes(config.title.toLowerCase())
+                )
+            );
+
+            if (pendingSchedule && state.linkExamToSchedule) {
+                const autoLink = confirm(`Identificamos um agendamento pendente ("${pendingSchedule.examTitle}") que coincide com esta prova. Deseja vinculá-la agora?`);
+                if (autoLink) {
+                    await state.linkExamToSchedule(examId, pendingSchedule.id);
+                }
+            }
+
             if (state.addExamVersion) {
                 await state.addExamVersion({
                     id: versionId,
