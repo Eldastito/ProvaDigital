@@ -361,6 +361,8 @@ export interface User {
     zip: string;
   };
   subjectIds?: string[]; // Disciplinas/Áreas de conhecimento (para Professores)
+  workingDays?: string[]; // Dias da semana que o professor trabalha (ex: ['Segunda', 'Quarta'])
+  workingHours?: string; // Horário ou carga horária do professor
   theme?: 'light' | 'dark'; // Preferência de tema do usuário
   createdAt?: string;
 }

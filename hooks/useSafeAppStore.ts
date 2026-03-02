@@ -27,6 +27,7 @@ export const useSafeAppStore = () => {
         studentProfiles: store.studentProfiles || [],
         userProfiles: store.userProfiles || [],
         gamifiedEvents: store.gamifiedEvents || [],
+        institutionalEvents: store.institutionalEvents || [],
         events: store.events || [],
     };
 };

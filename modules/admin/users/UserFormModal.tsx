@@ -54,6 +54,8 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
             state: string;
             zip: string;
         };
+        workingDays: string[];
+        workingHours: string;
     }>({
         name: '',
         email: '',
@@ -79,7 +81,9 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
             city: '',
             state: '',
             zip: ''
-        }
+        },
+        workingDays: [],
+        workingHours: ''
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -103,6 +107,8 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                 responsibleEmail: editingUser.responsibleEmail || '',
                 responsiblePhone: editingUser.responsiblePhone || '',
                 documentNumber: editingUser.documentNumber || '',
+                workingDays: editingUser.workingDays || [],
+                workingHours: editingUser.workingHours || '',
                 address: {
                     street: editingUser.address?.street || '',
                     number: editingUser.address?.number || '',
@@ -129,6 +135,8 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                 responsibleEmail: '',
                 responsiblePhone: '',
                 documentNumber: '',
+                workingDays: [],
+                workingHours: '',
                 address: {
                     street: '',
                     number: '',
@@ -257,7 +265,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                         </div>
                     )}
 
-                    {/* BASIC TAB */}
+                    {/* BASIC TAB / COMMON FIELDS */}
                     {(activeTab === 'BASIC' || formData.role !== UserRole.ALUNO) && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-right-2">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -328,7 +336,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                         </div>
                     )}
 
-                    {/* ACADEMIC TAB */}
+                    {/* ACADEMIC TAB (Alunos) */}
                     {(activeTab === 'ACADEMIC' && formData.role === UserRole.ALUNO) && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-right-2">
                             <div className="grid grid-cols-2 gap-4">
@@ -396,7 +404,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                         </div>
                     )}
 
-                    {/* FAMILY TAB */}
+                    {/* FAMILY TAB (Alunos) */}
                     {(activeTab === 'FAMILY' && formData.role === UserRole.ALUNO) && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-right-2">
                             <div className="grid grid-cols-1 gap-4">
@@ -463,7 +471,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                         </div>
                     )}
 
-                    {/* ADDRESS TAB */}
+                    {/* ADDRESS TAB (Alunos) */}
                     {(activeTab === 'ADDRESS' && formData.role === UserRole.ALUNO) && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-right-2">
                             <div className="grid grid-cols-4 gap-4">
@@ -527,9 +535,10 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                         </div>
                     )}
 
-                    {/* Non-Student Legacy Sections (School selection for Professors, etc.) */}
+                    {/* Non-Student Mandatory Sections (School, Classes, Subjects) */}
                     {formData.role !== UserRole.ALUNO && (
                         <div className="space-y-4">
+                            {/* School Selection */}
                             {(formData.role !== UserRole.SUPER_ADMIN && formData.role !== UserRole.TENANT_ADMIN && formData.role !== UserRole.PAIS && (isTenantAdmin || availableSchools.length > 0)) && (
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 mb-1">Escola</label>
@@ -547,6 +556,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                                 </div>
                             )}
 
+                            {/* Class Selection for Professors */}
                             {formData.role === UserRole.PROFESSOR && formData.schoolId && (
                                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Turmas Associadas</label>
@@ -573,6 +583,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                                 </div>
                             )}
 
+                            {/* Subject Selection for Professors */}
                             {formData.role === UserRole.PROFESSOR && (
                                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Disciplinas / Áreas de Conhecimento</label>
@@ -593,6 +604,42 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                                                 <span className="text-xs font-medium text-slate-600 group-hover:text-brand-primary">{subject}</span>
                                             </label>
                                         ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Working Hours and Days for Professors */}
+                            {formData.role === UserRole.PROFESSOR && (
+                                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Horário e Dias de Aula</label>
+                                    <div className="space-y-3">
+                                        <div className="flex flex-wrap gap-2">
+                                            {['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'].map(day => (
+                                                <label key={day} className="flex items-center gap-1.5 bg-white px-2 py-1 rounded border border-slate-200 cursor-pointer hover:border-brand-primary group transition">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={formData.workingDays?.includes(day)}
+                                                        onChange={e => {
+                                                            const newDays = e.target.checked
+                                                                ? [...(formData.workingDays || []), day]
+                                                                : (formData.workingDays || []).filter(d => d !== day);
+                                                            setFormData({ ...formData, workingDays: newDays });
+                                                        }}
+                                                        className="rounded text-brand-primary focus:ring-brand-primary"
+                                                    />
+                                                    <span className="text-xs font-medium text-slate-600 group-hover:text-brand-primary">{day}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                        <div>
+                                            <input
+                                                type="text"
+                                                placeholder="Ex: 07:00 - 12:00 ou 20h semanais"
+                                                className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-primary outline-none"
+                                                value={formData.workingHours}
+                                                onChange={e => setFormData({ ...formData, workingHours: e.target.value })}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -643,6 +690,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                         </div>
                     )}
 
+                    {/* Footer Buttons */}
                     <div className="pt-4 flex justify-between items-center bg-white border-t mt-4 -mx-6 px-6 pt-4 sticky bottom-0">
                         <button
                             type="button"

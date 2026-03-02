@@ -57,9 +57,12 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
         }
     }, [store.exams, store.loadExams]);
 
-    // Carregar agendamentos
+    // Carregar agendamentos e eventos institucionais
     useEffect(() => {
         loadSchedules();
+        if (!store.institutionalEvents || store.institutionalEvents.length === 0) {
+            store.loadInstitutionalEvents?.();
+        }
     }, []);
 
     const loadSchedules = async () => {

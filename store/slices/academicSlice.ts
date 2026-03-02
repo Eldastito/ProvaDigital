@@ -430,8 +430,9 @@ export const createAcademicSlice: StateCreator<AppStore, [], [], AcademicSlice> 
                 schoolId: evt.school_id,
                 title: evt.title,
                 type: evt.type as any,
-                startDate: evt.start_date,
-                endDate: evt.end_date,
+                // Fix: Ensure we only take the date part if it's potentially malformed or causing issues in new Date()
+                startDate: evt.start_date ? evt.start_date.split(' ')[0] : '',
+                endDate: evt.end_date ? evt.end_date.split(' ')[0] : null,
                 description: evt.description,
                 blocksScheduling: evt.blocks_scheduling,
                 createdAt: evt.created_at,
