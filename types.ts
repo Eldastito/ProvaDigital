@@ -1617,6 +1617,8 @@ export interface InstitutionalEvent {
   type: InstitutionalEventType;
   startDate: string; // Renomeado de 'date' para suportar ranges
   endDate?: string;
+  examsStartDate?: string; // NOVO: Início do período de provas
+  examsEndDate?: string;   // NOVO: Fim do período de provas
   description?: string;
   appliesToClasses?: string[]; // IDs das turmas (vazio = escola toda)
   blocksScheduling: boolean; // Impede marcação de provas nesta data

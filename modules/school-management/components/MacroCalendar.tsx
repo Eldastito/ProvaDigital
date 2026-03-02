@@ -14,6 +14,8 @@ export const MacroCalendar = () => {
     const [type, setType] = useState<InstitutionalEventType>(InstitutionalEventType.HOLIDAY);
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [examsStartDate, setExamsStartDate] = useState('');
+    const [examsEndDate, setExamsEndDate] = useState('');
     const [blocksScheduling, setBlocksScheduling] = useState(true);
 
     const schoolId = currentUser?.schoolId;
@@ -31,6 +33,8 @@ export const MacroCalendar = () => {
             type,
             startDate,
             endDate: endDate || undefined,
+            examsStartDate: examsStartDate || undefined,
+            examsEndDate: examsEndDate || undefined,
             blocksScheduling,
             createdBy: currentUser.id
         };
@@ -77,6 +81,8 @@ export const MacroCalendar = () => {
         setTitle('');
         setStartDate('');
         setEndDate('');
+        setExamsStartDate('');
+        setExamsEndDate('');
     };
 
     if (!schoolId) {
@@ -195,6 +201,28 @@ export const MacroCalendar = () => {
                         </div>
                     </div>
 
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold text-indigo-500 uppercase mb-1">Início das Provas (Opcional)</label>
+                            <input
+                                type="date"
+                                value={examsStartDate}
+                                onChange={e => setExamsStartDate(e.target.value)}
+                                className="w-full border border-indigo-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-indigo-50/30"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-indigo-500 uppercase mb-1">Data Limite das Provas (Opcional)</label>
+                            <input
+                                type="date"
+                                value={examsEndDate}
+                                onChange={e => setExamsEndDate(e.target.value)}
+                                min={examsStartDate}
+                                className="w-full border border-indigo-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-indigo-50/30"
+                            />
+                        </div>
+                    </div>
+
                     <div className="flex flex-col justify-center mt-6">
                         <label className="flex items-center gap-2 cursor-pointer">
                             <input
@@ -239,7 +267,17 @@ export const MacroCalendar = () => {
                                         )}
                                     </div>
                                 </td>
-                                <td className="py-3 px-4 text-slate-800 font-medium">{evt.title}</td>
+                                <td className="py-3 px-4 text-slate-800 font-medium">
+                                    <div className="flex flex-col">
+                                        <span>{evt.title}</span>
+                                        {(evt.examsStartDate || evt.examsEndDate) && (
+                                            <div className="flex items-center gap-1 mt-1 text-[10px] text-indigo-600 font-bold bg-indigo-50 w-fit px-1.5 py-0.5 rounded border border-indigo-100">
+                                                <Sparkles size={10} />
+                                                <span>Provas: {evt.examsStartDate ? format(parseISO(evt.examsStartDate), "dd/MM") : '?'} - {evt.examsEndDate ? format(parseISO(evt.examsEndDate), "dd/MM") : '?'}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </td>
                                 <td className="py-3 px-4">
                                     <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${evt.type === 'FERIADO_PONTO_FACULTATIVO' ? 'bg-amber-100 text-amber-800' :
                                         evt.type === 'FERIADO' ? 'bg-emerald-100 text-emerald-800' :

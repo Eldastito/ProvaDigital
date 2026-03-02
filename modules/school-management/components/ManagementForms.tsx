@@ -21,7 +21,7 @@ interface ManagementFormsProps {
     studentForm: { name: string, reg: string, classId: string };
     setStudentForm: (val: any) => void;
 
-    userForm: { name: string, email: string, role: UserRole, schoolId: string, classIds: string[] };
+    userForm: { name: string, email: string, role: UserRole, schoolId: string, classIds: string[], workingDays?: string[], workingHours?: string };
     setUserForm: (val: any) => void;
 
     canManageUsers: boolean;
@@ -243,6 +243,38 @@ export const ManagementForms = ({
                         <p className="text-[10px] text-slate-400 mt-2">
                             Selecione as turmas vinculadas a este usuário.
                         </p>
+                    </div>
+                )}
+
+                {/* PROFESSOR SCHEDULE (NEW) */}
+                {userForm.role === UserRole.PROFESSOR && (
+                    <div className="bg-brand-primary/5 p-3 rounded-lg border border-brand-primary/20">
+                        <label className="block text-[10px] font-bold text-brand-primary uppercase mb-2">Horário/Dias do Professor (Opcional)</label>
+                        <div className="flex flex-wrap gap-2 mb-3">
+                            {['Seg', 'Ter', 'Qua', 'Qui', 'Sex'].map(day => (
+                                <label key={day} className="flex items-center gap-1.5 px-2 py-1 border rounded-md hover:bg-white cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        checked={userForm.workingDays?.includes(day)}
+                                        onChange={e => {
+                                            const newDays = e.target.checked
+                                                ? [...(userForm.workingDays || []), day]
+                                                : (userForm.workingDays || []).filter(d => d !== day);
+                                            setUserForm({ ...userForm, workingDays: newDays });
+                                        }}
+                                        className="rounded text-brand-primary focus:ring-brand-primary"
+                                    />
+                                    <span className="text-xs font-medium text-slate-600 group-hover:text-brand-primary">{day}</span>
+                                </label>
+                            ))}
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Ex: 07:00 - 12:00 ou 20h semanais"
+                            className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-primary outline-none"
+                            value={userForm.workingHours || ''}
+                            onChange={e => setUserForm({ ...userForm, workingHours: e.target.value })}
+                        />
                     </div>
                 )}
 

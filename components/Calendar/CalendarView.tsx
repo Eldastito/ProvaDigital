@@ -10,7 +10,7 @@ import { Calendar, dateFnsLocalizer, Event, View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { ScheduledExam } from '../../services/schedulingService';
+import { ScheduledExam } from '../../types';
 import { Calendar as CalendarIcon, Clock, Users, Wifi, WifiOff } from 'lucide-react';
 
 // Configurar localização pt-BR
@@ -28,6 +28,10 @@ const localizer = dateFnsLocalizer({
 
 // Event personalizado para react-big-calendar
 interface CalendarEvent extends Event {
+    title?: string;
+    start?: Date;
+    end?: Date;
+    allDay?: boolean;
     resource: ScheduledExam;
 }
 
@@ -58,6 +62,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             title: schedule.examTitle,
             start: schedule.scheduledFor,
             end: new Date(schedule.scheduledFor.getTime() + schedule.duration * 60000),
+            allDay: (schedule as any).allDay, // Suporte a eventos de dia inteiro (institucionais)
             resource: schedule
         }));
     }, [schedules]);

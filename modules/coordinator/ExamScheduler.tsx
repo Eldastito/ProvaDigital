@@ -418,6 +418,7 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                                     classIds: [],
                                     scheduledFor: start,
                                     duration: durationMinutes,
+                                    allDay: true, // Garante exibição no topo do calendário
                                     mode: 'ONLINE',
                                     config: { proctoring: false, shuffle: false, timeLimit: 0, allowReview: false },
                                     status: evt.blocksScheduling ? 'CANCELLED' : 'COMPLETED',

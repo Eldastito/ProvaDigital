@@ -180,12 +180,30 @@ export const useStudentDashboard = () => {
             e.participants?.some(p => p.studentId === student.id) &&
             e.eventDate.startsWith(dateStr)
         );
-        const instEvents = state.institutionalEvents?.filter(e => {
-            if (e.schoolId !== student.schoolId) return false;
+        const instEventsForDay: any[] = [];
+        state.institutionalEvents?.forEach(e => {
+            if (e.schoolId !== student.schoolId) return;
+
+            // Evento comum (Feriado/Evento)
             const start = e.startDate;
             const end = e.endDate || e.startDate;
-            return dateStr >= start && dateStr <= end;
-        }) || [];
+            if (dateStr >= start && dateStr <= end) {
+                instEventsForDay.push({
+                    type: e.blocksScheduling ? 'FERIADO' : 'EVENTO',
+                    title: e.title,
+                    date: dateStr
+                });
+            }
+
+            // Janela de Provas (NOVO)
+            if (e.examsStartDate && e.examsEndDate && dateStr >= e.examsStartDate && dateStr <= e.examsEndDate) {
+                instEventsForDay.push({
+                    type: 'PROVA',
+                    title: `Janela de Provas: ${e.title}`,
+                    date: dateStr
+                });
+            }
+        });
 
         return [
             ...exams.map(e => ({
@@ -198,11 +216,7 @@ export const useStudentDashboard = () => {
                 title: s.examTitle,
                 date: dateStr
             })),
-            ...instEvents.map(e => ({
-                type: e.blocksScheduling ? 'FERIADO' : 'EVENTO',
-                title: e.title,
-                date: dateStr // Mostra o evento no dia atual do loop
-            })),
+            ...instEventsForDay,
             ...announcements.map(a => ({
                 type: a.type === 'AVISO' ? 'OUTRO' : 'EVENTO',
                 title: a.title,

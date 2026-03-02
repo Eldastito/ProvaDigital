@@ -206,7 +206,9 @@ export const createAcademicSlice: StateCreator<AppStore, [], [], AcademicSlice> 
             role: user.role,
             status: user.status,
             subject_ids: user.subjectIds,
-            class_ids: user.classIds
+            class_ids: user.classIds,
+            working_days: user.workingDays,
+            working_hours: user.workingHours
         });
 
         if (error) {
@@ -225,7 +227,9 @@ export const createAcademicSlice: StateCreator<AppStore, [], [], AcademicSlice> 
             school_id: user.schoolId,
             tenant_id: user.tenantId,
             subject_ids: user.subjectIds,
-            class_ids: user.classIds
+            class_ids: user.classIds,
+            working_days: user.workingDays,
+            working_hours: user.workingHours
         }).eq('id', user.id);
 
         if (error) {
@@ -346,7 +350,9 @@ export const createAcademicSlice: StateCreator<AppStore, [], [], AcademicSlice> 
                 role: u.role,
                 status: u.status,
                 subjectIds: u.subject_ids,
-                classIds: u.class_ids
+                classIds: u.class_ids,
+                workingDays: u.working_days,
+                workingHours: u.working_hours
             })) as User[];
             set({ users: formatted });
         }
@@ -433,6 +439,8 @@ export const createAcademicSlice: StateCreator<AppStore, [], [], AcademicSlice> 
                 // Fix: Ensure we only take the date part if it's potentially malformed or causing issues in new Date()
                 startDate: evt.start_date ? evt.start_date.split(' ')[0] : '',
                 endDate: evt.end_date ? evt.end_date.split(' ')[0] : null,
+                examsStartDate: evt.exams_start_date ? evt.exams_start_date.split(' ')[0] : null,
+                examsEndDate: evt.exams_end_date ? evt.exams_end_date.split(' ')[0] : null,
                 description: evt.description,
                 blocksScheduling: evt.blocks_scheduling,
                 createdAt: evt.created_at,
@@ -450,8 +458,10 @@ export const createAcademicSlice: StateCreator<AppStore, [], [], AcademicSlice> 
             school_id: evt.schoolId,
             title: evt.title,
             type: evt.type,
-            start_date: (evt as any).startDate || (evt as any).date, // Compatibilidade temporária durante a transição
+            start_date: evt.startDate,
             end_date: evt.endDate,
+            exams_start_date: evt.examsStartDate,
+            exams_end_date: evt.examsEndDate,
             description: evt.description,
             blocks_scheduling: evt.blocksScheduling,
             created_by: evt.createdBy
