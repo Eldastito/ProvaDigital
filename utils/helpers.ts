@@ -47,3 +47,12 @@ export const normalizeString = (str: string): string => {
 };
 
 export const getQrUrl = (data: string) => `https://api.qrserver.com/v1/create-qr-code/?size=400x400&color=000000&bgcolor=ffffff&data=${encodeURIComponent(data)}`;
+
+export const sanitizeDescription = (text: string): string => {
+  if (!text) return '';
+  if (text.startsWith('[SECURE_PAYLOAD]')) {
+    return 'Conteúdo protegido (Legado). Por favor, edite a prova para atualizar as instruções.';
+  }
+  return text;
+};
+

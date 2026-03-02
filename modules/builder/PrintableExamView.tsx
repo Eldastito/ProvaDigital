@@ -4,6 +4,7 @@ import { AppState, Exam, QuestionType, PrintConfig } from '../../types';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSafeAppStore } from '../../store/useAppStore';
 import { RichTextRenderer } from '../../components/RichTextRenderer';
+import { sanitizeDescription } from '../../utils/helpers';
 import { ExamCoverGenerator } from '../../components/Print/ExamCoverGenerator';
 import { AnswerSheetGenerator } from '../../components/Print/AnswerSheetGenerator';
 import '../../styles/print.css';
@@ -115,7 +116,7 @@ export const PrintableExamView = () => {
         {/* Instructions */}
         {exam.description && (
           <div className="mb-8 text-sm italic border p-3 rounded border-slate-300 print:border-slate-400">
-            <strong>Instruções:</strong> {exam.description}
+            <strong>Instruções:</strong> {sanitizeDescription(exam.description)}
           </div>
         )}
 

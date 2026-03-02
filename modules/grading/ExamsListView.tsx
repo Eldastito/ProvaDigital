@@ -4,6 +4,7 @@ import { Plus, MoreHorizontal, Clock, FileText, Printer, ClipboardCheck, Globe, 
 import { useNavigate } from 'react-router-dom';
 import { AppState, Exam, ExamStatus, QuestionType } from '../../types';
 import { Badge } from '../../components/ui/Badge';
+import { sanitizeDescription } from '../../utils/helpers';
 
 import { useSafeAppStore } from '../../store/useAppStore';
 import { AdvancedReviewPipeline } from '../runner/features/AdvancedReviewPipeline';
@@ -68,7 +69,7 @@ export const ExamsListView = () => {
                                 </div>
                             </div>
                             <h3 className="font-bold text-lg text-slate-900 mb-1">{exam.title}</h3>
-                            <p className="text-sm text-slate-500 mb-4 line-clamp-2">{exam.description || 'Sem descrição.'}</p>
+                            <p className="text-sm text-slate-500 mb-4 line-clamp-2">{sanitizeDescription(exam.description) || 'Sem descrição.'}</p>
 
                             <div className="mt-auto space-y-3">
                                 <div className="flex items-center text-sm text-slate-600 gap-2">
