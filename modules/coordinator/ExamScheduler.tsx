@@ -79,9 +79,9 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
     };
 
     // Handlers do Calendário
-    const handleNavigate = (date: Date) => {
+    const handleNavigate = useCallback((date: Date) => {
         setCurrentDate(date);
-    };
+    }, []);
 
     // Handler para criar novo agendamento
     const handleNew = () => {

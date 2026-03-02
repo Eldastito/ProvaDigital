@@ -45,6 +45,97 @@ interface CalendarViewProps {
     view?: View;
 }
 
+// Componente customizado para evento
+const EventComponent: React.FC<{ event: CalendarEvent }> = ({ event }) => {
+    const schedule = event.resource;
+
+    const getModeIcon = () => {
+        if ((schedule as any).isInstitutional) {
+            return <CalendarIcon size={12} />;
+        }
+        if (schedule.mode === 'ONLINE') return <Wifi size={12} />;
+        if (schedule.mode === 'OFFLINE') return <WifiOff size={12} />;
+        return <Wifi size={12} className="opacity-50" />;
+    };
+
+    return (
+        <div className="flex items-center gap-1 text-xs h-full">
+            {getModeIcon()}
+            <span className="truncate flex-1" title={event.title}>{event.title}</span>
+            {!(schedule as any).isInstitutional && <Clock size={12} className="flex-shrink-0" />}
+        </div>
+    );
+};
+
+// Componente customizado de toolbar
+const CustomToolbar: React.FC<any> = ({ label, onNavigate, onView, view }) => {
+    return (
+        <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200">
+            <div className="flex gap-2">
+                <button
+                    onClick={() => onNavigate('TODAY')}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm"
+                >
+                    Hoje
+                </button>
+                <button
+                    onClick={() => onNavigate('PREV')}
+                    className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition font-medium text-sm"
+                >
+                    ←
+                </button>
+                <button
+                    onClick={() => onNavigate('NEXT')}
+                    className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition font-medium text-sm"
+                >
+                    →
+                </button>
+            </div>
+
+            <h2 className="text-xl font-bold text-slate-900">{label}</h2>
+
+            <div className="flex gap-2">
+                <button
+                    onClick={() => onView('month')}
+                    className={`px-4 py-2 rounded-lg transition font-medium text-sm ${view === 'month'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                        }`}
+                >
+                    Mês
+                </button>
+                <button
+                    onClick={() => onView('week')}
+                    className={`px-4 py-2 rounded-lg transition font-medium text-sm ${view === 'week'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                        }`}
+                >
+                    Semana
+                </button>
+                <button
+                    onClick={() => onView('day')}
+                    className={`px-4 py-2 rounded-lg transition font-medium text-sm ${view === 'day'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                        }`}
+                >
+                    Dia
+                </button>
+                <button
+                    onClick={() => onView('agenda')}
+                    className={`px-4 py-2 rounded-lg transition font-medium text-sm ${view === 'agenda'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                        }`}
+                >
+                    Agenda
+                </button>
+            </div>
+        </div>
+    );
+};
+
 export const CalendarView: React.FC<CalendarViewProps> = ({
     schedules,
     onSelectEvent,
@@ -157,97 +248,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             }
         };
     }, []);
-
-    // Componente customizado para evento
-    const EventComponent: React.FC<{ event: CalendarEvent }> = ({ event }) => {
-        const schedule = event.resource;
-
-        const getModeIcon = () => {
-            if ((schedule as any).isInstitutional) {
-                return <CalendarIcon size={12} />;
-            }
-            if (schedule.mode === 'ONLINE') return <Wifi size={12} />;
-            if (schedule.mode === 'OFFLINE') return <WifiOff size={12} />;
-            return <Wifi size={12} className="opacity-50" />;
-        };
-
-        return (
-            <div className="flex items-center gap-1 text-xs h-full">
-                {getModeIcon()}
-                <span className="truncate flex-1" title={event.title}>{event.title}</span>
-                {!(schedule as any).isInstitutional && <Clock size={12} className="flex-shrink-0" />}
-            </div>
-        );
-    };
-
-    // Componente customizado de toolbar
-    const CustomToolbar: React.FC<any> = ({ label, onNavigate, onView }) => {
-        return (
-            <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200">
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => onNavigate('TODAY')}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm"
-                    >
-                        Hoje
-                    </button>
-                    <button
-                        onClick={() => onNavigate('PREV')}
-                        className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition font-medium text-sm"
-                    >
-                        ←
-                    </button>
-                    <button
-                        onClick={() => onNavigate('NEXT')}
-                        className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition font-medium text-sm"
-                    >
-                        →
-                    </button>
-                </div>
-
-                <h2 className="text-xl font-bold text-slate-900">{label}</h2>
-
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => onView('month')}
-                        className={`px-4 py-2 rounded-lg transition font-medium text-sm ${currentView === 'month'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                            }`}
-                    >
-                        Mês
-                    </button>
-                    <button
-                        onClick={() => onView('week')}
-                        className={`px-4 py-2 rounded-lg transition font-medium text-sm ${currentView === 'week'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                            }`}
-                    >
-                        Semana
-                    </button>
-                    <button
-                        onClick={() => onView('day')}
-                        className={`px-4 py-2 rounded-lg transition font-medium text-sm ${currentView === 'day'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                            }`}
-                    >
-                        Dia
-                    </button>
-                    <button
-                        onClick={() => onView('agenda')}
-                        className={`px-4 py-2 rounded-lg transition font-medium text-sm ${currentView === 'agenda'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                            }`}
-                    >
-                        Agenda
-                    </button>
-                </div>
-            </div>
-        );
-    };
 
     // Mensagens customizadas
     const messages = {
