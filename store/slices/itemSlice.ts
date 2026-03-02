@@ -91,10 +91,29 @@ export const createItemSlice: StateCreator<AppStore, [], [], ItemSlice> = (set, 
     })),
 
     approveAllItemsInBatch: async (batchId) => {
-        const batchItems = get().items.filter(i => i.generationBatchId === batchId);
+        const previousItems = get().items;
+        const batchItems = previousItems.filter(i => i.generationBatchId === batchId);
+
         set((state) => ({
             items: state.items.map(i => i.generationBatchId === batchId ? { ...i, lifecycleStatus: 'APPROVED' as any } : i)
         }));
+
+        try {
+            const { error } = await supabase
+                .from('items')
+                .update({ lifecycle_status: 'APPROVED' })
+                .eq('generation_batch_id', batchId);
+
+            if (error) {
+                set({ items: previousItems });
+                throw error;
+            }
+        } catch (e) {
+            console.error("Failed to persist bulk approval:", e);
+            set({ items: previousItems });
+            throw e;
+        }
+
         return batchItems.length;
     },
 

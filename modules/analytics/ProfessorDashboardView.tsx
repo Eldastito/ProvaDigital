@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { BookOpen, FileText, GraduationCap, Users, Plus, Tablet, BarChart, ChevronDown, ChevronUp, Search, AlertCircle, TrendingUp, ArrowRight, Target, Star, ShieldAlert, ClipboardCheck, Brain, Clock, MousePointer2, PenTool, Grip, CloudDownload, CheckCircle } from 'lucide-react';
-import { AppState, UserRole, ExamStatus } from '../../types';
+import { AppState, UserRole, ExamStatus, ScheduledExam } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
 
 import { useAppStore } from '../../store/useAppStore';
@@ -14,7 +14,8 @@ import { ActionableTaskPanel } from './components/ActionableTaskPanel';
 import { getStrategicInsights } from '../../services/StrategicAdvisorService';
 import { mapStrategicInsightToTask } from '../../services/actionableTaskService';
 import { useEffect } from 'react';
-import { schedulingService, ScheduledExam } from '../../services/schedulingService';
+import { schedulingService } from '../../services/schedulingService';
+import { logisticsAIService, SchedulingCampaign } from '../../services/logisticsAIService';
 
 const DistributionChart = ({ grades }: { grades: number[] }) => {
     const buckets = [0, 0, 0, 0, 0]; // 0-2, 2-4, 4-6, 6-8, 8-10
@@ -55,13 +56,22 @@ export const ProfessorDashboardView = () => {
     const [showIntegrityFilter, setShowIntegrityFilter] = useState(false);
 
     const [schedules, setSchedules] = useState<ScheduledExam[]>([]);
+    const [campaigns, setCampaigns] = useState<SchedulingCampaign[]>([]);
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
     const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
     const [loadedExams, setLoadedExams] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
         loadSchedules();
+        loadCampaigns();
     }, []);
+
+    const loadCampaigns = () => {
+        if (currentUser?.id && currentUser?.schoolId) {
+            const data = logisticsAIService.generateSchedulingCampaigns(state, currentUser.id, currentUser.schoolId);
+            setCampaigns(data);
+        }
+    };
 
     const loadSchedules = async () => {
         try {
@@ -223,6 +233,40 @@ export const ProfessorDashboardView = () => {
                     </button>
                 </div>
             </div>
+
+            {/* AI Logistics Campaigns */}
+            {campaigns.map((campaign, idx) => (
+                <div key={idx} className="bg-brand-primary/5 border-2 border-brand-primary/20 rounded-xl p-6 shadow-sm relative overflow-hidden animate-in slide-in-from-top-4 duration-500">
+                    <div className="absolute -right-4 -bottom-4 opacity-5 text-brand-primary">
+                        <Tablet size={120} />
+                    </div>
+                    <div className="relative z-10 flex flex-col md:flex-row items-center gap-6">
+                        <div className="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center text-brand-primary shrink-0">
+                            <Brain size={32} />
+                        </div>
+                        <div className="flex-1 text-center md:text-left">
+                            <h3 className="text-brand-dark font-bold text-lg mb-1">Sugestão de Agendamento Inteligente</h3>
+                            <p className="text-slate-600 text-sm leading-relaxed max-w-2xl">
+                                {campaign.message}
+                            </p>
+                        </div>
+                        <div className="shrink-0">
+                            <button
+                                onClick={() => navigate('/exams/new', {
+                                    state: {
+                                        suggestedSubject: currentUser?.subjectIds?.[0] || 'Geral',
+                                        suggestedClassId: selectedClassId,
+                                        autoGenerate: true
+                                    }
+                                })}
+                                className="bg-brand-primary hover:bg-brand-dark text-white px-6 py-3 rounded-xl font-bold transition shadow-lg flex items-center gap-2 group"
+                            >
+                                Agendar Agora <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ))}
 
             {/* Subject Filter & KPI Cards */}
             {isProfessor && (

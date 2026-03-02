@@ -7,10 +7,10 @@ import { ExamReview } from './components/ExamReview';
 import { BatchReviewPanel } from '../runner/features/BatchReviewPanel';
 import { AdvancedReviewPipeline } from '../runner/features/AdvancedReviewPipeline';
 import { extractTextFromPDF } from '../../utils/pdfExtractor';
-import { generateQuestionsFromText } from '../../services/geminiService';
+import { generateQuestionsFromText, extractQuestionsFromImage } from '../../services/geminiService';
 import { Loader2, FileText, Upload } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
-import { Item, QuestionType, DifficultyLevel, ItemOrigin } from '../../types';
+import { Item, QuestionType, DifficultyLevel, ItemOrigin, ItemLifecycleStatus } from '../../types';
 import { AgentCoPilotOverlay } from './components/AgentCoPilotOverlay';
 
 export const ExamBuilderView = () => {
@@ -45,6 +45,8 @@ export const ExamBuilderView = () => {
     const [importModalOpen, setImportModalOpen] = useState(false);
     const [importContext, setImportContext] = useState('');
     const [importFile, setImportFile] = useState<File | null>(null);
+    const [importImageBase64, setImportImageBase64] = useState<string | null>(null);
+    const [importImageMime, setImportImageMime] = useState<string | null>(null);
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -53,6 +55,8 @@ export const ExamBuilderView = () => {
             if (file.type === 'application/pdf') {
                 try {
                     setIsGenerating(true);
+                    setImportImageBase64(null);
+                    setImportImageMime(null);
                     const text = await extractTextFromPDF(file);
                     setImportContext(text);
                 } catch (err) {
@@ -60,28 +64,47 @@ export const ExamBuilderView = () => {
                 } finally {
                     setIsGenerating(false);
                 }
+            } else if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const base64 = e.target?.result as string;
+                    setImportImageBase64(base64);
+                    setImportImageMime(file.type);
+                    setImportContext('Imagem Carregada. A IA fará a extração (OCR) para gerar as questões.');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                alert('Formato não suportado. Envie um arquivo PDF ou uma Imagem.');
+                setImportFile(null);
             }
         }
     };
 
     const handleGenerateFromContext = async () => {
-        if (!importContext) return;
+        if (!importContext && !importImageBase64) return;
         setIsGenerating(true);
         try {
-            // Generate 5 questions based on the context
-            const newQuestions = await generateQuestionsFromText(
-                importContext,
-                5,
-                QuestionType.MULTIPLE_CHOICE,
-                DifficultyLevel.MEDIUM,
-                config.subject || 'Geral'
-            );
+            let newQuestions = [];
+
+            if (importImageBase64 && importImageMime) {
+                // Modo OCR de Imagem
+                newQuestions = await extractQuestionsFromImage(importImageBase64, importImageMime);
+            } else if (importContext) {
+                // Modo RAG de Texto (PDF)
+                newQuestions = await generateQuestionsFromText(
+                    importContext,
+                    5, // Quantidade default ou dinâmica depois
+                    QuestionType.MULTIPLE_CHOICE,
+                    DifficultyLevel.MEDIUM,
+                    config.subject || 'Geral'
+                );
+            }
 
             // Map to Item format
             const items: Item[] = newQuestions.map(q => ({
                 id: uuidv4(),
                 tenantId: 'demo-tenant',
-                ownerId: 'demo-user',
+                ownerId: 'demo-user', // Será substituído pelo ID real no backend
                 knowledgeArea: 'Geral',
                 subject: config.subject || 'Geral',
                 type: QuestionType.MULTIPLE_CHOICE,
@@ -90,8 +113,10 @@ export const ExamBuilderView = () => {
                 correctAnswerJustification: q.justification,
                 difficulty: q.difficulty as DifficultyLevel,
                 score: 1.0,
-                origin: ItemOrigin.IA,
-                tags: ['Gerado por IA', 'Contexto PDF'],
+                origin: importImageBase64 ? ItemOrigin.MANUAL : ItemOrigin.IA, // Marca como manual se extraído via OCR
+                lifecycleStatus: ItemLifecycleStatus.DRAFT,
+                generationBatchId: currentBatchId || uuidv4(),
+                tags: importImageBase64 ? ['Extração OCR'] : ['Gerado por IA', 'Contexto PDF'],
                 usageCount: 0,
                 createdAt: new Date().toISOString(),
                 triParams: {
@@ -101,14 +126,21 @@ export const ExamBuilderView = () => {
                 }
             }));
 
-            // Add to exam - using state.addItem or updateExam if available
-            // Assuming state.addItem exists or we iterate
+            // Adiciona no state master
             items.forEach(i => state.addItem(i));
 
             setImportModalOpen(false);
             setImportContext('');
+            setImportImageBase64(null);
+            setImportImageMime(null);
             setImportFile(null);
-            alert(`${items.length} questões geradas com sucesso a partir do material!`);
+
+            // Vai para a tela de revisão
+            setCurrentBatchId(items[0].generationBatchId || uuidv4());
+            setCurrentBatchItems(items);
+            setIsReviewingBatch(true);
+            setStep(2);
+
         } catch (error) {
             console.error(error);
             alert('Falha na geração: ' + error);
@@ -160,9 +192,9 @@ export const ExamBuilderView = () => {
                             <div>
                                 <h4 className="font-bold text-purple-800 flex items-center gap-2">
                                     <FileText size={18} />
-                                    Criar Prova contextualizada (PDF)
+                                    Digitalizar / Extrair Questões (PDF ou Imagem)
                                 </h4>
-                                <p className="text-sm text-purple-600">Gere questões automaticamente a partir de um livro ou apostila.</p>
+                                <p className="text-sm text-purple-600">Gere questões baseadas em conteúdo bibliográfico ou extraia (OCR) de fotos de provas.</p>
                             </div>
                             <button
                                 onClick={() => setImportModalOpen(true)}
@@ -185,7 +217,7 @@ export const ExamBuilderView = () => {
                                 <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer relative">
                                     <input
                                         type="file"
-                                        accept=".pdf"
+                                        accept=".pdf,image/png,image/jpeg,image/webp"
                                         onChange={handleFileUpload}
                                         className="absolute inset-0 opacity-0 cursor-pointer"
                                     />
@@ -196,9 +228,9 @@ export const ExamBuilderView = () => {
                                             <Upload size={32} />
                                         )}
                                         <span className="font-medium">
-                                            {importFile ? importFile.name : "Arraste seu PDF aqui ou clique para buscar"}
+                                            {importFile ? importFile.name : "Arraste seu PDF ou IMAGEM aqui"}
                                         </span>
-                                        {importContext && <span className="text-xs text-green-600 font-bold bg-green-100 px-2 py-1 rounded">Conteúdo Extraído ({importContext.length} caracteres)</span>}
+                                        {importContext && <span className="text-xs text-green-600 font-bold bg-green-100 px-2 py-1 rounded">Pronto para extração de contexto via RAG/OCR</span>}
                                     </div>
                                 </div>
 
@@ -216,7 +248,7 @@ export const ExamBuilderView = () => {
                                         ) : (
                                             <>
                                                 <Brain size={18} />
-                                                Gerar Questões via IA
+                                                {importImageBase64 ? 'Extrair via OCR' : 'Analisar Fonte e Gerar Questões'}
                                             </>
                                         )}
                                     </button>

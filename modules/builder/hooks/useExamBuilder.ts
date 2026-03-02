@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import * as Papa from 'papaparse';
 import { AppState, Exam, ExamStatus, ExamModel, Item, QuestionType, DifficultyLevel, ItemOrigin, ItemLifecycleStatus, CoverSection } from '../../../types';
 import { uuidv4 } from '../../../utils/helpers';
@@ -11,6 +11,7 @@ import { MOCK_TENANT_ID, MOCK_SCHOOL_ID } from '../../../utils/mockData';
 
 export const useExamBuilder = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const state = useSafeAppStore();
     const { addExam, addItem, addItems } = state;
     const [step, setStep] = useState(1);
@@ -151,6 +152,27 @@ export const useExamBuilder = () => {
             }
         }
     }, [state.currentUser?.id, state.exams]);
+
+    // --- AUTO-TRIGGER FOR SUGGESTED SCHEDULES ---
+    useEffect(() => {
+        const urlState = location.state as any;
+        if (urlState?.autoGenerate && !config.title && selectedItems.length === 0) {
+            const subject = urlState.suggestedSubject || 'Geral';
+            setConfig(prev => ({
+                ...prev,
+                subject,
+                title: `Avaliação de ${subject} - ${new Date().toLocaleDateString()}`
+            }));
+            setSmartCriteria(prev => ({ ...prev, subject }));
+            setBuilderMode('SMART');
+            setStep(1); // Fica no step 1 para mostrar a geração ocorrendo
+
+            // Disparar a geração inteligente um tick depois
+            setTimeout(() => {
+                handleSmartGenerate();
+            }, 100);
+        }
+    }, [location.state]);
 
     // Logic Handlers
     const handleSave = async (publish = false) => {
