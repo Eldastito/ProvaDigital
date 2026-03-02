@@ -120,9 +120,46 @@ export const createItemSlice: StateCreator<AppStore, [], [], ItemSlice> = (set, 
             return;
         }
 
+        const dbItems = (data || []).map(item => ({
+            id: item.id,
+            tenantId: item.tenant_id,
+            schoolId: item.school_id,
+            ownerId: item.owner_id,
+            knowledgeArea: item.knowledge_area,
+            subject: item.subject,
+            type: item.type,
+            statement: item.statement,
+            imageUrl: item.image_url,
+            alternatives: item.alternatives || [],
+            correctAnswerJustification: item.correct_justification,
+            difficulty: item.difficulty,
+            score: item.score,
+            origin: item.origin,
+            tags: item.tags || [],
+            bnccCode: item.bncc_code,
+            usageCount: item.usage_count || 0,
+            isAccessible: item.is_accessible,
+            accessibilityInstructions: item.accessibility_instructions,
+            multimedia: item.multimedia || [],
+            simulationConfig: item.simulation_config,
+            generationBatchId: item.generation_batch_id,
+            lifecycleStatus: item.lifecycle_status,
+            currentVersionId: item.current_version_id,
+            aiModelId: item.ai_model_id,
+            aiPromptVersion: item.ai_prompt_version,
+            aiGenerationSettings: item.ai_generation_settings,
+            reviewerId: item.reviewer_id,
+            reviewedAt: item.reviewed_at,
+            isPublic: item.is_public,
+            downloadsCount: item.downloads_count || 0,
+            ratingAvg: item.rating_avg || 0,
+            authorName: item.author_name,
+            createdAt: item.created_at,
+            triParams: item.tri_params
+        })) as Item[];
+
         // Always ensure the 3D Mock Models are injected into the list for demonstration purposes
         const mock3DItems = INITIAL_ITEMS.filter(i => i.id.startsWith('3d-mock-'));
-        const dbItems = (data || []) as Item[];
 
         set({ items: [...dbItems, ...mock3DItems] });
     },
