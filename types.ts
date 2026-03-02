@@ -365,6 +365,51 @@ export interface User {
   createdAt?: string;
 }
 
+// --- SCHEDULING ---
+export enum ExamScheduleStatus {
+  SCHEDULED = 'SCHEDULED',
+  ACTIVE = 'ACTIVE',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED'
+}
+
+export interface ScheduledExam {
+  id: string;
+  examId: string | null;
+  examTitle: string;
+  classIds: string[];
+  scheduledFor: Date; // Usar Date no frontend
+  duration: number; // minutos
+  mode: 'ONLINE' | 'OFFLINE' | 'HYBRID';
+  config: {
+    proctoring: boolean;
+    shuffle: boolean;
+    timeLimit: number;
+    allowReview: boolean;
+    adaptiveMode?: string;
+  };
+  status: ExamScheduleStatus;
+  createdBy: string;
+  professorId?: string;
+  createdAt: Date;
+  updatedAt?: Date;
+  tenantId?: string;
+}
+
+export interface ScheduleFilters {
+  classId?: string;
+  status?: ExamScheduleStatus;
+  dateFrom?: Date;
+  dateTo?: Date;
+  mode?: 'ONLINE' | 'OFFLINE' | 'HYBRID';
+}
+
+export interface ScheduleConflict {
+  type: 'EXAM_OVERLAP' | 'CLASS_BUSY' | 'PROFESSOR_BUSY';
+  message: string;
+  conflictingSchedule: ScheduledExam;
+}
+
 export interface Student {
   id: string;
   name: string;

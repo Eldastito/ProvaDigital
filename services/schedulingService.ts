@@ -8,39 +8,7 @@
 import { supabase } from './supabaseClient';
 
 // Tipos
-export interface ScheduledExam {
-    id: string;
-    examId: string | null;
-    examTitle: string;
-    classIds: string[];
-    scheduledFor: Date;
-    duration: number; // minutos
-    mode: 'ONLINE' | 'OFFLINE' | 'HYBRID';
-    config: {
-        proctoring: boolean;
-        shuffle: boolean;
-        timeLimit: number;
-        allowReview: boolean;
-    };
-    status: 'SCHEDULED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
-    createdBy: string;
-    createdAt: Date;
-    updatedAt?: Date;
-}
-
-export interface ScheduleFilters {
-    classId?: string;
-    status?: ScheduledExam['status'];
-    dateFrom?: Date;
-    dateTo?: Date;
-    mode?: ScheduledExam['mode'];
-}
-
-export interface Conflict {
-    type: 'EXAM_OVERLAP' | 'CLASS_BUSY' | 'PROFESSOR_BUSY';
-    message: string;
-    conflictingSchedule: ScheduledExam;
-}
+import { ScheduledExam, ScheduleConflict as Conflict, ExamScheduleStatus, ScheduleFilters } from '../types';
 
 /**
  * Service para gerenciar agendamentos de provas
@@ -155,7 +123,7 @@ export class SchedulingService {
      * Cancelar agendamento (soft delete)
      */
     async cancelSchedule(id: string): Promise<ScheduledExam> {
-        return this.updateSchedule(id, { status: 'CANCELLED' });
+        return this.updateSchedule(id, { status: ExamScheduleStatus.CANCELLED });
     }
 
     /**
@@ -294,14 +262,14 @@ export class SchedulingService {
      * Marcar como ativa (quando começar)
      */
     async activateSchedule(id: string): Promise<ScheduledExam> {
-        return this.updateSchedule(id, { status: 'ACTIVE' });
+        return this.updateSchedule(id, { status: ExamScheduleStatus.ACTIVE });
     }
 
     /**
      * Marcar como completa (quando terminar)
      */
     async completeSchedule(id: string): Promise<ScheduledExam> {
-        return this.updateSchedule(id, { status: 'COMPLETED' });
+        return this.updateSchedule(id, { status: ExamScheduleStatus.COMPLETED });
     }
 
     /**
@@ -312,7 +280,7 @@ export class SchedulingService {
         const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
         return this.getSchedules({
-            status: 'SCHEDULED',
+            status: ExamScheduleStatus.SCHEDULED,
             dateFrom: now,
             dateTo: tomorrow
         });

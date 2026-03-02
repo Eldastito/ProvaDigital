@@ -88,12 +88,20 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
                 return;
             }
 
-            // 2. Find Active Exam for these classes
-            // For MVP, we select the first class that has an exam available or just the first class.
-            // Ideally, we would have a ClassSelector UI here.
-            const selectedClass = availableClasses[0]; // Logic could be improved to pick 'next' class
-            const activeExam = state.exams.find(e => e.classIds.includes(selectedClass.id) && e.status === 'ACTIVE')
-                || state.exams.find(e => e.classIds.includes(selectedClass.id)); // or draft
+            // 2. Find Active Exam for these classes (Check Schedules first, then fallback to Exams)
+            const selectedClass = availableClasses[0];
+
+            // A. Look for a formal schedule
+            const schedule = state.schedules.find(s =>
+                s.classIds.includes(selectedClass.id) &&
+                (s.status === 'ACTIVE' || s.status === 'SCHEDULED' || s.status === 'COMPLETED')
+            );
+
+            // B. Look for an exam directly allocated (legacy/fallback)
+            const activeExam = schedule?.examId
+                ? state.exams.find(e => e.id === schedule.examId)
+                : (state.exams.find(e => e.classIds.includes(selectedClass.id) && e.status === 'ACTIVE')
+                    || state.exams.find(e => e.classIds.includes(selectedClass.id)));
 
             // 3. Populate Data
             const classStudents = state.students.filter(s => s.classId === selectedClass.id);
@@ -108,8 +116,8 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
                 classId: selectedClass.id,
                 className: selectedClass.name,
                 students: classStudents.map(s => ({ id: s.id, name: s.name, reg: s.registrationNumber })),
-                examTitle: activeExam?.title || 'Aula Regular (Sem Prova)',
-                key: activeExam ? `key_${activeExam.id} ` : 'no_exam_key'
+                examTitle: schedule?.examTitle || activeExam?.title || 'Aula Regular (Sem Prova)',
+                key: activeExam ? `key_${activeExam.id}` : (schedule ? `sched_${schedule.id}` : 'no_exam_key')
             });
             setStudentStatuses(st);
         }
