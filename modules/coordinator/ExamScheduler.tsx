@@ -47,6 +47,7 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
     const [deviceCapability] = useState(detectDeviceCapability());
     const [prediction, setPrediction] = useState<SmartFormPrediction | null>(null);
     const [selectedProfessorId, setSelectedProfessorId] = useState(''); // Novo: Para Gestores
+    const [currentDate, setCurrentDate] = useState(new Date());
 
     const isManager = store.currentUser?.role && [UserRole.DIRETOR, UserRole.SUPERVISOR, UserRole.TENANT_ADMIN, UserRole.SYSTEM_ADMIN].includes(store.currentUser.role);
 
@@ -75,6 +76,11 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
         } finally {
             setLoading(false);
         }
+    };
+
+    // Handlers do Calendário
+    const handleNavigate = (date: Date) => {
+        setCurrentDate(date);
     };
 
     // Handler para criar novo agendamento
@@ -439,6 +445,8 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                     ]}
                     onSelectEvent={handleCalendarSelect}
                     onSelectSlot={handleSlotSelect}
+                    onNavigate={handleNavigate}
+                    selectedDate={currentDate}
                 />
             </div>
 
