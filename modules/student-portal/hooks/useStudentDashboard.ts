@@ -180,9 +180,10 @@ export const useStudentDashboard = () => {
             e.participants?.some(p => p.studentId === student.id) &&
             e.eventDate.startsWith(dateStr)
         );
+        const studentSchoolId = student.schoolId || user.schoolId;
         const instEventsForDay: any[] = [];
         state.institutionalEvents?.forEach(e => {
-            if (e.schoolId !== student.schoolId) return;
+            if (e.schoolId && e.schoolId !== studentSchoolId) return;
 
             // Evento comum (Feriado/Evento)
             const start = e.startDate;

@@ -405,10 +405,19 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                     schedules={[
                         ...schedules,
                         ...(store.institutionalEvents
-                            ?.filter(e => e.schoolId === store.currentUser?.schoolId)
+                            ?.filter(e => !e.schoolId || e.schoolId === store.currentUser?.schoolId)
                             .map(evt => {
-                                const start = new Date(evt.startDate + 'T00:00:00');
-                                const end = evt.endDate ? new Date(evt.endDate + 'T23:59:59') : new Date(evt.startDate + 'T23:59:59');
+                                const [y, m, d] = evt.startDate.split('-').map(Number);
+                                const start = new Date(y, m - 1, d, 0, 0, 0);
+
+                                let end = start;
+                                if (evt.endDate) {
+                                    const [ey, em, ed] = evt.endDate.split('-').map(Number);
+                                    end = new Date(ey, em - 1, ed, 23, 59, 59);
+                                } else {
+                                    end = new Date(y, m - 1, d, 23, 59, 59);
+                                }
+
                                 const durationMinutes = Math.floor((end.getTime() - start.getTime()) / 60000);
 
                                 return {

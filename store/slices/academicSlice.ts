@@ -436,11 +436,11 @@ export const createAcademicSlice: StateCreator<AppStore, [], [], AcademicSlice> 
                 schoolId: evt.school_id,
                 title: evt.title,
                 type: evt.type as any,
-                // Fix: Ensure we only take the date part if it's potentially malformed or causing issues in new Date()
-                startDate: evt.start_date ? evt.start_date.split(' ')[0] : '',
-                endDate: evt.end_date ? evt.end_date.split(' ')[0] : null,
-                examsStartDate: evt.exams_start_date ? evt.exams_start_date.split(' ')[0] : null,
-                examsEndDate: evt.exams_end_date ? evt.exams_end_date.split(' ')[0] : null,
+                // Fix: Robust extraction of YYYY-MM-DD regardless of whether it's T or space separated
+                startDate: evt.start_date ? evt.start_date.substring(0, 10) : '',
+                endDate: evt.end_date ? evt.end_date.substring(0, 10) : null,
+                examsStartDate: evt.exams_start_date ? evt.exams_start_date.substring(0, 10) : null,
+                examsEndDate: evt.exams_end_date ? evt.exams_end_date.substring(0, 10) : null,
                 description: evt.description,
                 blocksScheduling: evt.blocks_scheduling,
                 createdAt: evt.created_at,
