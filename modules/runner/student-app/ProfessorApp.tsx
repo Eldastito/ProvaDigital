@@ -320,7 +320,17 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
                     <button onClick={onBack} className="p-2 hover:bg-white/10 rounded-full"><ArrowLeft size={20} /></button>
                     <div>
                         <h2 className="font-bold text-lg">{classData.className}</h2>
-                        <p className="text-xs opacity-80">{classData.examTitle}</p>
+                        <div className="flex items-center gap-2">
+                            <p className="text-xs opacity-80">{classData.examTitle}</p>
+                            {classData.examTitle === 'Aula Regular (Sem Prova)' && (
+                                <button
+                                    onClick={() => navigate('/agendamento')}
+                                    className="bg-brand-secondary text-[10px] px-2 py-0.5 rounded font-black text-white hover:bg-orange-400 transition ml-2 uppercase"
+                                >
+                                    Agendar Agora
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
                 <div className="flex gap-3">

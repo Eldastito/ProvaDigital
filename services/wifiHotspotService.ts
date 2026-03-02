@@ -66,8 +66,9 @@ export class WifiHotspotService {
      * Gera SSID único para o evento
      */
     static generateSSID(schoolId: string, eventId: string): string {
-        const shortEventId = eventId.slice(-6).toUpperCase();
-        return `ExamePad-${schoolId}-${shortEventId}`;
+        const shortSchoolId = schoolId.slice(0, 4).toUpperCase();
+        const shortEventId = eventId.slice(-4).toUpperCase();
+        return `ExamePad-${shortSchoolId}-${shortEventId}`;
     }
 
     /**

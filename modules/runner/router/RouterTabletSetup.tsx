@@ -337,10 +337,19 @@ export const RouterTabletSetup: React.FC<RouterTabletSetupProps> = ({
                         )}
 
                         {/* Instruções */}
-                        <div className="mt-6 p-4 bg-green-50 rounded-xl">
-                            <p className="text-sm text-green-800">
-                                <strong>✅ Hotspot ativo!</strong> Outros tablets podem se conectar à rede <strong>{hotspotStatus.ssid}</strong> usando a senha acima.
+                        <div className="mt-6 p-6 bg-amber-50 border-2 border-amber-200 rounded-2xl">
+                            <h3 className="text-amber-900 font-bold flex items-center gap-2 mb-2">
+                                <AlertTriangle size={20} /> ATENÇÃO: Ativação Manual Necessária
+                            </h3>
+                            <p className="text-sm text-amber-800 leading-relaxed">
+                                Você está usando a versão Web. O sistema <strong>não pode ativar o Wi-Fi automaticamente</strong> por segurança do navegador.
                             </p>
+                            <ol className="mt-3 text-sm text-amber-800 space-y-2 list-decimal list-inside font-medium">
+                                <li>Abra as <strong>Configurações</strong> do Android/Tablet.</li>
+                                <li>Vá em <strong>Roteador Wi-Fi / Hotspot</strong>.</li>
+                                <li>Ative o roteador e configure com o <strong>Nome</strong> e <strong>Senha</strong> exibidos acima.</li>
+                                <li>Aguarde os tablets dos alunos conectarem.</li>
+                            </ol>
                         </div>
                     </div>
                 )}
