@@ -131,9 +131,17 @@ export const PedagogicalDashboard = () => {
                     </h1>
                     <p className="text-slate-500 mt-2 text-lg font-medium">{school?.name || 'Escola'} • Monitoramento de Aprendizagem</p>
                 </div>
-                <button onClick={handlePrint} className="bg-slate-800 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 hover:bg-slate-700 shadow-lg print:hidden">
-                    <Printer size={20} /> Relatório Pedagógico
-                </button>
+                <div className="flex items-center gap-3 print:hidden">
+                    <button
+                        onClick={() => setShowAgendaModal(true)}
+                        className="bg-brand-primary text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 hover:bg-brand-secondary shadow-lg transition-all"
+                    >
+                        <Calendar size={20} /> Agenda Escolar
+                    </button>
+                    <button onClick={handlePrint} className="bg-slate-800 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 hover:bg-slate-700 shadow-lg">
+                        <Printer size={20} /> Relatório Pedagógico
+                    </button>
+                </div>
             </div>
 
             {/* KPIs Pedagógicos */}
@@ -159,7 +167,7 @@ export const PedagogicalDashboard = () => {
                     <div className="text-xs text-slate-400 mt-2">Avaliações no período</div>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow-md cursor-pointer group" onClick={() => setShowAgendaModal(true)}>
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow-md cursor-pointer group" onClick={() => setShowActivitiesModal(true)}>
                     <div className="flex items-center justify-between mb-4">
                         <span className="text-xs font-bold text-slate-500 uppercase">Calendário Institucional</span>
                         <Calendar size={20} className="text-brand-primary group-hover:scale-110 transition-transform" />
