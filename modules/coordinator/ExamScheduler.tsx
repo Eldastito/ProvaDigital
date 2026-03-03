@@ -5,7 +5,7 @@
  * Sprint 0 - Parte 1
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, Plus, Edit2, Trash2, X, Save, AlertTriangle, Check, Clock, Users, Wifi, WifiOff, FileText, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarView } from '../../components/Calendar/CalendarView';
