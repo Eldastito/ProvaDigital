@@ -5,12 +5,24 @@ import { AppState, RiskLevel, ExamStatus, InstitutionalEvent } from '../../types
 import { useAppStore } from '../../store/useAppStore';
 import { AnalyticsService } from '../../services/analyticsService';
 import { translateRiskLevel } from '../../utils/translations';
+import { AgendaModal } from '../../components/Calendar/AgendaModal';
+import { useAgenda } from '../../hooks/useAgenda';
 
 export const PedagogicalDashboard = () => {
     const state = useAppStore();
     const { currentUser } = state;
     const [showActivitiesModal, setShowActivitiesModal] = useState(false);
     const analytics = new AnalyticsService(state);
+    const {
+        currentMonth,
+        showAgendaModal,
+        setShowAgendaModal,
+        changeMonth,
+        getEventsForDay,
+        getAllMonthEvents,
+        daysInMonth,
+        firstDayOfMonth
+    } = useAgenda();
 
     const schoolId = currentUser?.schoolId;
     const school = state.schools.find(s => s.id === schoolId);
@@ -147,7 +159,7 @@ export const PedagogicalDashboard = () => {
                     <div className="text-xs text-slate-400 mt-2">Avaliações no período</div>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow-md cursor-pointer group" onClick={() => setShowActivitiesModal(true)}>
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow-md cursor-pointer group" onClick={() => setShowAgendaModal(true)}>
                     <div className="flex items-center justify-between mb-4">
                         <span className="text-xs font-bold text-slate-500 uppercase">Calendário Institucional</span>
                         <Calendar size={20} className="text-brand-primary group-hover:scale-110 transition-transform" />
@@ -392,6 +404,17 @@ export const PedagogicalDashboard = () => {
                     </div>
                 </div>
             </div>
+
+            <AgendaModal
+                isOpen={showAgendaModal}
+                onClose={() => setShowAgendaModal(false)}
+                currentMonth={currentMonth}
+                onChangeMonth={changeMonth}
+                daysInMonth={daysInMonth}
+                firstDayOfMonth={firstDayOfMonth}
+                getEventsForDay={getEventsForDay}
+                getAllMonthEvents={getAllMonthEvents}
+            />
 
             <div className="text-center text-xs text-slate-400 mt-12 print:fixed print:bottom-4 print:w-full">
                 Supervisão Pedagógica • Documento Confidencial • {new Date().toLocaleDateString()}

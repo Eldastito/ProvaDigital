@@ -5,10 +5,23 @@ import { calculateRiskScore } from '../../services/riskDetectionEngine';
 import { RiskLevel } from '../../types';
 import { NotificationBell } from '../notifications/NotificationBell';
 import { translateRiskLevel } from '../../utils/translations';
+import { AgendaModal } from '../../components/Calendar/AgendaModal';
+import { useAgenda } from '../../hooks/useAgenda';
 
 export const ParentsDashboardView = () => {
-    const { currentUser, students, results, exams, selectedChildId, setSelectedChildId } = useAppStore();
+    const { currentUser, students, results, exams, selectedChildId, setSelectedChildId, institutionalEvents } = useAppStore();
     const [isLoading, setIsLoading] = React.useState(true);
+
+    const {
+        currentMonth,
+        showAgendaModal,
+        setShowAgendaModal,
+        changeMonth,
+        getEventsForDay,
+        getAllMonthEvents,
+        daysInMonth,
+        firstDayOfMonth
+    } = useAgenda(selectedChildId);
 
     // Get children
     const myChildren = currentUser?.childrenIds
@@ -40,12 +53,10 @@ export const ParentsDashboardView = () => {
     const childExams = selectedChild ? exams.filter(e => e.classIds?.includes(selectedChild.classId || '')) : [];
 
     // --- INTELLIGENCE ENGINE ---
-    // Calculates risk in real-time based on current data
     const riskAssessment = selectedChild
         ? calculateRiskScore(selectedChild, childResults)
         : null;
 
-    // Use simulated attendance from Risk Engine (replacing hardcoded 95%)
     const attendancePercentage = riskAssessment?.simulatedAttendance || 0;
     const averageScore = childResults.length > 0
         ? (childResults.reduce((sum, r) => sum + (r.totalScore || 0), 0) / childResults.length).toFixed(1)
@@ -113,7 +124,6 @@ export const ParentsDashboardView = () => {
                             <p className="font-bold text-sm">Nenhum filho vinculado</p>
                             <p className="text-xs mt-1 text-blue-700">
                                 Entre em contato com a secretaria da escola para vincular os dados do aluno ao seu perfil.
-                                Enquanto isso, você está visualizando o painel de demonstração vazio.
                             </p>
                         </div>
                     </div>
@@ -122,23 +132,16 @@ export const ParentsDashboardView = () => {
 
             {/* --- RISK ALERT SECTION --- */}
             {selectedChild && riskAssessment && (riskAssessment.riskLevel === RiskLevel.HIGH || riskAssessment.riskLevel === RiskLevel.MEDIUM) && (
-                <div className={`rounded-xl p-6 shadow-lg border ${riskAssessment.riskLevel === RiskLevel.HIGH
-                    ? 'bg-red-50 border-red-200'
-                    : 'bg-yellow-50 border-yellow-200'
-                    }`}>
+                <div className={`rounded-xl p-6 shadow-lg border ${riskAssessment.riskLevel === RiskLevel.HIGH ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'}`}>
                     <div className="flex items-start gap-4">
-                        <div className={`p-3 rounded-full ${riskAssessment.riskLevel === RiskLevel.HIGH ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'
-                            }`}>
+                        <div className={`p-3 rounded-full ${riskAssessment.riskLevel === RiskLevel.HIGH ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'}`}>
                             <TrendingUp size={32} />
                         </div>
                         <div className="flex-1">
-                            <h2 className={`text-xl font-bold mb-1 ${riskAssessment.riskLevel === RiskLevel.HIGH ? 'text-red-800' : 'text-yellow-800'
-                                }`}>
+                            <h2 className={`text-xl font-bold mb-1 ${riskAssessment.riskLevel === RiskLevel.HIGH ? 'text-red-800' : 'text-yellow-800'}`}>
                                 {riskAssessment.riskLevel === RiskLevel.HIGH ? `⚠️ Alerta de Risco ${translateRiskLevel(RiskLevel.HIGH)}` : `⚠️ Atenção Necessária (${translateRiskLevel(RiskLevel.MEDIUM)})`}
                             </h2>
-                            <p className="text-slate-700 mb-4">
-                                Detectamos padrões que indicam risco de evasão ou queda de desempenho.
-                            </p>
+                            <p className="text-slate-700 mb-4">Detectamos padrões que indicam risco de evasão ou queda de desempenho.</p>
 
                             <div className="space-y-2 mb-4">
                                 {riskAssessment.factors.map((factor, idx) => (
@@ -149,15 +152,6 @@ export const ParentsDashboardView = () => {
                                     </div>
                                 ))}
                             </div>
-
-                            {riskAssessment.riskLevel === RiskLevel.HIGH && (
-                                <button
-                                    onClick={() => alert("Solicitação enviada para a coordenação! Entraremos em contato em breve.")}
-                                    className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700 transition shadow-md"
-                                >
-                                    📞 Solicitar Reunião com Coordenação
-                                </button>
-                            )}
                         </div>
                     </div>
                 </div>
@@ -165,30 +159,23 @@ export const ParentsDashboardView = () => {
 
             {/* Quick Stats (Always Visible) */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <MetricCard
-                    icon={<TrendingUp size={24} />}
-                    color="emerald"
-                    value={averageScore}
-                    label="Média Geral"
-                />
-                <MetricCard
-                    icon={<BookOpen size={24} />}
-                    color="blue"
-                    value={childResults.length.toString()}
-                    label="Provas Realizadas"
-                />
-                <MetricCard
-                    icon={<Award size={24} />}
-                    color={attendancePercentage < 75 ? 'red' : 'purple'}
-                    value={`${attendancePercentage}%`}
-                    label="Frequência Escolar"
-                />
-                <MetricCard
-                    icon={<Calendar size={24} />}
-                    color="orange"
-                    value={childExams.length.toString()}
-                    label="Próximas Provas"
-                />
+                <MetricCard icon={<TrendingUp size={24} />} color="emerald" value={averageScore} label="Média Geral" />
+                <MetricCard icon={<BookOpen size={24} />} color="blue" value={childResults.length.toString()} label="Provas Realizadas" />
+                <MetricCard icon={<Award size={24} />} color={attendancePercentage < 75 ? 'red' : 'purple'} value={`${attendancePercentage}%`} label="Frequência Escolar" />
+
+                {/* Botão de Agenda para Pais */}
+                <div
+                    className="bg-brand-primary text-white rounded-xl p-4 shadow-md border border-brand-primary hover:shadow-lg transition cursor-pointer flex items-center gap-4"
+                    onClick={() => setShowAgendaModal(true)}
+                >
+                    <div className="w-12 h-12 rounded-lg bg-white/20 flex items-center justify-center text-white">
+                        <Calendar size={24} />
+                    </div>
+                    <div>
+                        <p className="text-xl font-black">{getAllMonthEvents().length}</p>
+                        <p className="text-xs font-bold uppercase whitespace-nowrap">Agenda Escolar</p>
+                    </div>
+                </div>
             </div>
 
             {/* Content Body */}
@@ -210,9 +197,7 @@ export const ParentsDashboardView = () => {
                                             <p className="font-bold text-brand-dark">{exam?.title}</p>
                                             <p className="text-sm text-slate-600">{exam?.subject}</p>
                                         </div>
-                                        <span className={`text-xl font-black ${score < 5 ? 'text-red-500' : 'text-emerald-600'}`}>
-                                            {score.toFixed(1)}
-                                        </span>
+                                        <span className={`text-xl font-black ${score < 5 ? 'text-red-500' : 'text-emerald-600'}`}>{score.toFixed(1)}</span>
                                     </div>
                                 );
                             })
@@ -241,11 +226,21 @@ export const ParentsDashboardView = () => {
                     </div>
                 </div>
             </div>
+
+            <AgendaModal
+                isOpen={showAgendaModal}
+                onClose={() => setShowAgendaModal(false)}
+                currentMonth={currentMonth}
+                onChangeMonth={changeMonth}
+                daysInMonth={daysInMonth}
+                firstDayOfMonth={firstDayOfMonth}
+                getEventsForDay={getEventsForDay}
+                getAllMonthEvents={getAllMonthEvents}
+            />
         </div>
     );
 };
 
-// Helper Component for Metrics
 const MetricCard = ({ icon, color, value, label }: any) => {
     const colorClasses = {
         emerald: 'bg-emerald-100 text-emerald-600',
@@ -267,4 +262,3 @@ const MetricCard = ({ icon, color, value, label }: any) => {
         </div>
     );
 };
-

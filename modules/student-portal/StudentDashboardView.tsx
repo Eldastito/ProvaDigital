@@ -12,7 +12,8 @@ import { EvolutionChart } from './components/dashboard/EvolutionChart';
 import { AgendaWidget } from './components/dashboard/AgendaWidget';
 import { GradesHistory } from './components/dashboard/GradesHistory';
 import { AnnouncementsWidget } from './components/dashboard/AnnouncementsWidget';
-import { AgendaModal } from './components/dashboard/AgendaModal';
+import { AgendaModal } from '../../components/Calendar/AgendaModal';
+import { useAgenda } from '../../hooks/useAgenda';
 import { EventRulesModal } from './components/dashboard/EventRulesModal';
 import { RankingModal } from './components/dashboard/RankingModal';
 import { CorrectionModal } from './components/dashboard/CorrectionModal';
@@ -36,22 +37,28 @@ export const StudentDashboardView = () => {
         recentResults,
         availableEvents,
         myActiveEvents,
-        currentMonth,
         showRankingModal, setShowRankingModal,
         rankingMode, setRankingMode,
         selectedResult, setSelectedResult,
-        showAgendaModal, setShowAgendaModal,
+        showAgendaModal: oldShowAgendaModal, // Keep it to avoid logic breaks but we'll use shared
+        setShowAgendaModal: oldSetShowAgendaModal,
         showEventRules, setShowEventRules,
         handleAcceptEvent,
-        changeMonth,
-        getEventsForDay,
-        getAllMonthEvents,
-        daysInMonth,
-        firstDayOfMonth,
         state,
         isEnabled,
         setOwlTutorContext
     } = useStudentDashboard();
+
+    const {
+        currentMonth,
+        changeMonth,
+        daysInMonth,
+        firstDayOfMonth,
+        getEventsForDay,
+        getAllMonthEvents,
+        showAgendaModal: showSharedModal,
+        setShowAgendaModal: setShowSharedModal
+    } = useAgenda(student?.id);
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto p-4 md:p-6 animate-in fade-in zoom-in-95 duration-500">
@@ -61,7 +68,7 @@ export const StudentDashboardView = () => {
                 isParent={isParent}
                 rankingEnabled={state.settings.rankingEnabled}
                 onShowRanking={() => setShowRankingModal(true)}
-                onShowAgenda={() => setShowAgendaModal(true)}
+                onShowAgenda={() => setShowSharedModal(true)}
             />
 
             <EventInvitations
@@ -89,10 +96,8 @@ export const StudentDashboardView = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="space-y-6">
-                    {/* NEW: AI Recommendations Widget */}
                     <RecommendationsWidget results={recentResults} items={state.items} />
 
-                    {/* NEW: AI Prediction Chart (Phase 3) */}
                     <PredictionChart
                         currentScore={stats.idgScore}
                         projectedScore={Math.min(10, stats.idgScore + 0.8)}
@@ -106,15 +111,13 @@ export const StudentDashboardView = () => {
 
                     <AgendaWidget
                         monthEvents={getAllMonthEvents()}
-                        onExpand={() => setShowAgendaModal(true)}
+                        onExpand={() => setShowSharedModal(true)}
                     />
 
-                    {/* NEW: Adaptive Study Plan (Phase 3) */}
                     <AdaptiveStudyPlanWidget />
                 </div>
 
                 <div className="lg:col-span-2 space-y-6">
-                    {/* NEW: Skills Heatmap Widget */}
                     <SkillsHeatmapWidget results={recentResults} items={state.items} />
 
                     <GradesHistory
@@ -128,8 +131,8 @@ export const StudentDashboardView = () => {
             </div>
 
             <AgendaModal
-                isOpen={showAgendaModal}
-                onClose={() => setShowAgendaModal(false)}
+                isOpen={showSharedModal}
+                onClose={() => setShowSharedModal(false)}
                 currentMonth={currentMonth}
                 onChangeMonth={changeMonth}
                 daysInMonth={daysInMonth}

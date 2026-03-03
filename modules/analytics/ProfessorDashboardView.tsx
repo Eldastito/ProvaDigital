@@ -16,6 +16,8 @@ import { mapStrategicInsightToTask } from '../../services/actionableTaskService'
 import { useEffect } from 'react';
 import { schedulingService } from '../../services/schedulingService';
 import { logisticsAIService, SchedulingCampaign } from '../../services/logisticsAIService';
+import { AgendaModal } from '../../components/Calendar/AgendaModal';
+import { useAgenda } from '../../hooks/useAgenda';
 
 const DistributionChart = ({ grades }: { grades: number[] }) => {
     const buckets = [0, 0, 0, 0, 0]; // 0-2, 2-4, 4-6, 6-8, 8-10
@@ -60,6 +62,17 @@ export const ProfessorDashboardView = () => {
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
     const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
     const [loadedExams, setLoadedExams] = useState<Record<string, boolean>>({});
+
+    const {
+        currentMonth,
+        showAgendaModal,
+        setShowAgendaModal,
+        changeMonth,
+        getEventsForDay,
+        getAllMonthEvents,
+        daysInMonth,
+        firstDayOfMonth
+    } = useAgenda();
 
     useEffect(() => {
         loadSchedules();
@@ -351,6 +364,20 @@ export const ProfessorDashboardView = () => {
                                 <p className="text-xl font-black text-brand-dark">{filteredItems.length}</p>
                                 <p className="text-xs text-slate-500 font-medium">Total de Itens</p>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Botão de Agenda para Professor */}
+                    <div
+                        className="bg-brand-primary text-white rounded-xl p-6 shadow-md hover:shadow-lg transition cursor-pointer flex items-center gap-4 border border-brand-primary"
+                        onClick={() => setShowAgendaModal(true)}
+                    >
+                        <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center text-white">
+                            <Calendar size={20} />
+                        </div>
+                        <div>
+                            <p className="text-lg font-bold">Agenda Escolar</p>
+                            <p className="text-xs text-white/80 font-medium whitespace-nowrap">Ver eventos e agendamentos</p>
                         </div>
                     </div>
                 </div>
@@ -687,6 +714,17 @@ export const ProfessorDashboardView = () => {
 
             {/* Painel de Intervenção Pedagógica (Merged from old dashboard) */}
             {isProfessor && <InterventionDashboard />}
+
+            <AgendaModal
+                isOpen={showAgendaModal}
+                onClose={() => setShowAgendaModal(false)}
+                currentMonth={currentMonth}
+                onChangeMonth={changeMonth}
+                daysInMonth={daysInMonth}
+                firstDayOfMonth={firstDayOfMonth}
+                getEventsForDay={getEventsForDay}
+                getAllMonthEvents={getAllMonthEvents}
+            />
         </div>
     );
 };
