@@ -59,8 +59,8 @@ export const AgentCoPilotOverlay: React.FC<AgentCoPilotOverlayProps> = ({
 
     return (
         <>
-            {/* Pulsing FAB */}
-            <div className="fixed bottom-8 right-8 z-40">
+            {/* Pulsing FAB - Higher to avoid Orb collision */}
+            <div className="fixed bottom-48 right-8 z-50">
                 <button
                     onClick={() => setIsOpen(!isOpen)}
                     className={`p-4 rounded-full shadow-2xl transition-all duration-300 flex items-center justify-center relative group ${isOpen ? 'bg-slate-800 text-white rotate-90' : 'bg-gradient-to-tr from-brand-primary to-indigo-600 text-white hover:scale-110'
@@ -75,8 +75,15 @@ export const AgentCoPilotOverlay: React.FC<AgentCoPilotOverlayProps> = ({
             </div>
 
             {/* Slide-over Panel */}
-            <div className={`fixed inset-y-0 right-0 w-80 bg-white shadow-2xl z-40 transform transition-transform duration-300 ease-in-out border-l border-slate-200 flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-                <div className="p-6 bg-slate-900 text-white">
+            <div className={`fixed inset-y-0 right-0 w-80 bg-white shadow-2xl z-[100] transform transition-transform duration-300 ease-in-out border-l border-slate-200 flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+                <div className="p-6 bg-slate-900 text-white relative">
+                    <button
+                        onClick={() => setIsOpen(false)}
+                        className="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors"
+                        title="Fechar Painel"
+                    >
+                        <X size={20} />
+                    </button>
                     <div className="flex items-center gap-2 mb-2">
                         <div className="p-2 bg-brand-primary/20 rounded-lg">
                             <Brain size={20} className="text-brand-primary" />
@@ -142,7 +149,7 @@ export const AgentCoPilotOverlay: React.FC<AgentCoPilotOverlayProps> = ({
                     )}
                 </div>
 
-                <div className="p-4 border-t bg-slate-50">
+                <div className="p-4 pb-20 border-t bg-slate-50">
                     <button
                         onClick={handleAnalyze}
                         disabled={isAnalyzing || items.length === 0}
