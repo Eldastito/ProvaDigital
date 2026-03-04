@@ -1,6 +1,7 @@
 import { AppState, Exam, UserRole } from '../types';
 
 export interface SmartFormPrediction {
+    suggestedTitle?: string;
     suggestedSubject?: string;
     suggestedClassIds?: string[];
     suggestedDifficulty?: string; // EASY, MEDIUM, HARD
@@ -8,6 +9,7 @@ export interface SmartFormPrediction {
     confidenceScore: number; // 0-100%
     reasoning: string;
 }
+
 
 /**
  * Serviço responsável por analisar o histórico do professor/coordenador e inferir (auto-preencher)
@@ -80,6 +82,7 @@ export const predictNextExamConfiguration = (
 
     // Retorna a Predição
     return {
+        suggestedTitle: mostCommonSubject ? `Avaliação de ${mostCommonSubject}` : undefined,
         suggestedSubject: mostCommonSubject,
         suggestedClassIds: mostCommonClassId ? [mostCommonClassId] : undefined,
         suggestedDifficulty: 'MEDIUM', // Ponto de partida
@@ -90,3 +93,4 @@ export const predictNextExamConfiguration = (
             : `Baseado nas suas últimas avaliações de ${mostCommonSubject}, onde observamos um ritmo quinzenal.`
     };
 };
+

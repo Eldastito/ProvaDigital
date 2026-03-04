@@ -1,5 +1,6 @@
 import React from 'react';
-import { Check, Info, Save, ShieldCheck, Loader2, Trash2, ChevronDown, ChevronUp, Truck, Send } from 'lucide-react';
+import { Check, Info, Save, ShieldCheck, Loader2, Trash2, ChevronDown, ChevronUp, Truck, Send, ArrowRight, Plus } from 'lucide-react';
+
 import { Item } from '../../../types';
 import { auditExamPedagogically } from '../../../services/PredictivePedagogicalService';
 import { Target, AlertTriangle, CheckCircle, Lightbulb, Clock, Brain, User, BarChart, Lock } from 'lucide-react';
@@ -45,8 +46,69 @@ export const ExamReview = ({
         runAudit();
     }, [selectedItems, config]);
 
+    if (logisticsStatus === ExamLogisticsStatus.SENT) {
+        return (
+            <div className="max-w-2xl mx-auto py-16 text-center animate-in zoom-in-95 duration-700">
+                <div className="mb-8 relative inline-block">
+                    <div className="absolute inset-0 bg-emerald-500 blur-3xl opacity-20 animate-pulse"></div>
+                    <div className="relative bg-white p-8 rounded-[3rem] shadow-2xl border-4 border-emerald-50">
+                        <CheckCircle size={80} className="text-emerald-500 mb-2" />
+                    </div>
+                </div>
+
+                <h2 className="text-3xl font-black text-slate-900 mb-4">Prova Enviada com Sucesso!</h2>
+                <p className="text-slate-500 mb-10 leading-relaxed">
+                    Sua prova <b>"{config.title}"</b> foi encriptada e enviada para a fila de carga da ExamePad HQ.
+                    <br />O próximo passo é o provisionamento dos tablets.
+                </p>
+
+                <div className="grid grid-cols-1 gap-4 max-w-sm mx-auto">
+                    <button
+                        onClick={() => navigate('/exams')}
+                        className="flex items-center justify-between p-4 bg-white border-2 border-slate-100 rounded-2xl hover:border-indigo-600 hover:bg-indigo-50 transition-all group shadow-sm hover:shadow-md"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                                <Clock size={20} />
+                            </div>
+                            <div className="text-left">
+                                <div className="text-sm font-bold text-slate-800">Ver Agendamentos</div>
+                                <div className="text-[10px] text-slate-400">Acompanhar status das aplicações</div>
+                            </div>
+                        </div>
+                        <ArrowRight size={18} className="text-slate-300 group-hover:text-indigo-600" />
+                    </button>
+
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="flex items-center justify-between p-4 bg-white border-2 border-slate-100 rounded-2xl hover:border-purple-600 hover:bg-purple-50 transition-all group shadow-sm hover:shadow-md"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-purple-100 text-purple-600 rounded-lg group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                                <Plus size={20} />
+                            </div>
+                            <div className="text-left">
+                                <div className="text-sm font-bold text-slate-800">Criar Nova Prova</div>
+                                <div className="text-[10px] text-slate-400">Iniciar outro processo guiado</div>
+                            </div>
+                        </div>
+                        <ArrowRight size={18} className="text-slate-300 group-hover:text-purple-600" />
+                    </button>
+
+                    <button
+                        onClick={() => navigate('/')}
+                        className="text-slate-400 hover:text-slate-600 text-xs font-bold mt-4"
+                    >
+                        Voltar para o Início
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="max-w-4xl mx-auto space-y-8 pb-12">
+
             <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
                 <div className="border-b pb-6 mb-6">
                     <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
@@ -57,14 +119,14 @@ export const ExamReview = ({
 
                         {/* Status Badge */}
                         <div className={`px-3 py-1 rounded-full text-xs font-black uppercase flex items-center gap-2 ${logisticsStatus === ExamLogisticsStatus.SENT ? 'bg-emerald-100 text-emerald-700' :
-                                logisticsStatus === ExamLogisticsStatus.SENDING ? 'bg-indigo-100 text-indigo-700 animate-pulse' :
-                                    logisticsStatus === ExamLogisticsStatus.ERROR ? 'bg-rose-100 text-rose-700' :
-                                        'bg-slate-100 text-slate-500'
+                            logisticsStatus === ExamLogisticsStatus.SENDING ? 'bg-indigo-100 text-indigo-700 animate-pulse' :
+                                logisticsStatus === ExamLogisticsStatus.ERROR ? 'bg-rose-100 text-rose-700' :
+                                    'bg-slate-100 text-slate-500'
                             }`}>
                             <div className={`w-2 h-2 rounded-full ${logisticsStatus === ExamLogisticsStatus.SENT ? 'bg-emerald-500' :
-                                    logisticsStatus === ExamLogisticsStatus.SENDING ? 'bg-indigo-500' :
-                                        logisticsStatus === ExamLogisticsStatus.ERROR ? 'bg-rose-500' :
-                                            'bg-slate-400'
+                                logisticsStatus === ExamLogisticsStatus.SENDING ? 'bg-indigo-500' :
+                                    logisticsStatus === ExamLogisticsStatus.ERROR ? 'bg-rose-500' :
+                                        'bg-slate-400'
                                 }`} />
                             Status: {
                                 logisticsStatus === ExamLogisticsStatus.SENT ? 'Enviada com Sucesso' :

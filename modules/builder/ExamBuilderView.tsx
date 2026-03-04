@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, Brain } from 'lucide-react';
+import { X, Brain, Loader2, FileText, Upload, ArrowRight, Sparkles } from 'lucide-react';
+
 import { useExamBuilder } from './hooks/useExamBuilder';
 import { ExamBasicInfo } from './components/ExamBasicInfo';
 import { ExamQuestionSelector } from './components/ExamQuestionSelector';
@@ -8,7 +9,7 @@ import { BatchReviewPanel } from '../runner/features/BatchReviewPanel';
 import { AdvancedReviewPipeline } from '../runner/features/AdvancedReviewPipeline';
 import { extractTextFromPDF } from '../../utils/pdfExtractor';
 import { generateQuestionsFromText, extractQuestionsFromImage } from '../../services/geminiService';
-import { Loader2, FileText, Upload } from 'lucide-react';
+
 import { v4 as uuidv4 } from 'uuid';
 import { Item, QuestionType, DifficultyLevel, ItemOrigin, ItemLifecycleStatus } from '../../types';
 import { AgentCoPilotOverlay } from './components/AgentCoPilotOverlay';
@@ -206,16 +207,26 @@ export const ExamBuilderView = () => {
                 {step === 1 && (
                     <>
                         {prediction && !config.title && (
-                            <div className="mb-4 bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex items-start gap-3">
-                                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-600 font-bold text-xl leading-none">
+                            <div className="mb-4 bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex items-start gap-4 shadow-sm animate-in fade-in duration-500">
+                                <div className="p-3 bg-white rounded-2xl text-indigo-600 font-bold text-2xl shadow-inner border border-indigo-100 flex items-center justify-center">
                                     ✨
                                 </div>
-                                <div>
-                                    <h4 className="font-semibold text-indigo-900">Configuração Inteligente</h4>
-                                    <p className="text-sm text-indigo-700 mt-1">{prediction.reasoning}</p>
+                                <div className="flex-1">
+                                    <h4 className="font-bold text-indigo-900 text-lg">Sugestão de Configuração</h4>
+                                    <p className="text-sm text-indigo-700/80 mt-1 leading-relaxed">{prediction.reasoning}</p>
+                                    <button
+                                        onClick={() => {
+                                            setConfig(prev => ({ ...prev, title: prediction.suggestedTitle, subject: prediction.suggestedSubject }));
+                                            setStep(2);
+                                        }}
+                                        className="mt-3 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition flex items-center gap-2 shadow-md shadow-indigo-200"
+                                    >
+                                        Aplicar Sugestão e Ir para Questões <ArrowRight size={16} />
+                                    </button>
                                 </div>
                             </div>
                         )}
+
                         <div className="mt-4 p-4 bg-purple-50 rounded-xl border border-purple-100 flex items-center justify-between">
                             <div>
                                 <h4 className="font-bold text-purple-800 flex items-center gap-2">

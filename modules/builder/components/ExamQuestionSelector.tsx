@@ -324,6 +324,20 @@ export const ExamQuestionSelector = ({
                     </button>
                 </div>
             </div>
+            {/* Floating Quick Navigation */}
+            {selectedItems.length > 0 && (
+                <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-8 duration-500">
+                    <button
+                        onClick={() => onStepChange(3)}
+                        className="bg-indigo-600 text-white px-8 py-4 rounded-full font-bold shadow-2xl flex items-center gap-3 hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all ring-4 ring-white"
+                    >
+                        <Check size={20} className="bg-white/20 rounded-full p-0.5" />
+                        Próximo Passo: Revisar Prova ({selectedItems.length} itens)
+                        <ArrowRight size={20} />
+                    </button>
+                </div>
+            )}
         </div>
     );
 };
+

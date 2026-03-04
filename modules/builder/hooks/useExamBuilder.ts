@@ -254,19 +254,9 @@ export const useExamBuilder = () => {
 
             await addExam(newExam);
 
-            // Simulação de delay de rede/processamento para UX de envio
-            if (publish) {
-                await new Promise(r => setTimeout(r, 1500));
-                setLogisticsStatus(ExamLogisticsStatus.SENT);
-                alert('Prova criada e enviada com sucesso.');
-            } else {
-                setLogisticsStatus(ExamLogisticsStatus.DRAFT);
-                alert('Prova salva como rascunho!');
-            }
-
             localStorage.removeItem(`exam_builder_draft_${state.currentUser?.id}`);
-            navigate('/exams');
             return examId;
+
         } catch (error: any) {
             setLogisticsStatus(ExamLogisticsStatus.ERROR);
             console.error(error);
