@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import * as Papa from 'papaparse';
 import { AppState, Exam, ExamStatus, ExamLogisticsStatus, ExamModel, Item, QuestionType, DifficultyLevel, ItemOrigin, ItemLifecycleStatus, CoverSection } from '../../../types';
-import { uuidv4 } from '../../../utils/helpers';
-import { useSafeAppStore } from '../../../store/useAppStore';
+import { v4 as uuidv4 } from 'uuid';
 import { smartSelectItems, ExamCriteria } from '../../../services/examService';
-import { generateQuestionsFromText } from '../../../services/geminiService';
+import { generateQuestionsFromText, classifyItemsBySubject } from '../../../services/geminiService';
 import { predictNextExamConfiguration, SmartFormPrediction } from '../../../services/smartFormService';
+import { useSafeAppStore } from '../../../store/useAppStore';
 import { MOCK_TENANT_ID, MOCK_SCHOOL_ID } from '../../../utils/mockData';
 
 export const useExamBuilder = () => {
@@ -77,7 +77,7 @@ export const useExamBuilder = () => {
                 id: uuidv4(),
                 type: 'text',
                 title: 'AVISOS DE SEGURANÇA',
-                content: `1 - O modo de tela cheia é obrigatório. Sair da tela cheia pode ser registrado como infração.\n2 - O sistema monitora a troca de abas e perda de foco.\n3 - Certifique-se de que sua bateria está carregada e conexão estável.\n4 - Identificação de cola ou consulta não autorizada anulará a prova.`
+                content: `1 - O modo de tela cheia é obrigatório.Sair da tela cheia pode ser registrado como infração.\n2 - O sistema monitora a troca de abas e perda de foco.\n3 - Certifique - se de que sua bateria está carregada e conexão estável.\n4 - Identificação de cola ou consulta não autorizada anulará a prova.`
             }
         ]
     });
@@ -121,7 +121,7 @@ export const useExamBuilder = () => {
 
     // --- PERSISTENCE & AUTO-SAVE ---
     useEffect(() => {
-        const key = `exam_builder_draft_${state.currentUser?.id}`;
+        const key = `exam_builder_draft_${state.currentUser?.id} `;
         const draft = localStorage.getItem(key);
         if (draft) {
             try {
@@ -151,7 +151,7 @@ export const useExamBuilder = () => {
 
     useEffect(() => {
         if (!config.title && selectedItems.length === 0) return;
-        const key = `exam_builder_draft_${state.currentUser?.id}`;
+        const key = `exam_builder_draft_${state.currentUser?.id} `;
         const draft = {
             config,
             selectedItems,
@@ -202,7 +202,7 @@ export const useExamBuilder = () => {
             setConfig(prev => ({
                 ...prev,
                 subject,
-                title: `Avaliação de ${subject} - ${new Date().toLocaleDateString()}`
+                title: `Avaliação de ${subject} - ${new Date().toLocaleDateString()} `
             }));
             setSmartCriteria(prev => ({ ...prev, subject }));
             setBuilderMode('SMART');
@@ -266,7 +266,7 @@ export const useExamBuilder = () => {
                 setLogisticsStatus(ExamLogisticsStatus.SENT);
             }
 
-            localStorage.removeItem(`exam_builder_draft_${state.currentUser?.id}`);
+            localStorage.removeItem(`exam_builder_draft_${state.currentUser?.id} `);
             return examId;
 
         } catch (error: any) {
@@ -303,18 +303,48 @@ export const useExamBuilder = () => {
                 return;
             }
 
-            // 2. Se não encontrou o suficiente, solicita geração IA para o restante
+            // 2. Passo de Resgate: Tenta classificar itens sem disciplina via IA
+            const missingBeforeRescue = smartCriteria.targetCount - result.selectedItems.length;
+            const subjectlessItems = (state.items || []).filter(i => !i.subject || i.subject.trim() === "");
+
+            if (subjectlessItems.length > 0) {
+                const rescuedIds = await classifyItemsBySubject(config.subject, subjectlessItems.map(i => ({ id: i.id, statement: i.statement })));
+
+                if (rescuedIds.length > 0) {
+                    const rescuedItems = subjectlessItems.filter(i => rescuedIds.includes(i.id));
+
+                    // Atualiza itens no banco/store local com a disciplina correta
+                    for (const item of rescuedItems) {
+                        await state.updateItem({ ...item, subject: config.subject });
+                    }
+
+                    // Tenta selecionar novamente com os novos itens classificados
+                    const updatedResult = smartSelectItems({ ...smartCriteria, subject: config.subject || smartCriteria.subject }, state.items || []);
+
+                    if (updatedResult.selectedItems.length >= smartCriteria.targetCount) {
+                        setSelectedItems(updatedResult.selectedItems);
+                        setSelectionDiagnosis(updatedResult);
+                        setStep(2);
+                        return;
+                    }
+
+                    // Atualiza o resultado base com o que foi resgatado para o próximo passo (Geração)
+                    result.selectedItems = updatedResult.selectedItems;
+                }
+            }
+
+            // 3. Se ainda não encontrou o suficiente, solicita geração IA para o restante
             const missing = smartCriteria.targetCount - result.selectedItems.length;
             const batchId = uuidv4();
             const promptContext = `
                 Gere uma prova de ${config.subject}.
-                Público-alvo: ${config.grade || 'Não especificado'}.
+Público - alvo: ${config.grade || 'Não especificado'}.
                 Área de Conhecimento: ${config.knowledgeArea || 'Geral'}.
                 Turma de Referência: ${config.className || 'Não especificada'}.
-                Contexto/Conteúdo Específico: ${config.contentDescription || 'Não especificado'}.
-                Já temos ${result.selectedItems.length} questões. Preciso de mais ${missing} questões inéditas.
+Contexto / Conteúdo Específico: ${config.contentDescription || 'Não especificado'}.
+                Já temos ${result.selectedItems.length} questões.Preciso de mais ${missing} questões inéditas.
                 Nível de Dificuldade: ${config.model === ExamModel.ADAPTATIVO ? 'Progressivo (Médio para Difícil)' : 'Variado (conforme BNCC)'}.
-            `;
+`;
 
             const generated = await generateQuestionsFromText(promptContext, missing, QuestionType.MULTIPLE_CHOICE, DifficultyLevel.MEDIUM, config.subject);
 
@@ -378,7 +408,7 @@ export const useExamBuilder = () => {
         setIsFillingGaps(true);
         try {
             const batchId = uuidv4();
-            const promptContext = `Crie questões sobre ${config.subject}. Foco: ${JSON.stringify(selectionDiagnosis.unmetBnccCodes)}`;
+            const promptContext = `Crie questões sobre ${config.subject}.Foco: ${JSON.stringify(selectionDiagnosis.unmetBnccCodes)} `;
             const generated = await generateQuestionsFromText(promptContext, selectionDiagnosis.missingCount, QuestionType.MULTIPLE_CHOICE, DifficultyLevel.MEDIUM, config.subject || smartCriteria.subject);
 
             if (generated) {

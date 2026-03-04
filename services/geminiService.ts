@@ -578,7 +578,24 @@ TAREFA:
     "confidence": number,
         "notes": "Explicação curta do mapeamento"
 }
-`
+`,
+    CLASSIFY_ITEMS: (subject: string, items: { id: string, text: string }[]) => `
+        Você é um Especialista em Curadoria Pedagógica.
+        Sua tarefa é analisar uma lista de questões e identificar quais delas pertencem à disciplina: **${subject}**.
+        
+        Muitas dessas questões estão sem metadados no sistema. Analise o ENUNCIADO e o TEXTO-BASE para decidir.
+        
+        ITENS PARA ANÁLISE:
+        ${JSON.stringify(items)}
+        
+        REGRAS:
+        1. Responda apenas com os IDs das questões que têm ALTA probabilidade de serem da disciplina informada.
+        2. Se nenhuma questão for compatível, retorne um array vazio.
+        3. Seja criterioso. Se houver dúvida, não inclua o ID.
+        
+        RETORNO (JSON):
+        { "matchingIds": ["id1", "id2", ...] }
+    `
 };
 
 // --- Interfaces ---
@@ -2552,5 +2569,41 @@ export const mapImportColumns = async (
             confidence: 0,
             notes: "Fallback manual devido a erro na IA."
         };
+    }
+};
+
+/**
+ * Classifica itens sem disciplina para resgate inteligente
+ */
+export const classifyItemsBySubject = async (
+    subject: string,
+    items: { id: string, statement: string }[]
+): Promise<string[]> => {
+    if (items.length === 0) return [];
+
+    const payload = items.map(i => ({
+        id: i.id,
+        text: i.statement.substring(0, 500)
+    }));
+
+    const prompt = (PROMPTS as any).CLASSIFY_ITEMS(subject, payload);
+
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            matchingIds: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING }
+            }
+        },
+        required: ["matchingIds"]
+    };
+
+    try {
+        const res = await callGeminiAPI<{ matchingIds: string[] }>(prompt, schema);
+        return res.matchingIds || [];
+    } catch (error) {
+        console.error("Erro ao classificar itens via IA:", error);
+        return [];
     }
 };
