@@ -281,13 +281,80 @@ export const useExamBuilder = () => {
         }
     };
 
-    const handleSmartGenerate = () => {
-        if (!state.items || state.items.length === 0) return alert("Banco vazio.");
-        const result = smartSelectItems({ ...smartCriteria, subject: config.subject || smartCriteria.subject }, state.items);
-        setSelectedItems(result.selectedItems);
-        setSelectionDiagnosis(result);
-        if (result.selectedItems.length > 0) setStep(2);
-        else alert("Nenhum item encontrado.");
+    const handleSmartGenerate = async () => {
+        setIsGenerating(true);
+        try {
+            // 1. Tenta selecionar do banco local primeiro
+            const result = smartSelectItems({ ...smartCriteria, subject: config.subject || smartCriteria.subject }, state.items || []);
+
+            if (result.selectedItems.length >= smartCriteria.targetCount) {
+                // Se encontrou tudo no banco, apenas avança
+                setSelectedItems(result.selectedItems);
+                setSelectionDiagnosis(result);
+                setStep(2);
+                return;
+            }
+
+            // 2. Se não encontrou o suficiente, solicita geração IA para o restante
+            const missing = smartCriteria.targetCount - result.selectedItems.length;
+            const batchId = uuidv4();
+            const promptContext = `Gere uma prova completa de ${config.subject}. Já temos ${result.selectedItems.length} questões. Preciso de mais ${missing} questões inéditas de nível ${config.model === ExamModel.ADAPTATIVO ? 'Médio/Difícil' : 'Variado'}.`;
+
+            const generated = await generateQuestionsFromText(promptContext, missing, QuestionType.MULTIPLE_CHOICE, DifficultyLevel.MEDIUM, config.subject);
+
+            if (generated && generated.length > 0) {
+                const newItems: Item[] = generated.map(g => ({
+                    id: uuidv4(),
+                    tenantId: state.currentUser?.tenantId || MOCK_TENANT_ID,
+                    ownerId: state.currentUser?.id || 'sys',
+                    statement: g.statement,
+                    subject: config.subject,
+                    type: QuestionType.MULTIPLE_CHOICE,
+                    alternatives: g.alternatives.map(a => ({ id: uuidv4(), ...a })),
+                    correctAnswerJustification: g.justification,
+                    difficulty: g.difficulty as DifficultyLevel,
+                    score: 1.0,
+                    origin: ItemOrigin.IA,
+                    tags: ['IA', 'Gerado Automaticamente'],
+                    usageCount: 0,
+                    generationBatchId: batchId,
+                    lifecycleStatus: ItemLifecycleStatus.DRAFT,
+                    createdAt: new Date().toISOString(),
+                    knowledgeArea: 'Geral'
+                }));
+
+                if (state.addGenerationBatch) {
+                    await state.addGenerationBatch({
+                        id: batchId,
+                        creatorId: state.currentUser?.id || '',
+                        tenantId: state.currentUser?.tenantId || MOCK_TENANT_ID,
+                        promptContext,
+                        totalRequested: missing,
+                        createdAt: new Date().toISOString()
+                    });
+                }
+
+                await addItems(newItems);
+                const finalSelection = [...result.selectedItems, ...newItems];
+                setSelectedItems(finalSelection);
+                setSelectionDiagnosis({ ...result, selectedItems: finalSelection, missingCount: 0 });
+                setStep(2);
+            } else {
+                // Fallback se a IA falhar mas tivermos algo no banco
+                if (result.selectedItems.length > 0) {
+                    setSelectedItems(result.selectedItems);
+                    setSelectionDiagnosis(result);
+                    setStep(2);
+                } else {
+                    alert("Não foi possível gerar questões no momento. Tente novamente ou use o modo Manual.");
+                }
+            }
+        } catch (error) {
+            console.error("Erro na geração inteligente:", error);
+            alert("Erro ao processar geração com IA.");
+        } finally {
+            setIsGenerating(false);
+        }
     };
 
     const handleGapGeneration = async () => {

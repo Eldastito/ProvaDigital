@@ -200,6 +200,7 @@ export const ExamBuilderView = () => {
                         coverConfig={coverConfig} setCoverConfig={setCoverConfig}
                         builderMode={builderMode} setBuilderMode={setBuilderMode}
                         handleSmartGenerate={handleSmartGenerate} setStep={setStep}
+                        isGenerating={isGenerating}
                     />
                 )}
 

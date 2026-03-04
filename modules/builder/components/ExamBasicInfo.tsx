@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings2, Sparkles, Brain, ShieldCheck, GripVertical, Trash, X, ArrowRight } from 'lucide-react';
+import { Settings2, Sparkles, Brain, ShieldCheck, GripVertical, Trash, X, ArrowRight, Loader2 } from 'lucide-react';
 import { ExamModel } from '../../../types';
 
 interface CoverSection {
@@ -40,6 +40,7 @@ interface ExamBasicInfoProps {
     setBuilderMode: (mode: 'MANUAL' | 'SMART') => void;
     handleSmartGenerate?: () => void;
     setStep: (step: number) => void;
+    isGenerating?: boolean;
 }
 
 export const ExamBasicInfo = ({
@@ -47,7 +48,8 @@ export const ExamBasicInfo = ({
     coverConfig, setCoverConfig,
     builderMode, setBuilderMode,
     handleSmartGenerate,
-    setStep
+    setStep,
+    isGenerating
 }: ExamBasicInfoProps) => {
 
     const setSmartCriteria = (val: any) => {
@@ -308,9 +310,12 @@ export const ExamBasicInfo = ({
                             setStep(2);
                         }
                     }}
-                    className="btn-gradient text-white px-6 py-3 rounded-lg font-bold shadow-md hover:shadow-lg transition flex items-center gap-2"
+                    disabled={isGenerating}
+                    className={`btn-gradient text-white px-6 py-3 rounded-lg font-bold shadow-md hover:shadow-lg transition flex items-center gap-2 ${isGenerating ? 'opacity-70 cursor-wait' : ''}`}
                 >
-                    {builderMode === 'SMART' ? <><Sparkles size={20} /> Gerar com IA</> : <>Próximo <ArrowRight size={20} /></>}
+                    {builderMode === 'SMART' ? (
+                        isGenerating ? <><Loader2 className="animate-spin" size={20} /> Gerando Prova...</> : <><Sparkles size={20} /> Gerar com IA</>
+                    ) : <>Próximo <ArrowRight size={20} /></>}
                 </button>
             </div>
         </div>
