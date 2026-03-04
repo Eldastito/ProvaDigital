@@ -89,6 +89,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     // Pega parâmetros reais do QR Code gerado pelo Lobby
     const classIdParam = params.get('classId');
     const examIdParam = params.get('examId');
+    const variantIdParam = params.get('variantId'); // Novo: suporte a variantes PCD/Neuro
     const sessionMode = classIdParam ? 'LIVE_REAL' : 'DEMO_LOCAL';
 
     const [studentData, setStudentData] = useState<any>(null);
@@ -213,13 +214,13 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     // --- DATA LOADING ---
     useEffect(() => {
         if (examIdParam) {
-            loadRealExam(examIdParam);
+            loadRealExam(examIdParam, variantIdParam);
         }
-    }, [examIdParam]);
+    }, [examIdParam, variantIdParam]);
 
     const [loadError, setLoadError] = useState<string | null>(null);
 
-    const loadRealExam = async (examId: string) => {
+    const loadRealExam = async (examId: string, variantId?: string | null) => {
         setLoadingExam(true);
         setLoadError(null);
         try {
@@ -230,7 +231,34 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
             const exam = freshState.exams.find(e => e.id === examId);
 
             if (exam) {
-                // Handle schema mismatch (items vs items_config) and missing items
+                // 1. Carregar variante e overrides se variantId existir
+                let overrides: any[] = [];
+                if (variantId) {
+                    console.log(`♿ Carregando variante de acessibilidade: ${variantId}`);
+
+                    // Buscar config da variante
+                    const { data: variantData } = await supabase
+                        .from('exam_variants')
+                        .select('*')
+                        .eq('id', variantId)
+                        .single();
+
+                    if (variantData?.accessibility_config) {
+                        setA11y(prev => ({ ...prev, ...variantData.accessibility_config }));
+                    }
+
+                    // Buscar overrides de itens
+                    const { data: overridesData } = await supabase
+                        .from('exam_variant_overrides')
+                        .select('*')
+                        .eq('variant_id', variantId)
+                        .eq('status', 'APPROVED');
+
+                    overrides = overridesData || [];
+                    console.log(`✅ ${overrides.length} overrides de conteúdo encontrados.`);
+                }
+
+                // 2. Processar itens com overrides
                 const configSource = (exam.items && exam.items.length > 0) ? exam.items : (exam.items_config || []);
 
                 if (!configSource || configSource.length === 0) {
@@ -238,8 +266,26 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                     setExamItems([]);
                 } else {
                     const items = configSource.map((config: any) => {
-                        const item = freshState.items.find(i => i.id === config.itemId);
-                        return item ? { ...item, ...config } : null;
+                        const baseItem = freshState.items.find(i => i.id === config.itemId);
+                        if (!baseItem) return null;
+
+                        // Aplicar override se existir para este item_version ou itemId
+                        const override = overrides.find(o =>
+                            o.item_version_id === baseItem.currentVersionId ||
+                            o.item_id === baseItem.id
+                        );
+
+                        if (override) {
+                            console.log(`🎨 Aplicando override no item ${baseItem.id}`);
+                            return {
+                                ...baseItem,
+                                ...config,
+                                ...override.override_payload,
+                                isOverridden: true
+                            };
+                        }
+
+                        return { ...baseItem, ...config };
                     }).filter(Boolean);
 
                     if (items.length === 0) {
@@ -446,13 +492,23 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
 
             // Sync inicial e periódico (incluindo bateria e questão atual)
             const sendMeshUpdate = () => {
+                const answeredCount = Object.keys(answers).filter(k => !k.includes('_text')).length;
+
+                // Simular nível de bateria se não houver API nativa
+                const batteryLevel = (window as any).navigator.getBattery
+                    ? 100 // Placeholder, idealmente seria async
+                    : 85;
+
                 syncMesh();
                 mesh.sendTelemetry({
                     studentId,
                     studentName,
-                    battery: 95,
-                    currentQuestion: currentQuestionIdx,
-                    step
+                    batteryLevel, // Corrigido p/ bater com Dashboard
+                    currentQuestion: currentQuestionIdx + 1,
+                    answeredCount,
+                    totalQuestions: actualItems.length,
+                    step,
+                    timestamp: Date.now()
                 });
             };
 

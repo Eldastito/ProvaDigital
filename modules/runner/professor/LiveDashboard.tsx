@@ -19,7 +19,8 @@ import {
     Eye,
     EyeOff,
     Battery,
-    Signal
+    Signal,
+    Play
 } from 'lucide-react';
 import { getMeshNetwork, MeshNode, MeshMessage } from '../../../services/meshNetworkService';
 
@@ -207,6 +208,21 @@ export const LiveDashboard: React.FC<LiveDashboardProps> = ({
     };
 
     /**
+     * Habilitar prova para todos os alunos (Broadcast)
+     */
+    const handleEnableExamForAll = () => {
+        if (!confirm('Deseja habilitar o início da prova para todos os alunos conectados?')) return;
+
+        mesh.broadcastMessage('ENABLE_EXAM', {
+            examId,
+            timestamp: Date.now()
+        });
+
+        console.log('🚀 Comando ENABLE_EXAM enviado para todos os nodes');
+        alert('✅ Comando enviado! A prova será liberada nos dispositivos dos alunos.');
+    };
+
+    /**
      * Filtrar alunos
      */
     const getFilteredStudents = (): StudentData[] => {
@@ -254,10 +270,18 @@ export const LiveDashboard: React.FC<LiveDashboardProps> = ({
 
                             <button
                                 onClick={() => setShowAlertModal(true)}
-                                className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors flex items-center gap-2"
+                                className="px-4 py-3 border-2 border-blue-600 text-blue-600 rounded-xl font-bold hover:bg-blue-50 transition-colors flex items-center gap-2"
                             >
                                 <Send size={20} />
-                                Enviar Alerta
+                                Alerta
+                            </button>
+
+                            <button
+                                onClick={handleEnableExamForAll}
+                                className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-lg animate-pulse"
+                            >
+                                <Play size={20} fill="white" />
+                                Liberar Provas
                             </button>
                         </div>
                     </div>
