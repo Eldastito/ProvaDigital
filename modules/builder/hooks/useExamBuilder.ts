@@ -25,7 +25,8 @@ export const useExamBuilder = () => {
         description: '',
         grade: '',
         knowledgeArea: '',
-        contentDescription: ''
+        contentDescription: '',
+        className: ''
     });
 
     const [gradingConfig, setGradingConfig] = useState({
@@ -92,7 +93,8 @@ export const useExamBuilder = () => {
         bnccCodes: [],
         grade: '',
         knowledgeArea: '',
-        contentDescription: ''
+        contentDescription: '',
+        className: ''
     });
     const [selectedItems, setSelectedItems] = useState<Item[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
