@@ -1,5 +1,6 @@
 import React from 'react';
 import { Save, ArrowRight, ShoppingBag } from 'lucide-react';
+import { usePermissions } from '../../hooks/usePermissions';
 import { useItemEditor } from './hooks/useItemEditor';
 import { EditorHeader } from './components/editor/EditorHeader';
 import { AuditReportView } from './components/editor/AuditReportView';
@@ -57,6 +58,9 @@ export const ItemEditorView = () => {
         currentMaterial,
         handleMaterialUpload
     } = useItemEditor();
+    const { can } = usePermissions();
+    const canCreateItems = can('CREATE', 'ITEM_BANK');
+
 
     return (
         <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-sm border border-brand-primary overflow-hidden flex flex-col h-[calc(100vh-100px)]">
@@ -247,9 +251,11 @@ export const ItemEditorView = () => {
 
             <div className="p-4 border-t border-slate-100 bg-white flex justify-end flex-shrink-0">
                 {mode === 'MANUAL' ? (
-                    <button onClick={saveManual} className="btn-gradient px-8 py-3 rounded-lg font-bold shadow-lg flex items-center gap-2">
-                        <Save size={18} /> Salvar Item
-                    </button>
+                    canCreateItems && (
+                        <button onClick={saveManual} className="btn-gradient px-8 py-3 rounded-lg font-bold shadow-lg flex items-center gap-2">
+                            <Save size={18} /> Salvar Item
+                        </button>
+                    )
                 ) : (
                     <div className="flex gap-4">
                         <button

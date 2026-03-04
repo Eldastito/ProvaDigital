@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Brain, Search, FileUp, Plus, Tablet, ChevronLeft, ArrowRight, ShieldCheck, ChevronRight, Loader2, Sparkles, Check, Trash2 } from 'lucide-react';
+import { usePermissions } from '../../../hooks/usePermissions';
 import { Item, ItemLifecycleStatus, ItemOrigin, DifficultyLevel, ExamModel, LiteracyDomain } from '../../../types';
 import { Badge } from '../../../components/ui/Badge';
 import { translateDifficultyLevel, translateLiteracyDomain } from '../../../utils/translations';
@@ -35,6 +36,9 @@ export const ExamQuestionSelector = ({
     onSave, onReviewIA, onStepChange, loadGenerationBatches, setShowBatchHistory, currentBatchId,
     examModel
 }: ExamQuestionSelectorProps) => {
+    const { can } = usePermissions();
+    const canCreateItems = can('CREATE', 'ITEM_BANK');
+
 
     const [filter, setFilter] = useState('');
     const [difficultyFilter, setDifficultyFilter] = useState<DifficultyLevel | 'ALL'>('ALL');
@@ -92,23 +96,25 @@ export const ExamQuestionSelector = ({
                                 <p className="text-xs text-rose-700">Faltam {selectionDiagnosis.missingCount} questões para atingir a meta selecionada.</p>
                             </div>
                         </div>
-                        <div className="flex gap-4">
-                            <button
-                                onClick={() => {
-                                    if (loadGenerationBatches) loadGenerationBatches();
-                                    if (setShowBatchHistory) setShowBatchHistory(true);
-                                }}
-                                className="text-white/80 hover:text-white px-3 py-2 rounded-lg text-xs font-bold border border-white/20 hover:bg-white/10 transition"
-                            >Recuperar Lotes IA</button>
-                            <button
-                                onClick={onGapGeneration}
-                                disabled={isFillingGaps}
-                                className="bg-rose-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-rose-700 transition flex items-center gap-2 shadow-sm"
-                            >
-                                {isFillingGaps ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                                Gerar Questões Inéditas via IA
-                            </button>
-                        </div>
+                        {canCreateItems && (
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => {
+                                        if (loadGenerationBatches) loadGenerationBatches();
+                                        if (setShowBatchHistory) setShowBatchHistory(true);
+                                    }}
+                                    className="text-white/80 hover:text-white px-3 py-2 rounded-lg text-xs font-bold border border-white/20 hover:bg-white/10 transition"
+                                >Recuperar Lotes IA</button>
+                                <button
+                                    onClick={onGapGeneration}
+                                    disabled={isFillingGaps}
+                                    className="bg-rose-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-rose-700 transition flex items-center gap-2 shadow-sm"
+                                >
+                                    {isFillingGaps ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                                    Gerar Questões Inéditas via IA
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -192,20 +198,24 @@ export const ExamQuestionSelector = ({
                                 onChange={e => setFilter(e.target.value)}
                             />
                         </div>
-                        <button
-                            onClick={onImportClick}
-                            className="px-3 py-2 rounded-lg text-sm font-bold bg-white text-emerald-600 border border-emerald-200 hover:bg-emerald-50 transition flex items-center gap-2"
-                            title="Importar CSV"
-                        >
-                            <FileUp size={16} /> Importar
-                        </button>
-                        <button
-                            onClick={onRecommendationsClick}
-                            className={`px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition border ${showRecommendations ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-purple-50 hover:text-purple-600'}`}
-                        >
-                            <Plus size={16} className={showRecommendations ? 'rotate-45 transition' : ''} />
-                            {showRecommendations ? 'Fechar IA' : 'Sugestões IA'}
-                        </button>
+                        {canCreateItems && (
+                            <>
+                                <button
+                                    onClick={onImportClick}
+                                    className="px-3 py-2 rounded-lg text-sm font-bold bg-white text-emerald-600 border border-emerald-200 hover:bg-emerald-50 transition flex items-center gap-2"
+                                    title="Importar CSV"
+                                >
+                                    <FileUp size={16} /> Importar
+                                </button>
+                                <button
+                                    onClick={onRecommendationsClick}
+                                    className={`px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition border ${showRecommendations ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-purple-50 hover:text-purple-600'}`}
+                                >
+                                    <Plus size={16} className={showRecommendations ? 'rotate-45 transition' : ''} />
+                                    {showRecommendations ? 'Fechar IA' : 'Sugestões IA'}
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
 

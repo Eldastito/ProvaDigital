@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Info, Save, ShieldCheck, Loader2, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, Info, Save, ShieldCheck, Loader2, Trash2, ChevronDown, ChevronUp, Truck, Send } from 'lucide-react';
 import { Item } from '../../../types';
 import { auditExamPedagogically } from '../../../services/PredictivePedagogicalService';
 import { Target, AlertTriangle, CheckCircle, Lightbulb, Clock } from 'lucide-react';
@@ -260,10 +260,9 @@ export const ExamReview = ({
                         {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} Publicar Normal
                     </button>
 
-                    {/* Premium Crypto Button */}
                     <button
                         onClick={async () => {
-                            if (!confirm("Isso irá criptografar a prova com uma chave única (AES-256). Deseja continuar?")) return;
+                            if (!confirm("Isso irá criptografar a prova com uma chave única (AES-256) e enviá-la para a fila de logística. Deseja continuar?")) return;
                             setIsSaving(true);
                             try {
                                 const id = await onSave(true);
@@ -280,8 +279,8 @@ export const ExamReview = ({
                         disabled={isSaving}
                         className={`bg-slate-900 text-amber-400 px-6 py-3 rounded-lg font-bold shadow-lg flex items-center gap-2 hover:bg-black border border-amber-500/30 transition-all ${isSaving ? 'opacity-75 cursor-wait' : ''}`}
                     >
-                        {isSaving ? <Loader2 className="animate-spin" size={18} /> : <ShieldCheck size={18} />}
-                        Publicar & Criptografar
+                        {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Truck size={18} />}
+                        Finalizar e Enviar para ExamePad
                     </button>
                 </div>
             </div>
