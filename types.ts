@@ -578,6 +578,14 @@ export enum ExamStatus {
   PENDING_RESCHEDULE = 'PENDING_RESCHEDULE'
 }
 
+export enum ExamLogisticsStatus {
+  DRAFT = 'DRAFT',
+  READY = 'READY',
+  SENDING = 'SENDING',
+  SENT = 'SENT',
+  ERROR = 'ERROR'
+}
+
 // Phase 10: Print Configuration
 export interface PrintConfig {
   includeCover: boolean;
@@ -619,6 +627,8 @@ export interface Exam {
   isOfficialStandard?: boolean; // Flag para avaliações regulatórias/internacionais
   createdAt: string;
   scheduledDate?: string;
+  logisticsStatus?: ExamLogisticsStatus;
+  sendingError?: string;
 }
 
 // ============================================================================

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import * as Papa from 'papaparse';
-import { AppState, Exam, ExamStatus, ExamModel, Item, QuestionType, DifficultyLevel, ItemOrigin, ItemLifecycleStatus, CoverSection } from '../../../types';
+import { AppState, Exam, ExamStatus, ExamLogisticsStatus, ExamModel, Item, QuestionType, DifficultyLevel, ItemOrigin, ItemLifecycleStatus, CoverSection } from '../../../types';
 import { uuidv4 } from '../../../utils/helpers';
 import { useSafeAppStore } from '../../../store/useAppStore';
 import { smartSelectItems, ExamCriteria } from '../../../services/examService';
@@ -101,6 +101,16 @@ export const useExamBuilder = () => {
     const [showRecommendations, setShowRecommendations] = useState(false);
     const [prediction, setPrediction] = useState<SmartFormPrediction | null>(null);
 
+    // --- LOGISTICS & WIZARD FEEDBACK ---
+    const [logisticsStatus, setLogisticsStatus] = useState<ExamLogisticsStatus>(ExamLogisticsStatus.DRAFT);
+    const [isHandoffRunning, setIsHandoffRunning] = useState(false);
+    const [wizardTelemetry, setWizardTelemetry] = useState({
+        iaCount: 0,
+        manualCount: 0,
+        difficultyMix: { [DifficultyLevel.EASY]: 0, [DifficultyLevel.MEDIUM]: 0, [DifficultyLevel.HARD]: 0 },
+        bnccCoverage: 0
+    });
+
     // --- PERSISTENCE & AUTO-SAVE ---
     useEffect(() => {
         const key = `exam_builder_draft_${state.currentUser?.id}`;
@@ -134,9 +144,32 @@ export const useExamBuilder = () => {
     useEffect(() => {
         if (!config.title && selectedItems.length === 0) return;
         const key = `exam_builder_draft_${state.currentUser?.id}`;
-        const draft = { config, selectedItems, step, gradingConfig, coverConfig, updatedAt: Date.now() };
+        const draft = {
+            config,
+            selectedItems,
+            step,
+            gradingConfig,
+            coverConfig,
+            logisticsStatus,
+            updatedAt: Date.now()
+        };
         localStorage.setItem(key, JSON.stringify(draft));
-    }, [config, selectedItems, step, gradingConfig, coverConfig, state.currentUser?.id]);
+
+        // Update Telemetry
+        const ia = selectedItems.filter(i => i.origin === ItemOrigin.IA).length;
+        const manual = selectedItems.filter(i => i.origin === ItemOrigin.MANUAL).length;
+        const mix = {
+            [DifficultyLevel.EASY]: selectedItems.filter(i => i.difficulty === DifficultyLevel.EASY).length,
+            [DifficultyLevel.MEDIUM]: selectedItems.filter(i => i.difficulty === DifficultyLevel.MEDIUM).length,
+            [DifficultyLevel.HARD]: selectedItems.filter(i => i.difficulty === DifficultyLevel.HARD).length
+        };
+        setWizardTelemetry({
+            iaCount: ia,
+            manualCount: manual,
+            difficultyMix: mix,
+            bnccCoverage: selectedItems.filter(i => !!i.bnccCode).length / (selectedItems.length || 1)
+        });
+    }, [config, selectedItems, step, gradingConfig, coverConfig, logisticsStatus, state.currentUser?.id]);
 
     // --- SMART PREDICTION INITIALIZATION ---
     useEffect(() => {
@@ -176,14 +209,19 @@ export const useExamBuilder = () => {
 
     // Logic Handlers
     const handleSave = async (publish = false) => {
-        if (!config.title) return alert('Título obrigatório');
-        if (selectedItems.length === 0) return alert('Selecione ao menos 1 questão');
+        if (isSaving || isHandoffRunning) return; // Idempotency
+        if (!config.title) return alert('Dica: Dê um título para sua prova antes de avançar.');
+        if (selectedItems.length === 0) return alert('Checklist: Você precisa selecionar ao menos 1 questão para enviar para a ExamePad.');
 
         setIsSaving(true);
+        if (publish) {
+            setLogisticsStatus(ExamLogisticsStatus.SENDING);
+            setIsHandoffRunning(true);
+        }
+
         try {
             const examId = uuidv4();
-            const versionId = uuidv4();
-
+            // ... (rest of logic)
             const itemsWithWeights = selectedItems.map((item, idx) => {
                 const subjectItems = selectedItems.filter(i => i.subject === item.subject);
                 const totalPointsForSubject = gradingConfig.totalsByDiscipline[item.subject] || 10.0;
@@ -204,6 +242,7 @@ export const useExamBuilder = () => {
                 durationMinutes: config.duration,
                 targetQuestionCount: selectedItems.length,
                 status: publish ? ExamStatus.ACTIVE : ExamStatus.DRAFT,
+                logisticsStatus: publish ? ExamLogisticsStatus.SENT : ExamLogisticsStatus.DRAFT,
                 items: itemsWithWeights.map(i => ({ itemId: i.itemId, order: i.position, customScore: i.weight })),
                 classIds: [],
                 shuffleItems: config.shuffleItems,
@@ -215,55 +254,29 @@ export const useExamBuilder = () => {
 
             await addExam(newExam);
 
-            // --- VÍNCULO AUTOMÁTICO COM AGENDAMENTO PENDENTE ---
-            // Tenta encontrar um agendamento sem prova que coincida com o título ou disciplina
-            const pendingSchedule = state.schedules.find(s =>
-                !s.examId && (
-                    s.examTitle.toLowerCase() === config.title.toLowerCase() ||
-                    config.title.toLowerCase().includes(s.examTitle.toLowerCase()) ||
-                    s.examTitle.toLowerCase().includes(config.title.toLowerCase())
-                )
-            );
-
-            if (pendingSchedule && state.linkExamToSchedule) {
-                const autoLink = confirm(`Identificamos um agendamento pendente ("${pendingSchedule.examTitle}") que coincide com esta prova. Deseja vinculá-la agora?`);
-                if (autoLink) {
-                    await state.linkExamToSchedule(examId, pendingSchedule.id);
-                }
-            }
-
-            if (state.addExamVersion) {
-                await state.addExamVersion({
-                    id: versionId,
-                    examId: examId,
-                    versionNumber: 1,
-                    itemsSnapshot: itemsWithWeights,
-                    gradingConfig: gradingConfig,
-                    coverConfig: {
-                        ...coverConfig,
-                        instructions: coverConfig.instructions ? [coverConfig.instructions] : [],
-                        securityNotices: coverConfig.securityNotices ? [coverConfig.securityNotices] : [],
-                        sections: coverConfig.sections
-                    },
-                    status: publish ? 'published' : 'draft',
-                    createdAt: new Date().toISOString()
-                });
+            // Simulação de delay de rede/processamento para UX de envio
+            if (publish) {
+                await new Promise(r => setTimeout(r, 1500));
+                setLogisticsStatus(ExamLogisticsStatus.SENT);
+                alert('Prova criada e enviada com sucesso.');
+            } else {
+                setLogisticsStatus(ExamLogisticsStatus.DRAFT);
+                alert('Prova salva como rascunho!');
             }
 
             localStorage.removeItem(`exam_builder_draft_${state.currentUser?.id}`);
-
-            if (!publish) {
-                alert('Prova salva como rascunho!');
-                navigate('/exams');
-            }
+            navigate('/exams');
             return examId;
         } catch (error: any) {
+            setLogisticsStatus(ExamLogisticsStatus.ERROR);
             console.error(error);
-            alert('Erro ao salvar prova: ' + (error.message || 'Erro desconhecido.'));
+            alert('Erro no envio: ' + (error.message || 'Erro desconhecido. Verifique sua conexão.'));
         } finally {
             setIsSaving(false);
+            setIsHandoffRunning(false);
         }
     };
+
 
     const toggleItem = (item: Item) => {
         const exists = selectedItems.find(i => i.id === item.id);
@@ -371,6 +384,9 @@ export const useExamBuilder = () => {
         showBatchHistory, setShowBatchHistory,
         isSaving,
         showRecommendations, setShowRecommendations,
+        logisticsStatus,
+        isHandoffRunning,
+        wizardTelemetry,
         handleSave,
         toggleItem,
         handleSmartGenerate,

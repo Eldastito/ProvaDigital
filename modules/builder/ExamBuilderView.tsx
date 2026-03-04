@@ -30,6 +30,9 @@ export const ExamBuilderView = () => {
         isReviewingExam, setIsReviewingExam,
         showBatchHistory, setShowBatchHistory,
         showRecommendations, setShowRecommendations,
+        logisticsStatus,
+        isHandoffRunning,
+        wizardTelemetry,
         handleSave,
         toggleItem,
         handleSmartGenerate,
@@ -40,6 +43,8 @@ export const ExamBuilderView = () => {
         navigate,
         prediction
     } = useExamBuilder();
+
+
 
     const [isGenerating, setIsGenerating] = useState(false);
     const [importModalOpen, setImportModalOpen] = useState(false);
@@ -153,16 +158,39 @@ export const ExamBuilderView = () => {
         <div className="bg-white rounded-xl shadow-lg border border-brand-primary flex flex-col h-[calc(100vh-120px)]">
             <input type="file" ref={csvImportRef} className="hidden" accept=".csv" onChange={handleBatchImport} />
 
-            <div className="p-6 border-b flex justify-between items-center bg-slate-50">
-                <div>
-                    <h2 className="text-xl font-bold text-slate-900">Montar Prova</h2>
-                    <p className="text-sm text-slate-500">Passo {step} de 3</p>
+            <div className="p-6 border-b flex flex-col gap-4 bg-slate-50">
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h2 className="text-xl font-bold text-slate-900">Montar Prova</h2>
+                        <p className="text-sm text-slate-500">Fluxo guiado para envio seguro à ExamePad</p>
+                    </div>
+                    <div className="flex gap-3">
+                        {step > 1 && <button onClick={() => setStep(step - 1)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium">Voltar</button>}
+                        <button onClick={() => navigate('/exams')} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
+                    </div>
                 </div>
-                <div className="flex gap-3">
-                    {step > 1 && <button onClick={() => setStep(step - 1)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium">Voltar</button>}
-                    <button onClick={() => navigate('/exams')} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
+
+                {/* Stepper Wizard */}
+                <div className="flex items-center gap-2">
+                    {[
+                        { s: 1, label: 'Informações', tip: 'Defina título e regras' },
+                        { s: 2, label: 'Questões', tip: 'Selecione ou gere itens' },
+                        { s: 3, label: 'Revisão', tip: 'Status e Resumo Final' }
+                    ].map((item, idx) => (
+                        <React.Fragment key={item.s}>
+                            <div className={`flex flex-col items-center flex-1 cursor-pointer transition-all ${step === item.s ? 'scale-105' : 'opacity-60'}`} onClick={() => step > item.s && setStep(item.s)}>
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs mb-1 ${step >= item.s ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-200 text-slate-500'}`}>
+                                    {step > item.s ? '✓' : item.s}
+                                </div>
+                                <span className={`text-[10px] uppercase font-bold ${step === item.s ? 'text-indigo-600' : 'text-slate-400'}`}>{item.label}</span>
+                                {step === item.s && <span className="text-[9px] text-slate-400 italic hidden md:block">{item.tip}</span>}
+                            </div>
+                            {idx < 2 && <div className={`h-[2px] w-8 flex-1 mx-2 rounded ${step > item.s ? 'bg-indigo-600' : 'bg-slate-200'}`} />}
+                        </React.Fragment>
+                    ))}
                 </div>
             </div>
+
 
             <div className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
                 {step === 1 && (
@@ -311,8 +339,12 @@ export const ExamBuilderView = () => {
                         config={config} gradingConfig={gradingConfig} setGradingConfig={setGradingConfig}
                         selectedItems={selectedItems} onSave={handleSave} onSeal={state.sealExam}
                         onStepChange={setStep} navigate={navigate} onRemoveItem={toggleItem}
+                        logisticsStatus={logisticsStatus}
+                        wizardTelemetry={wizardTelemetry}
+                        isHandoffRunning={isHandoffRunning}
                     />
                 )}
+
             </div>
 
             {/* AI Co-Pilot Overlay */}

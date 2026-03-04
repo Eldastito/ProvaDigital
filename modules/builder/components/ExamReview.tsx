@@ -2,7 +2,8 @@ import React from 'react';
 import { Check, Info, Save, ShieldCheck, Loader2, Trash2, ChevronDown, ChevronUp, Truck, Send } from 'lucide-react';
 import { Item } from '../../../types';
 import { auditExamPedagogically } from '../../../services/PredictivePedagogicalService';
-import { Target, AlertTriangle, CheckCircle, Lightbulb, Clock } from 'lucide-react';
+import { Target, AlertTriangle, CheckCircle, Lightbulb, Clock, Brain, User, BarChart, Lock } from 'lucide-react';
+import { ExamLogisticsStatus, DifficultyLevel } from '../../../types';
 
 interface ExamReviewProps {
     config: {
@@ -21,11 +22,17 @@ interface ExamReviewProps {
     onStepChange: (step: number) => void;
     navigate: (path: string) => void;
     onRemoveItem?: (item: Item) => void;
+    logisticsStatus: ExamLogisticsStatus;
+    wizardTelemetry: any;
+    isHandoffRunning: boolean;
 }
 
+
 export const ExamReview = ({
-    config, gradingConfig, setGradingConfig, selectedItems, onSave, onSeal, onStepChange, navigate, onRemoveItem
+    config, gradingConfig, setGradingConfig, selectedItems, onSave, onSeal, onStepChange, navigate, onRemoveItem,
+    logisticsStatus, wizardTelemetry, isHandoffRunning
 }: ExamReviewProps) => {
+
 
     const [isSaving, setIsSaving] = React.useState(false);
     const [auditReport, setAuditReport] = React.useState<any>(null);
@@ -43,10 +50,90 @@ export const ExamReview = ({
             <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
                 <div className="border-b pb-6 mb-6">
                     <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                        <Check className="text-emerald-500" size={24} /> Revisão Final e Pontuação
+                        <Check className="text-emerald-500" size={24} /> Revisão Final e Status "A Carga"
                     </h3>
-                    <p className="text-slate-500 text-sm mt-1">Confira os dados da prova e defina a pontuação antes de publicar.</p>
+                    <div className="flex justify-between items-center mt-2">
+                        <p className="text-slate-500 text-sm">Confira os dados da prova e o status de segurança antes do envio físico.</p>
+
+                        {/* Status Badge */}
+                        <div className={`px-3 py-1 rounded-full text-xs font-black uppercase flex items-center gap-2 ${logisticsStatus === ExamLogisticsStatus.SENT ? 'bg-emerald-100 text-emerald-700' :
+                                logisticsStatus === ExamLogisticsStatus.SENDING ? 'bg-indigo-100 text-indigo-700 animate-pulse' :
+                                    logisticsStatus === ExamLogisticsStatus.ERROR ? 'bg-rose-100 text-rose-700' :
+                                        'bg-slate-100 text-slate-500'
+                            }`}>
+                            <div className={`w-2 h-2 rounded-full ${logisticsStatus === ExamLogisticsStatus.SENT ? 'bg-emerald-500' :
+                                    logisticsStatus === ExamLogisticsStatus.SENDING ? 'bg-indigo-500' :
+                                        logisticsStatus === ExamLogisticsStatus.ERROR ? 'bg-rose-500' :
+                                            'bg-slate-400'
+                                }`} />
+                            Status: {
+                                logisticsStatus === ExamLogisticsStatus.SENT ? 'Enviada com Sucesso' :
+                                    logisticsStatus === ExamLogisticsStatus.SENDING ? 'Enviando...' :
+                                        logisticsStatus === ExamLogisticsStatus.ERROR ? 'Erro no Envio' :
+                                            logisticsStatus === ExamLogisticsStatus.DRAFT ? 'Rascunho / Pendente' : 'Pronta para Envio'
+                            }
+                        </div>
+                    </div>
                 </div>
+
+                {/* Telemetry Panel */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
+                        <div className="flex items-center gap-2 text-indigo-700 mb-2">
+                            <Brain size={16} />
+                            <span className="text-[10px] font-black uppercase">Origem Questões</span>
+                        </div>
+                        <div className="flex gap-4">
+                            <div>
+                                <div className="text-lg font-bold text-slate-800">{wizardTelemetry.iaCount}</div>
+                                <div className="text-[10px] text-slate-500 uppercase font-bold">Via IA</div>
+                            </div>
+                            <div className="h-8 w-[1px] bg-indigo-200" />
+                            <div>
+                                <div className="text-lg font-bold text-slate-800">{wizardTelemetry.manualCount}</div>
+                                <div className="text-[10px] text-slate-500 uppercase font-bold">Manual</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100">
+                        <div className="flex items-center gap-2 text-amber-700 mb-2">
+                            <BarChart size={16} />
+                            <span className="text-[10px] font-black uppercase">Mix Dificuldade</span>
+                        </div>
+                        <div className="flex gap-4 text-center">
+                            <div className="flex-1">
+                                <div className="text-xs font-bold text-emerald-600">{wizardTelemetry.difficultyMix[DifficultyLevel.EASY]}</div>
+                                <div className="text-[8px] text-slate-400 uppercase font-bold">Fácil</div>
+                            </div>
+                            <div className="flex-1">
+                                <div className="text-xs font-bold text-amber-600">{wizardTelemetry.difficultyMix[DifficultyLevel.MEDIUM]}</div>
+                                <div className="text-[8px] text-slate-400 uppercase font-bold">Média</div>
+                            </div>
+                            <div className="flex-1">
+                                <div className="text-xs font-bold text-rose-600">{wizardTelemetry.difficultyMix[DifficultyLevel.HARD]}</div>
+                                <div className="text-[8px] text-slate-400 uppercase font-bold">Difícil</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-100">
+                        <div className="flex items-center gap-2 text-teal-700 mb-2">
+                            <CheckCircle size={16} />
+                            <span className="text-[10px] font-black uppercase">Qualidade & Regras</span>
+                        </div>
+                        <div className="space-y-1">
+                            <div className="flex justify-between text-[10px] font-bold">
+                                <span className="text-slate-500">Cobertura BNCC:</span>
+                                <span className="text-teal-700">{(wizardTelemetry.bnccCoverage * 100).toFixed(0)}%</span>
+                            </div>
+                            <div className="w-full h-1 bg-teal-200 rounded-full overflow-hidden">
+                                <div className="h-full bg-teal-500" style={{ width: `${wizardTelemetry.bnccCoverage * 100}%` }} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
 
                 <div className="grid grid-cols-2 gap-12">
                     {/* Summary */}
@@ -263,26 +350,22 @@ export const ExamReview = ({
                     <button
                         onClick={async () => {
                             if (!confirm("Isso irá criptografar a prova com uma chave única (AES-256) e enviá-la para a fila de logística. Deseja continuar?")) return;
-                            setIsSaving(true);
-                            try {
-                                const id = await onSave(true);
-                                if (id && typeof id === 'string') {
-                                    await onSeal(id);
-                                    navigate('/exams');
-                                }
-                            } catch (e) {
-                                alert("Erro ao criptografar prova");
-                            } finally {
-                                setIsSaving(false);
-                            }
+                            await onSave(true);
                         }}
-                        disabled={isSaving}
-                        className={`bg-slate-900 text-amber-400 px-6 py-3 rounded-lg font-bold shadow-lg flex items-center gap-2 hover:bg-black border border-amber-500/30 transition-all ${isSaving ? 'opacity-75 cursor-wait' : ''}`}
+                        disabled={isHandoffRunning || logisticsStatus === ExamLogisticsStatus.SENT}
+                        className={`bg-slate-900 text-amber-400 px-6 py-3 rounded-lg font-bold shadow-lg flex items-center gap-2 hover:bg-black border border-amber-500/30 transition-all ${isHandoffRunning ? 'opacity-75 cursor-wait' : ''} ${logisticsStatus === ExamLogisticsStatus.SENT ? 'grayscale opacity-50 cursor-not-allowed' : ''}`}
                     >
-                        {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Truck size={18} />}
-                        Finalizar e Enviar para ExamePad
+                        {isHandoffRunning ? <Loader2 className="animate-spin" size={18} /> :
+                            logisticsStatus === ExamLogisticsStatus.SENT ? <Lock size={18} /> : <Truck size={18} />}
+                        {logisticsStatus === ExamLogisticsStatus.SENT ? 'Prova Bloqueada (Já Enviada)' : 'Finalizar e Enviar para ExamePad'}
                     </button>
+                    {logisticsStatus === ExamLogisticsStatus.SENT && (
+                        <p className="text-[10px] text-amber-600 font-bold bg-amber-50 p-2 rounded-lg border border-amber-200 mt-2">
+                            ⚠️ A Prova foi encriptada. O conteúdo agora é secreto e só será revelado nos tablets dos alunos no dia da aplicação. Preview desabilitado conforme regra de segurança.
+                        </p>
+                    )}
                 </div>
+
             </div>
         </div>
     );
