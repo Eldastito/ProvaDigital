@@ -616,6 +616,10 @@ export interface Exam {
   subject: string;
   model: ExamModel;
   durationMinutes: number;
+  grade?: string;
+  knowledgeArea?: string;
+  contentDescription?: string;
+  className?: string;
   targetQuestionCount: number;
   status: ExamStatus;
   items: ExamItemConfig[];

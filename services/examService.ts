@@ -8,6 +8,10 @@ export interface ExamCriteria {
     };
     bnccCodes?: string[];
     preferredTypes?: QuestionType[];
+    grade?: string;
+    knowledgeArea?: string;
+    contentDescription?: string;
+    className?: string;
 }
 
 export interface SelectionResult {

@@ -27,6 +27,10 @@ interface ExamBasicInfoProps {
         model: ExamModel;
         shuffleItems: boolean;
         description: string;
+        grade?: string;
+        knowledgeArea?: string;
+        contentDescription?: string;
+        className?: string;
     };
     setConfig: (val: any) => void;
     coverConfig: {
@@ -115,6 +119,47 @@ export const ExamBasicInfo = ({
                         <label className="block text-sm font-bold text-slate-700 mb-1">Duração (min)</label>
                         <input type="number" className="w-full border rounded-lg p-2" value={config.duration} onChange={e => setConfig({ ...config, duration: parseInt(e.target.value) })} />
                     </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">Área de Conhecimento</label>
+                    <input
+                        className="w-full border rounded-lg p-2"
+                        value={config.knowledgeArea || ''}
+                        onChange={e => setConfig({ ...config, knowledgeArea: e.target.value })}
+                        placeholder="Ex: Humanas, Linguagens, Ciências da Natureza..."
+                    />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">Ano / Série</label>
+                        <input
+                            className="w-full border rounded-lg p-2"
+                            value={config.grade || ''}
+                            onChange={e => setConfig({ ...config, grade: e.target.value })}
+                            placeholder="Ex: 9º Ano, 3ª Série EM"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">Turma (Opcional)</label>
+                        <input
+                            className="w-full border rounded-lg p-2"
+                            value={config.className || ''}
+                            onChange={e => setConfig({ ...config, className: e.target.value })}
+                            placeholder="Ex: 901, Turma B..."
+                        />
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">Conteúdo Específico / Contexto IA</label>
+                    <textarea
+                        className="w-full border rounded-lg p-2 h-20 text-sm"
+                        value={config.contentDescription || ''}
+                        onChange={e => setConfig({ ...config, contentDescription: e.target.value })}
+                        placeholder="Descreva aqui os tópicos que a IA deve priorizar (Ex: Segunda Guerra Mundial, Ótica Geométrica...)"
+                    />
                 </div>
             </div>
 

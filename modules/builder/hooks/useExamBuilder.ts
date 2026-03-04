@@ -22,7 +22,10 @@ export const useExamBuilder = () => {
         subject: '',
         model: ExamModel.SOMATIVO,
         shuffleItems: true,
-        description: ''
+        description: '',
+        grade: '',
+        knowledgeArea: '',
+        contentDescription: ''
     });
 
     const [gradingConfig, setGradingConfig] = useState({
@@ -86,7 +89,10 @@ export const useExamBuilder = () => {
             [DifficultyLevel.MEDIUM]: 50,
             [DifficultyLevel.HARD]: 20
         },
-        bnccCodes: []
+        bnccCodes: [],
+        grade: '',
+        knowledgeArea: '',
+        contentDescription: ''
     });
     const [selectedItems, setSelectedItems] = useState<Item[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -298,7 +304,15 @@ export const useExamBuilder = () => {
             // 2. Se não encontrou o suficiente, solicita geração IA para o restante
             const missing = smartCriteria.targetCount - result.selectedItems.length;
             const batchId = uuidv4();
-            const promptContext = `Gere uma prova completa de ${config.subject}. Já temos ${result.selectedItems.length} questões. Preciso de mais ${missing} questões inéditas de nível ${config.model === ExamModel.ADAPTATIVO ? 'Médio/Difícil' : 'Variado'}.`;
+            const promptContext = `
+                Gere uma prova de ${config.subject}.
+                Público-alvo: ${config.grade || 'Não especificado'}.
+                Área de Conhecimento: ${config.knowledgeArea || 'Geral'}.
+                Turma de Referência: ${config.className || 'Não especificada'}.
+                Contexto/Conteúdo Específico: ${config.contentDescription || 'Não especificado'}.
+                Já temos ${result.selectedItems.length} questões. Preciso de mais ${missing} questões inéditas.
+                Nível de Dificuldade: ${config.model === ExamModel.ADAPTATIVO ? 'Progressivo (Médio para Difícil)' : 'Variado (conforme BNCC)'}.
+            `;
 
             const generated = await generateQuestionsFromText(promptContext, missing, QuestionType.MULTIPLE_CHOICE, DifficultyLevel.MEDIUM, config.subject);
 
@@ -320,7 +334,7 @@ export const useExamBuilder = () => {
                     generationBatchId: batchId,
                     lifecycleStatus: ItemLifecycleStatus.DRAFT,
                     createdAt: new Date().toISOString(),
-                    knowledgeArea: 'Geral'
+                    knowledgeArea: config.knowledgeArea || 'Geral'
                 }));
 
                 if (state.addGenerationBatch) {
