@@ -24,6 +24,7 @@ import { getTelemetryService } from '../../../services/telemetryService';
 import { getAlertingService, Alert } from '../../../services/alertingService';
 import { useNetworkStore, useNetworkSync } from '../../../services/stores/useNetworkStore';
 import { NetworkStatusInline } from './NetworkStatus';
+import { CATEngine, ItemResponse } from '../../../services/grading/catEngine';
 
 interface StudentAppProps {
     onBack: () => void;
@@ -101,7 +102,9 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     // Exam State
     const [answers, setAnswers] = useState<Record<string, string>>({});
     const [examItems, setExamItems] = useState<any[]>([]);
+    const [adaptiveItems, setAdaptiveItems] = useState<any[]>([]); // Pool completo para adaptativo
     const [loadingExam, setLoadingExam] = useState(false);
+    const [currentTheta, setCurrentTheta] = useState(0); // Proficiência estimada
 
     // Timer logic
     const [currentTime, setCurrentTime] = useState(25 * 60); // 25 min default
@@ -121,6 +124,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     const [showAlertModal, setShowAlertModal] = useState(false);
     const [currentAlert, setCurrentAlert] = useState<Alert | null>(null);
     const [meshInitialized, setMeshInitialized] = useState(false);
+    const [examUnlockedByMesh, setExamUnlockedByMesh] = useState(false);
 
     // --- PROCTORING HOOK ---
     const [proctoringActive, setProctoringActive] = useState(false);
@@ -238,17 +242,18 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                         return item ? { ...item, ...config } : null;
                     }).filter(Boolean);
 
-                    // 🕵️ DEBUG: Validate items content
-                    const invalidItems = items.filter((i: any) => !i.statement || i.statement.length < 5);
-                    if (invalidItems.length > 0) {
-                        console.warn("⚠️ ALERTA: Alguns itens parecem incompletos (sem enunciado):", invalidItems);
-                        // Force refetch if needed (future improvement)
-                    }
-
                     if (items.length === 0) {
                         setLoadError(`Prova carregada, mas questões não encontradas no cache. (Qtd: ${configSource.length})`);
                     }
-                    setExamItems(items);
+
+                    if (exam.model === 'ADAPTADO') {
+                        setAdaptiveItems(items); // Guarda o pool completo
+                        // Seleciona o primeiro item (theta = 0)
+                        const firstItem = CATEngine.selectNextItem(0, items, []);
+                        setExamItems(firstItem ? [firstItem] : []);
+                    } else {
+                        setExamItems(items);
+                    }
                 }
             } else {
                 setLoadError("Prova não encontrada no estado global após fetch.");
@@ -416,20 +421,43 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 eventId
             });
 
-            // 5. Configurar callback de alertas
+            // 5. Configurar callback de alertas e comandos
             getAlertingService().setOnAlertReceived((alert) => {
                 setCurrentAlert(alert);
                 setShowAlertModal(true);
                 console.log('📨 Alerta recebido:', alert.message);
             });
 
+            const mesh = getMeshNetwork();
+            mesh.setOnMessageReceived((msg) => {
+                if (msg.type === 'ENABLE_EXAM') {
+                    console.log('🚀 Prova habilitada via Mesh pelo Professor!');
+                    setExamUnlockedByMesh(true);
+                }
+
+                if (msg.type === 'HANDSHAKE_RESPONSE' && msg.payload.targetStudentId === studentId) {
+                    console.log('🔑 Chave de prova recebida via Mesh Handshake');
+                }
+            });
+
             // 6. Sincronizar com store
             const { setupCallbacks, syncMesh } = useNetworkSync();
             setupCallbacks();
 
-            // Sync inicial e periódico
-            syncMesh();
-            const syncInterval = setInterval(syncMesh, 5000);
+            // Sync inicial e periódico (incluindo bateria e questão atual)
+            const sendMeshUpdate = () => {
+                syncMesh();
+                mesh.sendTelemetry({
+                    studentId,
+                    studentName,
+                    battery: 95,
+                    currentQuestion: currentQuestionIdx,
+                    step
+                });
+            };
+
+            sendMeshUpdate();
+            const syncInterval = setInterval(sendMeshUpdate, 10000);
 
             // Salvar interval para cleanup
             (window as any).__meshSyncInterval = syncInterval;
@@ -580,6 +608,59 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         if (meshInitialized) {
             const count = Object.keys(newAnswers).filter(k => !k.includes('_text')).length;
             getTelemetryService().updateAnsweredCount(count);
+        }
+
+        // --- ADAPTIVE LOGIC (IRT) ---
+        const exam = state.exams.find(e => e.id === examIdParam);
+        if (exam?.model === 'ADAPTADO' && adaptiveItems.length > 0) {
+            const item = adaptiveItems.find(i => i.id === qId);
+            if (item && item.triParams) {
+                const correctAlt = item.alternatives.find((a: any) => a.isCorrect);
+                const itemResponse: ItemResponse = {
+                    itemId: item.id,
+                    isCorrect: optId === correctAlt?.id,
+                    difficulty: item.triParams.difficulty,
+                    discrimination: item.triParams.discrimination,
+                    guessing: item.triParams.guessing
+                };
+
+                // Estimar novo Theta
+                // Usamos todas as respostas dadas até agora para o motor IRT
+                const currentResponses: ItemResponse[] = [];
+                Object.entries(newAnswers).forEach(([id, val]) => {
+                    const it = adaptiveItems.find(i => i.id === id);
+                    if (it && it.triParams) {
+                        const cAlt = it.alternatives.find((a: any) => a.isCorrect);
+                        currentResponses.push({
+                            itemId: it.id,
+                            isCorrect: val === cAlt?.id,
+                            difficulty: it.triParams.difficulty,
+                            discrimination: it.triParams.discrimination,
+                            guessing: it.triParams.guessing
+                        });
+                    }
+                });
+
+                const newTheta = CATEngine.estimateTheta(currentResponses, currentTheta);
+                setCurrentTheta(newTheta);
+                console.log(`[IRT] Novo Theta estimado: ${newTheta.toFixed(4)}`);
+
+                // Verifica se deve selecionar o próximo item adaptivemente
+                // Apenas se clicou na última questão carregada até agora
+                if (currentQuestionIdx === examItems.length - 1) {
+                    const nextItem = CATEngine.selectNextItem(
+                        newTheta,
+                        adaptiveItems,
+                        examItems.map(i => i.id)
+                    );
+
+                    if (nextItem) {
+                        setExamItems(prev => [...prev, nextItem]);
+                        // Opcional: Auto-avançar para a nova questão?
+                        // setCurrentQuestionIdx(prev => prev + 1);
+                    }
+                }
+            }
         }
 
         // --- OFFLINE PERSISTENCE (PHASE 2) - Legacy support ---
@@ -816,27 +897,37 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 </div>
 
                 <div className="flex flex-col w-full max-w-sm gap-3">
-                    <button onClick={(e) => {
-                        e.preventDefault(); // Safety
-                        // 1. UNBLOCK UI IMMEDIATELY
-                        setStep('EXAM');
+                    <button
+                        onClick={(e) => {
+                            e.preventDefault();
+                            if (!examUnlockedByMesh && sessionMode === 'LIVE_REAL') return;
+                            setStep('EXAM');
 
-                        // 2. Perform DB logic in background (Fire & Forget)
-                        const store = useAppStore.getState();
-                        if (studentData && studentData.examId) {
-                            store.startExamAttempt({
-                                examId: studentData.examId,
-                                examVersionId: 'v1',
-                                studentId: studentData.id
-                            }).then(aId => {
-                                console.log("Attempt started successfully:", aId);
-                                setStudentData(prev => ({ ...prev, attemptId: aId }));
-                            }).catch(err => {
-                                console.error("Background attempt start failed (non-fatal):", err);
-                            });
-                        }
-                    }} className="w-full py-4 bg-brand-primary text-white font-bold rounded-xl text-lg hover:bg-brand-dark transition shadow-lg flex items-center justify-center gap-3">
-                        <Play size={20} fill="white" /> Iniciar Prova
+                            const store = useAppStore.getState();
+                            if (studentData && studentData.examId) {
+                                store.startExamAttempt({
+                                    examId: studentData.examId,
+                                    examVersionId: 'v1',
+                                    studentId: studentData.id
+                                }).then(aId => {
+                                    console.log("Attempt started successfully:", aId);
+                                    setStudentData(prev => ({ ...prev, attemptId: aId }));
+                                }).catch(err => {
+                                    console.warn("Background attempt start:", err);
+                                });
+                            }
+                        }}
+                        disabled={!examUnlockedByMesh && sessionMode === 'LIVE_REAL'}
+                        className={`w-full py-4 font-bold rounded-xl text-lg transition shadow-lg flex items-center justify-center gap-3 ${(!examUnlockedByMesh && sessionMode === 'LIVE_REAL')
+                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                            : 'bg-brand-primary text-white hover:bg-brand-dark'
+                            }`}
+                    >
+                        {(!examUnlockedByMesh && sessionMode === 'LIVE_REAL') ? (
+                            <>Aguardando Professor...</>
+                        ) : (
+                            <><Play size={20} fill="white" /> Iniciar Prova</>
+                        )}
                     </button>
                 </div>
             </div>

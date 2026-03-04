@@ -11,6 +11,7 @@ import { OfflineMonitorView } from '../offline/OfflineMonitorView';
 
 import { useSafeAppStore } from '../../../store/useAppStore';
 import { TabletLauncher } from './TabletLauncher';
+import { getMeshNetwork } from '../../../services/meshNetworkService';
 
 interface ProfessorAppProps {
     onBack: () => void;
@@ -117,11 +118,28 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
                 className: selectedClass.name,
                 students: classStudents.map(s => ({ id: s.id, name: s.name, reg: s.registrationNumber })),
                 examTitle: schedule?.examTitle || activeExam?.title || 'Aula Regular (Sem Prova)',
-                key: activeExam ? `key_${activeExam.id}` : (schedule ? `sched_${schedule.id}` : 'no_exam_key')
+                key: activeExam ? `key_${activeExam.id}` : (schedule ? `sched_${schedule.id}` : 'no_exam_key'),
+                examId: activeExam?.id || schedule?.examId
             });
             setStudentStatuses(st);
+
+            // 4. Initialize Mesh for classroom monitoring
+            const mesh = getMeshNetwork();
+            mesh.initialize({
+                signalingServerUrl: 'http://localhost:3001',
+                roomId: `exam-${activeExam?.id || schedule?.examId || selectedClass.id}`,
+                nodeId: 'professor-tablet',
+                nodeType: 'PROFESSOR',
+                nodeName: `Prof. ${currentUser.name}`
+            }).catch(e => console.warn("Mesh init failed:", e));
         }
     }, [isLiveController, liveClassId, state.currentUser, state.classes, state.exams, state.students]);
+
+    useEffect(() => {
+        return () => {
+            getMeshNetwork().shutdown();
+        };
+    }, []);
 
     // QR Animation Loop
     useEffect(() => {
@@ -199,6 +217,17 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
             alert("PIN Incorreto. Olhe para o telão do evento.");
             setPinInput('');
         }
+    };
+
+    const handleBroadcastEnableExam = () => {
+        if (!confirm("Isso habilitará o botão 'Iniciar Prova' em todos os tablets dos alunos conectados via Mesh. Confirmar?")) return;
+
+        getMeshNetwork().broadcastMessage('ENABLE_EXAM', {
+            timestamp: Date.now(),
+            examId: classData?.examId
+        });
+
+        alert("🚀 Comando de habilitação enviado para a sala!");
     };
 
     const handleUnlockClass = async () => {
@@ -415,6 +444,19 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
                                 <div>
                                     <p className="font-bold text-emerald-900">Monitor Offline</p>
                                     <p className="text-sm text-emerald-700">Ver entregas (Scanner).</p>
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={handleBroadcastEnableExam}
+                                className="p-4 bg-purple-100 border-2 border-purple-200 rounded-2xl flex items-center gap-4 hover:bg-purple-200 transition-colors text-left"
+                            >
+                                <div className="p-3 bg-purple-500 text-white rounded-xl">
+                                    <Play size={24} />
+                                </div>
+                                <div>
+                                    <p className="font-bold text-purple-900">Habilitar Turma</p>
+                                    <p className="text-sm text-purple-700">Liberar Início (Mesh).</p>
                                 </div>
                             </button>
                         </div>

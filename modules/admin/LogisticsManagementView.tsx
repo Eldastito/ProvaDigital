@@ -13,6 +13,7 @@ import {
 import { useAppStore } from '../../store/useAppStore';
 import { TabletOptimizationService } from '../../services/tabletOptimizationService';
 import { LogisticsAsset, LogisticsCase, CustodyTransfer, LogisticsIncident } from '../../types';
+import { ProvisioningStationView } from './ProvisioningStationView';
 
 const LogisticsManagementView: React.FC = () => {
     const {
@@ -22,7 +23,7 @@ const LogisticsManagementView: React.FC = () => {
         logisticsIncidents,
         loadLogisticsData
     } = useAppStore();
-    const [activeTab, setActiveTab] = useState<'assets' | 'cases' | 'transfers' | 'incidents' | 'demand'>('demand');
+    const [activeTab, setActiveTab] = useState<'assets' | 'cases' | 'transfers' | 'incidents' | 'demand' | 'carga'>('demand');
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
@@ -94,19 +95,20 @@ const LogisticsManagementView: React.FC = () => {
 
             {/* Tabs */}
             <div className="flex gap-1 border-b border-slate-200">
-                {['demand', 'assets', 'cases', 'transfers', 'incidents'].map((tab) => (
+                {['demand', 'carga', 'assets', 'cases', 'transfers', 'incidents'].map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab as any)}
                         className={`px-4 py-2 font-medium transition-all border-b-2 capitalize ${activeTab === tab ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                     >
-                        {tab === 'demand' ? 'Previsão de Demanda' : tab === 'assets' ? 'Estoque de Tablets' : tab === 'cases' ? 'Malas de Transporte' : tab === 'transfers' ? 'Histórico de Custódia' : 'Incidentes'}
+                        {tab === 'demand' ? 'Previsão de Demanda' : tab === 'carga' ? 'Carga de Tablets (HQ)' : tab === 'assets' ? 'Estoque de Tablets' : tab === 'cases' ? 'Malas de Transporte' : tab === 'transfers' ? 'Histórico de Custódia' : 'Incidentes'}
                     </button>
                 ))}
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden min-h-[400px]">
                 {activeTab === 'demand' && <DemandPlanningView />}
+                {activeTab === 'carga' && <ProvisioningStationView />}
 
                 {activeTab === 'assets' && (
                     <div className="p-6">

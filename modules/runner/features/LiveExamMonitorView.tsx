@@ -7,6 +7,7 @@ import {
 import { useSafeAppStore, AppStore } from '../../../store/useAppStore';
 import { ExamStatus, RegistrationStatus } from '../../../types';
 import { Badge } from '../../../components/ui/Badge';
+import { getMeshNetwork, MeshMessage } from '../../../services/meshNetworkService';
 
 export const LiveExamMonitorView = () => {
     const state = useSafeAppStore();
@@ -49,6 +50,50 @@ export const LiveExamMonitorView = () => {
 
     }, [realtimeChannel]);
 
+    // --- MESH NETWORK (OFFLINE MONITORING) ---
+    const [meshPeers, setMeshPeers] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (!examId) return;
+
+        const mesh = getMeshNetwork();
+
+        const initMesh = async () => {
+            try {
+                await mesh.initialize({
+                    signalingServerUrl: 'http://localhost:3001', // Servidor local do tablet professor
+                    roomId: `exam-${examId}`,
+                    nodeId: 'teacher-hq',
+                    nodeType: 'PROFESSOR',
+                    nodeName: 'Professor (Monitor)'
+                });
+
+                mesh.setOnNodeJoined((node) => {
+                    setMeshPeers(prev => [...prev.filter(n => n.id !== node.id), node]);
+                });
+
+                mesh.setOnNodeLeft((nodeId) => {
+                    setMeshPeers(prev => prev.filter(n => n.id !== nodeId));
+                });
+
+                mesh.setOnMessageReceived((msg: MeshMessage) => {
+                    if (msg.type === 'TELEMETRY' || msg.type === 'ANSWER') {
+                        // Opcional: Atualizar estado local com dados da mesh
+                        console.log(`[MESH DATA] From ${msg.from}:`, msg.payload);
+                    }
+                });
+            } catch (e) {
+                console.warn("Mesh network initialization failed (offline mode unavailable)");
+            }
+        };
+
+        initMesh();
+
+        return () => {
+            mesh.shutdown();
+        };
+    }, [examId]);
+
 
     // Process live data
     const studentsData = registrations
@@ -69,22 +114,25 @@ export const LiveExamMonitorView = () => {
             const allAlerts = [...studentLiveAlerts, ...persistentAlerts.map(a => ({ type: a.eventType, time: new Date(a.createdAt).toLocaleTimeString() }))];
 
             const isOnline = onlineUsers.includes(r.studentId);
+            const isMesh = meshPeers.some(p => p.id === r.studentId);
 
             return {
                 id: r.studentId,
                 attemptId: attempt?.id,
                 name: student?.name || 'Aluno',
-                // Priority: Finished -> Online -> Offline (but "Em Prova" if started)
+                // Priority: Finished -> Online -> Mesh -> Offline
                 status: attempt?.status === 'submitted' ? RegistrationStatus.FINALIZADO :
                     isOnline ? RegistrationStatus.PRESENTE :
-                        RegistrationStatus.AUSENTE,
+                        isMesh ? RegistrationStatus.PRESENTE :
+                            RegistrationStatus.AUSENTE,
                 // Override status text for UI
                 uiStatus: attempt?.status === 'submitted' ? 'Finalizado' :
-                    isOnline ? 'Online' : 'Offline',
+                    isOnline ? 'Online' :
+                        isMesh ? 'Via Mesh' : 'Offline',
 
                 progress: (attempt?.status === 'submitted' || r.status === RegistrationStatus.FINALIZADO) ? 100 : (attempt ? 40 : 0),
-                battery: 95, // Mock for now
-                connection: isOnline ? 'EXCELLENT' : 'OFFLINE',
+                battery: isMesh ? meshPeers.find(p => p.id === r.studentId)?.metadata?.battery || 95 : 95,
+                connection: isOnline ? 'EXCELLENT' : isMesh ? 'MESH' : 'OFFLINE',
                 securityAlerts: allAlerts,
                 violationCount: (attempt?.violationCount || 0) + studentLiveAlerts.length
             };
@@ -165,7 +213,13 @@ export const LiveExamMonitorView = () => {
                                         <div className="flex items-center gap-1 text-[10px] text-slate-400">
                                             <Battery size={10} /> {Math.floor(student.battery)}%
                                         </div>
-                                        <Wifi size={10} className={student.battery < 20 ? 'text-rose-500' : 'text-emerald-500'} />
+                                        {student.connection === 'MESH' ? (
+                                            <div className="flex items-center gap-1 text-[8px] font-black text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded uppercase">
+                                                <Wifi size={8} /> Local Mesh
+                                            </div>
+                                        ) : (
+                                            <Wifi size={10} className={student.battery < 20 ? 'text-rose-500' : 'text-emerald-500'} />
+                                        )}
                                     </div>
                                 </div>
                             </div>

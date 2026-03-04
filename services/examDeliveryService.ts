@@ -1,5 +1,6 @@
 import { ExamVariant, ExamVersion, Student } from '../types';
 import { useAppStore } from '../store/useAppStore';
+import { cryptoService } from './cryptoService';
 
 /**
  * Lógica Determinística de Delivery de Provas:
@@ -41,4 +42,92 @@ export const resolveExamVariant = (
     // 4. Fallback para a versão padrão (Standard)
     console.log(`[DELIVERY] Serving STANDARD version for student ${studentId}`);
     return { variant: null, version: latestVersion };
+};
+
+/**
+ * GERAÇÃO DE PACOTE BLINDADO (.epkg)
+ * 
+ * Cria um pacote de prova onde o conteúdo é cifrado via AES-256 GCM e a chave 
+ * é selada (wrapped) com a chave pública de cada dispositivo de aluno.
+ */
+export const generateBlindPackage = async (
+    examId: string,
+    schoolId: string,
+    state: any
+): Promise<{
+    packageInfo: any,
+    encryptedPayload: string,
+    keyDictionary: Record<string, string>,
+    resourceList: string[] // URLs de mídias para cache offline
+}> => {
+    // 1. Localizar Prova e Alunos
+    const exam = state.exams.find((e: any) => e.id === examId);
+    if (!exam) throw new Error("Prova não encontrada para geração de pacote.");
+
+    const students = state.students.filter((s: any) => s.schoolId === schoolId);
+
+    // 2. Coletar Itens e Recursos (3D/Mídias)
+    const examItemsConfig = exam.items_config || exam.items || [];
+    const itemIds = examItemsConfig.map((i: any) => i.itemId);
+
+    // Se for adaptativa, precisamos do POOL COMPLETO configurado, não apenas os IDs da "config"
+    // (Em um cenário real, exam.items_config para ADAPTATIVA conteria o pool)
+    const items = state.items.filter((i: any) => itemIds.includes(i.id));
+
+    const resourceList: string[] = [];
+    items.forEach((item: any) => {
+        if (item.multimedia) {
+            item.multimedia.forEach((m: any) => {
+                if (m.url && !resourceList.includes(m.url)) {
+                    resourceList.push(m.url);
+                }
+            });
+        }
+    });
+
+    // 3. Gerar Chave AES para este pacote específico
+    const jwkKey = await cryptoService.generateExamKey();
+    const aesKey = await cryptoService.importKey(jwkKey);
+
+    // 4. Encrypt Payload
+    // Se a prova é adaptativa, incluímos os itens completos (com triParams e enunciados)
+    // No modo normal, enviamos apenas o necessário.
+    const payloadData = {
+        id: exam.id,
+        title: exam.title,
+        model: exam.model,
+        items: exam.model === 'ADAPTADO' ? items : examItemsConfig,
+        timestamp: Date.now()
+    };
+
+    const encryptedResult = await cryptoService.encryptData(payloadData, aesKey);
+
+    // 5. Wrap Key para cada aluno (Dicionário de Chaves)
+    const keyDictionary: Record<string, string> = {};
+
+    for (const student of students) {
+        if (student.metadata?.publicKey) {
+            try {
+                const publicKey = await cryptoService.importPublicKey(student.metadata.publicKey);
+                const wrappedKey = await cryptoService.wrapKey(aesKey, publicKey);
+                keyDictionary[student.id] = wrappedKey;
+            } catch (e) {
+                console.error(`Falha ao embrulhar chave para aluno ${student.id}:`, e);
+            }
+        }
+    }
+
+    return {
+        packageInfo: {
+            examId,
+            schoolId,
+            generatedAt: new Date().toISOString(),
+            version: "v1.0-secure",
+            isAdaptive: exam.model === 'ADAPTADO',
+            resourceCount: resourceList.length
+        },
+        encryptedPayload: JSON.stringify(encryptedResult),
+        keyDictionary,
+        resourceList
+    };
 };

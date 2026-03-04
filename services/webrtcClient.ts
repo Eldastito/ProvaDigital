@@ -15,7 +15,7 @@ export interface WebRTCConfig {
     signalingServerUrl: string;
     roomId: string;
     peerId: string;
-    peerType: 'PROFESSOR' | 'STUDENT' | 'COORDINATOR';
+    peerType: 'PROFESSOR' | 'STUDENT' | 'COORDINATOR' | 'ROUTER';
     peerName: string;
 }
 

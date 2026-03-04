@@ -11,7 +11,7 @@ import { getWebRTCClient, DataChannelMessage, PeerConnection } from './webrtcCli
 
 // Tipos
 export interface MeshMessage {
-    type: 'HEARTBEAT' | 'TELEMETRY' | 'ALERT' | 'ANSWER' | 'CUSTOM';
+    type: 'HEARTBEAT' | 'TELEMETRY' | 'ALERT' | 'ANSWER' | 'HANDSHAKE_REQUEST' | 'HANDSHAKE_RESPONSE' | 'ENABLE_EXAM' | 'CUSTOM';
     from: string; // studentId ou tabletId
     to: string | 'BROADCAST';
     payload: any;
@@ -119,6 +119,20 @@ export class MeshNetworkService {
         // Resposta de prova
         this.client.onMessage('ANSWER', (msg) => {
             this.handleAnswer(msg);
+        });
+
+        // Handshake
+        this.client.onMessage('HANDSHAKE_REQUEST', (msg) => {
+            this.handleHandshakeRequest(msg);
+        });
+
+        this.client.onMessage('HANDSHAKE_RESPONSE', (msg) => {
+            this.handleHandshakeResponse(msg);
+        });
+
+        // Comando de habilitação
+        this.client.onMessage('ENABLE_EXAM', (msg) => {
+            this.handleEnableExam(msg);
         });
 
         // Mensagem customizada
@@ -236,6 +250,67 @@ export class MeshNetworkService {
         }
 
         this.messagesReceived++;
+    }
+
+    /**
+     * Processar Handshake Request (Aluno -> Professor)
+     */
+    private handleHandshakeRequest(msg: DataChannelMessage): void {
+        console.log('🤝 Handshake solicitado por:', msg.from);
+
+        if (this.onMessageReceived) {
+            this.onMessageReceived({
+                type: 'HANDSHAKE_REQUEST',
+                from: msg.from,
+                to: this.client.getStats().config?.peerId || 'PROFESSOR',
+                payload: msg.payload,
+                timestamp: msg.timestamp,
+                messageId: this.generateMessageId()
+            });
+        }
+    }
+
+    /**
+     * Processar Handshake Response (Professor -> Aluno)
+     */
+    private handleHandshakeResponse(msg: DataChannelMessage): void {
+        console.log('🔑 Resposta de Handshake recebida para:', msg.payload.targetStudentId);
+
+        if (this.onMessageReceived) {
+            this.onMessageReceived({
+                type: 'HANDSHAKE_RESPONSE',
+                from: msg.from,
+                to: msg.payload.targetStudentId,
+                payload: msg.payload,
+                timestamp: msg.timestamp,
+                messageId: this.generateMessageId()
+            });
+        }
+    }
+
+    /**
+     * Processar comando de Habilitação (Broadcast do Professor)
+     */
+    private handleEnableExam(msg: DataChannelMessage): void {
+        console.log('🚀 Comando de Habilitação de Prova recebido!');
+
+        if (this.onMessageReceived) {
+            this.onMessageReceived({
+                type: 'ENABLE_EXAM',
+                from: msg.from,
+                to: 'BROADCAST',
+                payload: msg.payload,
+                timestamp: msg.timestamp,
+                messageId: this.generateMessageId()
+            });
+        }
+    }
+
+    /**
+     * Enviar telemetria via Mesh
+     */
+    sendTelemetry(payload: any): void {
+        this.broadcastMessage('TELEMETRY', payload);
     }
 
     /**

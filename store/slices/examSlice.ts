@@ -39,6 +39,7 @@ export interface ExamSlice {
     updatePedagogicalFeedback: (resultId: string, feedback: string) => Promise<void>;
     updateExamAllocation: (examId: string, classIds: string[]) => Promise<void>;
     linkExamToSchedule: (examId: string, scheduleId: string) => Promise<void>;
+    fetchExamItems: (examId: string) => Promise<void>;
 }
 
 export const createExamSlice: StateCreator<AppStore, [], [], ExamSlice> = (set, get) => ({
@@ -105,7 +106,62 @@ export const createExamSlice: StateCreator<AppStore, [], [], ExamSlice> = (set, 
     },
 
     fetchExamItems: async (examId) => {
-        // ...
+        const exam = get().exams.find(e => e.id === examId);
+        if (!exam) return;
+
+        const itemIds = (exam.items || exam.items_config || []).map((i: any) => i.itemId);
+        if (itemIds.length === 0) return;
+
+        console.log(`📡 Buscando ${itemIds.length} itens para a prova ${examId}...`);
+
+        const { data, error } = await supabase
+            .from('items')
+            .select('*')
+            .in('id', itemIds);
+
+        if (error) {
+            console.error("Error fetching exam items:", error);
+            return;
+        }
+
+        if (data) {
+            const mappedItems = data.map(item => ({
+                id: item.id,
+                tenantId: item.tenant_id,
+                schoolId: item.school_id,
+                ownerId: item.owner_id,
+                knowledgeArea: item.knowledge_area,
+                subject: item.subject,
+                type: item.type,
+                statement: item.statement,
+                imageUrl: item.image_url,
+                alternatives: item.alternatives || [],
+                correctAnswerJustification: item.correct_justification,
+                difficulty: item.difficulty,
+                score: item.score,
+                origin: item.origin,
+                tags: item.tags || [],
+                bnccCode: item.bncc_code,
+                usageCount: item.usage_count || 0,
+                isAccessible: item.is_accessible,
+                accessibilityInstructions: item.accessibility_instructions,
+                multimedia: item.multimedia || [],
+                simulationConfig: item.simulation_config,
+                generationBatchId: item.generation_batch_id,
+                lifecycleStatus: item.lifecycle_status,
+                currentVersionId: item.current_version_id,
+                triParams: item.tri_params,
+                createdAt: item.created_at
+            }));
+
+            // Adiciona ao store local (evita duplicatas)
+            const currentItems = get().items;
+            const newItems = mappedItems.filter(mi => !currentItems.some(ci => ci.id === mi.id));
+
+            if (newItems.length > 0) {
+                set({ items: [...currentItems, ...newItems] });
+            }
+        }
     },
 
     fetchNetworkExams: async () => {
