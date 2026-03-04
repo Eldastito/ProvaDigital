@@ -31,7 +31,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
 
     // --- EXAM DATA ---
     const exam = state.exams.find(e => e.id === examId);
-    const isAdaptive = exam?.model === 'ADAPTADO';
+    const isAdaptive = exam?.model === 'ADAPTATIVO';
     const [adaptivePath, setAdaptivePath] = useState<Item[]>([]);
     const [currentTheta, setCurrentTheta] = useState<number>(0);
     const [adaptiveFinished, setAdaptiveFinished] = useState(false);

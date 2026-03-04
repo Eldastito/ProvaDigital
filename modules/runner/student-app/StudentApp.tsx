@@ -292,7 +292,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                         setLoadError(`Prova carregada, mas questões não encontradas no cache. (Qtd: ${configSource.length})`);
                     }
 
-                    if (exam.model === 'ADAPTADO') {
+                    if (exam.model === 'ADAPTATIVO') {
                         setAdaptiveItems(items); // Guarda o pool completo
                         // Seleciona o primeiro item (theta = 0)
                         const firstItem = CATEngine.selectNextItem(0, items, []);
@@ -668,7 +668,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
 
         // --- ADAPTIVE LOGIC (IRT) ---
         const exam = state.exams.find(e => e.id === examIdParam);
-        if (exam?.model === 'ADAPTADO' && adaptiveItems.length > 0) {
+        if (exam?.model === 'ADAPTATIVO' && adaptiveItems.length > 0) {
             const item = adaptiveItems.find(i => i.id === qId);
             if (item && item.triParams) {
                 const correctAlt = item.alternatives.find((a: any) => a.isCorrect);

@@ -566,7 +566,7 @@ export interface ItemVersion {
 
 export enum ExamModel {
   SOMATIVO = 'SOMATIVO',
-  ADAPTADO = 'ADAPTADO',
+  ADAPTATIVO = 'ADAPTATIVO',
   OCDE_PISA = 'OCDE_PISA'
 }
 

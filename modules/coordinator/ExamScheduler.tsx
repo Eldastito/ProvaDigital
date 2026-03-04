@@ -235,7 +235,7 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                     shuffle,
                     timeLimit: duration,
                     allowReview,
-                    adaptiveMode: selectedExamId !== 'PENDING' && store.exams?.find(e => e.id === selectedExamId)?.model === 'ADAPTADO' ? adaptiveMode : undefined
+                    adaptiveMode: selectedExamId !== 'PENDING' && store.exams?.find(e => e.id === selectedExamId)?.model === 'ADAPTATIVO' ? adaptiveMode : undefined
                 },
                 status: ExamScheduleStatus.SCHEDULED,
                 createdBy: store.currentUser?.id || 'current-user',
@@ -822,7 +822,7 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                             </div>
 
                             {/* Modo Adaptativo (se prova for adaptativa) */}
-                            {selectedExamId && store.exams?.find(e => e.id === selectedExamId)?.model === 'ADAPTADO' && (
+                            {selectedExamId && store.exams?.find(e => e.id === selectedExamId)?.model === 'ADAPTATIVO' && (
                                 <div className="border-t border-slate-200 pt-6">
                                     <AdaptiveModeSelector
                                         selectedMode={adaptiveMode}

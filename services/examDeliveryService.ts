@@ -96,7 +96,7 @@ export const generateBlindPackage = async (
         id: exam.id,
         title: exam.title,
         model: exam.model,
-        items: exam.model === 'ADAPTADO' ? items : examItemsConfig,
+        items: exam.model === 'ADAPTATIVO' ? items : examItemsConfig,
         timestamp: Date.now()
     };
 
@@ -123,7 +123,7 @@ export const generateBlindPackage = async (
             schoolId,
             generatedAt: new Date().toISOString(),
             version: "v1.0-secure",
-            isAdaptive: exam.model === 'ADAPTADO',
+            isAdaptive: exam.model === 'ADAPTATIVO',
             resourceCount: resourceList.length
         },
         encryptedPayload: JSON.stringify(encryptedResult),
