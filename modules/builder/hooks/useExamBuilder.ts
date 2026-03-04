@@ -254,6 +254,10 @@ export const useExamBuilder = () => {
 
             await addExam(newExam);
 
+            if (publish) {
+                setLogisticsStatus(ExamLogisticsStatus.SENT);
+            }
+
             localStorage.removeItem(`exam_builder_draft_${state.currentUser?.id}`);
             return examId;
 

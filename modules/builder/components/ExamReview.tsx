@@ -130,7 +130,7 @@ export const ExamReview = ({
                                 }`} />
                             Status: {
                                 logisticsStatus === ExamLogisticsStatus.SENT ? 'Enviada com Sucesso' :
-                                    logisticsStatus === ExamLogisticsStatus.SENDING ? 'Enviando...' :
+                                    logisticsStatus === ExamLogisticsStatus.SENDING ? 'Criptografando & Enviando...' :
                                         logisticsStatus === ExamLogisticsStatus.ERROR ? 'Erro no Envio' :
                                             logisticsStatus === ExamLogisticsStatus.DRAFT ? 'Rascunho / Pendente' : 'Pronta para Envio'
                             }
@@ -412,14 +412,18 @@ export const ExamReview = ({
                     <button
                         onClick={async () => {
                             if (!confirm("Isso irá criptografar a prova com uma chave única (AES-256) e enviá-la para a fila de logística. Deseja continuar?")) return;
+                            setIsSaving(true);
                             await onSave(true);
+                            setIsSaving(false);
                         }}
                         disabled={isHandoffRunning || logisticsStatus === ExamLogisticsStatus.SENT}
                         className={`bg-slate-900 text-amber-400 px-6 py-3 rounded-lg font-bold shadow-lg flex items-center gap-2 hover:bg-black border border-amber-500/30 transition-all ${isHandoffRunning ? 'opacity-75 cursor-wait' : ''} ${logisticsStatus === ExamLogisticsStatus.SENT ? 'grayscale opacity-50 cursor-not-allowed' : ''}`}
                     >
-                        {isHandoffRunning ? <Loader2 className="animate-spin" size={18} /> :
+                        {isHandoffRunning || (isSaving && logisticsStatus === ExamLogisticsStatus.SENDING) ?
+                            <div className="flex items-center gap-2"><Loader2 className="animate-spin" size={18} /> Criptografando...</div> :
                             logisticsStatus === ExamLogisticsStatus.SENT ? <Lock size={18} /> : <Truck size={18} />}
-                        {logisticsStatus === ExamLogisticsStatus.SENT ? 'Prova Bloqueada (Já Enviada)' : 'Finalizar e Enviar para ExamePad'}
+                        {logisticsStatus === ExamLogisticsStatus.SENT ? 'Prova Bloqueada (Já Enviada)' :
+                            (isHandoffRunning || (isSaving && logisticsStatus === ExamLogisticsStatus.SENDING)) ? '' : 'Finalizar e Enviar para ExamePad'}
                     </button>
                     {logisticsStatus === ExamLogisticsStatus.SENT && (
                         <p className="text-[10px] text-amber-600 font-bold bg-amber-50 p-2 rounded-lg border border-amber-200 mt-2">
