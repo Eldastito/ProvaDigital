@@ -31,7 +31,7 @@ export const smartSelectItems = (criteria: ExamCriteria, pool: Item[]): Selectio
     let filteredPool = pool;
     if (criteria.subject && criteria.subject.trim() !== "") {
         filteredPool = pool.filter(item =>
-            item.subject.toLowerCase().trim() === criteria.subject.toLowerCase().trim()
+            (item.subject || "").toLowerCase().trim() === (criteria.subject || "").toLowerCase().trim()
         );
     }
 
