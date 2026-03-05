@@ -33,7 +33,30 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
     const [conflictedPeers, setConflictedPeers] = useState<string[]>([]);
     const [securityReports, setSecurityReports] = useState<Record<string, SecurityReport>>({});
     const [showHelpModal, setShowHelpModal] = useState(false);
+    const [gatewayStatus, setGatewayStatus] = useState<'ONLINE' | 'OFFLINE' | 'CHECKING'>('CHECKING');
     const CURRENT_BIN_VERSION = "2.5.0";
+
+    // --- LOGISTICS GATEWAY CHECK ---
+    useEffect(() => {
+        const checkGateway = async () => {
+            try {
+                const res = await fetch('http://localhost:3001/health', { mode: 'cors' });
+                if (res.ok) {
+                    setGatewayStatus('ONLINE');
+                    // Se o gateway local estiver ativo, podemos usar ele para sinalização prioritária
+                    console.log('🔗 [CC] Gateway Local detectado em :3001. Mesh Wi-Fi Nativo Ativo.');
+                } else {
+                    setGatewayStatus('OFFLINE');
+                }
+            } catch (e) {
+                setGatewayStatus('OFFLINE');
+            }
+        };
+
+        checkGateway();
+        const interval = setInterval(checkGateway, 10000);
+        return () => clearInterval(interval);
+    }, []);
 
     // --- PERSISTÊNCIA DE ESTADO (LOCALSTORAGE) ---
     const STORAGE_KEY = `cc_wizard_${state.currentUser?.tenantId}_${state.currentUser?.id}`;
@@ -230,6 +253,29 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                 >
                     <HelpCircle size={18} /> Como Operar na Sede?
                 </button>
+            </div>
+
+            {/* Gateway Status Bar */}
+            <div className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${gatewayStatus === 'ONLINE'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                    : gatewayStatus === 'CHECKING'
+                        ? 'bg-amber-50 border-amber-200 text-amber-700'
+                        : 'bg-red-50 border-red-200 text-red-600'
+                }`}>
+                <div className={`w-2.5 h-2.5 rounded-full ${gatewayStatus === 'ONLINE' ? 'bg-emerald-500 animate-pulse' :
+                        gatewayStatus === 'CHECKING' ? 'bg-amber-400 animate-pulse' :
+                            'bg-red-400'
+                    }`} />
+                <Wifi size={16} />
+                {gatewayStatus === 'ONLINE' && (
+                    <span>🛜 Gateway Wi-Fi Ativo (Porta 3001) — <b>{peers.length} dispositivo(s)</b> na rede</span>
+                )}
+                {gatewayStatus === 'CHECKING' && (
+                    <span>Verificando Gateway Local...</span>
+                )}
+                {gatewayStatus === 'OFFLINE' && (
+                    <span>⚠️ Gateway Offline — Execute <code className="bg-red-100 px-1.5 py-0.5 rounded text-xs font-mono">npm run mesh:gateway</code> no terminal</span>
+                )}
             </div>
 
             {activeTab === 'PRODUCTION' && (

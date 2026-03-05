@@ -223,8 +223,14 @@ export class LocalServerService {
 
     private setupWebSocket(): void {
         this.io.on('connection', (socket: any) => {
+            console.log(`📱 Novo dispositivo conectado: ${socket.id}`);
+
+            // Armazenar o peerId no socket para cleanup
+            let currentPeerId: string | null = null;
+
             socket.on('join-room', (data: any) => {
                 socket.join(data.roomId);
+                currentPeerId = data.peerId;
                 const peer: PeerInfo = {
                     id: data.peerId,
                     type: data.peerType,
@@ -233,11 +239,30 @@ export class LocalServerService {
                     lastSeen: Date.now()
                 };
                 this.peers.set(data.peerId, peer);
+
+                // Notificar todos na sala sobre o novo peer
                 socket.to(data.roomId).emit('peer-joined', peer);
+
+                // Enviar lista de peers existentes para o novo dispositivo
+                const existingPeers = Array.from(this.peers.values()).filter(p => p.id !== data.peerId);
+                socket.emit('existing-peers', existingPeers);
+
+                console.log(`✅ Peer "${data.peerName}" (${data.peerType}) entrou na sala ${data.roomId}. Total: ${this.peers.size}`);
+            });
+
+            // === MESH MESSAGE RELAY ===
+            // Retransmitir mensagens mesh para TODOS os outros clientes conectados
+            socket.on('mesh-broadcast', (msg: any) => {
+                // Retransmitir para todos EXCETO o remetente
+                socket.broadcast.emit('mesh-broadcast', msg);
             });
 
             socket.on('disconnect', () => {
-                // Cleanup logic simplified for stub
+                if (currentPeerId) {
+                    const peer = this.peers.get(currentPeerId);
+                    console.log(`🔌 Peer desconectado: ${peer?.name || currentPeerId}`);
+                    this.peers.delete(currentPeerId);
+                }
             });
         });
     }

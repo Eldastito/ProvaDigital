@@ -12,7 +12,8 @@
     "test:coverage": "vitest --coverage",
     "cypress": "cypress open",
     "cypress:headless": "cypress run",
-    "test:e2e": "cypress run"
+    "test:e2e": "cypress run",
+    "mesh:gateway": "tsx services/mesh-gateway.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.0.0",

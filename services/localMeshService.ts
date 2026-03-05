@@ -1,18 +1,37 @@
 
 import { MeshMessage, MeshPeer, MeshRole, MeshMessageType } from "../types";
-import { supabase } from "./supabaseClient";
+import { io, Socket } from 'socket.io-client';
 
-// This service implements a Hybrid Local/Cloud Mesh Network.
-// 1. BroadcastChannel: For communication between tabs on the same machine/browser.
-// 2. Supabase Realtime: For communication between different physical devices (Tablets <-> Computer).
+/**
+ * Hybrid Mesh Service
+ * 
+ * Prioridade de Conexão:
+ * 1. Socket.IO via Gateway Local (Wi-Fi Nativo - Ultra-Rápido)
+ * 2. BroadcastChannel (Fallback: Tabs no mesmo navegador)
+ * 
+ * O Gateway Local roda no PC da Sede (npm run mesh:gateway) na porta 3001.
+ * Tablets conectados ao Hotspot do Windows acessam via IP: 192.168.137.1:3001
+ */
+
+// IP padrão do Windows Mobile Hotspot
+const HOTSPOT_GATEWAY_IP = '192.168.137.1';
+const GATEWAY_PORT = 3001;
+
+// Lista de URLs para tentar conectar ao Gateway (em ordem de prioridade)
+const GATEWAY_URLS = [
+    `http://localhost:${GATEWAY_PORT}`,          // PC local (Centro de Comando)
+    `http://${HOTSPOT_GATEWAY_IP}:${GATEWAY_PORT}`, // Tablets via Hotspot
+    `http://192.168.1.1:${GATEWAY_PORT}`,        // Roteador doméstico comum
+];
 
 class LocalMeshService {
     private channel: BroadcastChannel | null = null;
-    private supabaseChannel: any = null;
+    private socket: Socket | null = null;
     private peer: MeshPeer;
     private listeners: ((msg: MeshMessage) => void)[] = [];
     private peers: Map<string, MeshPeer> = new Map();
     private announceInterval: any = null;
+    private _gatewayConnected: boolean = false;
 
     constructor() {
         this.peer = {
@@ -24,15 +43,15 @@ class LocalMeshService {
         };
     }
 
+    /** Indica se o Gateway Local está conectado */
+    get isGatewayConnected(): boolean {
+        return this._gatewayConnected;
+    }
+
     // Initialize the device on the network
     public join(id: string, name: string, role: MeshRole, tenantId?: string) {
-        if (this.channel) this.channel.close();
-        if (this.supabaseChannel) {
-            this.supabaseChannel.unsubscribe();
-        }
-
-        // 1. Local Browser Mesh (Tab-to-Tab)
-        this.channel = new BroadcastChannel('examepad_local_mesh');
+        // Limpar conexões anteriores
+        this.disconnect();
 
         this.peer = {
             id,
@@ -42,68 +61,136 @@ class LocalMeshService {
             lastSeen: Date.now()
         };
 
-        console.log(`[MESH] ${name} joined as ${role} (ID: ${id}). Tenant: ${tenantId || 'global'}`);
+        console.log(`[MESH] ${name} joining as ${role} (ID: ${id})`);
 
-        this.channel.onmessage = (event) => {
-            const msg = event.data as MeshMessage;
-            this.handleIncomingMessage(msg);
-        };
-
-        // 2. Physical Network Bridge (Cloud Signaling)
-        // Usamos o tenantId para criar uma sala virtual onde dispositivos reais se encontram.
-        const roomName = `mesh_room_${tenantId || 'global'}`;
-        this.supabaseChannel = supabase.channel(roomName, {
-            config: {
-                broadcast: { self: false }
-            }
-        });
-
-        this.supabaseChannel
-            .on('broadcast', { event: 'mesh_msg' }, (payload: any) => {
-                this.handleIncomingMessage(payload.payload as MeshMessage);
-            })
-            .subscribe((status: string) => {
-                if (status === 'SUBSCRIBED') {
-                    console.log(`[MESH] Connected to Physical Discovery Bridge: ${roomName}`);
-                    // Trigger announcement immediately once subscribed
-                    this.announce();
-                }
-            });
-
-        // 3. Global Discovery Bridge (Apenas para SERVER)
-        // O servidor ouve na sala 'global' para "pescar" tablets novos que ainda não sabem seu tenant.
-        if (role === 'SERVER' && tenantId) {
-            const globalChannel = supabase.channel('mesh_room_global', {
-                config: { broadcast: { self: false } }
-            });
-            globalChannel
-                .on('broadcast', { event: 'mesh_msg' }, (payload: any) => {
-                    this.handleIncomingMessage(payload.payload as MeshMessage);
-                })
-                .subscribe();
+        // 1. BroadcastChannel (Fallback: comunicação entre abas)
+        try {
+            this.channel = new BroadcastChannel('examepad_local_mesh');
+            this.channel.onmessage = (event) => {
+                this.handleIncomingMessage(event.data as MeshMessage);
+            };
+        } catch (e) {
+            console.warn('[MESH] BroadcastChannel não disponível neste ambiente.');
         }
 
-        // Se for Tablet (UNASSIGNED), inicia Discovery
-        if (role === 'UNASSIGNED') {
-            this.broadcast('DISCOVERY', { serialNumber: id });
-        } else {
-            this.announce();
-        }
+        // 2. Socket.IO via Gateway Local (Prioridade #1 - Wi-Fi Nativo)
+        this.tryConnectGateway(tenantId || 'global');
 
+        // Heartbeat / Announce periódico
         if (this.announceInterval) clearInterval(this.announceInterval);
         this.announceInterval = setInterval(() => this.announce(), 3000);
     }
 
-    // "Logical Kill Switch" - Disconnects from the mesh entirely
+    /**
+     * Tenta conectar ao Gateway Local em todas as URLs conhecidas
+     */
+    private async tryConnectGateway(roomId: string) {
+        for (const url of GATEWAY_URLS) {
+            try {
+                // Teste rápido de disponibilidade (fetch com timeout)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+                const res = await fetch(`${url}/health`, {
+                    signal: controller.signal,
+                    mode: 'cors'
+                });
+                clearTimeout(timeoutId);
+
+                if (res.ok) {
+                    console.log(`[MESH] ✅ Gateway encontrado em: ${url}`);
+                    this.connectSocket(url, roomId);
+                    return; // Conectou com sucesso, para de tentar
+                }
+            } catch (e) {
+                // Silencioso - tenta a próxima URL
+                console.log(`[MESH] Gateway não encontrado em: ${url}`);
+            }
+        }
+
+        console.warn('[MESH] ⚠️ Nenhum Gateway Local encontrado. Operando somente via BroadcastChannel.');
+    }
+
+    /**
+     * Estabelece conexão Socket.IO com o Gateway
+     */
+    private connectSocket(url: string, roomId: string) {
+        if (this.socket) {
+            this.socket.disconnect();
+        }
+
+        this.socket = io(url, {
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionAttempts: 10,
+            timeout: 5000
+        });
+
+        this.socket.on('connect', () => {
+            this._gatewayConnected = true;
+            console.log(`[MESH] 🔗 Conectado ao Gateway Local via Socket.IO`);
+
+            // Entrar na sala do mesh
+            this.socket!.emit('join-room', {
+                roomId: `mesh_${roomId}`,
+                peerId: this.peer.id,
+                peerType: this.peer.role,
+                peerName: this.peer.name
+            });
+
+            // Disparar anúncio imediato
+            this.announce();
+        });
+
+        // Escutar mensagens mesh retransmitidas pelo gateway
+        this.socket.on('mesh-broadcast', (msg: MeshMessage) => {
+            this.handleIncomingMessage(msg);
+        });
+
+        // Quando um novo peer entra na sala, atualizar a lista
+        this.socket.on('peer-joined', (peerInfo: any) => {
+            console.log(`[MESH] 👋 Novo peer via Gateway: ${peerInfo.name}`);
+            const newPeer: MeshPeer = {
+                id: peerInfo.id,
+                name: peerInfo.name,
+                role: peerInfo.type || 'UNASSIGNED',
+                isOnline: true,
+                lastSeen: Date.now()
+            };
+            this.peers.set(newPeer.id, newPeer);
+            // Notificar listeners com uma mensagem DISCOVERY sintética
+            const discoveryMsg: MeshMessage = {
+                type: 'DISCOVERY',
+                sender: newPeer,
+                payload: { serialNumber: newPeer.id },
+                timestamp: Date.now()
+            };
+            this.listeners.forEach(cb => cb(discoveryMsg));
+        });
+
+        this.socket.on('disconnect', () => {
+            this._gatewayConnected = false;
+            console.log('[MESH] ⚡ Desconectado do Gateway Local.');
+        });
+
+        this.socket.on('connect_error', (err: any) => {
+            this._gatewayConnected = false;
+            console.warn('[MESH] Erro de conexão com Gateway:', err.message);
+        });
+    }
+
+    // "Logical Kill Switch" - Disconnects from everything
     public disconnect() {
         if (this.announceInterval) clearInterval(this.announceInterval);
         if (this.channel) {
             this.channel.close();
             this.channel = null;
         }
-        if (this.supabaseChannel) {
-            this.supabaseChannel.unsubscribe();
-            this.supabaseChannel = null;
+        if (this.socket) {
+            this.socket.disconnect();
+            this.socket = null;
+            this._gatewayConnected = false;
         }
         this.peer.isOnline = false;
         console.log(`[MESH] ${this.peer.name} disconnected (Kill Switch).`);
@@ -111,8 +198,9 @@ class LocalMeshService {
 
     public getPeers(): MeshPeer[] {
         const now = Date.now();
-        // Return peers seen in the last 10 seconds
-        return Array.from(this.peers.values()).filter(p => p.id !== this.peer.id && (now - p.lastSeen < 10000));
+        return Array.from(this.peers.values()).filter(
+            p => p.id !== this.peer.id && (now - p.lastSeen < 10000)
+        );
     }
 
     public onMessage(callback: (msg: MeshMessage) => void) {
@@ -127,18 +215,14 @@ class LocalMeshService {
             timestamp: Date.now()
         };
 
-        // Send to Local Tabs
+        // Canal 1: BroadcastChannel (abas locais)
         if (this.channel) {
-            this.channel.postMessage(msg);
+            try { this.channel.postMessage(msg); } catch (e) { /* ignore */ }
         }
 
-        // Send to Physical Network (Cloud Bridge)
-        if (this.supabaseChannel) {
-            this.supabaseChannel.send({
-                type: 'broadcast',
-                event: 'mesh_msg',
-                payload: msg
-            });
+        // Canal 2: Socket.IO (Gateway Wi-Fi Nativo) - PRIORIDADE
+        if (this.socket?.connected) {
+            this.socket.emit('mesh-broadcast', msg);
         }
     }
 
@@ -151,23 +235,19 @@ class LocalMeshService {
             timestamp: Date.now()
         };
 
-        // Local
+        // Canal 1: BroadcastChannel
         if (this.channel) {
-            this.channel.postMessage(msg);
+            try { this.channel.postMessage(msg); } catch (e) { /* ignore */ }
         }
 
-        // Cloud
-        if (this.supabaseChannel) {
-            this.supabaseChannel.send({
-                type: 'broadcast',
-                event: 'mesh_msg',
-                payload: msg
-            });
+        // Canal 2: Socket.IO (Gateway)
+        if (this.socket?.connected) {
+            this.socket.emit('mesh-broadcast', msg);
         }
     }
 
     private announce() {
-        if (!this.peer.isOnline || (!this.channel && !this.supabaseChannel)) return;
+        if (!this.peer.isOnline) return;
         this.broadcast('ANNOUNCE', {});
     }
 
@@ -175,17 +255,10 @@ class LocalMeshService {
         // Anti-Loop/Self Check
         if (msg.sender.id === this.peer.id) return;
 
-        // Anti-Dup Rule: Se eu receber um anúncio com meu próprio ID vindo de outro
-        if (msg.sender.id === this.peer.id && msg.timestamp !== this.peer.lastSeen && this.peer.isOnline) {
-            console.error(`[MESH] CONFLITO DE IDENTIDADE DETECTADO: ${this.peer.id}`);
-            this.broadcast('DISCOVERY_CONFLICT', { conflictedId: this.peer.id });
-            return;
-        }
-
         // Update peer list
         this.peers.set(msg.sender.id, { ...msg.sender, lastSeen: Date.now() });
 
-        // Filter messages meant for me or broadcast
+        // Filter messages for me or broadcast
         if (!msg.targetId || msg.targetId === this.peer.id) {
             this.listeners.forEach(cb => cb(msg));
         }
