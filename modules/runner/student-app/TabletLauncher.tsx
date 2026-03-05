@@ -38,10 +38,32 @@ export const TabletLauncher = ({ onSelectApp, onBack }: TabletLauncherProps) => 
             meshService.join(deviceId, `Tablet-${deviceId.substring(0, 4)}`, 'UNASSIGNED');
             setMode('AUTO_PROVISIONING');
 
-            meshService.onMessage((msg) => {
+            meshService.onMessage(async (msg) => {
+                if (msg.type === 'BIN_VERSION_CHECK') {
+                    const { requiredVersion } = msg.payload;
+                    const currentVersion = "2.5.0"; // Versão fixa para simulação
+
+                    if (currentVersion !== requiredVersion) {
+                        setProvisioningStatus(`Atualizando App para v${requiredVersion}...`);
+                        await nativeBridge.downloadUpdateAPK(requiredVersion);
+                        window.location.reload(); // Simula reinicialização após update
+                    } else {
+                        // Versão OK -> Realizar Check de Segurança
+                        setProvisioningStatus('Verificando integridade do dispositivo...');
+                        const health = await nativeBridge.checkSecurityHealth();
+                        meshService.sendTo(msg.sender.id, 'SECURITY_REPORT', {
+                            ...health,
+                            serialNumber: deviceId,
+                            timestamp: Date.now()
+                        });
+                        setProvisioningStatus('Dispositivo Seguro. Aguardando dados...');
+                    }
+                }
+
                 if (msg.type === 'PROVISION_CMD') {
                     handleAutoProvision(msg.payload);
                 }
+
                 if (msg.type === 'DISCOVERY_CONFLICT') {
                     setIsHardwareConflict(true);
                     setProvisioningStatus('ERRO: Conflito de Hardware Detectado!');

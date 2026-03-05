@@ -1030,7 +1030,7 @@ export interface AppSettings {
 }
 
 export type MeshRole = 'SERVER' | 'COORDINATOR' | 'PROFESSOR' | 'STUDENT' | 'UNASSIGNED';
-export type MeshMessageType = 'ANNOUNCE' | 'DISCOVERY' | 'DISCOVERY_ACK' | 'DISCOVERY_CONFLICT' | 'PROVISION_CMD' | 'SYNC_DATA' | 'HEARTBEAT' | 'ALERT';
+export type MeshMessageType = 'ANNOUNCE' | 'DISCOVERY' | 'DISCOVERY_ACK' | 'DISCOVERY_CONFLICT' | 'BIN_VERSION_CHECK' | 'BIN_UPDATE_REQ' | 'SECURITY_CHECK_REQ' | 'SECURITY_REPORT' | 'PROVISION_CMD' | 'SYNC_DATA' | 'HEARTBEAT' | 'ALERT';
 
 export interface MeshPeer {
   id: string;
@@ -1038,6 +1038,15 @@ export interface MeshPeer {
   role: MeshRole;
   isOnline: boolean;
   lastSeen: number;
+}
+
+export interface SecurityReport {
+  isRooted: boolean;
+  isBinaryIntact: boolean;
+  isOfficialApp: boolean;
+  serialNumber: string;
+  osVersion: string;
+  timestamp: number;
 }
 
 export interface MeshMessage {

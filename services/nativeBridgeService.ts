@@ -53,6 +53,50 @@ export class NativeBridgeService {
     }
 
     /**
+     * Realiza o Handshake de Segurança da Sede (Passo 2)
+     */
+    async checkSecurityHealth(): Promise<{ isRooted: boolean; isBinaryIntact: boolean; isOfficialApp: boolean; osVersion: string }> {
+        if (this.isNative) {
+            try {
+                // @ts-ignore
+                const { Device } = await import('@capacitor/device');
+                const info = await Device.getInfo();
+
+                // Em um cenário real, usaríamos plugins de Root Detection (SafetyNet/Play Integrity)
+                // Aqui simulamos uma validação de hardware e binário
+                return {
+                    isRooted: false, // Simulação: saudável
+                    isBinaryIntact: true,
+                    isOfficialApp: true,
+                    osVersion: info.osVersion
+                };
+            } catch (e) {
+                console.warn('⚠️ Erro ao realizar check de segurança nativo:', e);
+            }
+        }
+
+        return {
+            isRooted: false,
+            isBinaryIntact: true,
+            isOfficialApp: true,
+            osVersion: 'Web-Emulator'
+        };
+    }
+
+    /**
+     * Simula o download e instalação do APK via rede local (Passo 1)
+     */
+    async downloadUpdateAPK(version: string): Promise<boolean> {
+        console.log(`📦 Iniciando download do binário Forge v${version} via Mesh...`);
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                console.log('✅ APK baixado e instalado com sucesso!');
+                resolve(true);
+            }, 3000);
+        });
+    }
+
+    /**
      * Tenta entrar em modo Kiosk (Android Lock Task)
      */
     async enterKioskMode() {
@@ -68,6 +112,7 @@ export class NativeBridgeService {
     async getDeviceId(): Promise<string> {
         if (this.isNative) {
             try {
+                // @ts-ignore
                 const { Device } = await import('@capacitor/device');
                 const info = await Device.getId();
                 return info.identifier;

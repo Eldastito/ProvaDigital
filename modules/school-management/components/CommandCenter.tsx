@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, CheckCircle, RefreshCcw, MapPin, Radio, Layers, Plus, AlertTriangle, Briefcase, Server } from 'lucide-react';
-import { AppState, MeshPeer, MeshRole, MeshMessage, ProvisioningPayload } from '../../../types';
+import { Truck, CheckCircle, RefreshCcw, MapPin, Radio, Layers, Plus, AlertTriangle, Briefcase, Server, ShieldCheck } from 'lucide-react';
+import { AppState, MeshPeer, MeshRole, MeshMessage, ProvisioningPayload, SecurityReport } from '../../../types';
 import { meshService } from '../../../services/localMeshService';
 import { QRDataTransfer } from '../../../services/qrCodecService';
 import { QRCodeSVG } from 'qrcode.react';
@@ -31,6 +31,8 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
     // New states for charge phase and conflict detection
     const [chargePhase, setChargePhase] = useState<'STUDENT' | 'PROFESSOR' | 'COORDINATOR' | 'IDLE'>('IDLE');
     const [conflictedPeers, setConflictedPeers] = useState<string[]>([]);
+    const [securityReports, setSecurityReports] = useState<Record<string, SecurityReport>>({});
+    const CURRENT_BIN_VERSION = "2.5.0";
 
     // --- PERSISTÊNCIA DE ESTADO (LOCALSTORAGE) ---
     const STORAGE_KEY = `cc_wizard_${state.currentUser?.tenantId}_${state.currentUser?.id}`;
@@ -82,8 +84,17 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
             if (msg.type === 'ANNOUNCE' || msg.type === 'DISCOVERY') {
                 setPeers(meshService.getPeers());
 
-                // Lógica de Descoberta Automática (Zero-Touch)
-                if (msg.type === 'DISCOVERY' && chargePhase !== 'IDLE') {
+                // Passo 1: Verificar Versão do Binário ao descobrir novo tablet
+                if (msg.type === 'DISCOVERY') {
+                    meshService.sendTo(msg.sender.id, 'BIN_VERSION_CHECK', { requiredVersion: CURRENT_BIN_VERSION });
+                }
+            }
+
+            if (msg.type === 'SECURITY_REPORT') {
+                setSecurityReports(prev => ({ ...prev, [msg.sender.id]: msg.payload }));
+
+                // Se o relatório for saudável e estivermos em fase de carga, dispara o provisionamento (Passo 3)
+                if (!msg.payload.isRooted && msg.payload.isBinaryIntact && chargePhase !== 'IDLE') {
                     handleAutoDiscovery(msg);
                 }
             }
@@ -107,11 +118,17 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
     const handleAutoDiscovery = (msg: MeshMessage) => {
         const peerId = msg.sender.id;
 
-        // Verifica Anti-Dup
+        // Anti-Dup
         if (conflictedPeers.includes(peerId)) return;
 
-        // Verifica Whitelist (Simulada: Aceita se estivermos na fase correta)
-        // Em prod, checaríamos se o SN pertence à escola selecionada
+        // Passo 2: Validar Segurança antes de permitir carga
+        const report = securityReports[peerId];
+        if (!report || report.isRooted || !report.isBinaryIntact) {
+            console.error(`[CC] Bloqueando carga para ${peerId}: Falha de Segurança!`);
+            return;
+        }
+
+        // Whitelist (Simulada: Aceita se estivermos na fase correta)
         const targetRole = chargePhase as MeshRole;
 
         meshService.sendTo(peerId, 'PROVISION_CMD', {
@@ -523,7 +540,15 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                                                 <div className={`w-3 h-3 rounded-full ${peer.isOnline ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-slate-600'}`}></div>
                                                 <div>
                                                     <p className="text-xs font-black text-white">{peer.name}</p>
-                                                    <p className="text-[10px] text-slate-400 font-bold uppercase">{peer.id.substring(0, 8)}</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-[10px] text-slate-400 font-bold uppercase">{peer.id.substring(0, 8)}</p>
+                                                        {securityReports[peer.id] && (
+                                                            <div className="flex gap-1">
+                                                                <ShieldCheck size={10} className={securityReports[peer.id].isBinaryIntact ? "text-emerald-400" : "text-rose-400"} />
+                                                                {securityReports[peer.id].isRooted && <AlertTriangle size={10} className="text-rose-400" />}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="text-right">
