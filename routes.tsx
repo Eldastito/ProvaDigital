@@ -37,6 +37,8 @@ const RouterTabletSetup = lazy(() => import('./modules/runner/router/RouterTable
 
 // School Management
 const ManagementView = lazy(() => import('./modules/school-management/ManagementView').then(m => ({ default: m.ManagementView })));
+const TabletAppWrapper = lazy(() => import('./modules/runner/student-app/TabletAppWrapper').then(m => ({ default: m.TabletAppWrapper })));
+
 
 // Analytics
 const AnalyticsDashboard = lazy(() => import('./modules/analytics/AnalyticsDashboard').then(m => ({ default: m.AnalyticsDashboard })));
@@ -225,9 +227,7 @@ export const appRoutes: RouteObject[] = [
         path: '/apps/tablet',
         element: (
             <S>
-                <div className="fixed inset-0 z-50 bg-slate-900">
-                    <TabletLauncher onSelectApp={() => { }} onBack={() => window.history.back()} />
-                </div>
+                <TabletAppWrapper />
             </S>
         )
     },
