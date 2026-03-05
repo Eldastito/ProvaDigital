@@ -100,10 +100,13 @@ class LocalMeshService {
             this.handleIncomingMessage(payload.payload as MeshMessage);
         })
             .subscribe((status: string) => {
+                console.log(`[MESH] Status da conexão Realtime (${roomName}): ${status}`);
                 if (status === 'SUBSCRIBED') {
                     console.log(`[MESH] ✅ Conectado ao Supabase Realtime: ${roomName}`);
                     // Disparar anúncio imediato para se tornar visível
                     this.announce();
+                } else if (status === 'CHANNEL_ERROR') {
+                    console.error(`[MESH] ❌ Erro ao conectar no canal ${roomName}.`);
                 }
             });
 
@@ -210,6 +213,7 @@ class LocalMeshService {
      */
     private announce() {
         if (!this.peer.isOnline) return;
+        console.log(`[MESH] 📢 Anunciando presença como ${this.peer.role}...`);
         this.broadcast('ANNOUNCE', {});
     }
 

@@ -31,45 +31,57 @@ export const TabletLauncher = ({ onSelectApp, onBack }: TabletLauncherProps) => 
     // --- ZERO-TOUCH AUTO DISCOVERY LOGIC ---
     useEffect(() => {
         const initDiscovery = async () => {
-            // Tenta obter o Serial Number real do hardware
-            const deviceId = await nativeBridge.getDeviceId();
+            console.log('[DEBUG] 🏁 Iniciando descoberta mesh no tablet...');
+            try {
+                // Tenta obter o Serial Number real do hardware
+                const deviceId = await nativeBridge.getDeviceId();
+                console.log(`[DEBUG] 🆔 Device ID obtido: ${deviceId}`);
 
-            // Entra na rede como UNASSIGNED para disparar Discovery
-            // Se não tivermos tenantId (dispositivo novo), usamos 'global' na implementação do service
-            meshService.join(deviceId, `Tablet-${deviceId.substring(0, 4)}`, 'UNASSIGNED', state.currentUser?.tenantId);
-            setMode('AUTO_PROVISIONING');
+                // Entra na rede como UNASSIGNED para disparar Discovery
+                console.log(`[DEBUG] 📡 Tentando meshService.join() para tenant: ${state.currentUser?.tenantId || 'global'}`);
+                meshService.join(deviceId, `Tablet-${deviceId.substring(0, 4)}`, 'UNASSIGNED', state.currentUser?.tenantId);
+                setMode('AUTO_PROVISIONING');
+                console.log('[DEBUG] ✅ Modo AUTO_PROVISIONING ativado');
 
-            meshService.onMessage(async (msg) => {
-                if (msg.type === 'BIN_VERSION_CHECK') {
-                    const { requiredVersion } = msg.payload;
-                    const currentVersion = "2.5.0"; // Versão fixa para simulação
+                meshService.onMessage(async (msg) => {
+                    console.log(`[DEBUG] 📩 Mensagem recebida via Mesh: ${msg.type} de ${msg.sender.name}`);
+                    if (msg.type === 'BIN_VERSION_CHECK') {
+                        const { requiredVersion } = msg.payload;
+                        const currentVersion = "2.5.0"; // Versão fixa para simulação
 
-                    if (currentVersion !== requiredVersion) {
-                        setProvisioningStatus(`Atualizando App para v${requiredVersion}...`);
-                        await nativeBridge.downloadUpdateAPK(requiredVersion);
-                        window.location.reload(); // Simula reinicialização após update
-                    } else {
-                        // Versão OK -> Realizar Check de Segurança
-                        setProvisioningStatus('Verificando integridade do dispositivo...');
-                        const health = await nativeBridge.checkSecurityHealth();
-                        meshService.sendTo(msg.sender.id, 'SECURITY_REPORT', {
-                            ...health,
-                            serialNumber: deviceId,
-                            timestamp: Date.now()
-                        });
-                        setProvisioningStatus('Dispositivo Seguro. Aguardando dados...');
+                        if (currentVersion !== requiredVersion) {
+                            setProvisioningStatus(`Atualizando App para v${requiredVersion}...`);
+                            await nativeBridge.downloadUpdateAPK(requiredVersion);
+                            window.location.reload(); // Simula reinicialização após update
+                            // Versão OK -> Realizar Check de Segurança
+                            console.log('[DEBUG] 🛡️ Versão OK. Iniciando security check...');
+                            setProvisioningStatus('Verificando integridade do dispositivo...');
+                            const health = await nativeBridge.checkSecurityHealth();
+                            console.log('[DEBUG] 📊 Relatório de segurança gerado:', health);
+                            meshService.sendTo(msg.sender.id, 'SECURITY_REPORT', {
+                                ...health,
+                                serialNumber: deviceId,
+                                timestamp: Date.now()
+                            });
+                            setProvisioningStatus('Dispositivo Seguro. Aguardando dados...');
+                            console.log('[DEBUG] 📤 Relatório de segurança enviado ao CC.');
+                        }
                     }
-                }
 
-                if (msg.type === 'PROVISION_CMD') {
-                    handleAutoProvision(msg.payload);
-                }
+                    if (msg.type === 'PROVISION_CMD') {
+                        handleAutoProvision(msg.payload);
+                    }
 
-                if (msg.type === 'DISCOVERY_CONFLICT') {
-                    setIsHardwareConflict(true);
-                    setProvisioningStatus('ERRO: Conflito de Hardware Detectado!');
-                }
-            });
+                    if (msg.type === 'DISCOVERY_CONFLICT') {
+                        console.error('[DEBUG] ❌ Conflito de hardware detectado!');
+                        setIsHardwareConflict(true);
+                        setProvisioningStatus('ERRO: Conflito de Hardware Detectado!');
+                    }
+                });
+            } catch (err) {
+                console.error('[DEBUG] 💀 Falha crítica no initDiscovery:', err);
+                setProvisioningStatus('ERRO: Falha ao inicializar rede.');
+            }
         };
 
         // Sempre inicia a descoberta mesh (independente de login)
