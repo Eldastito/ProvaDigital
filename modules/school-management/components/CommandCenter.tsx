@@ -117,9 +117,26 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
             if (msg.type === 'SECURITY_REPORT') {
                 setSecurityReports(prev => ({ ...prev, [msg.sender.id]: msg.payload }));
 
-                // Se o relatório for saudável e estivermos em fase de carga, dispara o provisionamento (Passo 3)
-                if (!msg.payload.isRooted && msg.payload.isBinaryIntact && chargePhase !== 'IDLE') {
-                    handleAutoDiscovery(msg);
+                // AUTO-PROVISIONING: Se o relatório for saudável, envia dados automaticamente
+                if (!msg.payload.isRooted && msg.payload.isBinaryIntact) {
+                    console.log(`[CC] ✅ Tablet ${msg.sender.id} aprovado no check de segurança. Enviando dados...`);
+
+                    // Determinar papel padrão baseado na fase atual ou usar STUDENT como fallback
+                    const targetRole = (chargePhase !== 'IDLE' ? chargePhase : 'STUDENT') as MeshRole;
+                    const peerId = msg.sender.id;
+
+                    meshService.sendTo(peerId, 'PROVISION_CMD', {
+                        targetRole,
+                        assignedName: `${targetRole}-${peerId.substring(0, 4)}`,
+                        schoolId: selectedSchoolId,
+                        examIds: selectedExamIds,
+                        metadata: {
+                            provisionedAt: new Date().toISOString(),
+                            autoProvisioned: true
+                        }
+                    });
+                } else {
+                    console.warn(`[CC] ⚠️ Tablet ${msg.sender.id} REJEITADO: Falha de segurança.`);
                 }
             }
 
@@ -137,30 +154,7 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
             clearInterval(interval);
             meshService.disconnect();
         };
-    }, [chargePhase]);
-
-    const handleAutoDiscovery = (msg: MeshMessage) => {
-        const peerId = msg.sender.id;
-
-        // Anti-Dup
-        if (conflictedPeers.includes(peerId)) return;
-
-        // Passo 2: Validar Segurança antes de permitir carga
-        const report = securityReports[peerId];
-        if (!report || report.isRooted || !report.isBinaryIntact) {
-            console.error(`[CC] Bloqueando carga para ${peerId}: Falha de Segurança!`);
-            return;
-        }
-
-        // Whitelist (Simulada: Aceita se estivermos na fase correta)
-        const targetRole = chargePhase as MeshRole;
-
-        meshService.sendTo(peerId, 'PROVISION_CMD', {
-            targetRole,
-            assignedName: `${chargePhase}-${peerId.substring(0, 4)}`,
-            exams: selectedExamIds
-        });
-    };
+    }, [chargePhase, selectedSchoolId, selectedExamIds]);
 
     // --- LÓGICA DE CARGA SEGMENTADA (WIZARD) ---
 
@@ -257,14 +251,14 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
 
             {/* Gateway Status Bar */}
             <div className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${gatewayStatus === 'ONLINE'
-                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                    : gatewayStatus === 'CHECKING'
-                        ? 'bg-amber-50 border-amber-200 text-amber-700'
-                        : 'bg-red-50 border-red-200 text-red-600'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                : gatewayStatus === 'CHECKING'
+                    ? 'bg-amber-50 border-amber-200 text-amber-700'
+                    : 'bg-red-50 border-red-200 text-red-600'
                 }`}>
                 <div className={`w-2.5 h-2.5 rounded-full ${gatewayStatus === 'ONLINE' ? 'bg-emerald-500 animate-pulse' :
-                        gatewayStatus === 'CHECKING' ? 'bg-amber-400 animate-pulse' :
-                            'bg-red-400'
+                    gatewayStatus === 'CHECKING' ? 'bg-amber-400 animate-pulse' :
+                        'bg-red-400'
                     }`} />
                 <Wifi size={16} />
                 {gatewayStatus === 'ONLINE' && (
