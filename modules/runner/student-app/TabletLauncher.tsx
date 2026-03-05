@@ -72,10 +72,10 @@ export const TabletLauncher = ({ onSelectApp, onBack }: TabletLauncherProps) => 
             });
         };
 
-        // Só inicia se não estiver logado
-        if (!state.currentUser) {
-            initDiscovery();
-        }
+        // Sempre inicia a descoberta mesh (independente de login)
+        // Isso permite que o tablet seja descoberto mesmo se o usuário
+        // já estiver logado ou se estiver na rota /apps/tablet
+        initDiscovery();
 
         return () => {
             meshService.disconnect();
