@@ -47,12 +47,12 @@ export const ExamQuestionSelector = ({
     const [previewIndex, setPreviewIndex] = useState(0);
 
     const filteredAvailableItems = items.filter(i => {
-        const iStatement = i.statement || '';
-        const iSubject = i.subject || '';
-        const filterStr = filter.toLowerCase();
+        if (!i) return false;
+        const iStatement = (i.statement || "").toString().toLowerCase();
+        const iSubject = (i.subject || "").toString().toLowerCase();
+        const filterStr = (filter || "").toLowerCase().trim();
 
-        const matchesSearch = iStatement.toLowerCase().includes(filterStr) ||
-            iSubject.toLowerCase().includes(filterStr);
+        const matchesSearch = iStatement.includes(filterStr) || iSubject.includes(filterStr);
         const matchesDiff = difficultyFilter === 'ALL' || i.difficulty === difficultyFilter;
         const matchesStatus = statusFilter === 'ALL' ||
             (statusFilter === 'APPROVED' ? i.lifecycleStatus === ItemLifecycleStatus.APPROVED : i.lifecycleStatus === ItemLifecycleStatus.DRAFT);

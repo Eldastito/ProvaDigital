@@ -28,11 +28,15 @@ export interface SelectionResult {
  */
 export const smartSelectItems = (criteria: ExamCriteria, pool: Item[]): SelectionResult => {
     // 1. Filtrar por disciplina (Opcional se vazio)
-    let filteredPool = pool;
-    if (criteria.subject && criteria.subject.trim() !== "") {
-        filteredPool = pool.filter(item =>
-            (item.subject || "").toLowerCase().trim() === (criteria.subject || "").toLowerCase().trim()
-        );
+    let filteredPool = pool.filter(i => i !== null && i !== undefined);
+
+    const targetSubject = (criteria?.subject || "").toString().toLowerCase().trim();
+
+    if (targetSubject !== "") {
+        filteredPool = filteredPool.filter(item => {
+            const itemSubject = (item?.subject || "").toString().toLowerCase().trim();
+            return itemSubject === targetSubject;
+        });
     }
 
     // 2. Se houver filtros de tipo preferido

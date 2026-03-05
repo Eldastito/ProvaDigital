@@ -100,7 +100,8 @@ export const AIGenerationPanel: React.FC<AIGenerationPanelProps> = ({
     };
 
     const getLevelLabel = (level: string) => {
-        return level.replace('_', ' ').toLowerCase()
+        if (!level) return 'Nível';
+        return level.toString().replace('_', ' ').toLowerCase()
             .split(' ')
             .map(word => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' ');

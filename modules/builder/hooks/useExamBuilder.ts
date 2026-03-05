@@ -231,9 +231,10 @@ export const useExamBuilder = () => {
             const examId = uuidv4();
             // ... (rest of logic)
             const itemsWithWeights = selectedItems.map((item, idx) => {
-                const subjectItems = selectedItems.filter(i => i.subject === item.subject);
-                const totalPointsForSubject = gradingConfig.totalsByDiscipline[item.subject] || 10.0;
-                const itemWeight = totalPointsForSubject / subjectItems.length;
+                const itemSubject = (item?.subject || "").toString();
+                const subjectItems = selectedItems.filter(i => (i?.subject || "").toString() === itemSubject);
+                const totalPointsForSubject = gradingConfig.totalsByDiscipline[itemSubject] || 10.0;
+                const itemWeight = subjectItems.length > 0 ? totalPointsForSubject / subjectItems.length : 0;
 
                 return { itemId: item.id, weight: itemWeight, position: idx + 1 };
             });
@@ -305,7 +306,11 @@ export const useExamBuilder = () => {
 
             // 2. Passo de Resgate: Tenta classificar itens sem disciplina via IA
             const missingBeforeRescue = smartCriteria.targetCount - result.selectedItems.length;
-            const subjectlessItems = (state.items || []).filter(i => !i.subject || i.subject.trim() === "");
+            const subjectlessItems = (state.items || []).filter(i => {
+                if (!i) return false;
+                const s = (i.subject || "").toString().trim();
+                return s === "";
+            });
 
             if (subjectlessItems.length > 0) {
                 const rescuedIds = await classifyItemsBySubject(config.subject, subjectlessItems.map(i => ({ id: i.id, statement: i.statement })));
