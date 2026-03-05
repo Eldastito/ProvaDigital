@@ -8,8 +8,8 @@ export const usePermissions = () => {
     const can = (action: Action, resource: Resource): boolean => {
         if (!currentUser) return false;
 
-        // 1. Check SYSTEM_ADMIN override (Absolute Global Management)
-        if (currentUser.role === UserRole.SYSTEM_ADMIN) return true;
+        // 1. Check SYSTEM_ADMIN & MASTER_SAAS override (Absolute Global Management)
+        if (currentUser.role === UserRole.SYSTEM_ADMIN || currentUser.role === UserRole.MASTER_SAAS) return true;
 
         // 2. Check Tenant Level Restrictions (Feature Flags)
         // Se o tenant desativou a feature, ninguém (exceto super admin) pode usar.

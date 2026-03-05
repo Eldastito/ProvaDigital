@@ -135,8 +135,11 @@ export const ItemsListView = () => {
 
     // FILTER LOGIC
     const filteredItems = (state.items || []).filter(i => {
-        // More lenient tenant check: allow if same tenant OR if current user is super admin
-        const matchesTenant = !userTenantId || i.tenantId === userTenantId || currentUser?.role === UserRole.SUPER_ADMIN;
+        // More lenient tenant check: allow if same tenant OR if current user is admin/master
+        const isGlobalAdmin = currentUser?.role === UserRole.SUPER_ADMIN ||
+            currentUser?.role === UserRole.SYSTEM_ADMIN ||
+            currentUser?.role === UserRole.MASTER_SAAS;
+        const matchesTenant = !userTenantId || i.tenantId === userTenantId || isGlobalAdmin;
         if (!matchesTenant) return false;
 
         const searchText = normalizeText(filterText);
