@@ -85,12 +85,14 @@ class LocalMeshService {
      * Tenta conectar ao Gateway Local em todas as URLs conhecidas
      */
     private async tryConnectGateway(roomId: string) {
+        console.log(`[MESH] 🔍 Iniciando busca por Gateway Local em ${GATEWAY_URLS.length} endereços...`);
         for (const url of GATEWAY_URLS) {
             try {
                 // Teste rápido de disponibilidade (fetch com timeout)
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 2000);
 
+                console.log(`[MESH] Tentando: ${url}/health`);
                 const res = await fetch(`${url}/health`, {
                     signal: controller.signal,
                     mode: 'cors'
@@ -98,13 +100,13 @@ class LocalMeshService {
                 clearTimeout(timeoutId);
 
                 if (res.ok) {
-                    console.log(`[MESH] ✅ Gateway encontrado em: ${url}`);
+                    console.log(`[MESH] ✅ Gateway ENCONTRADO em: ${url}`);
                     this.connectSocket(url, roomId);
                     return; // Conectou com sucesso, para de tentar
                 }
             } catch (e) {
                 // Silencioso - tenta a próxima URL
-                console.log(`[MESH] Gateway não encontrado em: ${url}`);
+                console.log(`[MESH] ❌ Gateway não responde em: ${url}`);
             }
         }
 
