@@ -16,17 +16,22 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
     const [peers, setPeers] = useState<MeshPeer[]>([]);
     const [selectedTenantId, setSelectedTenantId] = useState(state.currentUser?.tenantId || '');
 
-    // Configuração de Lote
-    const [suitcaseSize, setSuitcaseSize] = useState<number>(20); // 20, 10, 5
-    const [selectedExamIds, setSelectedExamIds] = useState<string[]>([]); // Multiplas provas (semana toda)
-
-    // Gestão de Incidentes
-    const [replacementTarget, setReplacementTarget] = useState('');
+    // Wizard de Carga States
+    const [loadingStep, setLoadingStep] = useState<1 | 2 | 3 | 4>(1);
+    const [selectedSchoolId, setSelectedSchoolId] = useState<string>('');
+    const [roleConfig, setRoleConfig] = useState({
+        coordinators: 1,
+        professors: 2,
+        students: 20
+    });
+    const [isProvisioning, setIsProvisioning] = useState(false);
+    const [provisioningProgress, setProvisioningProgress] = useState(0);
 
     // QR Transfer State
     const [qrChunks, setQrChunks] = useState<string[]>([]);
     const [currentChunkIdx, setCurrentChunkIdx] = useState(0);
     const [showQrModal, setShowQrModal] = useState(false);
+    const [selectedExamIds, setSelectedExamIds] = useState<string[]>([]);
 
     useEffect(() => {
         meshService.join('SERVER', 'SaaS-Central-Logistics', 'UNASSIGNED');
@@ -39,16 +44,10 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
         };
     }, []);
 
-    // --- LÓGICA DE CARGA REGIONAL ---
+    // --- LÓGICA DE CARGA SEGMENTADA (WIZARD) ---
 
-    // 1. Total de Tablets Necessários no Município (Visão Macro)
     const tenantSchools = state.schools.filter(s => s.tenantId === selectedTenantId);
-    const totalStudentsInTenant = state.students.filter(s => s.tenantId === selectedTenantId).length;
-
-    // Provas disponíveis para carga (ex: todas as provas da semana)
-    const availableExams = state.exams.filter(e => e.tenantId === selectedTenantId);
-
-    // Dispositivos virgens na rede (Staging Area)
+    const availableExams = state.exams.filter(e => e.tenantId === selectedTenantId && (selectedSchoolId ? e.schoolId === selectedSchoolId : true));
     const availableTablets = peers.filter(p => p.role === 'UNASSIGNED');
 
     const toggleExam = (id: string) => {
@@ -56,64 +55,58 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
         else setSelectedExamIds([...selectedExamIds, id]);
     };
 
-    const handleBatchLoad = () => {
-        if (selectedExamIds.length === 0) return alert("Selecione pelo menos uma prova para compor o pacote regional.");
+    const handleStartProvisioning = async () => {
         if (availableTablets.length === 0) return alert("Nenhum tablet detectado na 'Sala de Carga'.");
+        if (selectedExamIds.length === 0) return alert("Selecione pelo menos uma prova.");
+        if (!selectedSchoolId) return alert("Selecione a escola de destino.");
 
-        const confirmMsg = `CONFIRMAÇÃO DE CARGA REGIONAL\n\n` +
-            `- Município: ${state.tenants.find(t => t.id === selectedTenantId)?.name}\n` +
-            `- Conteúdo: ${selectedExamIds.length} Provas Criptografadas\n` +
-            `- Destino: ${availableTablets.length} Dispositivos Detectados\n\n` +
-            `Os tablets receberão dados de TODAS as escolas do município, permitindo flexibilidade total de transporte.`;
+        setIsProvisioning(true);
+        setProvisioningProgress(0);
 
-        if (!confirm(confirmMsg)) return;
+        const school = state.schools.find(s => s.id === selectedSchoolId);
+        const totalToProvision = roleConfig.coordinators + roleConfig.professors + roleConfig.students;
+        const tabletsToUse = availableTablets.slice(0, totalToProvision);
 
-        // Simulação de Carga em Massa
-        let processed = 0;
-        availableTablets.forEach((tablet, idx) => {
-            // Lógica de Mala: Agrupar visualmente
-            const suitcaseNumber = Math.floor(idx / suitcaseSize) + 1;
+        for (let i = 0; i < tabletsToUse.length; i++) {
+            const tablet = tabletsToUse[i];
+            let role: 'COORDINATOR' | 'PROFESSOR' | 'STUDENT' = 'STUDENT';
 
-            // O payload agora é genérico para a região. 
-            // O tablet do aluno vira um "Cofre Fechado"
+            if (i < roleConfig.coordinators) role = 'COORDINATOR';
+            else if (i < roleConfig.coordinators + roleConfig.professors) role = 'PROFESSOR';
+
+            // Malas segmentadas por papel e escola (Simulação de metadados de carga)
+            const suitcaseTag = `${school?.name.substring(0, 3).toUpperCase()}-${role[0]}-${Math.floor(i / 10) + 1}`;
+
             meshService.sendTo(tablet.id, 'PROVISION_CMD', {
-                targetRole: 'STUDENT', // Default state
-                assignedName: `Mala ${suitcaseNumber} - Unidade ${idx % suitcaseSize + 1}`,
-                killNetworkAfter: false // Mantém rede para receber ativação na escola
-            } as ProvisioningPayload);
-            processed++;
-        });
+                targetRole: role,
+                assignedName: `${role[0]}_${tablet.id.substring(0, 4)}`,
+                schoolId: selectedSchoolId,
+                examIds: selectedExamIds,
+                metadata: {
+                    suitcaseTag,
+                    provisionedAt: new Date().toISOString()
+                }
+            } as any);
 
-        alert(`Carga Regional concluída em ${processed} dispositivos! Podem ser acomodados nas malas.`);
-    };
+            setProvisioningProgress(Math.round(((i + 1) / tabletsToUse.length) * 100));
+            await new Promise(r => setTimeout(r, 500)); // Simula latência de rede mesh
+        }
 
-    const handleProvisionCoordinators = () => {
-        // Coordenadores recebem chaves mestras, não apenas dados cifrados
-        const targets = availableTablets.slice(0, tenantSchools.length); // 1 por escola idealmente
-
-        if (targets.length === 0) return alert("Sem dispositivos.");
-
-        targets.forEach((t, i) => {
-            const school = tenantSchools[i % tenantSchools.length];
-            meshService.sendTo(t.id, 'PROVISION_CMD', {
-                targetRole: 'COORDINATOR',
-                assignedName: `COORD - ${school.name}`,
-                killNetworkAfter: false
-            } as ProvisioningPayload);
-        });
-        alert(`${targets.length} Tablets de Coordenação configurados com Chaves Mestras.`);
+        setIsProvisioning(false);
+        setLoadingStep(4);
+        alert("Provisionamento concluído com sucesso!");
     };
 
     const handleGenerateQR = async () => {
         if (selectedExamIds.length === 0) return alert("Selecione as provas primeiro.");
 
-        // Simulação de payload de carga completa
         const payload = {
             type: 'FORGE_OFFLINE_PACKAGE',
             tenantId: selectedTenantId,
+            schoolId: selectedSchoolId,
             exams: selectedExamIds.map(id => state.exams.find(e => e.id === id)),
             timestamp: Date.now(),
-            version: '1.0.5'
+            version: '1.2.0'
         };
 
         const chunks = await QRDataTransfer.compressAndChunk(payload);
@@ -125,84 +118,299 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
     return (
         <div className="p-6 bg-slate-50 min-h-[600px] space-y-8">
 
-            {/* Header */}
+            {/* Header / Tabs */}
+            <div className="flex bg-white p-1 rounded-2xl border border-slate-200 w-fit shadow-sm">
+                {(['PRODUCTION', 'EXPEDITION', 'QUALITY'] as const).map(tab => (
+                    <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === tab ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:text-slate-800'}`}
+                    >
+                        {tab === 'PRODUCTION' ? 'Carga (Wizard)' : tab === 'EXPEDITION' ? 'Expedição' : 'Qualidade'}
+                    </button>
+                ))}
+            </div>
+
             {activeTab === 'PRODUCTION' && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4">
-                    {/* COLUNA 1: O PACOTE DE DADOS (Conteúdo) */}
-                    <div className="space-y-6">
-                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Layers size={20} /> 1. Conteúdo do Pacote</h3>
-                            <div className="mb-4">
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Município / Rede</label>
-                                <select
-                                    className="w-full border rounded-lg p-2 text-sm bg-slate-50 font-medium"
-                                    value={selectedTenantId}
-                                    onChange={e => setSelectedTenantId(e.target.value)}
-                                    disabled={!!userSchoolId}
-                                >
-                                    {state.tenants.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                                </select>
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                    {/* Stepper */}
+                    <div className="flex items-center justify-between max-w-4xl mx-auto mb-12 relative px-4">
+                        <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-200 -z-10 -translate-y-1/2"></div>
+                        {[1, 2, 3, 4].map(step => (
+                            <div
+                                key={step}
+                                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 transition-all duration-500 ${loadingStep >= step ? 'bg-brand-primary border-brand-primary text-white scale-110 shadow-lg' : 'bg-white border-slate-200 text-slate-400'}`}
+                            >
+                                {loadingStep > step ? <CheckCircle size={20} /> : step}
+                                <span className={`absolute -bottom-7 text-[10px] uppercase font-black tracking-tighter whitespace-nowrap ${loadingStep === step ? 'text-brand-primary' : 'text-slate-400'}`}>
+                                    {step === 1 ? 'Contexto' : step === 2 ? 'Configuração' : step === 3 ? 'Carga' : 'Resumo'}
+                                </span>
                             </div>
-                            <div className="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-2 bg-slate-50">
-                                <div className="text-xs text-slate-400 uppercase font-bold px-2 py-1">Provas Disponíveis</div>
-                                {availableExams.map(exam => (
-                                    <div
-                                        key={exam.id}
-                                        onClick={() => toggleExam(exam.id)}
-                                        className={`p-3 rounded-lg border cursor-pointer flex justify-between items-center transition ${selectedExamIds.includes(exam.id) ? 'bg-sky-50 border-brand-primary' : 'bg-white border-slate-200 hover:border-slate-300'}`}
-                                    >
-                                        <div className="font-bold text-sm text-slate-800">{exam.title}</div>
-                                        {selectedExamIds.includes(exam.id) && <CheckCircle size={16} className="text-brand-primary" />}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                        ))}
                     </div>
 
-                    {/* COLUNA 2: CARGA EM MASSA */}
-                    <div className="space-y-6">
-                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Box size={20} /> 2. Carga em Massa</h3>
-                            <div className="grid grid-cols-2 gap-3 mb-6">
-                                <button
-                                    onClick={handleBatchLoad}
-                                    disabled={availableTablets.length === 0 || selectedExamIds.length === 0}
-                                    className="col-span-2 bg-brand-primary text-white py-4 rounded-xl font-bold shadow-lg hover:bg-brand-dark transition disabled:opacity-50 flex items-center justify-center gap-2"
-                                >
-                                    <Truck size={20} /> Carregar {availableTablets.length} Tablets
-                                </button>
-                                <button
-                                    onClick={handleGenerateQR}
-                                    disabled={selectedExamIds.length === 0}
-                                    className="col-span-2 bg-slate-800 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-slate-900 transition disabled:opacity-50 flex items-center justify-center gap-2"
-                                >
-                                    <Radio size={20} /> Gerar QR de Carga
-                                </button>
-                            </div>
-                        </div>
-                        <button
-                            onClick={handleProvisionCoordinators}
-                            className="w-full bg-white border-2 border-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-50 transition flex items-center justify-center gap-2"
-                        >
-                            <MapPin size={18} /> Habilitar Tablets de Coordenação
-                        </button>
-                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* WIZARD PANEL */}
+                        <div className="lg:col-span-2 space-y-6">
+                            {loadingStep === 1 && (
+                                <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl space-y-8 animate-in zoom-in-95 duration-300">
+                                    <h3 className="text-xl font-black text-slate-800 flex items-center gap-3"><MapPin className="text-brand-primary" /> 1. Seleção de Contexto</h3>
 
-                    {/* COLUNA 3: MONITORAMENTO DA SALA DE CARGA */}
-                    <div className="bg-slate-800 text-white p-6 rounded-xl shadow-lg h-full">
-                        <h3 className="font-bold text-sm uppercase text-slate-400 mb-4 flex items-center gap-2">
-                            <RefreshCcw size={16} /> Sala de Carga (Realtime)
-                        </h3>
-                        <div className="space-y-2 overflow-y-auto max-h-[400px]">
-                            {peers.map(peer => (
-                                <div key={peer.id} className="flex justify-between items-center border-b border-slate-700 pb-2">
-                                    <div className="flex items-center gap-2">
-                                        <div className={`w-2 h-2 rounded-full ${peer.isOnline ? 'bg-emerald-400' : 'bg-slate-600'}`}></div>
-                                        <div className="text-xs font-bold">{peer.name}</div>
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Rede / Município</label>
+                                            <select
+                                                className="w-full bg-slate-50 border-2 border-slate-100 p-4 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand-primary transition"
+                                                value={selectedTenantId}
+                                                onChange={e => setSelectedTenantId(e.target.value)}
+                                            >
+                                                {state.tenants.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Escola de Destino</label>
+                                            <select
+                                                className="w-full bg-slate-50 border-2 border-slate-100 p-4 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand-primary transition"
+                                                value={selectedSchoolId}
+                                                onChange={e => setSelectedSchoolId(e.target.value)}
+                                            >
+                                                <option value="">Selecione a Escola</option>
+                                                {tenantSchools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                            </select>
+                                        </div>
                                     </div>
-                                    <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300">{peer.role}</span>
+
+                                    <div className="space-y-4">
+                                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Provas do Pacote</label>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-2">
+                                            {availableExams.map(exam => (
+                                                <div
+                                                    key={exam.id}
+                                                    onClick={() => toggleExam(exam.id)}
+                                                    className={`p-4 rounded-2xl border-2 cursor-pointer flex justify-between items-center transition-all ${selectedExamIds.includes(exam.id) ? 'bg-brand-primary/5 border-brand-primary' : 'bg-slate-50 border-transparent hover:bg-slate-100'}`}
+                                                >
+                                                    <div>
+                                                        <p className="font-black text-slate-800">{exam.title}</p>
+                                                        <p className="text-[10px] text-slate-500 font-bold uppercase">{exam.subject}</p>
+                                                    </div>
+                                                    {selectedExamIds.includes(exam.id) ? <CheckCircle className="text-brand-primary" /> : <div className="w-6 h-6 rounded-full bg-white border-2 border-slate-200"></div>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-4 flex justify-end">
+                                        <button
+                                            onClick={() => setLoadingStep(2)}
+                                            disabled={!selectedSchoolId || selectedExamIds.length === 0}
+                                            className="bg-slate-900 text-white px-12 py-4 rounded-2xl font-black shadow-lg hover:translate-y-[-2px] active:scale-95 transition-all disabled:opacity-30 flex items-center gap-3"
+                                        >
+                                            Continuar <Radio size={18} />
+                                        </button>
+                                    </div>
                                 </div>
-                            ))}
+                            )}
+
+                            {loadingStep === 2 && (
+                                <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl space-y-8 animate-in zoom-in-95 duration-300">
+                                    <h3 className="text-xl font-black text-slate-800 flex items-center gap-3"><Layers className="text-brand-primary" /> 2. Configuração de Lote</h3>
+
+                                    <div className="bg-slate-50 p-6 rounded-2xl border-l-4 border-brand-primary">
+                                        <p className="text-xs font-bold text-slate-500 mb-1">Contexto Ativo</p>
+                                        <p className="font-black text-slate-800">{state.schools.find(s => s.id === selectedSchoolId)?.name} • {selectedExamIds.length} Provas</p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div className="space-y-4">
+                                            <div className="p-6 rounded-2xl bg-sky-50 border-2 border-sky-100 text-center">
+                                                <MapPin className="mx-auto mb-2 text-sky-600" size={32} />
+                                                <p className="text-[10px] font-black uppercase text-sky-600">Coordenadores</p>
+                                                <input
+                                                    type="number"
+                                                    value={roleConfig.coordinators}
+                                                    onChange={e => setRoleConfig({ ...roleConfig, coordinators: parseInt(e.target.value) })}
+                                                    className="w-full bg-transparent text-center text-3xl font-black text-slate-800 outline-none"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <div className="p-6 rounded-2xl bg-indigo-50 border-2 border-indigo-100 text-center">
+                                                <Briefcase className="mx-auto mb-2 text-indigo-600" size={32} />
+                                                <p className="text-[10px] font-black uppercase text-indigo-600">Professores</p>
+                                                <input
+                                                    type="number"
+                                                    value={roleConfig.professors}
+                                                    onChange={e => setRoleConfig({ ...roleConfig, professors: parseInt(e.target.value) })}
+                                                    className="w-full bg-transparent text-center text-3xl font-black text-slate-800 outline-none"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <div className="p-6 rounded-2xl bg-emerald-50 border-2 border-emerald-100 text-center">
+                                                <Radio className="mx-auto mb-2 text-emerald-600" size={32} />
+                                                <p className="text-[10px] font-black uppercase text-emerald-600">Alunos</p>
+                                                <input
+                                                    type="number"
+                                                    value={roleConfig.students}
+                                                    onChange={e => setRoleConfig({ ...roleConfig, students: parseInt(e.target.value) })}
+                                                    className="w-full bg-transparent text-center text-3xl font-black text-slate-800 outline-none"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-6 bg-slate-900 rounded-2xl text-white flex justify-between items-center">
+                                        <div>
+                                            <p className="text-xs text-slate-400 font-bold uppercase">Total de Tablets</p>
+                                            <p className="text-2xl font-black">{roleConfig.coordinators + roleConfig.professors + roleConfig.students} Dispositivos</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-xs text-slate-400 font-bold uppercase">Status da Sala</p>
+                                            <p className={`font-black ${availableTablets.length >= (roleConfig.coordinators + roleConfig.professors + roleConfig.students) ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                {availableTablets.length} Disponíveis
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-between items-center pt-4">
+                                        <button onClick={() => setLoadingStep(1)} className="text-slate-500 font-bold hover:text-slate-800">Voltar</button>
+                                        <div className="flex gap-4">
+                                            <button
+                                                onClick={handleGenerateQR}
+                                                className="px-8 py-4 rounded-2xl border-2 border-slate-200 font-black text-slate-600 hover:bg-slate-50 transition"
+                                            >
+                                                Gerar QR Fallback
+                                            </button>
+                                            <button
+                                                onClick={() => setLoadingStep(3)}
+                                                disabled={availableTablets.length < (roleConfig.coordinators + roleConfig.professors + roleConfig.students)}
+                                                className="bg-brand-primary text-white px-12 py-4 rounded-2xl font-black shadow-lg hover:translate-y-[-2px] active:scale-95 transition-all disabled:opacity-30"
+                                            >
+                                                Iniciar Carga Mesh
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {loadingStep === 3 && (
+                                <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl space-y-12 animate-in zoom-in-95 duration-300 py-16 text-center">
+                                    <div className="relative w-48 h-48 mx-auto">
+                                        <div className="absolute inset-0 border-8 border-slate-100 rounded-full"></div>
+                                        <div
+                                            className="absolute inset-0 border-8 border-brand-primary rounded-full transition-all duration-500"
+                                            style={{
+                                                clipPath: `polygon(50% 50%, -50% -50%, ${provisioningProgress > 50 ? '150% -50%' : '50% -50%'}, ${provisioningProgress > 75 ? '150% 150%' : '150% 50%'}, ${provisioningProgress > 100 ? '-50% 150%' : '50% 150%'}, 50% 50%)`,
+                                                transform: `rotate(${provisioningProgress * 3.6}deg)`
+                                            }}
+                                        ></div>
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                            <span className="text-5xl font-black text-slate-800">{provisioningProgress}%</span>
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Transmitindo</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <h3 className="text-2xl font-black text-slate-800">Enviando Pacotes Blindados</h3>
+                                        <p className="text-slate-500 max-w-md mx-auto">Os tablets estão recebendo os metadados cifrados via conexão direta peer-to-peer.</p>
+                                    </div>
+
+                                    {!isProvisioning ? (
+                                        <button
+                                            onClick={handleStartProvisioning}
+                                            className="bg-brand-primary text-white px-16 py-5 rounded-3xl text-lg font-black shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-4 mx-auto"
+                                        >
+                                            <Truck /> Executar Carga Massiva
+                                        </button>
+                                    ) : (
+                                        <div className="flex items-center justify-center gap-2 text-brand-primary font-black animate-pulse">
+                                            <RefreshCcw className="animate-spin" /> COMUNICAÇÃO MESH ATIVA...
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {loadingStep === 4 && (
+                                <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl space-y-8 animate-in zoom-in-95 duration-300">
+                                    <div className="text-center py-6">
+                                        <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <CheckCircle size={40} />
+                                        </div>
+                                        <h3 className="text-2xl font-black text-slate-800">Lote Preparado!</h3>
+                                        <p className="text-slate-500">O provisionamento foi concluído e os ativos foram auditados.</p>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="p-6 rounded-2xl bg-slate-50 border border-slate-100">
+                                            <p className="text-xs font-black text-slate-400 uppercase mb-2">Escola</p>
+                                            <p className="font-black text-slate-800">{state.schools.find(s => s.id === selectedSchoolId)?.name}</p>
+                                        </div>
+                                        <div className="p-6 rounded-2xl bg-slate-50 border border-slate-100">
+                                            <p className="text-xs font-black text-slate-400 uppercase mb-2">Total de Ativos</p>
+                                            <p className="font-black text-slate-800">{roleConfig.coordinators + roleConfig.professors + roleConfig.students} Tablets</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-4 pt-4">
+                                        <button
+                                            onClick={() => setActiveTab('EXPEDITION')}
+                                            className="flex-1 bg-slate-900 text-white py-5 rounded-2xl font-black shadow-lg hover:bg-slate-800 transition"
+                                        >
+                                            Verificar Malas
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setLoadingStep(1);
+                                                setSelectedExamIds([]);
+                                            }}
+                                            className="flex-1 border-2 border-slate-200 py-5 rounded-2xl font-black text-slate-600 hover:bg-slate-50 transition"
+                                        >
+                                            Nova Carga
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* RIGHT COL: MESH MONITORING */}
+                        <div className="space-y-6">
+                            <div className="bg-slate-900 p-8 rounded-3xl shadow-2xl h-full border-t-8 border-brand-primary">
+                                <div className="flex justify-between items-center mb-8">
+                                    <h3 className="font-black text-sm uppercase text-white tracking-widest flex items-center gap-2">
+                                        <Server className="text-brand-primary" size={16} /> Sala de Carga
+                                    </h3>
+                                    <span className="bg-brand-primary/20 text-brand-primary px-3 py-1 rounded-full text-[10px] font-black uppercase">
+                                        {peers.length} Online
+                                    </span>
+                                </div>
+
+                                <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {peers.length > 0 ? peers.map(peer => (
+                                        <div
+                                            key={peer.id}
+                                            className={`p-4 rounded-2xl border-2 transition-all duration-300 flex justify-between items-center ${peer.role === 'UNASSIGNED' ? 'bg-white/5 border-white/5 hover:bg-white/10' : 'bg-brand-primary/10 border-brand-primary/30'}`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-3 h-3 rounded-full ${peer.isOnline ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-slate-600'}`}></div>
+                                                <div>
+                                                    <p className="text-xs font-black text-white">{peer.name}</p>
+                                                    <p className="text-[10px] text-slate-400 font-bold uppercase">{peer.id.substring(0, 8)}</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className={`text-[10px] px-2 py-0.5 rounded font-black uppercase ${peer.role === 'UNASSIGNED' ? 'bg-slate-800 text-slate-400' : 'bg-brand-primary text-white'}`}>
+                                                    {peer.role}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )) : (
+                                        <div className="text-center py-20 opacity-30">
+                                            <RefreshCcw size={48} className="mx-auto mb-4 animate-spin-slow" />
+                                            <p className="font-bold text-sm">Buscando dispositivos...</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -220,19 +428,19 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                             </div>
 
                             <div className="space-y-3">
-                                {state.logisticsSuitcases?.length > 0 ? state.logisticsSuitcases.map(suitcase => (
+                                {state.logisticsCases?.length > 0 ? state.logisticsCases.map(suitcase => (
                                     <div key={suitcase.id} className="p-4 border rounded-xl flex justify-between items-center hover:bg-slate-50 transition">
                                         <div className="flex items-center gap-4">
                                             <div className="p-3 bg-slate-100 rounded-lg text-slate-500">
                                                 <Briefcase size={24} />
                                             </div>
                                             <div>
-                                                <div className="font-bold text-slate-800">{suitcase.tag}</div>
-                                                <div className="text-xs text-slate-500">{suitcase.schoolId} • {suitcase.actualTabletCount}/{suitcase.expectedTabletCount} Tablets</div>
+                                                <div className="font-bold text-slate-800">{suitcase.caseNumber}</div>
+                                                <div className="text-xs text-slate-500">{suitcase.currentSchoolId} • {suitcase.assets?.length || 0}/{suitcase.capacity} Tablets</div>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-4">
-                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${suitcase.status === 'READY' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${suitcase.status === 'PREPARING' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
                                                 {suitcase.status}
                                             </span>
                                             <button className="text-xs font-bold text-brand-primary hover:underline">Detalhes</button>
@@ -255,11 +463,11 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                         <div className="space-y-4">
                             <div className="p-4 bg-white/5 rounded-lg">
                                 <div className="text-xs text-slate-400 uppercase font-bold mb-1">Total para Despacho</div>
-                                <div className="text-2xl font-black">12 Malas</div>
+                                <div className="text-2xl font-black">{state.logisticsCases?.length || 0} Malas</div>
                             </div>
                             <div className="p-4 bg-white/5 rounded-lg">
                                 <div className="text-xs text-slate-400 uppercase font-bold mb-1">Escolas Atendidas</div>
-                                <div className="text-2xl font-black">{tenantSchools.length} Unidades</div>
+                                <div className="text-2xl font-black">{new Set(state.logisticsCases?.map(s => s.currentSchoolId)).size} Unidades</div>
                             </div>
                         </div>
                     </div>

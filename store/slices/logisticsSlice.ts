@@ -3,7 +3,6 @@ import { LogisticsAsset, LogisticsCase, LogisticsSeal, CustodyTransfer, Logistic
 import { AppStore } from '../useAppStore';
 
 export interface LogisticsSlice {
-    logisticsSuitcases: any[]; // Missing Suitcase type?
     logisticsAssets: LogisticsAsset[];
     logisticsCases: LogisticsCase[];
     logisticsSeals: LogisticsSeal[];
@@ -13,14 +12,13 @@ export interface LogisticsSlice {
     logisticsAudit: LogisticsAuditEntry[];
 
     addLogisticsCase: (lgCase: LogisticsCase) => Promise<void>;
-    updateCaseStatus: (id: string, status: any) => Promise<void>;
+    updateCaseStatus: (id: string, status: LogisticsCase['status']) => Promise<void>;
     addCustodyTransfer: (transfer: CustodyTransfer) => Promise<void>;
     addLogisticsIncident: (incident: LogisticsIncident) => Promise<void>;
     loadLogisticsData: () => Promise<void>;
 }
 
 export const createLogisticsSlice: StateCreator<AppStore, [], [], LogisticsSlice> = (set, get) => ({
-    logisticsSuitcases: [],
     logisticsAssets: [],
     logisticsCases: [],
     logisticsSeals: [],
