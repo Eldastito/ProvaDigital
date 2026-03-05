@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, CheckCircle, RefreshCcw, MapPin, Radio, Layers, Plus, AlertTriangle, Briefcase, Server, ShieldCheck } from 'lucide-react';
+import { Truck, CheckCircle, RefreshCcw, MapPin, Radio, Layers, Plus, AlertTriangle, Briefcase, Server, ShieldCheck, HelpCircle, Wifi, Smartphone, Monitor } from 'lucide-react';
 import { AppState, MeshPeer, MeshRole, MeshMessage, ProvisioningPayload, SecurityReport } from '../../../types';
 import { meshService } from '../../../services/localMeshService';
 import { QRDataTransfer } from '../../../services/qrCodecService';
@@ -32,6 +32,7 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
     const [chargePhase, setChargePhase] = useState<'STUDENT' | 'PROFESSOR' | 'COORDINATOR' | 'IDLE'>('IDLE');
     const [conflictedPeers, setConflictedPeers] = useState<string[]>([]);
     const [securityReports, setSecurityReports] = useState<Record<string, SecurityReport>>({});
+    const [showHelpModal, setShowHelpModal] = useState(false);
     const CURRENT_BIN_VERSION = "2.5.0";
 
     // --- PERSISTÊNCIA DE ESTADO (LOCALSTORAGE) ---
@@ -223,6 +224,12 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                         {tab === 'PRODUCTION' ? 'Carga (Wizard)' : tab === 'EXPEDITION' ? 'Expedição' : 'Qualidade'}
                     </button>
                 ))}
+                <button
+                    onClick={() => setShowHelpModal(true)}
+                    className="ml-4 px-4 py-2 text-brand-primary font-bold flex items-center gap-2 hover:bg-brand-primary/5 rounded-xl transition-all"
+                >
+                    <HelpCircle size={18} /> Como Operar na Sede?
+                </button>
             </div>
 
             {activeTab === 'PRODUCTION' && (
@@ -765,6 +772,102 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                             <p className="mt-8 text-xs text-slate-400 flex items-center gap-2">
                                 <AlertTriangle size={14} /> Posicione a câmera do tablet FORGE para escanear a sequência.
                             </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {showHelpModal && (
+                <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-[100] p-6 animate-in fade-in">
+                    <div className="bg-white rounded-[32px] shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-white/20">
+                        <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-brand-primary rounded-2xl text-white shadow-lg shadow-brand-primary/20">
+                                    <HelpCircle size={24} />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-black text-slate-800">Guia de Operação (Protocolo Sede)</h2>
+                                    <p className="text-slate-500 font-bold text-sm">Instruções para carga massiva e segurança.</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowHelpModal(false)}
+                                className="p-4 hover:bg-slate-200 rounded-full transition-all active:scale-95"
+                            >
+                                <Plus size={28} className="rotate-45 text-slate-400" />
+                            </button>
+                        </div>
+
+                        <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-12">
+                            {/* COLUNA 1: REDE */}
+                            <div className="space-y-6">
+                                <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                                    <Wifi className="text-brand-primary" /> 1. Preparação da Rede
+                                </h3>
+                                <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 space-y-4">
+                                    <p className="text-sm text-blue-900 font-bold leading-relaxed">
+                                        A plataforma não cria um sinal de Wi-Fi. Ela opera dentro de uma rede existente. Para os tablets "enxergarem" o Centro de Comando:
+                                    </p>
+                                    <ul className="space-y-3">
+                                        <li className="flex items-start gap-3 text-xs text-blue-800">
+                                            <div className="p-1 bg-blue-200 rounded-full mt-0.5"><Monitor size={12} /></div>
+                                            <span><b>Passo A:</b> No Windows, ative o <b>Mobile Hotspot</b> (Hotspot Móvel) e defina um nome/senha.</span>
+                                        </li>
+                                        <li className="flex items-start gap-3 text-xs text-blue-800">
+                                            <div className="p-1 bg-blue-200 rounded-full mt-0.5"><Smartphone size={12} /></div>
+                                            <span><b>Passo B:</b> Conecte todos os tablets na rede Wi-Fi criada pelo seu computador.</span>
+                                        </li>
+                                        <li className="flex items-start gap-3 text-xs text-blue-800">
+                                            <div className="p-1 bg-blue-200 rounded-full mt-0.5"><Radio size={12} /></div>
+                                            <span><b>Passo C:</b> Os tablets aparecerão automaticamente na "Sala de Carga" à direita.</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            {/* COLUNA 2: PROTOCOLO 3 PASSOS */}
+                            <div className="space-y-6">
+                                <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                                    <Layers className="text-brand-primary" /> 2. O Protocolo 3-Passos
+                                </h3>
+                                <div className="space-y-4">
+                                    <div className="flex gap-4 items-start">
+                                        <div className="w-8 h-8 rounded-full bg-slate-100 flex-shrink-0 flex items-center justify-center font-black text-slate-500">1</div>
+                                        <div>
+                                            <p className="font-black text-slate-800 text-sm">Download do APK</p>
+                                            <p className="text-xs text-slate-500">O tablet baixa a versão {CURRENT_BIN_VERSION} do app Forge automaticamente.</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-4 items-start">
+                                        <div className="w-8 h-8 rounded-full bg-slate-100 flex-shrink-0 flex items-center justify-center font-black text-slate-500">2</div>
+                                        <div>
+                                            <p className="font-black text-slate-800 text-sm">Teste Anti-Fraude</p>
+                                            <p className="text-xs text-slate-500">O sistema bloqueia tablets com Root ou aplicativos não oficiais.</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-4 items-start">
+                                        <div className="w-8 h-8 rounded-full bg-slate-100 flex-shrink-0 flex items-center justify-center font-black text-slate-500">3</div>
+                                        <div>
+                                            <p className="font-black text-slate-800 text-sm">Carga E2E</p>
+                                            <p className="text-xs text-slate-500">Os dados da prova são enviados de forma fragmentada e segura.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-8 bg-slate-900 rounded-b-[32px] flex justify-between items-center">
+                            <div className="flex items-center gap-4">
+                                <AlertTriangle className="text-amber-400" size={24} />
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest max-w-xs">
+                                    Lembre-se: O servidor de carga deve permanecer ativo durante todo o processo de provisionamento.
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowHelpModal(false)}
+                                className="bg-brand-primary text-white px-8 py-3 rounded-xl font-black shadow-lg hover:scale-105 active:scale-95 transition-all"
+                            >
+                                Entendi, vamos lá!
+                            </button>
                         </div>
                     </div>
                 </div>
