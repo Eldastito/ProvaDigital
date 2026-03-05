@@ -114,8 +114,8 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
     const isProfessor = currentUser.role === UserRole.PROFESSOR;
 
     const isStrategic = isStateAdmin || isTenantAdmin;
-    const isManagement = isSystemAdmin || isMecAdmin || isStrategic || currentUser.role === UserRole.DIRETOR || currentUser.role === UserRole.SUPERVISOR;
-    const canManageCapabilities = isSystemAdmin || isMecAdmin || isStrategic || currentUser.role === UserRole.DIRETOR;
+    const isManagement = isMasterSaas || isSystemAdmin || isMecAdmin || isStrategic || currentUser.role === UserRole.DIRETOR || currentUser.role === UserRole.SUPERVISOR;
+    const canManageCapabilities = isMasterSaas || isSystemAdmin || isMecAdmin || isStrategic || currentUser.role === UserRole.DIRETOR;
 
     // Get all modules allowed for current role
     const activeModules = modules.filter(m => m.allowedRoles.includes(currentUser.role));

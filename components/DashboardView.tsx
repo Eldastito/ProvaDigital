@@ -16,6 +16,7 @@ export const DashboardView = () => {
 
     // --- 1. DASHBOARD ESTRATÉGICO (SaaS MASTER / MEC / ESTADO / MUNICÍPIO) ---
     if (
+        currentUser?.role === UserRole.MASTER_SAAS ||
         currentUser?.role === UserRole.SYSTEM_ADMIN ||
         currentUser?.role === UserRole.SUPER_ADMIN ||
         currentUser?.role === UserRole.STATE_ADMIN ||

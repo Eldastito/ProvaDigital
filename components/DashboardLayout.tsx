@@ -82,6 +82,7 @@ export const DashboardLayout = () => {
         navigate('/login');
     };
 
+    const isMasterSaas = currentUser.role === UserRole.MASTER_SAAS;
     const isSystemAdmin = currentUser.role === UserRole.SYSTEM_ADMIN;
     const isMecAdmin = currentUser.role === UserRole.SUPER_ADMIN;
     const isStudent = currentUser.role === UserRole.ALUNO;
@@ -91,9 +92,9 @@ export const DashboardLayout = () => {
     const isOperational = currentUser.role === UserRole.PROFESSOR;
 
     const isStrategic = isStateAdmin || isTenantAdmin;
-    const isManagement = isSystemAdmin || isMecAdmin || isStrategic || currentUser.role === UserRole.DIRETOR || currentUser.role === UserRole.SUPERVISOR;
+    const isManagement = isMasterSaas || isSystemAdmin || isMecAdmin || isStrategic || currentUser.role === UserRole.DIRETOR || currentUser.role === UserRole.SUPERVISOR;
 
-    const canManageCapabilities = isSystemAdmin || isMecAdmin || isStrategic || currentUser.role === UserRole.DIRETOR;
+    const canManageCapabilities = isMasterSaas || isSystemAdmin || isMecAdmin || isStrategic || currentUser.role === UserRole.DIRETOR;
 
     let tenantName = tenants.find(t => t.id === currentUser.tenantId)?.name || 'Tenant';
     if (isParent && selectedChildId) {
