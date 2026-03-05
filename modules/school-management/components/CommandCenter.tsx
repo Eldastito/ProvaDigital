@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
-import { Radio, Power, Server, Box, Layers, MapPin, Briefcase, Truck, CheckCircle, AlertTriangle, RefreshCcw, Plus } from 'lucide-react';
-import { AppState, MeshPeer, ProvisioningPayload } from '../../../types';
+import { Truck, CheckCircle, RefreshCcw, MapPin, Radio, Layers, Plus, AlertTriangle, Briefcase, Server } from 'lucide-react';
+import { AppState, MeshPeer, MeshRole, MeshMessage, ProvisioningPayload } from '../../../types';
 import { meshService } from '../../../services/localMeshService';
 import { QRDataTransfer } from '../../../services/qrCodecService';
 import { QRCodeSVG } from 'qrcode.react';
@@ -12,18 +11,15 @@ interface CommandCenterProps {
 }
 
 export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
-    const [activeTab, setActiveTab] = useState<'PRODUCTION' | 'EXPEDITION' | 'QUALITY'>('PRODUCTION');
+    const [activeTab, setActiveTab] = useState<'PRODUCTION' | 'EXPEDITION' | 'QUALITY'>((localStorage.getItem('cc_activeTab') as any) || 'PRODUCTION');
     const [peers, setPeers] = useState<MeshPeer[]>([]);
-    const [selectedTenantId, setSelectedTenantId] = useState(state.currentUser?.tenantId || '');
+    const [selectedSchoolId, setSelectedSchoolId] = useState<string>(localStorage.getItem('cc_schoolId') || '');
+    const [roleConfig, setRoleConfig] = useState(JSON.parse(localStorage.getItem('cc_roleConfig') || '{"coordinators": 1, "professors": 5, "students": 30}'));
+    const [selectedExamIds, setSelectedExamIds] = useState<string[]>(JSON.parse(localStorage.getItem('cc_examIds') || '[]'));
+    const [selectedTenantId, setSelectedTenantId] = useState<string>(localStorage.getItem('cc_tenantId') || state.currentUser?.tenantId || '');
 
     // Wizard de Carga States
     const [loadingStep, setLoadingStep] = useState<1 | 2 | 3 | 4>(1);
-    const [selectedSchoolId, setSelectedSchoolId] = useState<string>('');
-    const [roleConfig, setRoleConfig] = useState({
-        coordinators: 1,
-        professors: 2,
-        students: 20
-    });
     const [isProvisioning, setIsProvisioning] = useState(false);
     const [provisioningProgress, setProvisioningProgress] = useState(0);
 
@@ -31,7 +27,10 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
     const [qrChunks, setQrChunks] = useState<string[]>([]);
     const [currentChunkIdx, setCurrentChunkIdx] = useState(0);
     const [showQrModal, setShowQrModal] = useState(false);
-    const [selectedExamIds, setSelectedExamIds] = useState<string[]>([]);
+
+    // New states for charge phase and conflict detection
+    const [chargePhase, setChargePhase] = useState<'STUDENT' | 'PROFESSOR' | 'COORDINATOR' | 'IDLE'>('IDLE');
+    const [conflictedPeers, setConflictedPeers] = useState<string[]>([]);
 
     // --- PERSISTÊNCIA DE ESTADO (LOCALSTORAGE) ---
     const STORAGE_KEY = `cc_wizard_${state.currentUser?.tenantId}_${state.currentUser?.id}`;
@@ -42,10 +41,13 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
             try {
                 const parsed = JSON.parse(saved);
                 if (parsed.loadingStep) setLoadingStep(parsed.loadingStep);
-                if (parsed.selectedSchoolId) setSelectedSchoolId(parsed.selectedSchoolId);
-                if (parsed.roleConfig) setRoleConfig(parsed.roleConfig);
-                if (parsed.selectedExamIds) setSelectedExamIds(parsed.selectedExamIds);
-                if (parsed.selectedTenantId) setSelectedTenantId(parsed.selectedTenantId);
+                // The following states are now initialized directly from localStorage,
+                // so we only need to update them if they were saved in the old STORAGE_KEY format.
+                // For new runs, the direct localStorage calls will handle it.
+                if (parsed.selectedSchoolId && !localStorage.getItem('cc_schoolId')) setSelectedSchoolId(parsed.selectedSchoolId);
+                if (parsed.roleConfig && !localStorage.getItem('cc_roleConfig')) setRoleConfig(parsed.roleConfig);
+                if (parsed.selectedExamIds && !localStorage.getItem('cc_examIds')) setSelectedExamIds(parsed.selectedExamIds);
+                if (parsed.selectedTenantId && !localStorage.getItem('cc_tenantId')) setSelectedTenantId(parsed.selectedTenantId);
             } catch (e) {
                 console.error("Failed to restore wizard state", e);
             }
@@ -56,24 +58,68 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
         // Não persistimos estados efêmeros como isProvisioning ou provisioningProgress
         const stateToSave = {
             loadingStep,
-            selectedSchoolId,
-            roleConfig,
-            selectedExamIds,
-            selectedTenantId
+            // The following states are now persisted individually
+            // selectedSchoolId,
+            // roleConfig,
+            // selectedExamIds,
+            // selectedTenantId
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
-    }, [loadingStep, selectedSchoolId, roleConfig, selectedExamIds, selectedTenantId]);
+
+        // Persist individual states
+        localStorage.setItem('cc_schoolId', selectedSchoolId);
+        localStorage.setItem('cc_roleConfig', JSON.stringify(roleConfig));
+        localStorage.setItem('cc_examIds', JSON.stringify(selectedExamIds));
+        localStorage.setItem('cc_tenantId', selectedTenantId);
+        localStorage.setItem('cc_activeTab', activeTab);
+
+    }, [loadingStep, selectedSchoolId, roleConfig, selectedExamIds, selectedTenantId, activeTab]);
 
     useEffect(() => {
-        meshService.join('SERVER', 'SaaS-Central-Logistics', 'UNASSIGNED');
+        meshService.join('command-center-sede', 'Centro de Comando (Sede)', 'SERVER');
+
+        meshService.onMessage((msg) => {
+            if (msg.type === 'ANNOUNCE' || msg.type === 'DISCOVERY') {
+                setPeers(meshService.getPeers());
+
+                // Lógica de Descoberta Automática (Zero-Touch)
+                if (msg.type === 'DISCOVERY' && chargePhase !== 'IDLE') {
+                    handleAutoDiscovery(msg);
+                }
+            }
+
+            if (msg.type === 'DISCOVERY_CONFLICT') {
+                setConflictedPeers(prev => [...prev, msg.payload.conflictedId]);
+                console.warn(`[CC] Bloqueando ID em conflito: ${msg.payload.conflictedId}`);
+            }
+        });
+
         const interval = setInterval(() => {
             setPeers(meshService.getPeers());
-        }, 1000);
+        }, 3000);
+
         return () => {
             clearInterval(interval);
             meshService.disconnect();
         };
-    }, []);
+    }, [chargePhase]);
+
+    const handleAutoDiscovery = (msg: MeshMessage) => {
+        const peerId = msg.sender.id;
+
+        // Verifica Anti-Dup
+        if (conflictedPeers.includes(peerId)) return;
+
+        // Verifica Whitelist (Simulada: Aceita se estivermos na fase correta)
+        // Em prod, checaríamos se o SN pertence à escola selecionada
+        const targetRole = chargePhase as MeshRole;
+
+        meshService.sendTo(peerId, 'PROVISION_CMD', {
+            targetRole,
+            assignedName: `${chargePhase}-${peerId.substring(0, 4)}`,
+            exams: selectedExamIds
+        });
+    };
 
     // --- LÓGICA DE CARGA SEGMENTADA (WIZARD) ---
 
@@ -326,6 +372,18 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
 
                             {loadingStep === 3 && (
                                 <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl space-y-12 animate-in zoom-in-95 duration-300 py-16 text-center">
+                                    <div className="flex justify-center gap-4 mb-8">
+                                        {(['STUDENT', 'PROFESSOR', 'COORDINATOR'] as const).map(phase => (
+                                            <div
+                                                key={phase}
+                                                className={`px-6 py-3 rounded-2xl border-2 flex items-center gap-2 font-black transition-all ${chargePhase === phase ? 'bg-brand-primary border-brand-primary text-white scale-105 shadow-xl' : 'bg-slate-50 border-slate-100 text-slate-400 opacity-50'}`}
+                                            >
+                                                {chargePhase === phase && <RefreshCcw className="animate-spin" size={16} />}
+                                                {phase === 'STUDENT' ? 'Fase A: Alunos' : phase === 'PROFESSOR' ? 'Fase B: Profs' : 'Fase C: Coord'}
+                                            </div>
+                                        ))}
+                                    </div>
+
                                     <div className="relative w-48 h-48 mx-auto">
                                         <div className="absolute inset-0 border-8 border-slate-100 rounded-full"></div>
                                         <div
@@ -337,25 +395,65 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                                         ></div>
                                         <div className="absolute inset-0 flex flex-col items-center justify-center">
                                             <span className="text-5xl font-black text-slate-800">{provisioningProgress}%</span>
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Transmitindo</span>
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lote Global</span>
                                         </div>
                                     </div>
 
                                     <div className="space-y-4">
-                                        <h3 className="text-2xl font-black text-slate-800">Enviando Pacotes Blindados</h3>
-                                        <p className="text-slate-500 max-w-md mx-auto">Os tablets estão recebendo os metadados cifrados via conexão direta peer-to-peer.</p>
+                                        <h3 className="text-2xl font-black text-slate-800">Protocolo Zero-Touch Ativo</h3>
+                                        <p className="text-slate-500 max-w-md mx-auto">
+                                            {chargePhase === 'IDLE'
+                                                ? "Aguardando início do disparo estagiado."
+                                                : `Carregando dispositivos da fase: ${chargePhase}.`}
+                                        </p>
                                     </div>
 
-                                    {!isProvisioning ? (
-                                        <button
-                                            onClick={handleStartProvisioning}
-                                            className="bg-brand-primary text-white px-16 py-5 rounded-3xl text-lg font-black shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-4 mx-auto"
-                                        >
-                                            <Truck /> Executar Carga Massiva
-                                        </button>
-                                    ) : (
-                                        <div className="flex items-center justify-center gap-2 text-brand-primary font-black animate-pulse">
-                                            <RefreshCcw className="animate-spin" /> COMUNICAÇÃO MESH ATIVA...
+                                    <div className="flex flex-col gap-4">
+                                        {chargePhase === 'IDLE' ? (
+                                            <button
+                                                onClick={() => {
+                                                    setChargePhase('STUDENT');
+                                                    setIsProvisioning(true);
+                                                }}
+                                                className="bg-brand-primary text-white px-16 py-5 rounded-3xl text-lg font-black shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-4 mx-auto"
+                                            >
+                                                <Truck /> Iniciar Fases de Carga
+                                            </button>
+                                        ) : (
+                                            <div className="flex gap-4 mx-auto">
+                                                <button
+                                                    onClick={() => {
+                                                        if (chargePhase === 'STUDENT') setChargePhase('PROFESSOR');
+                                                        else if (chargePhase === 'PROFESSOR') setChargePhase('COORDINATOR');
+                                                        else {
+                                                            setChargePhase('IDLE');
+                                                            setLoadingStep(4);
+                                                        }
+                                                    }}
+                                                    className="bg-slate-900 text-white px-12 py-4 rounded-2xl font-black shadow-lg hover:bg-slate-800 transition"
+                                                >
+                                                    Avançar para Próxima Fase
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setChargePhase('IDLE');
+                                                        setIsProvisioning(false);
+                                                    }}
+                                                    className="border-2 border-rose-200 text-rose-500 px-6 py-4 rounded-2xl font-black hover:bg-rose-50 transition"
+                                                >
+                                                    Abortar
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {conflictedPeers.length > 0 && (
+                                        <div className="mt-8 p-4 bg-rose-50 border-2 border-rose-100 rounded-2xl flex items-center gap-4 text-rose-600 animate-bounce">
+                                            <AlertTriangle />
+                                            <div className="text-left">
+                                                <p className="text-xs font-black uppercase">Tentativa de Fraude / Conflito</p>
+                                                <p className="text-[10px] font-bold">SN em conflito detectado e bloqueado: {conflictedPeers[0]}</p>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -598,6 +696,18 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                                         className="h-full bg-brand-primary transition-all duration-300"
                                         style={{ width: `${((currentChunkIdx + 1) / qrChunks.length) * 100}%` }}
                                     ></div>
+                                </div>
+
+                                <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-left">
+                                    <div className="flex gap-2 text-slate-800 font-bold text-xs mb-1">
+                                        <AlertTriangle size={14} className="text-amber-500" /> COMO REALIZAR A CARGA:
+                                    </div>
+                                    <ul className="text-[11px] text-slate-600 space-y-1 list-disc pl-4">
+                                        <li>Este QR Code <b>não pode ser lido por celulares comuns</b>.</li>
+                                        <li>Use a câmera do <b>Tablet FORGE</b> no modo "Receber Carga".</li>
+                                        <li>Os dados estão divididos em <b>{qrChunks.length} partes</b> para maior segurança.</li>
+                                        <li>Escaneie cada parte e clique em "Próximo" até completar 100%.</li>
+                                    </ul>
                                 </div>
 
                                 <div className="flex gap-4 pt-4">

@@ -1,6 +1,7 @@
-
-import React, { useState } from 'react';
-import { QrCode, ArrowLeft, ShieldCheck, Users, GraduationCap, Scan, Search, School, User, Lock, ChevronRight, LogIn, Battery, Wifi, Settings, LogOut } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { meshService } from '../../../services/localMeshService';
+import { nativeBridge } from '../../../services/nativeBridgeService';
+import { QrCode, ArrowLeft, ShieldCheck, Users, GraduationCap, Scan, Search, School, User, Lock, ChevronRight, LogIn, Battery, Wifi, Settings, LogOut, AlertTriangle, RefreshCcw } from 'lucide-react';
 import { UserRole, School as SchoolType, User as UserType } from '../../../types';
 
 import { useSafeAppStore } from '../../../store/useAppStore';
@@ -14,7 +15,9 @@ interface TabletLauncherProps {
 export const TabletLauncher = ({ onSelectApp, onBack }: TabletLauncherProps) => {
     const state = useSafeAppStore();
     // Main Mode
-    const [mode, setMode] = useState<'SELECT' | 'SCANNING_QR' | 'COORD_FLOW'>('SELECT');
+    const [mode, setMode] = useState<'SELECT' | 'SCANNING_QR' | 'COORD_FLOW' | 'AUTO_PROVISIONING'>('SELECT');
+    const [provisioningStatus, setProvisioningStatus] = useState<string>('Aguardando sinal da rede...');
+    const [isHardwareConflict, setIsHardwareConflict] = useState(false);
 
     // Coordinator Flow State
     const [coordStep, setCoordStep] = useState<'SCHOOL_SEARCH' | 'AUTH'>('SCHOOL_SEARCH');
@@ -24,6 +27,50 @@ export const TabletLauncher = ({ onSelectApp, onBack }: TabletLauncherProps) => 
     const [password, setPassword] = useState('');
     const [targetRole, setTargetRole] = useState<UserRole | null>(null);
     const [scanProgress, setScanProgress] = useState(0);
+
+    // --- ZERO-TOUCH AUTO DISCOVERY LOGIC ---
+    useEffect(() => {
+        const initDiscovery = async () => {
+            // Tenta obter o Serial Number real do hardware
+            const deviceId = await nativeBridge.getDeviceId();
+
+            // Entra na rede como UNASSIGNED para disparar Discovery
+            meshService.join(deviceId, `Tablet-${deviceId.substring(0, 4)}`, 'UNASSIGNED');
+            setMode('AUTO_PROVISIONING');
+
+            meshService.onMessage((msg) => {
+                if (msg.type === 'PROVISION_CMD') {
+                    handleAutoProvision(msg.payload);
+                }
+                if (msg.type === 'DISCOVERY_CONFLICT') {
+                    setIsHardwareConflict(true);
+                    setProvisioningStatus('ERRO: Conflito de Hardware Detectado!');
+                }
+            });
+        };
+
+        // Só inicia se não estiver logado
+        if (!state.currentUser) {
+            initDiscovery();
+        }
+
+        return () => {
+            meshService.disconnect();
+        };
+    }, []);
+
+    const handleAutoProvision = (payload: any) => {
+        setProvisioningStatus(`Configurando como ${payload.targetRole}...`);
+
+        // Simula delay de configuração interna
+        setTimeout(() => {
+            onSelectApp(payload.targetRole, {
+                source: 'ZERO_TOUCH_PROVISIONING',
+                name: payload.assignedName,
+                exams: payload.exams
+            });
+        }, 2000);
+    };
 
     // --- QR SCANNER LOGIC (Legacy for Prof/Student) ---
     const startScan = (role: UserRole) => {
@@ -229,6 +276,50 @@ export const TabletLauncher = ({ onSelectApp, onBack }: TabletLauncherProps) => 
                         </div>
                     </div>
                 </div>
+            </div>
+        );
+    }
+
+    // --- RENDER: AUTO PROVISIONING (Zero-Touch) ---
+    if (mode === 'AUTO_PROVISIONING') {
+        return (
+            <div className="min-h-screen bg-[#0f1d2e] flex flex-col items-center justify-center p-6 text-center">
+                <div className="relative mb-12">
+                    <div className={`w-32 h-32 rounded-full border-4 border-dashed animate-spin-slow flex items-center justify-center ${isHardwareConflict ? 'border-rose-500' : 'border-brand-secondary/40'}`}>
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        {isHardwareConflict ? (
+                            <ShieldCheck className="text-rose-500" size={48} />
+                        ) : (
+                            <Wifi className="text-brand-secondary animate-pulse" size={48} />
+                        )}
+                    </div>
+                </div>
+
+                <h1 className="text-3xl font-black text-white mb-4">
+                    {isHardwareConflict ? 'Segurança Ativada' : 'Provisionamento Inteligente'}
+                </h1>
+
+                <div className={`px-8 py-4 rounded-2xl font-bold flex items-center gap-3 transition-colors ${isHardwareConflict ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20' : 'bg-white/5 text-slate-300 border border-white/10'}`}>
+                    {isHardwareConflict ? <AlertTriangle size={20} /> : <RefreshCcw size={20} className="animate-spin" />}
+                    {provisioningStatus}
+                </div>
+
+                {isHardwareConflict ? (
+                    <div className="mt-8 max-w-sm">
+                        <p className="text-slate-400 text-sm mb-6">
+                            Este dispositivo tentou se conectar usando um identificador de hardware já em uso na rede. Por segurança, o acesso foi bloqueado.
+                        </p>
+                        <button onClick={() => window.location.reload()} className="bg-slate-800 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-700 transition">
+                            Tentar Novamente
+                        </button>
+                    </div>
+                ) : (
+                    <div className="mt-12 text-slate-500 text-xs font-bold uppercase tracking-widest flex flex-col items-center gap-2">
+                        <p>Aguardando comando do Centro de Comando (Sede)</p>
+                        <p className="opacity-50">Protocolo Zero-Touch v2.5</p>
+                    </div>
+                )}
             </div>
         );
     }

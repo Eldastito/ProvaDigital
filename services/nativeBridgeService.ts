@@ -63,6 +63,29 @@ export class NativeBridgeService {
     }
 
     /**
+     * Obtém o ID único do dispositivo (Serial Number / Hardware ID)
+     */
+    async getDeviceId(): Promise<string> {
+        if (this.isNative) {
+            try {
+                const { Device } = await import('@capacitor/device');
+                const info = await Device.getId();
+                return info.identifier;
+            } catch (e) {
+                console.warn('⚠️ Erro ao obter Device ID nativo:', e);
+            }
+        }
+
+        // Fallback para Web (Simulado: Serial Number persistente no browser)
+        let webId = localStorage.getItem('forge_web_serial');
+        if (!webId) {
+            webId = `WEB-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+            localStorage.setItem('forge_web_serial', webId);
+        }
+        return webId;
+    }
+
+    /**
      * Verifica se está rodando nativamente
      */
     getIsNative(): boolean {

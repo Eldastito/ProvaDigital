@@ -24,7 +24,7 @@ class LocalMeshService {
     // Initialize the device on the network
     public join(id: string, name: string, role: MeshRole) {
         if (this.channel) this.channel.close();
-        
+
         this.channel = new BroadcastChannel('examepad_local_mesh');
         this.peer = {
             id,
@@ -33,17 +33,23 @@ class LocalMeshService {
             isOnline: true,
             lastSeen: Date.now()
         };
-        
-        console.log(`[MESH] ${name} joined as ${role}`);
+
+        console.log(`[MESH] ${name} joined as ${role} (ID: ${id})`);
 
         this.channel.onmessage = (event) => {
             const msg = event.data as MeshMessage;
             this.handleIncomingMessage(msg);
         };
 
-        this.announce();
+        // Se for Tablet (UNASSIGNED), inicia Discovery
+        if (role === 'UNASSIGNED') {
+            this.broadcast('DISCOVERY', { serialNumber: id });
+        } else {
+            this.announce();
+        }
+
         if (this.announceInterval) clearInterval(this.announceInterval);
-        this.announceInterval = setInterval(() => this.announce(), 3000); // Faster heartbeat for demo
+        this.announceInterval = setInterval(() => this.announce(), 3000);
     }
 
     // "Logical Kill Switch" - Disconnects from the mesh entirely
@@ -96,6 +102,15 @@ class LocalMeshService {
     }
 
     private handleIncomingMessage(msg: MeshMessage) {
+        // Anti-Dup Rule: Se eu receber um anúncio com meu próprio ID mas vindo de outro "remetente"
+        // (Simulado aqui por uma verificação lógica simples)
+        if (msg.sender.id === this.peer.id && msg.timestamp !== this.peer.lastSeen && this.peer.isOnline) {
+            console.error(`[MESH] CONFLITO DE IDENTIDADE DETECTADO: ${this.peer.id}`);
+            this.broadcast('DISCOVERY_CONFLICT', { conflictedId: this.peer.id });
+            // Em um sistema real, aqui dispararíamos um reset de segurança
+            return;
+        }
+
         // Update peer list
         this.peers.set(msg.sender.id, { ...msg.sender, lastSeen: Date.now() });
 

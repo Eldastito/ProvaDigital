@@ -1030,7 +1030,7 @@ export interface AppSettings {
 }
 
 export type MeshRole = 'SERVER' | 'COORDINATOR' | 'PROFESSOR' | 'STUDENT' | 'UNASSIGNED';
-export type MeshMessageType = 'ANNOUNCE' | 'PROVISION_CMD' | 'SYNC_DATA' | 'HEARTBEAT' | 'ALERT';
+export type MeshMessageType = 'ANNOUNCE' | 'DISCOVERY' | 'DISCOVERY_ACK' | 'DISCOVERY_CONFLICT' | 'PROVISION_CMD' | 'SYNC_DATA' | 'HEARTBEAT' | 'ALERT';
 
 export interface MeshPeer {
   id: string;
