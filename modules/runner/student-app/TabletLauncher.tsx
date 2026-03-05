@@ -35,7 +35,8 @@ export const TabletLauncher = ({ onSelectApp, onBack }: TabletLauncherProps) => 
             const deviceId = await nativeBridge.getDeviceId();
 
             // Entra na rede como UNASSIGNED para disparar Discovery
-            meshService.join(deviceId, `Tablet-${deviceId.substring(0, 4)}`, 'UNASSIGNED');
+            // Se não tivermos tenantId (dispositivo novo), usamos 'global' na implementação do service
+            meshService.join(deviceId, `Tablet-${deviceId.substring(0, 4)}`, 'UNASSIGNED', state.currentUser?.tenantId);
             setMode('AUTO_PROVISIONING');
 
             meshService.onMessage(async (msg) => {

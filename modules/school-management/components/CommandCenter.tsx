@@ -79,7 +79,7 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
     }, [loadingStep, selectedSchoolId, roleConfig, selectedExamIds, selectedTenantId, activeTab]);
 
     useEffect(() => {
-        meshService.join('command-center-sede', 'Centro de Comando (Sede)', 'SERVER');
+        meshService.join('command-center-sede', 'Centro de Comando (Sede)', 'SERVER', selectedTenantId);
 
         meshService.onMessage((msg) => {
             if (msg.type === 'ANNOUNCE' || msg.type === 'DISCOVERY') {

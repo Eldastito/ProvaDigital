@@ -1,11 +1,14 @@
 
 import { MeshMessage, MeshPeer, MeshRole, MeshMessageType } from "../types";
+import { supabase } from "./supabaseClient";
 
-// This service simulates a Local Wi-Fi Network using the BroadcastChannel API.
-// This allows different browser tabs (simulating different tablets) to communicate.
+// This service implements a Hybrid Local/Cloud Mesh Network.
+// 1. BroadcastChannel: For communication between tabs on the same machine/browser.
+// 2. Supabase Realtime: For communication between different physical devices (Tablets <-> Computer).
 
 class LocalMeshService {
     private channel: BroadcastChannel | null = null;
+    private supabaseChannel: any = null;
     private peer: MeshPeer;
     private listeners: ((msg: MeshMessage) => void)[] = [];
     private peers: Map<string, MeshPeer> = new Map();
@@ -22,10 +25,15 @@ class LocalMeshService {
     }
 
     // Initialize the device on the network
-    public join(id: string, name: string, role: MeshRole) {
+    public join(id: string, name: string, role: MeshRole, tenantId?: string) {
         if (this.channel) this.channel.close();
+        if (this.supabaseChannel) {
+            this.supabaseChannel.unsubscribe();
+        }
 
+        // 1. Local Browser Mesh (Tab-to-Tab)
         this.channel = new BroadcastChannel('examepad_local_mesh');
+
         this.peer = {
             id,
             name,
@@ -34,12 +42,46 @@ class LocalMeshService {
             lastSeen: Date.now()
         };
 
-        console.log(`[MESH] ${name} joined as ${role} (ID: ${id})`);
+        console.log(`[MESH] ${name} joined as ${role} (ID: ${id}). Tenant: ${tenantId || 'global'}`);
 
         this.channel.onmessage = (event) => {
             const msg = event.data as MeshMessage;
             this.handleIncomingMessage(msg);
         };
+
+        // 2. Physical Network Bridge (Cloud Signaling)
+        // Usamos o tenantId para criar uma sala virtual onde dispositivos reais se encontram.
+        const roomName = `mesh_room_${tenantId || 'global'}`;
+        this.supabaseChannel = supabase.channel(roomName, {
+            config: {
+                broadcast: { self: false }
+            }
+        });
+
+        this.supabaseChannel
+            .on('broadcast', { event: 'mesh_msg' }, (payload: any) => {
+                this.handleIncomingMessage(payload.payload as MeshMessage);
+            })
+            .subscribe((status: string) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log(`[MESH] Connected to Physical Discovery Bridge: ${roomName}`);
+                    // Trigger announcement immediately once subscribed
+                    this.announce();
+                }
+            });
+
+        // 3. Global Discovery Bridge (Apenas para SERVER)
+        // O servidor ouve na sala 'global' para "pescar" tablets novos que ainda não sabem seu tenant.
+        if (role === 'SERVER' && tenantId) {
+            const globalChannel = supabase.channel('mesh_room_global', {
+                config: { broadcast: { self: false } }
+            });
+            globalChannel
+                .on('broadcast', { event: 'mesh_msg' }, (payload: any) => {
+                    this.handleIncomingMessage(payload.payload as MeshMessage);
+                })
+                .subscribe();
+        }
 
         // Se for Tablet (UNASSIGNED), inicia Discovery
         if (role === 'UNASSIGNED') {
@@ -59,6 +101,10 @@ class LocalMeshService {
             this.channel.close();
             this.channel = null;
         }
+        if (this.supabaseChannel) {
+            this.supabaseChannel.unsubscribe();
+            this.supabaseChannel = null;
+        }
         this.peer.isOnline = false;
         console.log(`[MESH] ${this.peer.name} disconnected (Kill Switch).`);
     }
@@ -74,18 +120,29 @@ class LocalMeshService {
     }
 
     public broadcast(type: MeshMessageType, payload: any) {
-        if (!this.channel) return;
         const msg: MeshMessage = {
             type,
             sender: this.peer,
             payload,
             timestamp: Date.now()
         };
-        this.channel.postMessage(msg);
+
+        // Send to Local Tabs
+        if (this.channel) {
+            this.channel.postMessage(msg);
+        }
+
+        // Send to Physical Network (Cloud Bridge)
+        if (this.supabaseChannel) {
+            this.supabaseChannel.send({
+                type: 'broadcast',
+                event: 'mesh_msg',
+                payload: msg
+            });
+        }
     }
 
     public sendTo(targetId: string, type: MeshMessageType, payload: any) {
-        if (!this.channel) return;
         const msg: MeshMessage = {
             type,
             sender: this.peer,
@@ -93,21 +150,35 @@ class LocalMeshService {
             payload,
             timestamp: Date.now()
         };
-        this.channel.postMessage(msg);
+
+        // Local
+        if (this.channel) {
+            this.channel.postMessage(msg);
+        }
+
+        // Cloud
+        if (this.supabaseChannel) {
+            this.supabaseChannel.send({
+                type: 'broadcast',
+                event: 'mesh_msg',
+                payload: msg
+            });
+        }
     }
 
     private announce() {
-        if (!this.peer.isOnline || !this.channel) return;
+        if (!this.peer.isOnline || (!this.channel && !this.supabaseChannel)) return;
         this.broadcast('ANNOUNCE', {});
     }
 
     private handleIncomingMessage(msg: MeshMessage) {
-        // Anti-Dup Rule: Se eu receber um anúncio com meu próprio ID mas vindo de outro "remetente"
-        // (Simulado aqui por uma verificação lógica simples)
+        // Anti-Loop/Self Check
+        if (msg.sender.id === this.peer.id) return;
+
+        // Anti-Dup Rule: Se eu receber um anúncio com meu próprio ID vindo de outro
         if (msg.sender.id === this.peer.id && msg.timestamp !== this.peer.lastSeen && this.peer.isOnline) {
             console.error(`[MESH] CONFLITO DE IDENTIDADE DETECTADO: ${this.peer.id}`);
             this.broadcast('DISCOVERY_CONFLICT', { conflictedId: this.peer.id });
-            // Em um sistema real, aqui dispararíamos um reset de segurança
             return;
         }
 
