@@ -33,6 +33,37 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
     const [showQrModal, setShowQrModal] = useState(false);
     const [selectedExamIds, setSelectedExamIds] = useState<string[]>([]);
 
+    // --- PERSISTÊNCIA DE ESTADO (LOCALSTORAGE) ---
+    const STORAGE_KEY = `cc_wizard_${state.currentUser?.tenantId}_${state.currentUser?.id}`;
+
+    useEffect(() => {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (parsed.loadingStep) setLoadingStep(parsed.loadingStep);
+                if (parsed.selectedSchoolId) setSelectedSchoolId(parsed.selectedSchoolId);
+                if (parsed.roleConfig) setRoleConfig(parsed.roleConfig);
+                if (parsed.selectedExamIds) setSelectedExamIds(parsed.selectedExamIds);
+                if (parsed.selectedTenantId) setSelectedTenantId(parsed.selectedTenantId);
+            } catch (e) {
+                console.error("Failed to restore wizard state", e);
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        // Não persistimos estados efêmeros como isProvisioning ou provisioningProgress
+        const stateToSave = {
+            loadingStep,
+            selectedSchoolId,
+            roleConfig,
+            selectedExamIds,
+            selectedTenantId
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+    }, [loadingStep, selectedSchoolId, roleConfig, selectedExamIds, selectedTenantId]);
+
     useEffect(() => {
         meshService.join('SERVER', 'SaaS-Central-Logistics', 'UNASSIGNED');
         const interval = setInterval(() => {
