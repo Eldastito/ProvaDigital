@@ -368,19 +368,22 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
 
                                     <div className="flex justify-between items-center pt-4">
                                         <button onClick={() => setLoadingStep(1)} className="text-slate-500 font-bold hover:text-slate-800">Voltar</button>
-                                        <div className="flex gap-4">
+                                        <div className="flex items-center gap-6">
                                             <button
                                                 onClick={handleGenerateQR}
-                                                className="px-8 py-4 rounded-2xl border-2 border-slate-200 font-black text-slate-600 hover:bg-slate-50 transition"
+                                                className="text-slate-400 text-sm font-bold hover:text-slate-600 underline underline-offset-4 decoration-slate-300 transition-colors"
                                             >
-                                                Gerar QR Fallback
+                                                Usar QR Fallback (Manual)
                                             </button>
                                             <button
-                                                onClick={() => setLoadingStep(3)}
-                                                disabled={availableTablets.length < (roleConfig.coordinators + roleConfig.professors + roleConfig.students)}
-                                                className="bg-brand-primary text-white px-12 py-4 rounded-2xl font-black shadow-lg hover:translate-y-[-2px] active:scale-95 transition-all disabled:opacity-30"
+                                                onClick={() => {
+                                                    setLoadingStep(3);
+                                                    setChargePhase('IDLE');
+                                                }}
+                                                className="bg-brand-primary text-white px-10 py-5 rounded-2xl font-black shadow-xl hover:translate-y-[-2px] active:scale-95 transition-all flex items-center gap-3"
                                             >
-                                                Iniciar Carga Mesh
+                                                <Radio className="animate-pulse" size={18} />
+                                                Abrir Sala de Carga (Mesh)
                                             </button>
                                         </div>
                                     </div>
