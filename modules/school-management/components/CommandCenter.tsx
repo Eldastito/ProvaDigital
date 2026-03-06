@@ -157,7 +157,7 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
             clearInterval(interval);
             meshService.disconnect();
         };
-    }, [chargePhase, selectedSchoolId, selectedExamIds]);
+    }, [chargePhase, selectedSchoolId, selectedExamIds, selectedTenantId]);
 
     // --- LÓGICA DE CARGA SEGMENTADA (WIZARD) ---
 
@@ -604,10 +604,21 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="text-right">
+                                            <div className="flex flex-col items-end gap-2">
                                                 <span className={`text-[10px] px-2 py-0.5 rounded font-black uppercase ${peer.role === 'UNASSIGNED' ? 'bg-slate-800 text-slate-400' : 'bg-brand-primary text-white'}`}>
                                                     {peer.role}
                                                 </span>
+                                                {peer.role === 'UNASSIGNED' && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            meshService.sendTo(peer.id, 'BIN_VERSION_CHECK', { requiredVersion: CURRENT_BIN_VERSION });
+                                                        }}
+                                                        className="text-[9px] text-brand-primary font-black uppercase hover:underline"
+                                                    >
+                                                        ⚡ Forçar Carga
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     )) : (
