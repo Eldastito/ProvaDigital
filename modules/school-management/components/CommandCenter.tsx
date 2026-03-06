@@ -108,8 +108,11 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
             if (msg.type === 'ANNOUNCE' || msg.type === 'DISCOVERY') {
                 setPeers(meshService.getPeers());
 
-                // Passo 1: Verificar Versão do Binário ao descobrir novo tablet
-                if (msg.type === 'DISCOVERY') {
+                // Passo 1: Verificar Versão do Binário ao descobrir novo tablet OU se o tablet anunciar e ainda estiver UNASSIGNED
+                // Isso garante que o provisionamento aconteça mesmo se a mensagem DISCOVERY inicial for perdida.
+                const isUnassigned = msg.sender.role === 'UNASSIGNED';
+                if (msg.type === 'DISCOVERY' || (msg.type === 'ANNOUNCE' && isUnassigned)) {
+                    console.log(`[CC] 📡 Detectado dispositivo para provisionamento: ${msg.sender.id} (${msg.type})`);
                     meshService.sendTo(msg.sender.id, 'BIN_VERSION_CHECK', { requiredVersion: CURRENT_BIN_VERSION });
                 }
             }

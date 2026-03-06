@@ -84,15 +84,24 @@ export const TabletLauncher = ({ onSelectApp, onBack }: TabletLauncherProps) => 
             }
         };
 
+        // Loop de Indução: Se em 5 segundos não sair de "Aguardando sinal", força novo DISCOVERY
+        const discoveryRetry = setInterval(() => {
+            if (provisioningStatus.includes('Aguardando sinal')) {
+                console.log('[DEBUG] 🔄 Re-enviando sinal de descoberta (Retry)...');
+                nativeBridge.getDeviceId().then(id => {
+                    meshService.broadcast('DISCOVERY', { serialNumber: id });
+                });
+            }
+        }, 10000);
+
         // Sempre inicia a descoberta mesh (independente de login)
-        // Isso permite que o tablet seja descoberto mesmo se o usuário
-        // já estiver logado ou se estiver na rota /apps/tablet
         initDiscovery();
 
         return () => {
+            clearInterval(discoveryRetry);
             meshService.disconnect();
         };
-    }, []);
+    }, [provisioningStatus]);
 
     const handleAutoProvision = (payload: any) => {
         setProvisioningStatus(`Configurando como ${payload.targetRole}...`);

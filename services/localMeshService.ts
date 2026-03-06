@@ -129,9 +129,10 @@ class LocalMeshService {
             try { ch.unsubscribe(); } catch (e) { /* ignore */ }
         }
         this.supabaseChannels = [];
+        this.listeners = []; // Limpar todos os callbacks para evitar execuções duplicadas
 
         this.peer.isOnline = false;
-        console.log(`[MESH] ${this.peer.name} disconnected.`);
+        console.log(`[MESH] 🛑 ${this.peer.name} desconectado e listeners limpos.`);
     }
 
     /**
