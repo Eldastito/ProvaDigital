@@ -17,7 +17,12 @@ export const TabletLauncher = ({ onSelectApp, onBack }: TabletLauncherProps) => 
     // Main Mode
     const [mode, setMode] = useState<'SELECT' | 'SCANNING_QR' | 'COORD_FLOW' | 'AUTO_PROVISIONING'>('SELECT');
     const [provisioningStatus, setProvisioningStatus] = useState<string>('Aguardando sinal da rede...');
+    const statusRef = React.useRef(provisioningStatus);
     const [isHardwareConflict, setIsHardwareConflict] = useState(false);
+
+    useEffect(() => {
+        statusRef.current = provisioningStatus;
+    }, [provisioningStatus]);
 
     // Coordinator Flow State
     const [coordStep, setCoordStep] = useState<'SCHOOL_SEARCH' | 'AUTH'>('SCHOOL_SEARCH');
@@ -52,7 +57,8 @@ export const TabletLauncher = ({ onSelectApp, onBack }: TabletLauncherProps) => 
                         if (currentVersion !== requiredVersion) {
                             setProvisioningStatus(`Atualizando App para v${requiredVersion}...`);
                             await nativeBridge.downloadUpdateAPK(requiredVersion);
-                            window.location.reload(); // Simula reinicialização após update
+                            window.location.reload();
+                        } else {
                             // Versão OK -> Realizar Check de Segurança
                             console.log('[DEBUG] 🛡️ Versão OK. Iniciando security check...');
                             setProvisioningStatus('Verificando integridade do dispositivo...');
@@ -86,7 +92,7 @@ export const TabletLauncher = ({ onSelectApp, onBack }: TabletLauncherProps) => 
 
         // Loop de Indução: Se em 5 segundos não sair de "Aguardando sinal", força novo DISCOVERY
         const discoveryRetry = setInterval(() => {
-            if (provisioningStatus.includes('Aguardando sinal')) {
+            if (statusRef.current.includes('Aguardando sinal')) {
                 console.log('[DEBUG] 🔄 Re-enviando sinal de descoberta (Retry)...');
                 nativeBridge.getDeviceId().then(id => {
                     meshService.broadcast('DISCOVERY', { serialNumber: id });
@@ -94,14 +100,13 @@ export const TabletLauncher = ({ onSelectApp, onBack }: TabletLauncherProps) => 
             }
         }, 10000);
 
-        // Sempre inicia a descoberta mesh (independente de login)
         initDiscovery();
 
         return () => {
             clearInterval(discoveryRetry);
             meshService.disconnect();
         };
-    }, [provisioningStatus]);
+    }, []); // IMPORTANTE: Array vazio para não entrar em loop infinito
 
     const handleAutoProvision = (payload: any) => {
         setProvisioningStatus(`Configurando como ${payload.targetRole}...`);
