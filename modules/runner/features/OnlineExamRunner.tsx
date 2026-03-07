@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
+import { nativeBridge } from '../../../services/nativeBridgeService';
+import { getMeshNetwork, MeshMessage } from '../../../services/meshNetworkService';
 import { Item, Exam } from '../../../types';
 import { AccessibilityConfig, DEFAULT_ACCESSIBILITY_CONFIG } from './types';
 import { Loader2, AlertTriangle, Clock, CheckCircle, XCircle, HelpCircle, Trophy, Target, ChevronRight, X, ZoomIn, ZoomOut, Volume2, VolumeX, Eye, EyeOff, Monitor, Brain, FileText, Minimize, CloudUpload, ChevronLeft, Download, DownloadCloud, CloudCheck } from 'lucide-react';
@@ -74,6 +76,10 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
     const [isCompleted, setIsCompleted] = useState(false);
     const [generatedPlan, setGeneratedPlan] = useState<any>(null);
     const [finalGrading, setFinalGrading] = useState<any>(null);
+
+    // v4.1 Handshake States
+    const [isWaitingHandshake, setIsWaitingHandshake] = useState(false);
+    const [isHandshakeConfirmed, setIsHandshakeConfirmed] = useState(false);
 
     // ... existing useEffects ...
 
@@ -215,6 +221,19 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                 // 4. Join Realtime
                 initializeExamEvents(examId);
 
+                // [v4.2] Ativar Kiosk Mode Nativo
+                nativeBridge.enableSecurityLock();
+
+                // 5. Mesh Listener for v4.1 Handshake
+                const mesh = getMeshNetwork();
+                mesh.setOnMessageReceived((message: MeshMessage) => {
+                    if (message.type === 'CONFIRM_RECEIPT') {
+                        setIsHandshakeConfirmed(true);
+                        setIsWaitingHandshake(false);
+                        console.log("🟢 Handshake Lógico Confirmado pelo Professor!");
+                    }
+                });
+
             } catch (err) {
                 console.error("Sync error:", err);
             } finally {
@@ -329,6 +348,15 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         // Auto-save: Critical for alternatives, immediate save
         if (attemptId) {
             await saveExamProgress(attemptId, newAnswers);
+            
+            // [v4.2] Telemetria UDP Nativa (Baixa latência)
+            nativeBridge.broadcastTelemetry({
+                studentId,
+                examId,
+                currentQuestion: currentQuestionIndex + 1,
+                answersCount: Object.keys(newAnswers).length,
+                timestamp: Date.now()
+            });
         }
     };
 
@@ -344,6 +372,15 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         essaySaveTimeoutRef.current = setTimeout(async () => {
             if (attemptId) {
                 await saveExamProgress(attemptId, newAnswers);
+
+                // [v4.2] Telemetria UDP Nativa (Baixa latência)
+                nativeBridge.broadcastTelemetry({
+                    studentId,
+                    examId,
+                    currentQuestion: currentQuestionIndex + 1,
+                    type: 'ESSAY_UPDATE',
+                    timestamp: Date.now()
+                });
             }
         }, 2000); // 2 seconds debounce
     };
@@ -493,7 +530,18 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
 
             setFinalGrading(gradingResult);
             setIsCompleted(true);
-            // ---------------------------------------------------
+            
+            // v4.1 - INICIAR HANDSHAKE LÓGICO
+            setIsWaitingHandshake(true);
+            const mesh = getMeshNetwork();
+            mesh.sendMessage('PROFESSOR', 'HANDSHAKE_SUBMIT', {
+                studentId,
+                examId,
+                timestamp: Date.now()
+            });
+
+            // [v4.2] Desativar Kiosk Mode Nativo ao finalizar
+            nativeBridge.disableSecurityLock();
 
             // Retornar respostas corrigidas (Removido daqui para esperar o review do aluno)
             // onComplete(gradingResult.answers);
@@ -627,45 +675,54 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         return (
             <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/95 backdrop-blur-sm no-zoom ${getFontClass()}`}>
                 <div className="max-w-xl w-full bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col">
-                    <div className="p-10 flex flex-col items-center justify-center text-center">
-                        <div className="inline-block p-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-full shadow-sm mb-6 border border-yellow-100 dark:border-yellow-700">
-                            <Trophy size={64} className="text-yellow-500" />
-                        </div>
-
-                        <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2">Prova Finalizada!</h2>
-                        <p className="text-slate-500 text-base mb-8 max-w-sm mx-auto">
-                            Parabéns por concluir. Seus dados foram salvos com sucesso.
-                        </p>
-
-                        <div className="bg-slate-50 dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-700 w-full mb-8">
-                            <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Nota Final</div>
-                            <div className="text-6xl font-black text-slate-900 dark:text-white tracking-tighter">
-                                {finalGrading.totalScore.toFixed(1)}
-                                <span className="text-2xl text-slate-400 font-normal ml-2">/ {finalGrading.maxScore}</span>
+                    
+                    {/* [v4.1] LÓGICA DE HANDSHAKE */}
+                    {!isHandshakeConfirmed ? (
+                        <div className="p-10 flex flex-col items-center justify-center text-center">
+                            <div className="inline-block p-6 bg-blue-50 dark:bg-blue-900/20 rounded-full shadow-sm mb-6 border border-blue-100 dark:border-blue-700 animate-pulse">
+                                <CloudUpload size={64} className="text-blue-500" />
                             </div>
+                            <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2">Aguardando Professor...</h2>
+                            <p className="text-slate-500 text-base mb-8 max-w-sm mx-auto">
+                                Suas respostas foram salvas na rede local. <br/>
+                                <strong>Mostre esta tela ao professor</strong> para confirmar o recebimento e entregar o tablet.
+                            </p>
+                            <div className="w-full bg-slate-100 dark:bg-slate-900 h-2 rounded-full overflow-hidden mb-4">
+                                <div className="bg-blue-500 h-full animate-[shimmer_2s_infinite] w-1/2"></div>
+                            </div>
+                            <span className="text-xs text-slate-400 font-mono">ID de Sincronização: {attemptId?.slice(0, 8)}</span>
                         </div>
+                    ) : (
+                        <div className="p-10 flex flex-col items-center justify-center text-center bg-emerald-500">
+                             <div className="inline-block p-6 bg-white/20 rounded-full shadow-sm mb-6 border border-white/30">
+                                <CheckCircle size={64} className="text-white" />
+                            </div>
 
-                        <div className="flex flex-col w-full gap-3">
+                            <h2 className="text-3xl font-black text-white mb-2">Entrega Confirmada!</h2>
+                            <p className="text-emerald-50 text-base mb-8 max-w-sm mx-auto">
+                                O professor recebeu seus dados. Agora você pode desligar e devolver o tablet. Boa sorte!
+                            </p>
+
+                            <div className="bg-white/10 p-8 rounded-3xl border border-white/20 w-full mb-8">
+                                <div className="text-xs font-bold text-emerald-100 uppercase tracking-widest mb-3">Sua Nota</div>
+                                <div className="text-6xl font-black text-white tracking-tighter">
+                                    {finalGrading.totalScore.toFixed(1)}
+                                    <span className="text-2xl text-emerald-200 font-normal ml-2">/ {finalGrading.maxScore}</span>
+                                </div>
+                            </div>
+
                             <button
                                 onClick={() => {
-                                    // Log de Segurança: Finalização e Desconexão
                                     state.setCurrentUser(null);
                                     window.location.href = '/login?reason=exam_completed';
                                 }}
-                                className="w-full py-4 bg-brand-primary text-white rounded-xl font-bold hover:bg-brand-dark transition flex items-center justify-center gap-2 shadow-lg shadow-brand-primary/20"
+                                className="w-full py-4 bg-white text-emerald-600 rounded-xl font-bold hover:bg-emerald-50 transition flex items-center justify-center gap-2 shadow-xl"
                             >
-                                <Brain size={20} />
-                                Entregar Tablet e Sair
+                                <X size={20} />
+                                Finalizar Sessão
                             </button>
-
-                            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700 mt-2">
-                                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed text-center">
-                                    Para sua segurança, você foi desconectado. <br />
-                                    Acesse o seu <strong>Portal do Aluno</strong> em outro dispositivo para ver a <strong>Análise Detalhada do Tutor</strong>.
-                                </p>
-                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
         );

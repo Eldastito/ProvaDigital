@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'ExamePad Forge',
   webDir: 'dist',
   server: {
-    androidScheme: 'http', // Localhost bridge
+    androidScheme: 'https',
     cleartext: true
   },
   plugins: {

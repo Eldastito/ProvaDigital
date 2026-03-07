@@ -41,6 +41,7 @@ export interface ExamSlice {
     updateExamAllocation: (examId: string, classIds: string[]) => Promise<void>;
     linkExamToSchedule: (examId: string, scheduleId: string) => Promise<void>;
     fetchExamItems: (examId: string) => Promise<void>;
+    confirmLogicDelivery: (studentId: string, examId: string, professorId: string, method: 'WIFI' | 'BLE' | 'QR') => Promise<void>;
 }
 
 export const createExamSlice: StateCreator<AppStore, [], [], ExamSlice> = (set, get) => ({
@@ -112,15 +113,15 @@ export const createExamSlice: StateCreator<AppStore, [], [], ExamSlice> = (set, 
         }
     },
 
-    deleteExam: async (id) => set((state) => ({
+    deleteExam: async (id: string) => set((state) => ({
         exams: state.exams.filter(e => e.id !== id)
     })),
 
-    activateExam: async (id) => {
+    activateExam: async (id: string) => {
         // ...
     },
 
-    distributeOECDExam: async (examId) => {
+    distributeOECDExam: async (examId: string) => {
         // ...
     },
 
@@ -339,6 +340,53 @@ export const createExamSlice: StateCreator<AppStore, [], [], ExamSlice> = (set, 
         if (error) {
             console.error("Error linking exam to schedule:", error);
             throw error;
+        }
+    },
+
+    confirmLogicDelivery: async (studentId, examId, professorId, method) => {
+        const handshakeTimestamp = new Date().toISOString();
+        
+        // 1. Atualizar Inscrição (Status)
+        set((state) => ({
+            registrations: state.registrations.map(reg => 
+                (reg.studentId === studentId && reg.examId === examId) 
+                ? { ...reg, status: 'LOGIC_DELIVERY_CONFIRMED' as any } 
+                : reg
+            ),
+            results: state.results.map(res => 
+                (res.studentId === studentId && res.examId === examId)
+                ? { 
+                    ...res, 
+                    reconciliationData: { 
+                        handshakeTimestamp, 
+                        professorPeerId: professorId, 
+                        method 
+                    } 
+                }
+                : res
+            )
+        }));
+
+        // 2. Persistir no Supabase
+        try {
+            await Promise.all([
+                supabase.from('exam_registrations')
+                    .update({ status: 'LOGIC_DELIVERY_CONFIRMED' })
+                    .match({ student_id: studentId, exam_id: examId }),
+                
+                supabase.from('exam_results')
+                    .update({ 
+                        reconciliation_data: { 
+                            handshake_timestamp: handshakeTimestamp, 
+                            professor_peer_id: professorId, 
+                            method 
+                        } 
+                    })
+                    .match({ student_id: studentId, exam_id: examId })
+            ]);
+            console.log(`✅ Handshake v4.1 persistido para o aluno ${studentId}`);
+        } catch (e) {
+            console.error("Erro ao persistir handshake lógico:", e);
         }
     }
 });

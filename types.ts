@@ -736,7 +736,8 @@ export enum RegistrationStatus {
   INSCRITO = 'INSCRITO',
   PRESENTE = 'PRESENTE',
   AUSENTE = 'AUSENTE',
-  FINALIZADO = 'FINALIZADO'
+  FINALIZADO = 'FINALIZADO',
+  LOGIC_DELIVERY_CONFIRMED = 'LOGIC_DELIVERY_CONFIRMED' // v4.1 - Handshake Professor OK
 }
 
 export interface ExamRegistration {
@@ -798,6 +799,11 @@ export interface ExamResult {
   securityFlags?: string[];
   pedagogicalFeedback?: string; // AI-generated tips
   autoGradeLog?: any; // Details of the grading process
+  reconciliationData?: {
+    handshakeTimestamp?: string;
+    professorPeerId?: string;
+    method: 'WIFI' | 'BLE' | 'QR';
+  };
 }
 
 export interface ItemGenerationBatch {

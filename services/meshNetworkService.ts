@@ -11,7 +11,7 @@ import { getWebRTCClient, DataChannelMessage, PeerConnection } from './webrtcCli
 
 // Tipos
 export interface MeshMessage {
-    type: 'HEARTBEAT' | 'TELEMETRY' | 'ALERT' | 'ANSWER' | 'HANDSHAKE_REQUEST' | 'HANDSHAKE_RESPONSE' | 'ENABLE_EXAM' | 'CUSTOM' | 'UNLOCK_SCREEN' | 'AUTOSAVE';
+    type: 'HEARTBEAT' | 'TELEMETRY' | 'ALERT' | 'ANSWER' | 'HANDSHAKE_REQUEST' | 'HANDSHAKE_RESPONSE' | 'ENABLE_EXAM' | 'CUSTOM' | 'UNLOCK_SCREEN' | 'AUTOSAVE' | 'HANDSHAKE_SUBMIT' | 'CONFIRM_RECEIPT';
     from: string; // studentId ou tabletId
     to: string | 'BROADCAST';
     payload: any;
