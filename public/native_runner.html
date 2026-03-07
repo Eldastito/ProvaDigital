@@ -5,14 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ExamePad - Offline Runner</title>
     <link rel="stylesheet" href="css/examepad_prime.css">
-    <script type="importmap">
-    {
-      "imports": {
-        "three": "./vendor/three.module.min.js",
-        "three/addons/": "./vendor/"
-      }
-    }
-    </script>
 </head>
 <body class="theme-dark">
     <!-- Watchdog & Diagnostic Script -->
@@ -22,17 +14,18 @@
             alert("❌ ERRO WEBVIEW:\n" + msg + "\nLocal: " + url + ":" + line);
         };
 
-        // Watchdog: Se não carregar em 3s, avisa o usuário
+        // Watchdog: Se não carregar em 4s, avisa o usuário
         setTimeout(() => {
             if (document.getElementById('exam-title').innerText === "Carregando Prova...") {
                 const status = {
                     RUNNER_READY: !!window.RUNNER_READY,
                     THREE: typeof THREE !== 'undefined',
+                    GLTF: typeof THREE !== 'undefined' && !!THREE.GLTFLoader,
                     LOCATION: window.location.href
                 };
                 alert("⚠️ AVISO: O script da prova não iniciou.\n\nStatus:\n" + JSON.stringify(status, null, 2));
             }
-        }, 3500);
+        }, 4000);
     </script>
     <div id="app-container">
         <!-- Header -->
@@ -126,7 +119,9 @@
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script type="module" src="js/runner_core.js"></script>
+    <!-- Scripts Legados (Não-Módulos) -->
+    <script src="vendor/three.legacy.min.js"></script>
+    <script src="vendor/GLTFLoader.legacy.js"></script>
+    <script src="js/runner_core.js"></script>
 </body>
 </html>

@@ -1,10 +1,10 @@
 /**
- * ExamePad - Runner Core Offline (v4.6)
- * Vanilla JS + Three.js Modules
+ * ExamePad - Runner Core Offline (v4.10)
+ * Vanilla JS (Legacy Support - No Modules)
  */
 
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/GLTFLoader.js';
+// Removidos os imports para compatibilidade legada
+// Requer que three.legacy.min.js e GLTFLoader.legacy.js sejam carregados no HTML
 
 const state = {
     currentQuestion: 0,
@@ -28,7 +28,7 @@ const state = {
 
 let renderer, scene, camera, model;
 
-// Mock Data com Novos Modelos Glb
+// Mock Data
 function mockData() {
     return [
         {
@@ -75,7 +75,11 @@ function init() {
         setupListeners();
         
         try {
-            initThreeJS();
+            if (typeof THREE !== 'undefined') {
+                initThreeJS();
+            } else {
+                console.warn("THREE não encontrado, pulando 3D");
+            }
         } catch (threeErr) {
             console.error("Erro ThreeJS:", threeErr);
         }
@@ -107,7 +111,7 @@ function renderQuestion() {
             optionsContainer.appendChild(div);
         });
 
-        if (q.model) {
+        if (q.model && typeof THREE !== 'undefined') {
             document.getElementById('question-media').classList.remove('hidden');
             loadModel(q.model);
         } else {
@@ -134,7 +138,6 @@ function selectOption(qId, idx) {
 }
 
 function setupListeners() {
-    // Navigation
     document.getElementById('btn-next').onclick = () => {
         if (state.currentQuestion < state.questions.length - 1) {
             state.currentQuestion++;
@@ -148,7 +151,6 @@ function setupListeners() {
         }
     };
 
-    // Tools
     document.getElementById('btn-read').onclick = () => {
         const text = state.questions[state.currentQuestion].text;
         if (window.Capacitor && window.Capacitor.Plugins.NativeOperations) {
@@ -161,12 +163,10 @@ function setupListeners() {
         document.body.classList.toggle('focus-mode', state.focusMode);
     };
 
-    // Accessibility Hub
     const hub = document.getElementById('access-hub');
     document.getElementById('btn-access').onclick = () => hub.classList.toggle('open');
     document.getElementById('close-hub').onclick = () => hub.classList.remove('open');
 
-    // Zoom & Space Controls
     document.getElementById('zoom-slider').oninput = (e) => {
         state.fontSize = e.target.value;
         document.documentElement.style.setProperty('--font-scale', state.fontSize);
@@ -177,7 +177,6 @@ function setupListeners() {
         document.documentElement.style.setProperty('--line-height', state.lineHeight);
     };
 
-    // Theme switching
     document.querySelectorAll('.theme-btn[data-theme]').forEach(btn => {
         btn.onclick = () => {
             const theme = btn.getAttribute('data-theme');
@@ -192,7 +191,6 @@ function setupListeners() {
         document.getElementById('btn-dyslexic').innerText = state.dyslexicMode ? 'Desativar Dyslexic' : 'Ativar OpenDyslexic';
     };
 
-    // Finish
     document.getElementById('btn-finish').onclick = () => {
         const responded = Object.keys(state.answers).length;
         if(confirm(`Você respondeu ${responded} questões. Finalizar agora?`)) {
@@ -225,7 +223,8 @@ function startTimer() {
 
 function updateProgress() {
     const progress = ((state.currentQuestion + 1) / state.questions.length) * 100;
-    document.getElementById('progress-fill').style.width = `${progress}%`;
+    const bar = document.getElementById('progress-fill');
+    if (bar) bar.style.width = `${progress}%`;
 }
 
 function initThreeJS() {
@@ -233,7 +232,7 @@ function initThreeJS() {
     if (!canvas) return;
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(canvas.clientWidth, canvas.clientHeight);
     const light = new THREE.AmbientLight(0xffffff, 1.2);
@@ -252,9 +251,10 @@ function initThreeJS() {
 
 function loadModel(path) {
     document.getElementById('loading-3d').classList.remove('hidden');
-    const loader = new GLTFLoader();
+    // Em r147 legado, GLTFLoader é THREE.GLTFLoader se carregado após three.js
+    const loader = new THREE.GLTFLoader();
     const fullPath = `./assets/models/${path}`;
-    loader.load(fullPath, (gltf) => {
+    loader.load(fullPath, function(gltf) {
         if (model) scene.remove(model);
         model = gltf.scene;
         scene.add(model);
@@ -266,11 +266,10 @@ function loadModel(path) {
         model.scale.set(scale, scale, scale);
         model.position.sub(center.multiplyScalar(scale));
         document.getElementById('loading-3d').classList.add('hidden');
-    }, undefined, (error) => {
+    }, undefined, function(error) {
         console.error("Erro ao carregar modelo:", error);
         document.getElementById('loading-3d').innerText = "3D INDISPONÍVEL";
     });
 }
 
-console.log("Runner Core: Script Carregado");
 init();
