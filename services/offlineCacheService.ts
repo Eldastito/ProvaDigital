@@ -102,7 +102,11 @@ export class OfflineCacheService {
 
             // 3. Criptografar o Payload (Exam + Items)
             const rawPayload = { exam, items };
-            const encryptedPayload = await cryptoService.encryptData(rawPayload, cryptoKey);
+            // FASE 4.2: Gerar Lacre de Integridade SHA-256
+            const integrityHash = await cryptoService.generateSHA256Hash(rawPayload);
+            const wrappedPayload = { data: rawPayload, integrityHash };
+            
+            const encryptedPayload = await cryptoService.encryptData(wrappedPayload, cryptoKey);
 
             // 4. Salvar o JSON Criptografado da prova no Cache API
             const examBlob = new Blob([JSON.stringify(encryptedPayload)], { type: 'application/json' });
@@ -158,8 +162,20 @@ export class OfflineCacheService {
             // 2. Descriptografa o pacote em memória
             const decryptedPayload = await cryptoService.decryptData(encryptedPayload, cryptoKey);
             
-            console.log(`[OfflineCache] Prova '${decryptedPayload.exam.title}' destrancada com sucesso.`);
-            return decryptedPayload;
+            // FASE 4.2: Verificar Lacre de Integridade SHA-256
+            if (decryptedPayload.integrityHash && decryptedPayload.data) {
+                const currentHash = await cryptoService.generateSHA256Hash(decryptedPayload.data);
+                if (currentHash !== decryptedPayload.integrityHash) {
+                    console.error('[OfflineCache] \uD83D\uDEA8 ALERTA CRÍTICO: O Lacre SHA-256 foi violado!', { original: decryptedPayload.integrityHash, calculated: currentHash });
+                    throw new Error('CORRUPTED_PAYLOAD_INTEGRITY_COMPROMISED');
+                }
+                console.log(`[OfflineCache] \u2705 Lacre de Integridade SHA-256 Validado com Sucesso.`);
+                return decryptedPayload.data;
+            } else {
+                // Fallback de retrocompatibilidade para provas arquivadas antes da Fase 4
+                console.log(`[OfflineCache] Prova '${decryptedPayload.exam?.title || 'Desconhecida'}' destrancada em Modo Legado (Sem Lacre).`);
+                return decryptedPayload;
+            }
 
         } catch (error) {
             console.error('[OfflineCache] Falha ao destrancar a Prova (Chave Incorreta ou Arquivo Corrompido):', error);

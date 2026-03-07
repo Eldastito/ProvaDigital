@@ -13,10 +13,6 @@ export interface EncryptedPayload {
 
 export const cryptoService = {
 
-    /**
-     * Generates a random 256-bit key for exam encryption.
-     * Returns the key exported as a JWK (JSON Web Key) string for storage.
-     */
     generateExamKey: async (): Promise<JsonWebKey> => {
         const key = await window.crypto.subtle.generateKey(
             {
@@ -27,6 +23,16 @@ export const cryptoService = {
             ['encrypt', 'decrypt']
         );
         return await window.crypto.subtle.exportKey('jwk', key);
+    },
+
+    /**
+     * Generates a SHA-256 hash for data integrity.
+     */
+    generateSHA256Hash: async (data: any): Promise<string> => {
+        const encodedData = new TextEncoder().encode(JSON.stringify(data));
+        const hashBuffer = await window.crypto.subtle.digest('SHA-256', encodedData);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     },
 
     /**
