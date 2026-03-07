@@ -17,6 +17,7 @@ const ManagementView = lazy(() => import('../school-management/ManagementView').
 const DataSovereigntyView = lazy(() => import('./DataSovereigntyView'));
 const OperationalHealthDashboard = lazy(() => import('./OperationalHealthDashboard'));
 const PrivacyGovernanceView = lazy(() => import('./PrivacyGovernanceView'));
+const GlobalEcosystemView = lazy(() => import('./GlobalEcosystemView'));
 
 const S = ({ children }: { children: React.ReactNode }) => (
     <Suspense fallback={<div className="flex h-full items-center justify-center p-8"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>}>{children}</Suspense>
@@ -43,6 +44,7 @@ export const adminModule: AppModule = {
         { path: 'admin/soberania', element: <S><DataSovereigntyView /></S> },
         { path: 'admin/health', element: <S><OperationalHealthDashboard /></S> },
         { path: 'admin/privacidade', element: <S><PrivacyGovernanceView /></S> },
+        { path: 'admin/global', element: <S><GlobalEcosystemView /></S> },
         { path: 'diag-ai', element: <S><AIDiagnosticView /></S> },
     ],
     sidebarItems: [
@@ -58,6 +60,7 @@ export const adminModule: AppModule = {
         { icon: Database, label: 'Soberania de Dados', path: '/admin/soberania' },
         { icon: Activity, label: 'Saúde Operacional', path: '/admin/health' },
         { icon: Lock, label: 'Privacidade & LGPD', path: '/admin/privacidade' },
+        { icon: Globe, label: 'Ecossistema v4.0', path: '/admin/global' },
         { icon: Terminal, label: 'Diagnóstico Sistema', path: '/diag-ai' },
     ]
 };

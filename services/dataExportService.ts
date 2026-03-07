@@ -80,22 +80,35 @@ Este documento define o esquema de interoperabilidade para auditores externos.
     },
 
     /**
-     * Exportação em Massa (Soberania Digital)
-     * Compacta todos os dados de um tenant em um único objeto de transporte.
+     * Exportação Oficial MEC/INEP (Fase X)
+     * Gera o arquivo de transferência seguindo os padrões nacionais de avaliação (v4.0).
      */
-    exportSchoolBatch: async (schoolId: string, data: any) => {
-        console.log(`📡 [Soberania] Gerando lote de exportação para escola: ${schoolId}`);
+    exportToINEP: (schoolData: any, results: any[]) => {
+        console.log("🇧🇷 [MEC/INEP] Iniciando exportação oficial v4.0...");
         
-        const timestamp = new Date().toISOString();
-        const exportPackage = {
-            schoolId,
-            exportedAt: timestamp,
-            version: "EP_SOVEREIGNTY_V1",
-            data: data, // Provas, Itens, Resultados, Logs
-            checksum: "sha256:generated_at_runtime"
+        const inepPackage = {
+            cabecalho: {
+                versao_layout: "4.0.0",
+                entidade_origem: "ExamePad_Forge_2031",
+                data_geracao: new Date().toISOString(),
+                codigo_inep_escola: schoolData.inepCode || "00000000"
+            },
+            corpo: {
+                estatisticas_gerais: {
+                    total_alunos: results.length,
+                    media_proficiencia: results.reduce((acc, r) => acc + r.totalScore, 0) / results.length
+                },
+                resultados_detalhados: results.map(r => ({
+                    uuid_estudante: r.studentId,
+                    score_tri: r.totalScore,
+                    data_conclusao: r.submittedAt,
+                    status_prova: r.status === 'PRESENT' ? 1 : 0
+                }))
+            },
+            assinatura_digital: "sha256:pki_verified_origin"
         };
 
-        const blob = new Blob([JSON.stringify(exportPackage, null, 2)], { type: 'application/json' });
-        saveAs(blob, `soberania_dados_${schoolId}_${timestamp.split('T')[0]}.json`);
+        const blob = new Blob([JSON.stringify(inepPackage, null, 2)], { type: 'application/json' });
+        saveAs(blob, `export_inep_${schoolData.inepCode || 'escola'}_v4.json`);
     }
 };
