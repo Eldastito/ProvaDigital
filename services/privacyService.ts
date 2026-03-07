@@ -34,25 +34,33 @@ export const privacyService = {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            await supabase.from('privacy_access_logs').insert({
+            // Em um cenário real, pegaríamos o IP via Edge Function ou Header
+            const payload = {
                 actor_id: user.id,
                 target_user_id: targetUserId,
                 data_category: dataCategory,
                 reason: reason,
+                ip_address: '0.0.0.0', // Placeholder
+                user_agent: navigator.userAgent,
                 access_timestamp: new Date().toISOString()
-            });
+            };
 
-            console.info(`[Privacy Audit] Acesso a dados (${dataCategory}) de ${targetUserId} registrado.`);
+            const { error } = await supabase.from('privacy_access_logs').insert(payload);
+            if (error) throw error;
+
+            console.info(`🛡️ [LGPD Audit] Acesso a dados (${dataCategory}) registrado.`);
         } catch (err) {
             console.error('❌ Falha ao registrar log de privacidade:', err);
         }
     },
 
     /**
-     * Verifica se o usuário atual tem consentimento ativo (Placeholder para gestão de consentimento).
+     * Verifica se o usuário atual tem consentimento ativo.
      */
     hasConsent: async (userId: string, purpose: string): Promise<boolean> => {
-        // Em produção, consultaria a tabela de consentimentos
+        // Mock de verificação de consentimento (Fase IX)
+        // Em produção, consultaria a tabela de 'user_consents'
+        console.log(`🔍 [Privacy] Verificando consentimento de ${userId} para: ${purpose}`);
         return true;
     }
 };

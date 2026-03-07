@@ -2,7 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import { UserRole } from '../../types';
 import { AppModule } from '../core/types';
 import {
-    Shield, Truck, History, Settings, FileUp, Terminal, Target, Gamepad2, Package, Users, FileText, BookOpen, Database, Activity
+    Shield, Truck, History, Settings, FileUp, Terminal, Target, Gamepad2, Package, Users, FileText, BookOpen, Database, Activity, Lock
 } from 'lucide-react';
 import { ProtectedRoute } from '../../components/ProtectedRoute';
 
@@ -16,6 +16,7 @@ const AIDiagnosticView = lazy(() => import('../diagnostics/AIDiagnosticView').th
 const ManagementView = lazy(() => import('../school-management/ManagementView').then(m => ({ default: m.ManagementView })));
 const DataSovereigntyView = lazy(() => import('./DataSovereigntyView'));
 const OperationalHealthDashboard = lazy(() => import('./OperationalHealthDashboard'));
+const PrivacyGovernanceView = lazy(() => import('./PrivacyGovernanceView'));
 
 const S = ({ children }: { children: React.ReactNode }) => (
     <Suspense fallback={<div className="flex h-full items-center justify-center p-8"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>}>{children}</Suspense>
@@ -41,6 +42,7 @@ export const adminModule: AppModule = {
         { path: 'admin/import', element: <S><BulkImportView /></S> },
         { path: 'admin/soberania', element: <S><DataSovereigntyView /></S> },
         { path: 'admin/health', element: <S><OperationalHealthDashboard /></S> },
+        { path: 'admin/privacidade', element: <S><PrivacyGovernanceView /></S> },
         { path: 'diag-ai', element: <S><AIDiagnosticView /></S> },
     ],
     sidebarItems: [
@@ -55,6 +57,7 @@ export const adminModule: AppModule = {
         { icon: FileUp, label: 'Importação de Dados', path: '/admin/import' },
         { icon: Database, label: 'Soberania de Dados', path: '/admin/soberania' },
         { icon: Activity, label: 'Saúde Operacional', path: '/admin/health' },
+        { icon: Lock, label: 'Privacidade & LGPD', path: '/admin/privacidade' },
         { icon: Terminal, label: 'Diagnóstico Sistema', path: '/diag-ai' },
     ]
 };
