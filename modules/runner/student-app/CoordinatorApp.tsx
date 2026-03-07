@@ -5,6 +5,7 @@ import { AppState } from '../../../types';
 import { ExamEvent, EventStatus } from '../../../types'; // Keeping ExamEvent and EventStatus as they are used
 import { encryptPackage, generateEventKey } from '../../../services/cryptoService';
 import { QRDataTransfer } from '../../../services/qrCodecService';
+import { supabase } from '../../../services/supabaseClient';
 
 import { useSafeAppStore } from '../../../store/useAppStore';
 import { TabletLauncher } from './TabletLauncher';
@@ -70,7 +71,26 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
 
         // 1. Generate Key for this Class Session
         const eventId = `${exam.id}_${classId}`;
-        const keyPair = await generateEventKey();
+        
+        let keyPair = null;
+        try {
+            // Caminho A: Buscar Chave Faísca do Backend (RLS permite apenas Coordenadores)
+            const { data: keyData, error: keyError } = await supabase
+                .from('exam_offline_keys')
+                .select('key_data')
+                .eq('exam_id', exam.id)
+                .single();
+                
+            if (keyError || !keyData) {
+                console.warn("Chave offline não encontrada no servidor. Gerando chave fallback em memória (Não vai destrancar provas com download em fechado).", keyError);
+                keyPair = await generateEventKey();
+            } else {
+                keyPair = keyData.key_data;
+            }
+        } catch (e) {
+            console.error("Erro ao resgatar chave offline do supabase", e);
+            keyPair = await generateEventKey();
+        }
 
         // 2. Create Payload for Professor Tablet
         const students = state.students.filter(s => s.classId === classId);
@@ -80,9 +100,13 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
             schoolName: school?.name,
             className: targetClass.name,
             eventId: eventId,
-            key: keyPair, // Professor gets the key to distribute
+            examId: exam.id,
+            examTitle: exam.title,
             students: students.map(s => ({ id: s.id, name: s.name, reg: s.registrationNumber })),
-            examContent: exam // In real scenario, this might be encrypted too or just config
+            // Segregação: Não enviamos o examContent (itens em claro) para o professor.
+            // O tablet do professor ou do aluno deve buscar o binário encriptado via Mesh ou Cache.
+            // A chave (keyPair) será enviada de forma encriptada ou via protocolo de custódia em futuras sprints.
+            key: keyPair 
         };
 
         // 3. Generate QR

@@ -586,6 +586,26 @@ export enum ExamLogisticsStatus {
   ERROR = 'ERROR'
 }
 
+export enum ExamEventStatus {
+  PLANNED = 'PLANNED',
+  PREPARING = 'PREPARING',
+  READY = 'READY',
+  IN_TRANSIT = 'IN_TRANSIT',
+  AT_SCHOOL = 'AT_SCHOOL',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  DADOS_COLETADOS = 'DADOS_COLETADOS',
+  SYNCED = 'SYNCED',
+  ARCHIVED = 'ARCHIVED'
+}
+
+export enum ClassroomKitStatus {
+  PREPARING = 'PREPARING',
+  DISTRIBUTED = 'DISTRIBUTED',
+  COLLECTED = 'COLLECTED',
+  SYNCED = 'SYNCED'
+}
+
 // Phase 10: Print Configuration
 export interface PrintConfig {
   includeCover: boolean;
@@ -1072,18 +1092,50 @@ export enum EventStatus {
 }
 
 export interface ExamEvent {
-  eventId: string;
-  examTitle: string;
-  className: string;
-  date: string;
-  status: EventStatus;
-  keyMaterial: JsonWebKey;
-  packages: {
+  id: string; // ID da tabela public.exam_events
+  examId: string;
+  scheduledExamId?: string;
+  schoolId: string;
+  classId: string;
+  status: ExamEventStatus | EventStatus;
+  duration: number;
+  
+  // Dados de Runtime / Segurança (Antigo)
+  examTitle?: string;
+  className?: string;
+  date?: string;
+  keyMaterial?: JsonWebKey | any;
+  packages?: {
     exam: EncryptedPackage;
     allocation: EncryptedPackage;
   };
   studentPackages?: { studentId: string, package: EncryptedPackage }[];
-  stats: { expected: number, present: number };
+  stats?: { expected: number, present: number };
+
+  // Dados de Logística (Novo)
+  prepared_at?: string;
+  shipped_at?: string;
+  received_at?: string;
+  finalized_at?: string;
+  synced_at?: string;
+  
+  meta_info?: any;
+  createdAt: string;
+  createdBy?: string;
+  tenantId?: string;
+}
+
+export interface ClassroomKit {
+  id: string;
+  eventId: string;
+  classId: string;
+  professorId?: string;
+  tabletIds: string[];
+  status: ClassroomKitStatus;
+  securityPayload?: any; // Payload segregado (ex: chaves dos alunos)
+  metadata?: any;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 // --- LOGISTICS & INDUSTRIAL FLOW (NEW) ---

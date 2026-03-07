@@ -24,6 +24,11 @@ export const useProctoring = ({ studentId, studentName, isActive, onViolation }:
   // 1. Camera Initialization
   useEffect(() => {
     if (isActive) {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.warn('MediaDevices API not available in this context (possibly insecure or unsupported).');
+        return;
+      }
+
       navigator.mediaDevices
         .getUserMedia({ video: true })
         .then((stream) => {
@@ -224,6 +229,10 @@ export const useProctoring = ({ studentId, studentName, isActive, onViolation }:
   // 5. Screen Share Logic
   const startScreenShare = async () => {
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        throw new Error('DisplayMedia API not available.');
+      }
+
       // Request Screen Share - specifically asking for system audio if possible (optional)
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: { cursor: "always" } as any,

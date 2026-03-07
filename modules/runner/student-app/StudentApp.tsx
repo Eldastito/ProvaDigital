@@ -83,6 +83,21 @@ export const StudentApp = (props: StudentAppProps) => {
     );
 };
 
+// --- SYNC MONITOR COMPONENT (EXTERNAL) ---
+const SyncMonitor = ({ a11y, cameraActive }: { a11y: AccessibilityConfig, cameraActive: boolean }) => (
+    <div className={`p-3 rounded-xl border flex items-center justify-between mt-4 ${a11y.theme === 'high-contrast' ? 'border-yellow-400' : 'bg-slate-800 border-slate-700'}`}>
+        <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${cameraActive ? 'bg-emerald-500' : 'bg-red-500'}`} />
+            <span className={`text-[10px] font-bold uppercase ${a11y.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-300'}`}>Monitoria</span>
+        </div>
+        <div className="flex items-center gap-2">
+            <Cloud size={14} className={a11y.theme === 'high-contrast' ? 'text-white' : 'text-brand-primary'} />
+            <span className={`text-[10px] font-bold uppercase ${a11y.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-300'}`}>Sincronizado</span>
+            <CheckCircle size={14} className="text-emerald-500" />
+        </div>
+    </div>
+);
+
 const StudentAppContent = ({ onBack }: StudentAppProps) => {
     const state = useSafeAppStore();
     const params = new URLSearchParams(window.location.search);
@@ -390,6 +405,14 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         };
     }, [meshInitialized]);
 
+    // --- PHASE 7: MESH MODE DETECTION ---
+    const isMeshMode = React.useMemo(() =>
+        examItems.some(i => i.origin === 'MESH_SYNC'),
+        [examItems]);
+
+    // Use shuffled items for the exam
+    const actualItems = shuffledItems;
+
     // UI Blocking for Loading
     // Confere se temos itens da prova OU se estamos usando mock (shuffledItems)
     const hasItems = (examItems && examItems.length > 0) || (shuffledItems && shuffledItems.length > 0);
@@ -403,14 +426,6 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
             </div>
         );
     }
-
-    // Use shuffled items for the exam
-    const actualItems = shuffledItems;
-
-    // --- PHASE 7: MESH MODE DETECTION ---
-    const isMeshMode = React.useMemo(() =>
-        examItems.some(i => i.origin === 'MESH_SYNC'),
-        [examItems]);
 
     // --- SECURITY HANDLERS ---
     const handlePreventClipboard = (e: React.ClipboardEvent) => {
@@ -1080,20 +1095,6 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         );
     }
 
-    // --- SYNC MONITOR COMPONENT ---
-    const SyncMonitor = () => (
-        <div className={`p-3 rounded-xl border flex items-center justify-between mt-4 ${a11y.theme === 'high-contrast' ? 'border-yellow-400' : 'bg-slate-800 border-slate-700'}`}>
-            <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${cameraActive ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                <span className={`text-[10px] font-bold uppercase ${a11y.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-300'}`}>Monitoria</span>
-            </div>
-            <div className="flex items-center gap-2">
-                <Cloud size={14} className={a11y.theme === 'high-contrast' ? 'text-white' : 'text-brand-primary'} />
-                <span className={`text-[10px] font-bold uppercase ${a11y.theme === 'high-contrast' ? 'text-yellow-400' : 'text-slate-300'}`}>Sincronizado</span>
-                <CheckCircle size={14} className="text-emerald-500" />
-            </div>
-        </div>
-    );
 
     // --- EXAM UI ---
     return (
@@ -1272,7 +1273,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                         </div>
                     </div>
 
-                    <SyncMonitor />
+                    <SyncMonitor a11y={a11y} cameraActive={cameraActive} />
                 </div>
             </div>
 

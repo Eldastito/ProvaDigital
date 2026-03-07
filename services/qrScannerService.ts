@@ -45,6 +45,10 @@ export class QRScannerService {
     async start(config: QRScannerConfig): Promise<void> {
         try {
             // 1. Obter acesso à câmera
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error('Câmera não disponível neste contexto (MediaDevices undefined)');
+            }
+
             this.stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: config.useFrontCamera === true ? 'user' : 'environment',

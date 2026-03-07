@@ -8,7 +8,8 @@ const config: CapacitorConfig = {
     androidScheme: 'https',
     // Em produção, o app abrirá diretamente no domínio do servidor.
     // Para desenvolvimento local, comente a linha abaixo.
-    url: 'https://forge.tesseractauto.com/apps/tablet',
+    // Para desenvolvimento local, use o IP 10.0.2.2 para acessar o host do emulador
+    url: 'http://10.0.2.2:3000/apps/tablet',
     cleartext: true // Permitir HTTP para conexões locais (Gateway)
   },
   plugins: {

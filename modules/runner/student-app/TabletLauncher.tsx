@@ -36,6 +36,9 @@ export const TabletLauncher = ({ onSelectApp, onBack }: TabletLauncherProps) => 
                 deviceIdRef.current = deviceId;
                 addLog(`Device ID: ${deviceId.substring(0, 8)}...`);
 
+                meshService.join(deviceId, `Tablet-${deviceId.substring(0, 4)}`, 'UNASSIGNED', state.currentUser?.tenantId);
+                addLog('🌐 Conectado ao canal global.');
+
                 meshService.onMessage(async (msg) => {
                     // Proteção contra stale state: SEMPRE usar a Ref
                     if (provisionedRef.current) return;
@@ -80,9 +83,6 @@ export const TabletLauncher = ({ onSelectApp, onBack }: TabletLauncherProps) => 
                         }, 1000);
                     }
                 });
-
-                meshService.join(deviceId, `Tablet-${deviceId.substring(0, 4)}`, 'UNASSIGNED', state.currentUser?.tenantId);
-                addLog('🌐 Conectado ao canal global.');
 
             } catch (err) {
                 addLog('❌ Erro na inicialização.');

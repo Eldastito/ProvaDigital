@@ -8,6 +8,8 @@
  */
 
 import { Item, Exam } from '../types';
+import { supabase } from './supabaseClient';
+import { cryptoService } from './cryptoService';
 
 export interface OfflineCacheStats {
     totalItems: number;
@@ -81,8 +83,29 @@ export class OfflineCacheService {
             const cache = await caches.open(this.CACHE_NAME);
             const assetUrls = this.extractAssetUrls(items);
 
-            // 1. Salvar o JSON da prova
-            const examBlob = new Blob([JSON.stringify({ exam, items })], { type: 'application/json' });
+            // 1. Buscar a Chave Offline do Supabase
+            // Apenas coordenadores/admin têm permissão para ler essa tabela via RLS.
+            // Se o request falhar, significa que este usuário (ex: Aluno) não tem permissão de gerar o cache semente.
+            const { data: keyData, error: keyError } = await supabase
+                .from('exam_offline_keys')
+                .select('key_data')
+                .eq('exam_id', exam.id)
+                .single();
+
+            if (keyError || !keyData) {
+                console.error('[OfflineCache] Erro fatal: Chave criptográfica não encontrada ou sem permissão.', keyError);
+                throw new Error('Permissão negada ou chave offline inexistente para esta prova.');
+            }
+
+            // 2. Importar a chave JWK
+            const cryptoKey = await cryptoService.importKey(keyData.key_data);
+
+            // 3. Criptografar o Payload (Exam + Items)
+            const rawPayload = { exam, items };
+            const encryptedPayload = await cryptoService.encryptData(rawPayload, cryptoKey);
+
+            // 4. Salvar o JSON Criptografado da prova no Cache API
+            const examBlob = new Blob([JSON.stringify(encryptedPayload)], { type: 'application/json' });
             const examResponse = new Response(examBlob);
             await cache.put(`/api/exams/offline-package/${exam.id}`, examResponse);
 
@@ -108,6 +131,39 @@ export class OfflineCacheService {
         } catch (error) {
             console.error('[OfflineCache] Erro fatal no download:', error);
             return false;
+        }
+    }
+
+    /**
+     * Resgata o arquivo criptografado do Cache API e destranca usando a chave fornecida (A Faísca).
+     * O retorno já é o pacote claro (Exam + Items) em memória RAM.
+     */
+    async loadExamFromOffline(examId: string, jwkKey: JsonWebKey): Promise<{ exam: Exam, items: Item[] } | null> {
+        if (!('caches' in window)) return null;
+
+        try {
+            const cache = await caches.open(this.CACHE_NAME);
+            const response = await cache.match(`/api/exams/offline-package/${examId}`);
+
+            if (!response) {
+                console.error('[OfflineCache] Prova não encontrada no disco local.', examId);
+                return null;
+            }
+
+            const encryptedPayload = await response.json();
+            
+            // 1. Importa a Chave fornecida (O Coordenador passou isso e tem autorização RLS no banco)
+            const cryptoKey = await cryptoService.importKey(jwkKey);
+            
+            // 2. Descriptografa o pacote em memória
+            const decryptedPayload = await cryptoService.decryptData(encryptedPayload, cryptoKey);
+            
+            console.log(`[OfflineCache] Prova '${decryptedPayload.exam.title}' destrancada com sucesso.`);
+            return decryptedPayload;
+
+        } catch (error) {
+            console.error('[OfflineCache] Falha ao destrancar a Prova (Chave Incorreta ou Arquivo Corrompido):', error);
+            return null;
         }
     }
 

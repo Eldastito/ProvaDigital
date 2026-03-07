@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-export { useSafeAppStore } from '../hooks/useSafeAppStore';
 import { AuthSlice, createAuthSlice } from './slices/authSlice';
 import { ItemSlice, createItemSlice } from './slices/itemSlice';
 import { ExamSlice, createExamSlice } from './slices/examSlice';
@@ -88,3 +87,35 @@ export const useAppStore = create<AppStore>()((set, get, api) => ({
         console.log("✅ Dados sincronizados.");
     }
 }));
+
+/**
+ * Hook seguro que garante que arrays nunca sejam null/undefined.
+ * Definido aqui para evitar dependência circular com o hook central.
+ */
+export const useSafeAppStore = () => {
+    const store = useAppStore();
+
+    return {
+        ...store,
+        items: store.items || [],
+        exams: store.exams || [],
+        students: store.students || [],
+        schools: store.schools || [],
+        classes: store.classes || [],
+        users: store.users || [],
+        tenants: store.tenants || [],
+        results: store.results || [],
+        registrations: store.registrations || [],
+        announcements: store.announcements || [],
+        messages: store.messages || [],
+        chatGroups: (store as any).chatGroups || [],
+        owlSessions: (store as any).owlSessions || [],
+        lessonPlans: store.lessonPlans || [],
+        studyPlans: store.studyPlans || [],
+        studentProfiles: store.studentProfiles || [],
+        userProfiles: store.userProfiles || [],
+        gamifiedEvents: store.gamifiedEvents || [],
+        institutionalEvents: store.institutionalEvents || [],
+        events: (store as any).events || [],
+    };
+};

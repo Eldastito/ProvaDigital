@@ -1,9 +1,4 @@
-/**
- * Tablet Pool Service
- * 
- * Gerencia o inventário global e disponibilidade de tablets.
- * Rastreia status, bloqueia agendamentos e gera relatórios.
- */
+import { supabase } from './supabaseClient';
 
 export type TabletRole = 'ROUTER' | 'PROFESSOR' | 'COORDINATOR' | 'STUDENT' | 'AVAILABLE';
 export type TabletStatus = 'AVAILABLE' | 'RESERVED' | 'IN_USE' | 'CHARGING' | 'MAINTENANCE';
@@ -77,6 +72,74 @@ export class TabletPoolService {
         initialPool.forEach(tablet => {
             this.tablets.set(tablet.id, tablet);
         });
+    }
+
+    /**
+     * Sincroniza o estado de um tablet com o backend (Supabase)
+     */
+    private async syncTablet(tablet: Tablet): Promise<void> {
+        try {
+            const { error } = await supabase
+                .from('tablets')
+                .upsert({
+                    id: tablet.id,
+                    serial_number: tablet.serialNumber,
+                    model: tablet.model,
+                    status: tablet.status,
+                    role: tablet.role,
+                    battery_level: tablet.batteryLevel,
+                    current_event_id: tablet.currentEventId,
+                    assigned_school_id: tablet.assignedSchoolId,
+                    last_used: tablet.lastUsed,
+                    total_usage_count: tablet.totalUsageCount,
+                    needs_maintenance: tablet.needsMaintenance,
+                    maintenance_reason: tablet.maintenanceReason,
+                    updated_at: new Date().toISOString()
+                });
+
+            if (error) console.warn('Erro ao sincronizar tablet:', error.message);
+        } catch (err) {
+            console.error('Falha crítica na sincronização do tablet:', err);
+        }
+    }
+
+    /**
+     * Carrega inventário persistido do Supabase
+     */
+    async loadFromBackend(): Promise<void> {
+        try {
+            const { data, error } = await supabase
+                .from('tablets')
+                .select('*');
+
+            if (error) {
+                console.warn('Tabela tablets ainda não existe ou erro de rede:', error.message);
+                return;
+            }
+
+            if (data) {
+                data.forEach(t => {
+                    const tablet: Tablet = {
+                        id: t.id,
+                        serialNumber: t.serial_number,
+                        model: t.model,
+                        status: t.status as TabletStatus,
+                        role: t.role as TabletRole,
+                        batteryLevel: t.battery_level,
+                        currentEventId: t.current_event_id,
+                        assignedSchoolId: t.assigned_school_id,
+                        lastUsed: t.last_used,
+                        totalUsageCount: t.total_usage_count,
+                        needsMaintenance: t.needs_maintenance,
+                        maintenanceReason: t.maintenance_reason
+                    };
+                    this.tablets.set(tablet.id, tablet);
+                });
+                console.log(`✅ ${data.length} tablets carregados do backend.`);
+            }
+        } catch (err) {
+            console.error('Falha ao carregar tablets do backend:', err);
+        }
     }
 
     /**
@@ -158,6 +221,9 @@ export class TabletPoolService {
         // Salvar reserva
         this.reservations.set(request.eventId, reserved);
 
+        // Sincronizar reserva com o backend (Background)
+        reserved.forEach(t => this.syncTablet(t));
+
         return {
             success: true,
             reserved
@@ -185,6 +251,7 @@ export class TabletPoolService {
             tablet.totalUsageCount++;
 
             this.tablets.set(tablet.id, tablet);
+            this.syncTablet(tablet);
         });
 
         this.reservations.delete(eventId);
@@ -359,14 +426,23 @@ export class TabletPoolService {
 // Singleton para uso global
 let poolInstance: TabletPoolService | null = null;
 
-export function initializePool(tablets: Tablet[]): TabletPoolService {
-    poolInstance = new TabletPoolService(tablets);
+/**
+ * Inicializa o pool de tablets, carregando dados do backend se necessário
+ */
+export async function initializePool(initialTablets: Tablet[] = []): Promise<TabletPoolService> {
+    if (!poolInstance) {
+        poolInstance = new TabletPoolService(initialTablets);
+        if (initialTablets.length === 0) {
+            await poolInstance.loadFromBackend();
+        }
+    }
     return poolInstance;
 }
 
 export function getPool(): TabletPoolService {
     if (!poolInstance) {
-        throw new Error('Pool não inicializado. Chame initializePool() primeiro.');
+        // Fallback síncrono para evitar crash, mas recomenda-se usar await initializePool()
+        poolInstance = new TabletPoolService([]);
     }
     return poolInstance;
 }

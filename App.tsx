@@ -12,6 +12,7 @@ import { INITIAL_TENANTS, INITIAL_SCHOOLS } from './utils/mockData';
 import { PrivacyPolicyModal } from './components/Legal/PrivacyPolicyModal';
 import { nativeBridge } from './services/nativeBridgeService';
 import { PendingExamsAlert } from './components/Alerts/PendingExamsAlert';
+import { initializePool } from './services/tabletPoolService';
 
 export default function App() {
   const store = useAppStore();
@@ -32,6 +33,9 @@ export default function App() {
     checkConnection().then(connected => {
       useAppStore.setState({ isInitialized: true });
     });
+
+    // Inicializa o Pool de Tablets de forma persistente
+    initializePool().catch(e => console.error("Pool init failed:", e));
   }, []);
 
   // --- 2. GUEST BYPASS FOR MOBILE DEMO ---

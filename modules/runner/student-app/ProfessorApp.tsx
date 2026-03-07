@@ -6,6 +6,7 @@ import { AppState } from '../../../types';
 import { QRDataTransfer } from '../../../services/qrCodecService';
 import { supabase } from '../../../services/supabaseClient';
 import { QRScannerModal } from '../offline/QRScannerModal';
+import { HandoffScannerModal } from '../offline/HandoffScannerModal';
 import { offlineCacheService } from '../../../services/offlineCacheService';
 import { OfflineMonitorView } from '../offline/OfflineMonitorView';
 
@@ -46,6 +47,8 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
     const [currentQrIndex, setCurrentQrIndex] = useState(0);
     const [attendanceQrChunks, setAttendanceQrChunks] = useState<string[]>([]);
     const [showOfflineScanner, setShowOfflineScanner] = useState(false);
+    const [handoffScanning, setHandoffScanning] = useState(false);
+    const [handoffConfirmed, setHandoffConfirmed] = useState(false);
 
     useEffect(() => {
         if (isLiveController && liveClassId) {
@@ -346,7 +349,122 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
         );
     }
 
-    if (!classData) return <div className="flex items-center justify-center h-screen text-white bg-slate-900">Carregando dados da turma...</div>;
+    if (!classData) return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0f1d] text-white p-8">
+            {/* Background Effects */}
+            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-500/10 blur-[120px] rounded-full" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 blur-[120px] rounded-full" />
+
+            <div className="relative mb-12">
+                <div className="absolute inset-0 bg-brand-primary/20 blur-3xl rounded-full" />
+                <div className="relative w-24 h-24 bg-slate-900 rounded-full flex items-center justify-center border-2 border-white/10 shadow-2xl">
+                    <Smartphone className="w-10 h-10 text-brand-primary" />
+                </div>
+            </div>
+
+            <h2 className="text-3xl font-black mb-2 text-center tracking-tight">Preparação Offline</h2>
+            <p className="text-slate-400 text-center max-w-xs mb-12 text-sm font-medium leading-relaxed">
+                Este tablet ainda não possui dados da turma. Escaneie o <span className="text-white font-bold underline decoration-brand-primary underline-offset-4">Coordenador</span> para iniciar o handoff.
+            </p>
+            
+            <div className="w-full max-w-sm space-y-4">
+                <button 
+                    onClick={() => setHandoffScanning(true)}
+                    className="w-full py-5 bg-brand-primary rounded-3xl font-black flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_20px_40px_-10px_rgba(37,99,235,0.4)]"
+                >
+                    <QrCode size={20} /> ESCANEAR COORDENADOR
+                </button>
+                
+                <div className="flex items-center gap-4 py-4">
+                    <div className="h-px bg-white/5 flex-1" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600">Ou aguarde rede</span>
+                    <div className="h-px bg-white/5 flex-1" />
+                </div>
+            </div>
+
+            <button
+                onClick={onBack}
+                className="mt-12 text-slate-500 hover:text-white transition-colors flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
+            >
+                <ArrowLeft size={12} /> Voltar para o Launcher
+            </button>
+
+            {handoffScanning && (
+                <HandoffScannerModal 
+                    onSuccess={(scannedData) => {
+                        console.log('📦 Pacote de Turma recebido via Scan:', scannedData);
+                        setClassData(scannedData);
+                        setHandoffScanning(false);
+                        // show confirmation step
+                    }}
+                    onClose={() => setHandoffScanning(false)}
+                />
+            )}
+
+            {classData && !handoffConfirmed && (
+                <div className="fixed inset-0 bg-slate-950/95 flex items-center justify-center z-[110] p-6 backdrop-blur-sm">
+                    <div className="bg-slate-900 border border-white/10 rounded-[40px] max-w-md w-full overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+                        <div className="bg-brand-primary/10 p-10 flex flex-col items-center">
+                            <div className="w-20 h-20 bg-brand-primary rounded-full flex items-center justify-center mb-6 shadow-lg shadow-brand-primary/20">
+                                <CheckCircle size={40} className="text-white" />
+                            </div>
+                            <h3 className="text-2xl font-black text-center">Conferir Carga</h3>
+                            <p className="text-slate-400 text-sm mt-2 font-medium">Valide os dados antes de iniciar</p>
+                        </div>
+                        
+                        <div className="p-8 space-y-6">
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center py-3 border-b border-white/5">
+                                    <span className="text-xs font-black uppercase tracking-widest text-slate-500">Turma</span>
+                                    <span className="font-bold text-white">{classData.className}</span>
+                                </div>
+                                <div className="flex justify-between items-center py-3 border-b border-white/5">
+                                    <span className="text-xs font-black uppercase tracking-widest text-slate-500">Prova</span>
+                                    <span className="font-bold text-white">{classData.examTitle}</span>
+                                </div>
+                                <div className="flex justify-between items-center py-3 border-b border-white/5">
+                                    <span className="text-xs font-black uppercase tracking-widest text-slate-500">Alunos</span>
+                                    <span className="font-bold text-brand-primary">{classData.students?.length} presentes</span>
+                                </div>
+                            </div>
+
+                            <button 
+                                onClick={async () => {
+                                    try {
+                                        // A Faísca: Tenta carregar a prova do cache e destrancar com a chave recebida
+                                        const offlineData = await offlineCacheService.loadExamFromOffline(classData.examId, classData.key);
+                                        
+                                        if (offlineData) {
+                                            // 1. Infla a Memória (Store) com a prova em Open-Text
+                                            state.addExam(offlineData.exam);
+                                            state.addItems(offlineData.items);
+                                            console.log("✅ Prova desbloqueada na memória RAM via Faísca do Coordenador.");
+                                            setHandoffConfirmed(true);
+                                        } else {
+                                            alert("⚠️ PROVA NÃO ENCONTRADA\n\nEste tablet do professor não fez o download prévio e criptografado da prova na Internet (Pré-requisito do Caminho A).\n\nConecte-se à rede e abra a prova no painel para realizar o Cache Seguro antes de autorizar a turma.");
+                                        }
+                                    } catch (e) {
+                                        console.error(e);
+                                        alert("A chave recebida do coordenador é inválida para esta prova.");
+                                    }
+                                }}
+                                className="w-full py-5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-3xl font-black transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
+                            >
+                                CONFIRMAR E DESBLOQUEAR PROVA
+                            </button>
+                            
+                            <button 
+                                onClick={() => setClassData(null)}
+                                className="w-full py-3 text-slate-500 hover:text-white transition-colors text-xs font-black uppercase tracking-widest"
+                            >
+                                Descartar e Escanear Outro
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 
     const stats = getStats();
 

@@ -2,6 +2,7 @@ import { StateCreator } from 'zustand';
 import { Exam, ExamVariant, ExamVariantOverride, ExamVersion, ExamStatus, ExamModel, ScheduledExam, ExamScheduleStatus } from '../../types';
 import { AppStore } from '../useAppStore';
 import { supabase } from '../../services/supabaseClient';
+import { cryptoService } from '../../services/cryptoService';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface ExamSlice {
@@ -57,6 +58,8 @@ export const createExamSlice: StateCreator<AppStore, [], [], ExamSlice> = (set, 
 
     addExam: async (exam) => {
         set((state) => ({ exams: [...state.exams, exam] }));
+        
+        // 1. Inserir a Prova
         const { error } = await supabase.from('exams').insert({
             id: exam.id,
             title: exam.title,
@@ -73,9 +76,25 @@ export const createExamSlice: StateCreator<AppStore, [], [], ExamSlice> = (set, 
             scheduled_date: exam.scheduledDate,
             created_at: exam.createdAt
         });
+        
         if (error) {
             console.error("Error adding exam:", error);
             throw error;
+        }
+
+        // 2. Gerar a Chave AES (Caminho A - Offline Security)
+        try {
+            const keyPair = await cryptoService.generateExamKey();
+            const { error: keyError } = await supabase.from('exam_offline_keys').insert({
+                exam_id: exam.id,
+                key_data: keyPair
+            });
+            
+            if (keyError) {
+                console.warn("Aviso: Chave offline não gerada corretamente. (Sem suporte offline).", keyError);
+            }
+        } catch (e) {
+            console.warn("Erro no pipeline local de cryptografia ao gerar chave da prova.", e);
         }
     },
 
