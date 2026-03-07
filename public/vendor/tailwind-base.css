@@ -1,0 +1,25 @@
+/* Tailwind Preflight & Theme Bases (Simulated for Offline) */
+*, ::before, ::after { box-sizing: border-box; border-width: 0; border-style: solid; border-color: #e5e7eb; }
+html { line-height: 1.5; -webkit-text-size-adjust: 100%; -moz-tab-size: 4; tab-size: 4; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; }
+body { margin: 0; line-height: inherit; background-color: #f8fafc; color: #112131; }
+
+/* Theme Colors Injection */
+.bg-brand-navy { background-color: #112131; }
+.bg-brand-primary { background-color: #1b6ca8; }
+.bg-brand-secondary { background-color: #0ca3e1; }
+.text-brand-primary { color: #1b6ca8; }
+.border-brand-primary { border-color: #1b6ca8; }
+
+/* Common Utilities */
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: 0.5rem; }
+.p-4 { padding: 1rem; }
+.rounded-xl { border-radius: 0.75rem; }
+.font-bold { font-weight: 700; }
+.shadow-sm { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+.hidden { display: none; }
+.w-full { width: 100%; }
+
+/* Note: Em um cenário real de produção, este arquivo seria gerado pelo build do Tailwind CLI */

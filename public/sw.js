@@ -58,12 +58,17 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// Estratégia de fetch: Stale-While-Revalidate (Melhor para apps offline-first)
+// Estratégia de fetch: Strict Offline (Bloqueio de rede externa)
 self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') return;
 
-    // Ignora Supabase e APIs externas dinâmicas no cache de assets
-    if (event.request.url.includes('supabase') || event.request.url.includes('google-analytics')) {
+    const url = new URL(event.request.url);
+    const isLocal = url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname.startsWith('192.168.');
+
+    // Bloqueio Air-Gapped: Se tentar sair para a internet fora da rede privada, bloqueia
+    if (!isLocal && !url.hostname.includes('supabase')) {
+        console.warn('🛑 [SW] Bloqueio Air-Gapped: Tentativa de conexão externa abortada:', url.hostname);
+        event.respondWith(new Response('Conexão Externa Bloqueada por Segurança', { status: 403 }));
         return;
     }
 
@@ -78,15 +83,10 @@ self.addEventListener('fetch', (event) => {
                 }
                 return networkResponse;
             }).catch((err) => {
-                console.warn('📡 [SW] Falha de rede capturada:', event.request.url);
-                return cachedResponse; // Garantia de retorno do cache em caso de erro de rede
+                return cachedResponse;
             });
 
             return cachedResponse || fetchPromise;
-        }).catch(() => {
-            if (event.request.mode === 'navigate') {
-                return caches.match(OFFLINE_URL);
-            }
         })
     );
 });

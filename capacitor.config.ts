@@ -5,12 +5,8 @@ const config: CapacitorConfig = {
   appName: 'ExamePad Forge',
   webDir: 'dist',
   server: {
-    androidScheme: 'https',
-    // Em produção, o app abrirá diretamente no domínio do servidor.
-    // Para desenvolvimento local, comente a linha abaixo.
-    // Para desenvolvimento local, use o IP 10.0.2.2 para acessar o host do emulador
-    url: 'http://10.0.2.2:3000/apps/tablet',
-    cleartext: true // Permitir HTTP para conexões locais (Gateway)
+    androidScheme: 'http', // Localhost bridge
+    cleartext: true
   },
   plugins: {
     SplashScreen: {
