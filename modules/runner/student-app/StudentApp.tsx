@@ -807,11 +807,35 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
             if (isSessionActive) {
                 const completedSession = await finishSession();
                 console.log('🎓 Sessão multi-login finalizada:', completedSession.id);
-                console.log(`   Respostas: ${completedSession.encryptedAnswers.length}`);
-                console.log(`   Eventos: ${completedSession.securityEvents.length}`);
             }
 
-            // Tentativa ONLINE principal
+            const rawAnswers = Object.keys(answers).map(qId => ({
+                itemId: qId,
+                selectedAlternativeId: answers[qId],
+                text: answers[qId + '_text'] || null
+            }));
+
+            // 📡 FASE 2: COLETA AUTOMÁTICA MESH (LOCAL P2P)
+            // Tenta enviar a prova primeiramente pela rede local hosteada pelo Professor
+            if (studentData) {
+                try {
+                    console.log('📡 [MESH] Transmitindo respostas pela rede local...');
+                    const mesh = getMeshNetwork();
+                    mesh.broadcastMessage('ANSWER', {
+                        eventId: studentData.eventId,
+                        examId: studentData.examId,
+                        studentId: studentData.id,
+                        studentName: studentData.name,
+                        answers: rawAnswers,
+                        score: gradingResult.totalScore,
+                        timestamp: new Date().toISOString()
+                    });
+                } catch(meshErr) {
+                    console.warn('[MESH] Sem cobertura de malha local.', meshErr);
+                }
+            }
+
+            // 🌩️ Tentativa ONLINE principal (Cloud Handoff)
             if (sessionMode === 'LIVE_REAL' && studentData) {
                 const { error } = await supabase.from('exam_results').insert({
                     id: uuidv4(),
@@ -824,10 +848,12 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 });
 
                 if (error) throw error;
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                setStep('COMPLETED');
+            } else {
+                // Modo Expresso Offline: Força o fluxo de fallback sem internet
+                throw new Error("Conexão direta indisponível. Acionando guarda offline.");
             }
-
-            await new Promise(resolve => setTimeout(resolve, 1500)); // Delay visual
-            setStep('COMPLETED');
 
         } catch (e) {
             console.warn("Falha no envio online ou modo offline detectado...", e);

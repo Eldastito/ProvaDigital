@@ -8,6 +8,7 @@ import { useSafeAppStore, AppStore } from '../../../store/useAppStore';
 import { ExamStatus, RegistrationStatus } from '../../../types';
 import { Badge } from '../../../components/ui/Badge';
 import { getMeshNetwork, MeshMessage } from '../../../services/meshNetworkService';
+import { saveSession } from '../../../services/offlineDb';
 
 export const LiveExamMonitorView = () => {
     const state = useSafeAppStore();
@@ -52,6 +53,7 @@ export const LiveExamMonitorView = () => {
 
     // --- MESH NETWORK (OFFLINE MONITORING) ---
     const [meshPeers, setMeshPeers] = useState<any[]>([]);
+    const [meshSubmissions, setMeshSubmissions] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
         if (!examId) return;
@@ -78,8 +80,29 @@ export const LiveExamMonitorView = () => {
 
                 mesh.setOnMessageReceived((msg: MeshMessage) => {
                     if (msg.type === 'TELEMETRY' || msg.type === 'ANSWER') {
-                        // Opcional: Atualizar estado local com dados da mesh
                         console.log(`[MESH DATA] From ${msg.from}:`, msg.payload);
+                        
+                        if (msg.type === 'ANSWER') {
+                            const p = msg.payload;
+                            console.log(`📡 Recebido ANSWER via Mesh de ${p.studentName}`);
+                            
+                            // Adicionar à lista visual para alterar UI
+                            setMeshSubmissions(prev => ({
+                                ...prev,
+                                [p.studentId]: true
+                            }));
+
+                            // Gravar permanentemente no banco local do Professor
+                            saveSession({
+                                sessionId: `mesh_${p.studentId}_${p.examId}`,
+                                studentId: p.studentId,
+                                studentName: p.studentName,
+                                eventId: p.eventId,
+                                encryptedData: JSON.stringify(p.answers),
+                                timestamp: p.timestamp || new Date().toISOString(),
+                                synced: false
+                            }).catch(err => console.error("Erro ao salvar mesh submission", err));
+                        }
                     }
                 });
             } catch (e) {
@@ -115,22 +138,25 @@ export const LiveExamMonitorView = () => {
 
             const isOnline = onlineUsers.includes(r.studentId);
             const isMesh = meshPeers.some(p => p.id === r.studentId);
+            const hasMeshSubmission = !!meshSubmissions[r.studentId];
 
             return {
                 id: r.studentId,
                 attemptId: attempt?.id,
                 name: student?.name || 'Aluno',
-                // Priority: Finished -> Online -> Mesh -> Offline
+                // Priority: Finished -> Mesh Handover -> Online -> Mesh -> Offline
                 status: attempt?.status === 'submitted' ? RegistrationStatus.FINALIZADO :
+                    hasMeshSubmission ? RegistrationStatus.FINALIZADO :
                     isOnline ? RegistrationStatus.PRESENTE :
                         isMesh ? RegistrationStatus.PRESENTE :
                             RegistrationStatus.AUSENTE,
                 // Override status text for UI
-                uiStatus: attempt?.status === 'submitted' ? 'Finalizado' :
+                uiStatus: hasMeshSubmission ? 'Entregue (Mesh)' :
+                          attempt?.status === 'submitted' ? 'Finalizado' :
                     isOnline ? 'Online' :
                         isMesh ? 'Via Mesh' : 'Offline',
 
-                progress: (attempt?.status === 'submitted' || r.status === RegistrationStatus.FINALIZADO) ? 100 : (attempt ? 40 : 0),
+                progress: (hasMeshSubmission || attempt?.status === 'submitted' || r.status === RegistrationStatus.FINALIZADO) ? 100 : (attempt ? 40 : 0),
                 battery: isMesh ? meshPeers.find(p => p.id === r.studentId)?.metadata?.battery || 95 : 95,
                 connection: isOnline ? 'EXCELLENT' : isMesh ? 'MESH' : 'OFFLINE',
                 securityAlerts: allAlerts,
@@ -142,8 +168,9 @@ export const LiveExamMonitorView = () => {
 
     const stats = {
         total: studentsData.length,
-        online: studentsData.filter(s => s.uiStatus === 'Online').length,
-        finished: studentsData.filter(s => s.uiStatus === 'Finalizado').length,
+        online: studentsData.filter(s => s.uiStatus === 'Online' || s.uiStatus === 'Via Mesh').length,
+        finished: studentsData.filter(s => s.uiStatus === 'Finalizado' || s.uiStatus === 'Entregue (Mesh)').length,
+        meshReceived: studentsData.filter(s => s.uiStatus === 'Entregue (Mesh)').length,
         alerts: studentsData.filter(s => s.securityAlerts.length > 0).length
     };
 
@@ -166,12 +193,14 @@ export const LiveExamMonitorView = () => {
 
                 <div className="flex gap-6">
                     <div className="text-center">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Presentes</div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Na Sala</div>
                         <div className="font-bold text-slate-900">{stats.online} / {stats.total}</div>
                     </div>
                     <div className="text-center">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Finalizados</div>
-                        <div className="font-bold text-emerald-600">{stats.finished}</div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Devolvidos</div>
+                        <div className="font-bold text-emerald-600" title={`${stats.meshReceived} via Coleta Automática Mesh`}>
+                            {stats.finished} <span className="text-xs text-slate-400">/ {stats.total}</span>
+                        </div>
                     </div>
                     <div className="text-center">
                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Alertas</div>

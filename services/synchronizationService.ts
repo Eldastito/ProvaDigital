@@ -4,29 +4,66 @@ import { offlineConsolidationService } from './offlineConsolidationService';
 
 export class SynchronizationService {
     private isSyncing = false;
-    private syncInterval: number | null = null;
+    private timerId: number | null = null;
+    private baseIntervalMs = 5000; // 5 segundos base
+    private maxIntervalMs = 120000; // Max 2 minutos
+    private currentIntervalMs = 5000;
     private sessionService = getSessionService();
 
     /**
-     * Inicia sincronização automática em background
+     * Inicia sincronização automática em background com Backoff Exponencial
      */
-    startAutoSync(intervalMs: number = 60000) {
-        if (this.syncInterval) return;
+    startAutoSync(intervalMs: number = 5000) {
+        if (this.timerId) return;
+        this.baseIntervalMs = intervalMs;
+        this.currentIntervalMs = this.baseIntervalMs;
+        
+        console.log(`🔄 AutoSync iniciado com Backoff Exponencial (Base: ${intervalMs}ms)`);
+        this.scheduleNextSync();
+    }
 
-        console.log(`🔄 AutoSync iniciado (${intervalMs}ms)`);
-        this.syncInterval = window.setInterval(async () => {
-            await this.syncPendingSessions();
-            await this.syncOfflineSubmissions();
-        }, intervalMs);
+    private scheduleNextSync() {
+        if (this.timerId) clearTimeout(this.timerId);
+        
+        this.timerId = window.setTimeout(async () => {
+            const hasFailures = await this.executeSyncCycle();
+            
+            if (hasFailures) {
+                // Em caso de falha de internet/banco, aplica o Retry Exponencial
+                this.currentIntervalMs = Math.min(this.currentIntervalMs * 2, this.maxIntervalMs);
+                console.log(`⚠️ Sincronização falhou. Reagendando com backoff exponencial para ${this.currentIntervalMs}ms`);
+            } else {
+                // Sucesso: Retorna ao intervalo base
+                this.currentIntervalMs = this.baseIntervalMs;
+            }
+            
+            this.scheduleNextSync();
+        }, this.currentIntervalMs);
+    }
+
+    private async executeSyncCycle(): Promise<boolean> {
+        let hasFailures = false;
+        
+        const s1 = await this.syncPendingSessions();
+        if (s1.failed > 0 || (s1.total > 0 && s1.success === 0)) hasFailures = true;
+        
+        const s2 = await this.syncOfflineSubmissions();
+        if (s2.failed > 0 || (s2.total > 0 && s2.success === 0)) hasFailures = true;
+        
+        // Também busca diretamente do offlineDb caso existam coletas Mesh não processadas pelo IsolationService
+        const s3 = await this.syncMeshSubmissions();
+        if (s3.failed > 0 || (s3.total > 0 && s3.success === 0)) hasFailures = true;
+
+        return hasFailures;
     }
 
     /**
      * Para sincronização automática
      */
     stopAutoSync() {
-        if (this.syncInterval) {
-            clearInterval(this.syncInterval);
-            this.syncInterval = null;
+        if (this.timerId) {
+            clearTimeout(this.timerId);
+            this.timerId = null;
             console.log('⏹️ AutoSync parado');
         }
     }
@@ -142,6 +179,48 @@ export class SynchronizationService {
             console.error('Erro na sincronização offline:', error);
         }
 
+        return result;
+    }
+
+    /**
+     * Sincroniza provas devolvidas automaticamente via Mesh e salvas no banco offline
+     */
+    async syncMeshSubmissions(): Promise<{ total: number; success: number; failed: number }> {
+        const result = { total: 0, success: 0, failed: 0 };
+        try {
+            const { getSession, getAllSessions, markAsSynced } = await import('./offlineDb');
+            const all = await getAllSessions();
+            const pendingMesh = all.filter(s => s.sessionId.startsWith('mesh_') && !s.synced);
+            
+            result.total = pendingMesh.length;
+            if (result.total === 0) return result;
+
+            console.log(`🚀 Sincronizando ${result.total} provas recebidas via MESH Local...`);
+
+            for (const session of pendingMesh) {
+                try {
+                    // Reutilizar o método uploadSession que faz o insert no exam_results
+                    const mockSession: any = {
+                        studentId: session.studentId,
+                        examId: session.sessionId.split('_')[2], // mesh_uuid_examId
+                        encryptedAnswers: JSON.parse(session.encryptedData || '[]'),
+                        startedAt: session.timestamp,
+                        finishedAt: session.timestamp,
+                        telemetry: {},
+                        securityEvents: []
+                    };
+
+                    await this.uploadSession(mockSession);
+                    await markAsSynced(session.sessionId);
+                    result.success++;
+                } catch (error) {
+                    console.error(`❌ Falha ao sincronizar prova Mesh de ${session.studentName}:`, error);
+                    result.failed++;
+                }
+            }
+        } catch (e) {
+            console.warn("Erro ao ler tabela genérica de sessões do offlineDb", e);
+        }
         return result;
     }
 }

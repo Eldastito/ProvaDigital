@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { QrCode, ArrowLeft, Users, Server, FileText, CheckCircle, X, AlertTriangle, Layers, Scan, MapPin, User } from 'lucide-react';
+import { QrCode, ArrowLeft, Users, Server, FileText, CheckCircle, X, AlertTriangle, Layers, Scan, MapPin, User, Activity } from 'lucide-react';
 import { AppState } from '../../../types';
 import { ExamEvent, EventStatus } from '../../../types'; // Keeping ExamEvent and EventStatus as they are used
 import { encryptPackage, generateEventKey } from '../../../services/cryptoService';
@@ -153,10 +153,10 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
             {/* Tab Bar */}
             <div className="bg-white border-b flex">
                 <button onClick={() => setView('LIST')} className={`flex-1 py-4 font-bold text-sm border-b-4 transition ${view === 'LIST' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500'}`}>
-                    Distribuição (Início)
+                    Distribuição & Carga
                 </button>
                 <button onClick={() => setView('ROUNDS')} className={`flex-1 py-4 font-bold text-sm border-b-4 transition ${view === 'ROUNDS' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-slate-500'}`}>
-                    Ronda & Coleta (Fim)
+                    Dashboard Escolar (Visão Macro)
                 </button>
             </div>
 
@@ -198,53 +198,64 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
 
                 {view === 'ROUNDS' && (
                     <div className="space-y-6">
-                        {/* Dashboard de Estoque */}
-                        <div className="bg-emerald-900 text-white p-6 rounded-xl shadow-lg flex justify-between items-center">
+                        {/* Macro Prédio */}
+                        <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-6 rounded-xl shadow-lg flex justify-between items-center">
                             <div>
-                                <div className="text-xs font-bold text-emerald-300 uppercase mb-1">Estoque de Reserva Total</div>
+                                <div className="text-xs font-bold text-slate-400 uppercase mb-1">Status Global (Sincronizado)</div>
                                 <div className="text-4xl font-black flex items-center gap-2">
-                                    {totalSurplus} <span className="text-lg font-medium opacity-70">tablets</span>
+                                    {state.examAttempts.filter(a => state.students.find(s => s.id === a.studentId)?.schoolId === coordinatorSchoolId).length} <span className="text-lg font-medium opacity-70">Provas</span>
                                 </div>
-                                <div className="text-xs text-emerald-200 mt-2">Baseado em {roomsChecked} de {schoolClasses.length} salas verificadas</div>
+                                <div className="text-xs text-slate-400 mt-2">Visão sincronizada com o servidor principal</div>
                             </div>
-                            <div className="h-12 w-12 bg-emerald-800 rounded-full flex items-center justify-center border-2 border-emerald-600">
-                                <Layers size={24} />
+                            <div className="h-12 w-12 bg-slate-800 rounded-full flex items-center justify-center border-2 border-slate-700">
+                                <Activity size={24} className="text-brand-primary" />
                             </div>
                         </div>
 
                         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><MapPin size={20} /> Roteiro de Coleta</h3>
-                            <div className="space-y-3">
+                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><MapPin size={20} /> Salas Acopladas</h3>
+                            <div className="space-y-4">
                                 {schoolClasses.map(cls => {
-                                    const data = roundsData[cls.id];
+                                    const exam = schoolExams.find(e => e.classIds.includes(cls.id));
+                                    const classStudents = state.students.filter(s => s.classId === cls.id);
+                                    
+                                    // Computar tentativas sincronizadas
+                                    const attempts = state.examAttempts.filter(a => classStudents.some(s => s.id === a.studentId));
+                                    const finished = attempts.filter(a => a.status === 'submitted').length;
+                                    const inProgress = attempts.filter(a => a.status === 'started').length;
+                                    
                                     return (
-                                        <div key={cls.id} className={`p-4 border rounded-xl flex justify-between items-center transition ${data.checked ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200'}`}>
-                                            <div className="flex items-center gap-4">
-                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${data.checked ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-400'}`}>
-                                                    {data.checked ? <CheckCircle size={18} /> : <Scan size={18} />}
-                                                </div>
-                                                <div>
-                                                    <div className="font-bold text-slate-800">{cls.name}</div>
-                                                    {data.checked ? (
-                                                        <div className="text-xs font-bold text-emerald-700">
-                                                            Coletado • Sobra: {data.surplus}
-                                                        </div>
-                                                    ) : (
-                                                        <div className="text-xs text-slate-400">Pendente</div>
+                                        <div key={cls.id} className="p-4 border border-slate-200 rounded-xl bg-slate-50 flex justify-between items-center transition">
+                                            <div className="flex-1">
+                                                <div className="font-bold text-slate-800 text-lg flex items-center gap-2">
+                                                    {cls.name}
+                                                    {finished === classStudents.length && classStudents.length > 0 && (
+                                                        <CheckCircle size={16} className="text-emerald-500" />
                                                     )}
                                                 </div>
+                                                <div className="text-xs font-bold text-slate-500 mt-1">
+                                                    {exam ? exam.title : 'Sem avaliação ativa'}
+                                                </div>
                                             </div>
-                                            {!data.checked && (
-                                                <button
-                                                    onClick={() => simulateScanAttendance(cls.id)} // In real app: Opens camera
-                                                    className="bg-slate-800 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-slate-700 flex items-center gap-2"
-                                                >
-                                                    <Scan size={16} /> Ler QR Sala
-                                                </button>
-                                            )}
+                                            
+                                            <div className="flex gap-4">
+                                                <div className="text-center bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-sm min-w-[70px]">
+                                                    <div className="text-[10px] font-bold text-slate-400 uppercase">Matrículas</div>
+                                                    <div className="font-bold text-slate-800">{classStudents.length}</div>
+                                                </div>
+                                                <div className="text-center bg-white px-3 py-2 rounded-lg border border-brand-primary shadow-sm min-w-[70px]">
+                                                    <div className="text-[10px] font-bold text-brand-primary uppercase">Andamento</div>
+                                                    <div className="font-bold text-brand-dark">{inProgress}</div>
+                                                </div>
+                                                <div className="text-center bg-white px-3 py-2 rounded-lg border border-emerald-500 shadow-sm min-w-[70px]">
+                                                    <div className="text-[10px] font-bold text-emerald-600 uppercase">Devolvidos</div>
+                                                    <div className="font-bold text-emerald-700">{finished}</div>
+                                                </div>
+                                            </div>
                                         </div>
                                     );
                                 })}
+                                {schoolClasses.length === 0 && <div className="text-center text-slate-400">Nenhuma sala alocada.</div>}
                             </div>
                         </div>
                     </div>
