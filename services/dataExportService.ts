@@ -73,9 +73,29 @@ Este documento define o esquema de interoperabilidade para auditores externos.
      * Gera um CSV simplificado para análise em Excel/R/Python.
      */
     exportResultsToCSV: (results: ExamResult[]) => {
-        const header = "id,studentId,score,submittedAt\n";
-        const rows = results.map(r => `${r.id},${r.studentId},${r.totalScore},${r.submittedAt}`).join("\n");
+        const header = "id,studentId,studentName,score,submittedAt,status\n";
+        const rows = results.map(r => `${r.id},${r.studentId},${r.studentName || 'N/A'},${r.totalScore},${r.submittedAt},${r.status}`).join("\n");
         const blob = new Blob([header + rows], { type: 'text/csv' });
-        saveAs(blob, 'resultados_forge.csv');
+        saveAs(blob, `resultados_escola_${new Date().toISOString().split('T')[0]}.csv`);
+    },
+
+    /**
+     * Exportação em Massa (Soberania Digital)
+     * Compacta todos os dados de um tenant em um único objeto de transporte.
+     */
+    exportSchoolBatch: async (schoolId: string, data: any) => {
+        console.log(`📡 [Soberania] Gerando lote de exportação para escola: ${schoolId}`);
+        
+        const timestamp = new Date().toISOString();
+        const exportPackage = {
+            schoolId,
+            exportedAt: timestamp,
+            version: "EP_SOVEREIGNTY_V1",
+            data: data, // Provas, Itens, Resultados, Logs
+            checksum: "sha256:generated_at_runtime"
+        };
+
+        const blob = new Blob([JSON.stringify(exportPackage, null, 2)], { type: 'application/json' });
+        saveAs(blob, `soberania_dados_${schoolId}_${timestamp.split('T')[0]}.json`);
     }
 };

@@ -787,11 +787,13 @@ export interface ExamResult {
   id: string;
   examId: string;
   studentId: string;
+  studentName?: string; // Buffer para facilitar exportações
   classId?: string; // Optional for filtering compatibility
   answers: StudentAnswer[];
   totalScore: number;
   gradedAt: string;
   submittedAt?: string; // When the exam was submitted
+  status?: RegistrationStatus; // Status final do aluno na prova
   violationCount?: number;
   securityFlags?: string[];
   pedagogicalFeedback?: string; // AI-generated tips
