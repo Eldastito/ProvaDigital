@@ -40,18 +40,35 @@ export const operationalHealthService = {
      */
     getLocalHealthMetrics: () => {
         const traces = JSON.parse(localStorage.getItem('forge_health_traces') || '[]');
-        if (traces.length === 0) return { successRate: 100, p95Latency: 0 };
+        if (traces.length === 0) return { successRate: 100, p95Latency: 0, status: 'OK' };
 
         const successRate = (traces.filter((t: any) => t.s).length / traces.length) * 100;
         const latencies = traces.map((t: any) => t.l).sort((a: number, b: number) => a - b);
         const p95Index = Math.floor(latencies.length * 0.95);
         const p95Latency = latencies[p95Index] || latencies[latencies.length - 1];
 
+        // SLO: 95% das syncs < 5000ms e Sucesso > 98%
+        const isHealthy = p95Latency < 5000 && successRate > 98;
+
         return {
             successRate: parseFloat(successRate.toFixed(2)),
             p95Latency: Math.round(p95Latency),
-            sampleSize: traces.length
+            sampleSize: traces.length,
+            status: isHealthy ? 'OK' : 'ALERTA'
         };
+    },
+
+    /**
+     * Busca métricas agregadas do Supabase para o dashboard global (Fase VIII).
+     */
+    getGlobalHealthMetrics: async (days: number = 7) => {
+        const { data, error } = await supabase
+            .from('operational_telemetry')
+            .select('*')
+            .gte('created_at', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString());
+
+        if (error) throw error;
+        return data;
     },
 
     /**
