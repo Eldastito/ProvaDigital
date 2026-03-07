@@ -1,21 +1,19 @@
 /**
- * ExamePad - Runner Core Offline (v4.10)
+ * ExamePad - Runner Core Offline (v4.11)
  * Vanilla JS (Legacy Support - No Modules)
  */
-
-// Removidos os imports para compatibilidade legada
-// Requer que three.legacy.min.js e GLTFLoader.legacy.js sejam carregados no HTML
 
 const state = {
     currentQuestion: 0,
     answers: {},
     questions: [],
-    startTime: Date.now(),
+    startTime: null, // Definido ao clicar em Iniciar
     durationMinutes: 90,
     examTitle: "AVALIAÇÃO NACIONAL - CIÊNCIAS DA NATUREZA",
     examMeta: "PROVA DIGITAL | 10 Questões",
     focusMode: false,
     dyslexicMode: false,
+    librasMode: false,
     fontSize: 1.0,
     lineHeight: 1.6,
     theme: 'dark',
@@ -27,6 +25,7 @@ const state = {
 };
 
 let renderer, scene, camera, model;
+let timerInterval;
 
 // Mock Data
 function mockData() {
@@ -46,7 +45,7 @@ function mockData() {
             id: 2,
             text: "No modelo 3D do Sistema Solar abaixo, identifique o planeta que possui o maior sistema de anéis visíveis.",
             options: ["Júpiter", "Saturno", "Urano", "Netuno"],
-            model: "sistema_solar.glb"
+            model: "sistema_solare.glb"
         },
         {
             id: 3,
@@ -60,34 +59,44 @@ function mockData() {
 function init() {
     window.RUNNER_READY = true;
     try {
-        console.log("Runner Core: Iniciando...");
+        console.log("Runner Core: Preparando Prova...");
         state.questions = mockData();
         
-        // Header Info
+        // Header Info (Pre-populado)
         document.getElementById('exam-title').innerText = state.examTitle;
         document.getElementById('exam-meta').innerText = state.examMeta;
         document.getElementById('std-name').innerText = `ALUNO: ${state.student.name}`;
         document.getElementById('std-id').innerText = `MATRÍCULA: ${state.student.id}`;
         document.getElementById('std-class').innerText = `TURMA: ${state.student.class}`;
         
-        startTimer();
-        renderQuestion();
         setupListeners();
         
-        try {
-            if (typeof THREE !== 'undefined') {
-                initThreeJS();
-            } else {
-                console.warn("THREE não encontrado, pulando 3D");
-            }
-        } catch (threeErr) {
-            console.error("Erro ThreeJS:", threeErr);
-        }
+        // Ocultar app até clicar em iniciar
+        document.getElementById('app-container').style.opacity = "0.3";
+        document.getElementById('app-container').style.pointerEvents = "none";
 
-        console.log("Runner Core: Inicialização concluída.");
+        console.log("Runner Core: Aguardando clique em 'Iniciar Prova'");
     } catch (e) {
         console.error("Erro fatal no init:", e);
-        alert("Erro ao iniciar prova: " + e.message);
+    }
+}
+
+function startExam() {
+    window.EXAM_STARTED = true;
+    state.startTime = Date.now();
+    
+    // UI Transition
+    document.getElementById('exam-cover').style.display = "none";
+    document.getElementById('app-container').style.opacity = "1";
+    document.getElementById('app-container').style.pointerEvents = "all";
+    
+    startTimer();
+    renderQuestion();
+    
+    if (typeof THREE !== 'undefined') {
+        try {
+            initThreeJS();
+        } catch(e) { console.warn("ThreeJS falhou:", e); }
     }
 }
 
@@ -111,7 +120,7 @@ function renderQuestion() {
             optionsContainer.appendChild(div);
         });
 
-        if (q.model && typeof THREE !== 'undefined') {
+        if (q.model && typeof THREE !== 'undefined' && !!THREE.GLTFLoader) {
             document.getElementById('question-media').classList.remove('hidden');
             loadModel(q.model);
         } else {
@@ -138,6 +147,10 @@ function selectOption(qId, idx) {
 }
 
 function setupListeners() {
+    // Cover
+    document.getElementById('start-exam').onclick = startExam;
+
+    // Navigation
     document.getElementById('btn-next').onclick = () => {
         if (state.currentQuestion < state.questions.length - 1) {
             state.currentQuestion++;
@@ -151,9 +164,14 @@ function setupListeners() {
         }
     };
 
+    // Tools
     document.getElementById('btn-read').onclick = () => {
         const text = state.questions[state.currentQuestion].text;
-        if (window.Capacitor && window.Capacitor.Plugins.NativeOperations) {
+        if (window.speechSynthesis) {
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.lang = 'pt-BR';
+            window.speechSynthesis.speak(utter);
+        } else if (window.Capacitor && window.Capacitor.Plugins.NativeOperations) {
             window.Capacitor.Plugins.NativeOperations.speakText({ text });
         }
     };
@@ -161,11 +179,19 @@ function setupListeners() {
     document.getElementById('btn-focus').onclick = () => {
         state.focusMode = !state.focusMode;
         document.body.classList.toggle('focus-mode', state.focusMode);
+        document.getElementById('btn-focus').style.background = state.focusMode ? 'var(--primary)' : '';
     };
 
+    // Accessibility Hub
     const hub = document.getElementById('access-hub');
     document.getElementById('btn-access').onclick = () => hub.classList.toggle('open');
     document.getElementById('close-hub').onclick = () => hub.classList.remove('open');
+
+    document.getElementById('btn-libras').onclick = () => {
+        state.librasMode = !state.librasMode;
+        document.getElementById('videolibras-container').style.display = state.librasMode ? 'block' : 'none';
+        document.getElementById('btn-libras').innerText = state.librasMode ? 'Desativar Libras' : 'Ativar Intérprete 🤟';
+    };
 
     document.getElementById('zoom-slider').oninput = (e) => {
         state.fontSize = e.target.value;
@@ -182,6 +208,7 @@ function setupListeners() {
             const theme = btn.getAttribute('data-theme');
             document.body.className = `theme-${theme}`;
             if (state.dyslexicMode) document.body.classList.add('font-dyslexic');
+            if (state.focusMode) document.body.classList.add('focus-mode');
         };
     });
 
@@ -191,28 +218,40 @@ function setupListeners() {
         document.getElementById('btn-dyslexic').innerText = state.dyslexicMode ? 'Desativar Dyslexic' : 'Ativar OpenDyslexic';
     };
 
+    // Custom Modal Call
     document.getElementById('btn-finish').onclick = () => {
         const responded = Object.keys(state.answers).length;
-        if(confirm(`Você respondeu ${responded} questões. Finalizar agora?`)) {
-            if (window.Capacitor && window.Capacitor.Plugins.NativeOperations) {
-                window.Capacitor.Plugins.NativeOperations.finishExam({ answers: state.answers });
-            }
-            alert("Prova finalizada com sucesso!");
+        document.getElementById('modal-msg').innerText = `Você respondeu ${responded} de ${state.questions.length} questões. Deseja encerrar a prova agora?`;
+        document.getElementById('custom-modal').style.display = 'flex';
+    };
+
+    document.getElementById('modal-cancel').onclick = () => {
+        document.getElementById('custom-modal').style.display = 'none';
+    };
+
+    document.getElementById('modal-confirm').onclick = () => {
+        if (window.Capacitor && window.Capacitor.Plugins.NativeOperations) {
+            window.Capacitor.Plugins.NativeOperations.finishExam({ answers: state.answers });
         }
+        alert("Prova enviada com sucesso! O tablet será bloqueado até a coleta.");
+        window.location.reload(); // Simula o encerramento
     };
 }
 
 function startTimer() {
     const totalSeconds = state.durationMinutes * 60;
     const timerElement = document.getElementById('timer');
-    const interval = setInterval(() => {
+    if (timerInterval) clearInterval(timerInterval);
+    
+    timerInterval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
         let remaining = totalSeconds - elapsed;
         if (remaining <= 0) {
             remaining = 0;
-            clearInterval(interval);
+            clearInterval(timerInterval);
             timerElement.style.color = "#ef4444";
-            alert("Tempo esgotado!");
+            alert("Tempo esgotado! A prova será enviada automaticamente.");
+            document.getElementById('modal-confirm').click();
         }
         const hrs = String(Math.floor(remaining / 3600)).padStart(2, '0');
         const mins = String(Math.floor((remaining % 3600) / 60)).padStart(2, '0');
@@ -251,9 +290,9 @@ function initThreeJS() {
 
 function loadModel(path) {
     document.getElementById('loading-3d').classList.remove('hidden');
-    // Em r147 legado, GLTFLoader é THREE.GLTFLoader se carregado após three.js
     const loader = new THREE.GLTFLoader();
     const fullPath = `./assets/models/${path}`;
+    
     loader.load(fullPath, function(gltf) {
         if (model) scene.remove(model);
         model = gltf.scene;
@@ -268,8 +307,15 @@ function loadModel(path) {
         document.getElementById('loading-3d').classList.add('hidden');
     }, undefined, function(error) {
         console.error("Erro ao carregar modelo:", error);
-        document.getElementById('loading-3d').innerText = "3D INDISPONÍVEL";
+        document.getElementById('loading-3d').innerText = "VINCULO 3D FALHOU";
     });
 }
+
+/**
+ * Nota Técnica: Vínculo do Aluno
+ * No ExamePad SAA/Offline, o tablet é vinculado via Hardware ID (IMEI/Serial)
+ * mapeado no servidor de sincronização local. Este mock simula o vínculo
+ * direto após o handshake seguro.
+ */
 
 init();

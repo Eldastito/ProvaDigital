@@ -1,32 +1,56 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ExamePad - Offline Runner</title>
-    <link rel="stylesheet" href="css/examepad_prime.css">
 </head>
 <body class="theme-dark">
+    <!-- Instruções e Regras (Capa) -->
+    <div id="exam-cover">
+        <div class="cover-card glass">
+            <div class="cover-header">
+                <img src="logo_examepad_white.png" alt="ExamePad" width="180">
+                <h1>Instruções da Avaliação</h1>
+            </div>
+            <div class="rules-list">
+                <div class="rule-item"><i>🚫</i> <span>Não é permitido portar celulares, relógios ou objetos eletrônicos.</span></div>
+                <div class="rule-item"><i>🔒</i> <span>O tablet está bloqueado. Tentar sair do app invalidará a prova.</span></div>
+                <div class="rule-item"><i>⚙️</i> <span>Use o ícone de engrenagem para ajustes de acessibilidade.</span></div>
+                <div class="rule-item"><i>🖱️</i> <span>Navegue entre as questões usando os botões no rodapé.</span></div>
+            </div>
+            <div class="warning-box">
+                <strong>SISTEMA ANTI-FRAUDE ATIVO:</strong> Sua atividade está sendo monitorada. O bloqueio de tarefas impede o uso de outros aplicativos.
+            </div>
+            <button id="start-exam" class="btn-primary" style="width: 100%; margin-top: 2rem; padding: 1.2rem;">INICIAR PROVA AGORA</button>
+        </div>
+    </div>
+
+    <!-- Modal de Finalização Customizado -->
+    <div id="custom-modal">
+        <div class="modal-content glass">
+            <h2 class="modal-title">Finalizar Prova?</h2>
+            <p class="modal-text" id="modal-msg">Você respondeu X questões. Deseja encerrar sua participação e enviar as respostas agora?</p>
+            <div class="modal-actions">
+                <button id="modal-cancel" class="btn-secondary">Voltar</button>
+                <button id="modal-confirm" class="btn-danger">Finalizar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Watchdog & Diagnostic Script -->
     <script>
         window.RUNNER_INIT_START = Date.now();
         window.onerror = function(msg, url, line) {
-            alert("❌ ERRO WEBVIEW:\n" + msg + "\nLocal: " + url + ":" + line);
+            console.error("❌ ERRO WEBVIEW:", msg, url, line);
         };
 
-        // Watchdog: Se não carregar em 4s, avisa o usuário
+        // Watchdog: Se não carregar em 4s, avisa o usuário (ajustado para ignorar se estiver na capa)
         setTimeout(() => {
-            if (document.getElementById('exam-title').innerText === "Carregando Prova...") {
+            if (document.getElementById('exam-title').innerText === "Carregando Prova..." && !window.EXAM_STARTED) {
                 const status = {
-                    RUNNER_READY: !!window.RUNNER_READY,
                     THREE: typeof THREE !== 'undefined',
-                    GLTF: typeof THREE !== 'undefined' && !!THREE.GLTFLoader,
-                    LOCATION: window.location.href
+                    GLTF: typeof THREE !== 'undefined' && !!THREE.GLTFLoader
                 };
-                alert("⚠️ AVISO: O script da prova não iniciou.\n\nStatus:\n" + JSON.stringify(status, null, 2));
+                console.warn("⚠️ AVISO: O script da prova está aguardando início.");
             }
         }, 4000);
     </script>
+
     <div id="app-container">
         <!-- Header -->
         <header class="runner-header glass">
@@ -75,6 +99,11 @@
                     <!-- Opções injetadas aqui -->
                 </div>
             </div>
+            
+            <!-- VideoLibras Container -->
+            <div id="videolibras-container">
+                <span>LIBRAS<br>INDISPONÍVEL</span>
+            </div>
         </main>
 
         <!-- Footer Navigation -->
@@ -90,11 +119,16 @@
     <div id="access-hub" class="glass">
         <div class="hub-header">
             <h3>Acessibilidade</h3>
-            <button id="close-hub">✕</button>
+            <button id="close-hub" title="Fechar">✕</button>
         </div>
 
         <div class="hub-section">
-            <label>Zoom do Texto (Baixa Visão)</label>
+            <label>VideoLibras (Intérprete)</label>
+            <button id="btn-libras" class="theme-btn" style="width: 100%;">Ativar Intérprete 🤟</button>
+        </div>
+
+        <div class="hub-section">
+            <label>Zoom do Texto</label>
             <input type="range" id="zoom-slider" min="0.8" max="2.5" step="0.1" value="1.0">
         </div>
 
@@ -114,8 +148,8 @@
         </div>
 
         <div class="hub-section">
-            <label>Fonte para Dislexia</label>
-            <button id="btn-dyslexic" class="theme-btn">Ativar OpenDyslexic</button>
+            <label>Neuro-Diversidade</label>
+            <button id="btn-dyslexic" class="theme-btn" style="width: 100%;">Ativar OpenDyslexic</button>
         </div>
     </div>
 

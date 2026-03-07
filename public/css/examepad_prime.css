@@ -2,7 +2,7 @@
 
 @font-face {
     font-family: 'OpenDyslexic';
-    src: url('../assets/OpenDyslexic-Regular.otf') format('opentype');
+    src: url('../assets/fonts/opendyslexic/OpenDyslexic-Regular.otf') format('opentype');
 }
 
 :root {
@@ -77,6 +77,56 @@ body {
     display: flex;
     flex-direction: column;
     height: 100%;
+}
+
+/* Cover / Instructions */
+#exam-cover {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 2000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--bg-main);
+}
+
+.cover-card {
+    max-width: 600px;
+    width: 90%;
+    padding: 2.5rem;
+    border-radius: 32px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+}
+
+.cover-header { text-align: center; margin-bottom: 2rem; }
+.cover-header h1 { font-size: 1.5rem; margin-top: 1rem; color: var(--primary); }
+
+.rules-list {
+    margin: 1.5rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.rule-item {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    font-size: 0.9rem;
+}
+
+.rule-item i { color: var(--primary); font-size: 1.2rem; }
+
+.warning-box {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    padding: 1rem;
+    border-radius: 12px;
+    margin-top: 1.5rem;
+    font-size: 0.8rem;
+    color: #fca5a5;
+    line-height: 1.4;
 }
 
 /* Header */
@@ -164,6 +214,23 @@ body {
     margin: 1.5rem 0;
 }
 
+/* VideoLibras Overlay */
+#videolibras-container {
+    position: fixed;
+    bottom: 100px; right: 20px;
+    width: 150px; height: 150px;
+    background: rgba(0,0,0,0.8);
+    border: 2px solid var(--primary);
+    border-radius: 20px;
+    z-index: 500;
+    overflow: hidden;
+    display: none;
+}
+
+#videolibras-container span {
+    display: block; text-align: center; margin-top: 60px; font-size: 0.7rem; color: white;
+}
+
 /* Options */
 .options-container {
     display: flex;
@@ -231,8 +298,28 @@ body {
 
 #access-hub.open { right: 0; }
 
+.hub-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+#close-hub {
+    background: rgba(239, 68, 68, 0.2);
+    border: none;
+    color: var(--danger);
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 .hub-section { margin-bottom: 2rem; }
-.hub-section h3 { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem; text-transform: uppercase; }
+.hub-section label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem; text-transform: uppercase; }
 
 .control-group { display: flex; flex-direction: column; gap: 0.5rem; }
 .theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
@@ -252,6 +339,36 @@ input[type="range"] {
     accent-color: var(--primary);
 }
 
+/* Custom Modal */
+#custom-modal {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(8px);
+    z-index: 3000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    width: 85%;
+    max-width: 400px;
+    padding: 2.5rem;
+    border-radius: 24px;
+    text-align: center;
+}
+
+.modal-title { font-size: 1.2rem; margin-bottom: 1rem; color: var(--text-main); font-weight: 700; }
+.modal-text { font-size: 0.95rem; color: var(--text-muted); margin-bottom: 2rem; }
+
+.modal-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
 /* Footer */
 .runner-footer {
     padding: 1.25rem 2rem;
@@ -266,6 +383,7 @@ input[type="range"] {
     border: none;
     font-weight: 600;
     cursor: pointer;
+    font-size: 0.9rem;
 }
 
 .btn-primary { background: var(--primary); color: white; }
