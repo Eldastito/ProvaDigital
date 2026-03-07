@@ -13,7 +13,7 @@ export class OfflineDatabase extends Dexie {
     constructor() {
         super('ExamePadOfflineDB');
         (this as any).version(1).stores({
-            examEvents: 'eventId, status, date',
+            examEvents: 'id, status, date',
             studentSessions: 'sessionId, studentId, eventId, synced',
             cachedExams: 'examId, title, cachedAt',
             offlineQueue: 'id, examId, studentId, synced, timestamp'
@@ -67,7 +67,7 @@ export const markResultAsSynced = async (id: string) => {
 export const saveEventToDb = async (event: ExamEvent) => {
     try {
         await db.examEvents.put(event);
-        console.log(`[DB] Evento ${event.eventId} salvo com segurança.`);
+        console.log(`[DB] Evento ${event.id} salvo com segurança.`);
     } catch (e) {
         console.error("Erro ao salvar no IndexedDB", e);
     }
@@ -96,6 +96,33 @@ export const getStoredSessionsCount = async (): Promise<number> => {
         return await db.studentSessions.count();
     } catch (e) {
         return 0;
+    }
+};
+
+export const getAllSessions = async (): Promise<StoredSession[]> => {
+    try {
+        return await db.studentSessions.toArray();
+    } catch (e) {
+        console.error("Erro ao ler sessões do IndexedDB", e);
+        return [];
+    }
+};
+
+export const getSession = async (sessionId: string): Promise<StoredSession | undefined> => {
+    try {
+        return await db.studentSessions.get(sessionId);
+    } catch (e) {
+        console.error("Erro ao recuperar sessão", e);
+        return undefined;
+    }
+};
+
+export const markAsSynced = async (sessionId: string) => {
+    try {
+        await db.studentSessions.update(sessionId, { synced: true });
+        console.log(`[DB] Sessão ${sessionId} marcada como sincronizada.`);
+    } catch (e) {
+        console.error("Erro ao marcar sessão como sincronizada", e);
     }
 };
 

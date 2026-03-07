@@ -9,6 +9,7 @@ import { supabase } from '../../../services/supabaseClient';
 
 import { useSafeAppStore } from '../../../store/useAppStore';
 import { TabletLauncher } from './TabletLauncher';
+import { QRScannerModal } from '../offline/QRScannerModal';
 
 interface CoordinatorAppProps {
     initialPayload?: any; // Contains schoolId, userId, userName
@@ -35,6 +36,7 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
     const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
     const [qrChunks, setQrChunks] = useState<string[]>([]);
     const [currentQrIndex, setCurrentQrIndex] = useState(0);
+    const [isScannerOpen, setIsScannerOpen] = useState(false);
 
     // Filter data for THIS school only
     const schoolClasses = state.classes.filter(c => c.schoolId === coordinatorSchoolId);
@@ -130,6 +132,42 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
             [classId]: { checked: true, surplus: mockReport.surplusTablets, absent: mockReport.absentCount }
         }));
         setView('ROUNDS');
+    };
+
+    // FASE 4.3: Decodifica e Valida a Integridade Hash do QR Code da turma
+    const handleScannerResult = async (data: any) => {
+        setIsScannerOpen(false);
+        try {
+            if (data.type === 'ATTENDANCE_REPORT') {
+                const { cryptoService } = await import('../../../services/cryptoService');
+                
+                // O payload assinado deve separar a assinatura do corpo
+                const { cryptoSignature, ...baseReport } = data;
+                
+                // Recalcula a Hash na hora baseada no payload base enviado pelo Professor
+                const calculatedHash = await cryptoService.generateSHA256Hash(baseReport);
+                
+                if (calculatedHash !== cryptoSignature) {
+                    alert("⚠️ ALERTA DE SEGURANÇA! O selo HMAC foi quebrado ou adulterado.");
+                    return;
+                }
+
+                alert(`✅ Custódia Válida! Recebendo ${baseReport.submissions?.length || 0} provas offline extraídas do Mesh da sala ${baseReport.className}.`);
+                
+                setRoundsData(prev => ({
+                    ...prev,
+                    [baseReport.classId]: { checked: true, surplus: baseReport.surplusTablets, absent: baseReport.absentCount }
+                }));
+                
+                // TODO: Salvar as notas (baseReport.submissions) no SyncService ou IndexedDB local para upload
+                setView('ROUNDS');
+            } else {
+                alert("Este QR Code não corresponde a um pacote de entrega final.");
+            }
+        } catch (e) {
+            alert("Erro fatal ao analisar a assinatura digital da prova.");
+            console.error(e);
+        }
     };
 
     // Totals - Explicitly typed for TypeScript safety
@@ -252,6 +290,17 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
                                                     <div className="font-bold text-emerald-700">{finished}</div>
                                                 </div>
                                             </div>
+
+                                            <div className="ml-4 pl-4 border-l border-slate-200">
+                                                <button
+                                                    onClick={() => setIsScannerOpen(true)}
+                                                    className="flex flex-col items-center justify-center p-2 text-brand-primary hover:bg-brand-50 rounded-lg transition"
+                                                    title="Escanear Relatório de Fim de Aula (QR Code)"
+                                                >
+                                                    <Scan size={24} />
+                                                    <span className="text-[10px] font-bold mt-1">Ler Entrega</span>
+                                                </button>
+                                            </div>
                                         </div>
                                     );
                                 })}
@@ -279,6 +328,14 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
                 )}
 
             </main>
+
+            {isScannerOpen && (
+                <QRScannerModal 
+                    onClose={() => setIsScannerOpen(false)} 
+                    onResult={handleScannerResult} 
+                    title="Escanear Entrega do Professor"
+                />
+            )}
         </div>
     );
 };

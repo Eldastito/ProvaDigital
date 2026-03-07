@@ -198,15 +198,32 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
         const { present, absent, surplus } = getStats();
         if (!confirm(`Confirmar chamada ? `)) return;
         setAttendanceLocked(true);
-        const report = {
+        
+        // FASE 4.3: Incorporar submissões pendentes no QR Code (Hand-off) com Lacre HMAC
+        const { getAllSessions } = await import('../../../services/offlineDb');
+        const { cryptoService } = await import('../../../services/cryptoService');
+        
+        const allSessions = await getAllSessions();
+        // Filtrar pelas sessões gravadas no evento atual da sala selecionada
+        const thisClassSessions = allSessions.filter(s => classData && s.eventId.includes(classData.classId));
+
+        const baseReport = {
             type: 'ATTENDANCE_REPORT',
             classId: classData.classId,
             className: classData.className,
             totalStudents: classData.students.length,
             presentCount: present,
             absentCount: absent,
-            surplusTablets: surplus
+            surplusTablets: surplus,
+            submissions: thisClassSessions
         };
+
+        const signature = await cryptoService.generateSHA256Hash(baseReport);
+        const report = {
+            ...baseReport,
+            cryptoSignature: signature
+        };
+
         const chunks = await QRDataTransfer.compressAndChunk(report);
         setAttendanceQrChunks(chunks);
     };

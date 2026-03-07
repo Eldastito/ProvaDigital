@@ -26,9 +26,11 @@ import { offlineConsolidationService, OfflineSubmission } from '../../../service
 
 
 interface QRScannerModalProps {
-    examId: string;
-    eventId: string;
+    examId?: string;
+    eventId?: string;
     onClose: () => void;
+    onResult?: (data: any) => void;
+    title?: string;
 }
 
 interface ScannedStudent {
@@ -43,7 +45,9 @@ interface ScannedStudent {
 export const QRScannerModal: React.FC<QRScannerModalProps> = ({
     examId,
     eventId,
-    onClose
+    onClose,
+    onResult,
+    title = "Escanear Provas dos Alunos"
 }) => {
     const [scanning, setScanning] = useState(false);
     const [students, setStudents] = useState<ScannedStudent[]>([]);
@@ -69,6 +73,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
     }, [scanning]);
 
     const loadExistingSubmissions = async () => {
+        if (!eventId) return;
         try {
             const submissions = await offlineConsolidationService.getSubmissionsByEvent(eventId);
             if (submissions.length > 0) {
@@ -165,7 +170,11 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                     throw new Error('Erro ao reassemblar chunks');
                 }
 
-                await processStudentSubmission(reassembled);
+                if (onResult) {
+                    onResult(reassembled);
+                } else if (eventId) {
+                    await processStudentSubmission(reassembled);
+                }
 
                 // Reset para próximo aluno
                 setCurrentChunks(new Map());
@@ -181,6 +190,8 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
 
     const processStudentSubmission = async (signedPayload: SignedPayload) => {
         try {
+            if (!eventId) throw new Error("Nenhum evento referenciado (eventId indefinido).");
+            
             // 1. Validar HMAC
             const isValid = await E2EEncryptionService.validateSignedPayload(
                 signedPayload,
@@ -217,12 +228,14 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
 
             setStudents(prev => [...prev, newStudent]);
 
+            if (!eventId || !examId) throw new Error("Chaves da prova indefinidas.");
+
             // 5. Persistir no IndexedDB
             await offlineConsolidationService.saveSubmission({
                 studentId: newStudent.studentId,
                 studentName: newStudent.studentName,
-                examId,
-                eventId,
+                examId: examId,
+                eventId: eventId,
                 encryptedAnswers: newStudent.encryptedAnswers,
                 scannedAt: newStudent.scannedAt
             });
@@ -240,6 +253,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
         if (!confirm('Deseja remover esta submissão da lista local?')) return;
 
         try {
+            if (!eventId) throw new Error("Evento indefinido.");
             await offlineConsolidationService.deleteSubmission(eventId, studentId);
             setStudents(prev => prev.filter(s => s.studentId !== studentId));
             console.log(`🗑️ Submissão ${studentId} removida`);
@@ -271,6 +285,8 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                 consolidatedAt: new Date().toISOString()
             };
 
+            if (!eventId) throw new Error("Evento indefinido.");
+
             // Assinar batch
             const signedBatch = await E2EEncryptionService.createSignedPayload(
                 'CLASSROOM_BATCH',
@@ -301,8 +317,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                     <div className="flex items-center gap-3">
                         <QrCode size={32} />
                         <div>
-                            <h2 className="text-2xl font-bold">Scanner de QR Codes</h2>
-                            <p className="text-sm opacity-90">Coletar respostas dos alunos (offline)</p>
+                            <h2 className="text-2xl font-bold">{title}</h2>
                         </div>
                     </div>
                     <button
