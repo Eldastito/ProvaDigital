@@ -8,20 +8,31 @@
     <script type="importmap">
     {
       "imports": {
-        "three": "/vendor/three.module.min.js",
-        "three/addons/": "/vendor/"
+        "three": "./vendor/three.module.min.js",
+        "three/addons/": "./vendor/"
       }
     }
     </script>
 </head>
 <body class="theme-dark">
-    <!-- Script de Diagnóstico Rápido -->
+    <!-- Watchdog & Diagnostic Script -->
     <script>
+        window.RUNNER_INIT_START = Date.now();
         window.onerror = function(msg, url, line) {
-            alert("Erro de Script: " + msg + "\nLinha: " + line);
-            return false;
+            alert("❌ ERRO WEBVIEW:\n" + msg + "\nLocal: " + url + ":" + line);
         };
-        console.log("HTML Carregado - Aguardando Runner...");
+
+        // Watchdog: Se não carregar em 3s, avisa o usuário
+        setTimeout(() => {
+            if (document.getElementById('exam-title').innerText === "Carregando Prova...") {
+                const status = {
+                    RUNNER_READY: !!window.RUNNER_READY,
+                    THREE: typeof THREE !== 'undefined',
+                    LOCATION: window.location.href
+                };
+                alert("⚠️ AVISO: O script da prova não iniciou.\n\nStatus:\n" + JSON.stringify(status, null, 2));
+            }
+        }, 3500);
     </script>
     <div id="app-container">
         <!-- Header -->

@@ -58,6 +58,7 @@ function mockData() {
 }
 
 function init() {
+    window.RUNNER_READY = true;
     try {
         console.log("Runner Core: Iniciando...");
         state.questions = mockData();
