@@ -28,7 +28,10 @@ class RunnerActivity : BridgeActivity() {
         }
 
         // Redireciona para o runner especial offline via esquema do Capacitor
-        bridge.webView.loadUrl("https://localhost/native_runner.html")
+        // Adicionamos um pequeno delay para garantir que o Bridge do Capacitor esteja inicializado
+        window.decorView.postDelayed({
+            bridge.webView.loadUrl("https://localhost/native_runner.html")
+        }, 500)
     }
 
     override fun onBackPressed() {

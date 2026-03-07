@@ -1,0 +1,275 @@
+/* ExamePad Prime - Design System Offline */
+
+@font-face {
+    font-family: 'OpenDyslexic';
+    src: url('../assets/OpenDyslexic-Regular.otf') format('opentype');
+}
+
+:root {
+    --bg-main: #0f172a;
+    --card-bg: rgba(30, 41, 59, 0.7);
+    --primary: #6366f1;
+    --primary-hover: #4f46e5;
+    --mint: #10b981;
+    --danger: #ef4444;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --font-scale: 1;
+    --line-height: 1.6;
+}
+
+/* Themes */
+body.theme-light {
+    --bg-main: #f1f5f9;
+    --card-bg: rgba(255, 255, 255, 0.9);
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --glass-border: rgba(0, 0, 0, 0.1);
+}
+
+body.theme-high-contrast {
+    --bg-main: #000000;
+    --card-bg: #000000;
+    --text-main: #ffff00;
+    --text-muted: #ffffff;
+    --primary: #ffff00;
+    --glass-border: #ffffff;
+}
+
+body.theme-sepia {
+    --bg-main: #f4ecd8;
+    --card-bg: #fcf5e5;
+    --text-main: #5b4636;
+    --text-muted: #8d7d6f;
+    --primary: #b08d57;
+}
+
+body.font-dyslexic { font-family: 'OpenDyslexic', sans-serif !important; }
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    font-size: calc(16px * var(--font-scale));
+    line-height: var(--line-height);
+    transition: background 0.3s, color 0.3s;
+}
+
+.glass {
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+}
+
+#app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Header */
+.runner-header {
+    padding: 1.5rem 2rem 1rem;
+    position: relative;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.exam-info { flex: 1; }
+#exam-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 2px; }
+#exam-meta { font-size: 0.8rem; color: var(--text-muted); }
+
+.student-card {
+    padding: 0.5rem 1rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.student-name { font-weight: 700; color: var(--primary); }
+
+.timer-container {
+    padding: 0.5rem 1rem;
+    border-radius: 99px;
+    background: rgba(0,0,0,0.3);
+    font-family: monospace;
+    font-weight: 700;
+}
+
+.progress-bar {
+    height: 6px;
+    background: rgba(255,255,255,0.1);
+    margin-top: 1rem;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+#progress-fill {
+    height: 100%;
+    background: var(--primary);
+    width: 10%;
+    transition: width 0.3s ease;
+}
+
+/* Main Content */
+.runner-main {
+    flex: 1;
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+
+.card {
+    border-radius: 24px;
+    padding: 2rem;
+    min-height: 400px;
+}
+
+.question-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.badge {
+    background: rgba(99, 102, 241, 0.2);
+    color: #a5b4fc;
+    padding: 0.25rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.question-content {
+    font-size: 1.2rem;
+    margin: 1.5rem 0;
+}
+
+/* Options */
+.options-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.option {
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.option:hover { background: rgba(255,255,255,0.08); }
+.option.selected {
+    background: rgba(99, 102, 241, 0.2);
+    border-color: var(--primary);
+    color: white;
+}
+
+/* Media/3D */
+.media-container {
+    width: 100%;
+    height: 300px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 16px;
+    margin: 1rem 0;
+    position: relative;
+}
+
+#canvas-3d { width: 100%; height: 100%; }
+#loading-3d {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Accessibility Hub */
+.accessibility-tools { display: flex; gap: 0.5rem; }
+.accessibility-tools button {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: white;
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+
+#access-hub {
+    position: fixed;
+    right: -320px; top: 0;
+    width: 300px; height: 100%;
+    z-index: 1000;
+    padding: 2rem;
+    transition: right 0.3s ease;
+    box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+}
+
+#access-hub.open { right: 0; }
+
+.hub-section { margin-bottom: 2rem; }
+.hub-section h3 { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem; text-transform: uppercase; }
+
+.control-group { display: flex; flex-direction: column; gap: 0.5rem; }
+.theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+
+.theme-btn {
+    padding: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.05);
+    color: var(--text-main);
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+input[type="range"] {
+    width: 100%;
+    accent-color: var(--primary);
+}
+
+/* Footer */
+.runner-footer {
+    padding: 1.25rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.btn-primary, .btn-secondary, .btn-danger {
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-primary { background: var(--primary); color: white; }
+.btn-secondary { background: rgba(255,255,255,0.1); color: white; }
+.btn-danger { background: var(--danger); color: white; }
+
+.hidden { display: none !important; }

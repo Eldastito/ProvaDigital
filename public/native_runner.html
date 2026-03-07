@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ExamePad - Offline Runner</title>
+    <link rel="stylesheet" href="css/examepad_prime.css">
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three.module.min.js",
+        "three/addons/": "./vendor/"
+      }
+    }
+    </script>
+</head>
+<body class="theme-dark">
+    <div id="app-container">
+        <!-- Header -->
+        <header class="runner-header glass">
+            <div class="header-content">
+                <div class="exam-info">
+                    <h1 id="exam-title">Carregando Prova...</h1>
+                    <span id="exam-meta">Aguarde um momento</span>
+                </div>
+                <!-- Dados do Aluno -->
+                <div class="student-card glass-inset">
+                    <span class="student-name" id="std-name">ALUNO: CARREGANDO...</span>
+                    <span id="std-id">MATRÍCULA: ---</span>
+                    <span id="std-class">TURMA: ---</span>
+                </div>
+                <div class="timer-container glass-inset">
+                    <span id="timer">00:00:00</span>
+                </div>
+            </div>
+            <div class="progress-bar">
+                <div id="progress-fill"></div>
+            </div>
+        </header>
+
+        <!-- Question Body -->
+        <main class="runner-main">
+            <div id="question-card" class="glass card">
+                <div class="question-header">
+                    <span class="badge">Questão <span id="q-index">1</span></span>
+                    <div class="accessibility-tools">
+                        <button id="btn-read" title="Ouvir Questão">🔊</button>
+                        <button id="btn-focus" title="Modo Foco">👁️</button>
+                        <button id="btn-access" title="Acessibilidade">⚙️</button>
+                    </div>
+                </div>
+                
+                <div id="question-text" class="question-content">
+                    <!-- Texto da questão injetado aqui -->
+                </div>
+
+                <div id="question-media" class="media-container hidden">
+                    <canvas id="canvas-3d"></canvas>
+                    <div id="loading-3d" class="hidden">Carregando Modelo 3D...</div>
+                </div>
+
+                <div id="options-list" class="options-container">
+                    <!-- Opções injetadas aqui -->
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer Navigation -->
+        <footer class="runner-footer glass">
+            <button id="btn-prev" class="btn-secondary">Anterior</button>
+            <div id="pagination">Questão 1 de 10</div>
+            <button id="btn-next" class="btn-primary">Próxima</button>
+            <button id="btn-finish" class="btn-danger hidden">Finalizar</button>
+        </footer>
+    </div>
+
+    <!-- Accessibility Hub (Drawer) -->
+    <div id="access-hub" class="glass">
+        <div class="hub-header">
+            <h3>Acessibilidade</h3>
+            <button id="close-hub">✕</button>
+        </div>
+
+        <div class="hub-section">
+            <label>Zoom do Texto (Baixa Visão)</label>
+            <input type="range" id="zoom-slider" min="0.8" max="2.5" step="0.1" value="1.0">
+        </div>
+
+        <div class="hub-section">
+            <label>Espaçamento de Linhas</label>
+            <input type="range" id="line-slider" min="1.2" max="3.0" step="0.2" value="1.6">
+        </div>
+
+        <div class="hub-section">
+            <label>Tema de Visualização</label>
+            <div class="theme-grid">
+                <button class="theme-btn" data-theme="dark">Dark</button>
+                <button class="theme-btn" data-theme="light">Light</button>
+                <button class="theme-btn" data-theme="high-contrast">Contraste</button>
+                <button class="theme-btn" data-theme="sepia">Sépia</button>
+            </div>
+        </div>
+
+        <div class="hub-section">
+            <label>Fonte para Dislexia</label>
+            <button id="btn-dyslexic" class="theme-btn">Ativar OpenDyslexic</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="js/runner_core.js"></script>
+</body>
+</html>
