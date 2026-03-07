@@ -5,7 +5,7 @@ export interface AuditLogEntry {
     actorEmail?: string;
     schoolId?: string;
     tenantId: string;
-    actionType: 'LOGIN' | 'LOGOUT' | 'UPDATE_GRADE' | 'DELETE_USER' | 'CREATE_EXAM' | 'EXPORT_DATA' | 'CHANGE_SETTINGS' | 'VIEW_SENSITIVE_DATA';
+    actionType: 'LOGIN' | 'LOGOUT' | 'UPDATE_GRADE' | 'DELETE_USER' | 'CREATE_EXAM' | 'EXPORT_DATA' | 'CHANGE_SETTINGS' | 'VIEW_SENSITIVE_DATA' | 'HANDOFF_GENERATE' | 'HANDOFF_RECEIVE' | 'SECURITY_BREACH' | 'SYNC_OFFLINE';
     targetResource: string;
     targetId?: string;
     details?: any; // JSON object with changes

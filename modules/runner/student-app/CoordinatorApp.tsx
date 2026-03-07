@@ -10,6 +10,8 @@ import { supabase } from '../../../services/supabaseClient';
 import { useSafeAppStore } from '../../../store/useAppStore';
 import { TabletLauncher } from './TabletLauncher';
 import { QRScannerModal } from '../offline/QRScannerModal';
+import { offlineConsolidationService } from '../../../services/offlineConsolidationService';
+import { auditService } from '../../../services/auditService';
 
 interface CoordinatorAppProps {
     initialPayload?: any; // Contains schoolId, userId, userName
@@ -32,7 +34,7 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
 
     const school = state.schools.find(s => s.id === coordinatorSchoolId);
 
-    const [view, setView] = useState<'LIST' | 'ROUNDS' | 'DISTRIBUTE_QR' | 'SCAN_ATTENDANCE'>('LIST');
+    const [view, setView] = useState<'LIST' | 'ROUNDS' | 'DISTRIBUTE_QR' | 'SCAN_ATTENDANCE' | 'FINALIZE'>('LIST');
     const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
     const [qrChunks, setQrChunks] = useState<string[]>([]);
     const [currentQrIndex, setCurrentQrIndex] = useState(0);
@@ -116,6 +118,22 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
         setQrChunks(chunks);
         setSelectedClassId(classId);
         setView('DISTRIBUTE_QR');
+
+        // Audit Log
+        await auditService.log({
+            actorId: state.currentUser?.id || 'unknown',
+            actorEmail: state.currentUser?.email,
+            schoolId: coordinatorSchoolId,
+            tenantId: state.currentUser?.tenantId || 'unknown',
+            actionType: 'HANDOFF_GENERATE',
+            targetResource: 'CLASS_PACKAGE',
+            targetId: eventId,
+            details: {
+                className: targetClass.name,
+                examTitle: exam.title,
+                studentCount: students.length
+            }
+        });
     };
 
     // Simulação de Scan de Presença (Mock)
@@ -159,7 +177,38 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
                     [baseReport.classId]: { checked: true, surplus: baseReport.surplusTablets, absent: baseReport.absentCount }
                 }));
                 
-                // TODO: Salvar as notas (baseReport.submissions) no SyncService ou IndexedDB local para upload
+                // FASE 5: Persistência de Custódia
+                if (baseReport.submissions && baseReport.submissions.length > 0) {
+                    console.log(`💾 Persistindo ${baseReport.submissions.length} submissões via Handoff`);
+                    for (const sub of baseReport.submissions) {
+                        await offlineConsolidationService.saveSubmission({
+                            studentId: sub.studentId,
+                            studentName: sub.studentName,
+                            examId: baseReport.examId,
+                            eventId: baseReport.eventId,
+                            encryptedAnswers: sub.encryptedAnswers,
+                            scannedAt: sub.timestamp || new Date().toISOString()
+                        });
+                    }
+                }
+
+                // Audit Log
+                await auditService.log({
+                    actorId: state.currentUser?.id || 'unknown',
+                    actorEmail: state.currentUser?.email,
+                    schoolId: coordinatorSchoolId,
+                    tenantId: state.currentUser?.tenantId || 'unknown',
+                    actionType: 'HANDOFF_RECEIVE',
+                    targetResource: 'ATTENDANCE_REPORT',
+                    targetId: baseReport.eventId,
+                    details: {
+                        className: baseReport.className,
+                        submissionCount: baseReport.submissions?.length || 0,
+                        surplusTablets: baseReport.surplusTablets,
+                        absentCount: baseReport.absentCount
+                    }
+                });
+
                 setView('ROUNDS');
             } else {
                 alert("Este QR Code não corresponde a um pacote de entrega final.");
@@ -195,6 +244,9 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
                 </button>
                 <button onClick={() => setView('ROUNDS')} className={`flex-1 py-4 font-bold text-sm border-b-4 transition ${view === 'ROUNDS' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-slate-500'}`}>
                     Dashboard Escolar (Visão Macro)
+                </button>
+                <button onClick={() => setView('FINALIZE')} className={`flex-1 py-4 font-bold text-sm border-b-4 transition ${view === 'FINALIZE' ? 'border-rose-500 text-rose-700' : 'border-transparent text-slate-500'}`}>
+                    Encerrar & Sincronizar
                 </button>
             </div>
 
@@ -327,6 +379,98 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
                     </div>
                 )}
 
+                {view === 'FINALIZE' && (
+                    <div className="space-y-6">
+                        <div className="bg-white p-8 rounded-2xl border-2 border-slate-200 shadow-xl text-center">
+                            <div className="w-20 h-20 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <AlertTriangle size={40} />
+                            </div>
+                            <h2 className="text-3xl font-black text-slate-800 mb-2">Encerramento do Período</h2>
+                            <p className="text-slate-500 mb-8 max-w-md mx-auto">
+                                Verifique a reconciliação de malotes e tablets antes de finalizar o evento e subir os dados para o servidor.
+                            </p>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                                <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 flex flex-col items-center">
+                                    <div className="text-xs font-bold text-slate-400 uppercase mb-2">Salas Pendentes</div>
+                                    <div className={`text-3xl font-black ${schoolClasses.length - roomsChecked > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                        {schoolClasses.length - roomsChecked}
+                                    </div>
+                                </div>
+                                <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 flex flex-col items-center">
+                                    <div className="text-xs font-bold text-slate-400 uppercase mb-2">Tablets Recuperados</div>
+                                    <div className="text-3xl font-black text-brand-primary">
+                                        {totalSurplus}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <button
+                                    onClick={async () => {
+                                        if (schoolClasses.length - roomsChecked > 0) {
+                                            if (!confirm(`⚠️ Existem ainda ${schoolClasses.length - roomsChecked} salas sem o QR de encerramento. Deseja finalizar assim mesmo?`)) return;
+                                        }
+
+                                        try {
+                                            const { syncService } = await import('../../../services/synchronizationService');
+                                            
+                                            alert("Enviando dados para a nuvem... Por favor, aguarde.");
+                                            
+                                            // 1. Sincronizar submissões coletadas via QR Handoff
+                                            const result = await syncService.syncOfflineSubmissions();
+                                            
+                                            // 2. Audit Log
+                                            await auditService.log({
+                                                actorId: state.currentUser?.id || 'unknown',
+                                                actorEmail: state.currentUser?.email,
+                                                schoolId: coordinatorSchoolId,
+                                                tenantId: state.currentUser?.tenantId || 'unknown',
+                                                actionType: 'SYNC_OFFLINE',
+                                                targetResource: 'EVENT_FINALIZATION',
+                                                targetId: `EVENT-${coordinatorSchoolId}`,
+                                                details: {
+                                                    schoolName: school?.name,
+                                                    roomsClosed: roomsChecked,
+                                                    totalTablets: totalSurplus,
+                                                    syncResult: result
+                                                }
+                                            });
+
+                                            alert(`✅ Evento finalizado com sucesso!\n\nSincronizados: ${result.success}\nFalhas: ${result.failed}`);
+                                            onBack();
+                                        } catch (e) {
+                                            console.error(e);
+                                            alert("Erro crítico na sincronização final. Tente novamente ou contate o suporte.");
+                                        }
+                                    }}
+                                    className="w-full py-4 bg-emerald-600 text-white rounded-xl font-bold text-lg hover:bg-emerald-700 shadow-lg flex items-center justify-center gap-3 transition-transform active:scale-95"
+                                >
+                                    <CheckCircle size={24} /> Finalizar & Sincronizar Nuvem
+                                </button>
+                                
+                                <button
+                                    onClick={() => setView('ROUNDS')}
+                                    className="w-full py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-xl transition"
+                                >
+                                    Voltar para Revisão de Salas
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Checklist de Segurança */}
+                        <div className="bg-amber-50 border border-amber-200 p-6 rounded-xl">
+                            <h4 className="font-bold text-amber-800 flex items-center gap-2 mb-3">
+                                <AlertTriangle size={18} /> Protocolo de Segurança (QSP)
+                            </h4>
+                            <ul className="text-sm text-amber-900 space-y-2 opacity-80">
+                                <li className="flex gap-2"><span>1.</span><span>Garanta que todos os professores devolveram o lacre digital via QR Code.</span></li>
+                                <li className="flex gap-2"><span>2.</span><span>Conte fisicamente os tablets nas malas antes de dar o "OK" final.</span></li>
+                                <li className="flex gap-2"><span>3.</span><span>Verifique se o Wi-Fi local de cada sala foi desativado.</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                )}
             </main>
 
             {isScannerOpen && (
