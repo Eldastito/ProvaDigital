@@ -58,19 +58,32 @@ function mockData() {
 }
 
 function init() {
-    state.questions = mockData();
-    
-    // Header Info
-    document.getElementById('exam-title').innerText = state.examTitle;
-    document.getElementById('exam-meta').innerText = state.examMeta;
-    document.getElementById('std-name').innerText = `ALUNO: ${state.student.name}`;
-    document.getElementById('std-id').innerText = `MATRÍCULA: ${state.student.id}`;
-    document.getElementById('std-class').innerText = `TURMA: ${state.student.class}`;
-    
-    startTimer();
-    renderQuestion();
-    setupListeners();
-    initThreeJS();
+    try {
+        console.log("Runner Core: Iniciando...");
+        state.questions = mockData();
+        
+        // Header Info
+        document.getElementById('exam-title').innerText = state.examTitle;
+        document.getElementById('exam-meta').innerText = state.examMeta;
+        document.getElementById('std-name').innerText = `ALUNO: ${state.student.name}`;
+        document.getElementById('std-id').innerText = `MATRÍCULA: ${state.student.id}`;
+        document.getElementById('std-class').innerText = `TURMA: ${state.student.class}`;
+        
+        startTimer();
+        renderQuestion();
+        setupListeners();
+        
+        try {
+            initThreeJS();
+        } catch (threeErr) {
+            console.error("Erro ThreeJS:", threeErr);
+        }
+
+        console.log("Runner Core: Inicialização concluída.");
+    } catch (e) {
+        console.error("Erro fatal no init:", e);
+        alert("Erro ao iniciar prova: " + e.message);
+    }
 }
 
 function renderQuestion() {
@@ -258,4 +271,5 @@ function loadModel(path) {
     });
 }
 
-window.onload = init;
+console.log("Runner Core: Script Carregado");
+init();

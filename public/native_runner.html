@@ -8,13 +8,21 @@
     <script type="importmap">
     {
       "imports": {
-        "three": "./vendor/three.module.min.js",
-        "three/addons/": "./vendor/"
+        "three": "/vendor/three.module.min.js",
+        "three/addons/": "/vendor/"
       }
     }
     </script>
 </head>
 <body class="theme-dark">
+    <!-- Script de Diagnóstico Rápido -->
+    <script>
+        window.onerror = function(msg, url, line) {
+            alert("Erro de Script: " + msg + "\nLinha: " + line);
+            return false;
+        };
+        console.log("HTML Carregado - Aguardando Runner...");
+    </script>
     <div id="app-container">
         <!-- Header -->
         <header class="runner-header glass">
