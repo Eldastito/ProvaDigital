@@ -675,10 +675,21 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
             }
         }
 
-        // 🌐 Atualizar telemetria mesh
+        // 🌐 Atualizar telemetria mesh e AUTOSAVE
         if (meshInitialized) {
             const count = Object.keys(newAnswers).filter(k => !k.includes('_text')).length;
             getTelemetryService().updateAnsweredCount(count);
+            getTelemetryService().updateCurrentQuestion(currentQuestionIdx + 1);
+            
+            // Backup Silencioso Instantâneo da Prova na Máquina do Professor:
+            getMeshNetwork().broadcastMessage('AUTOSAVE', {
+                studentId: studentData?.id,
+                studentName: studentData?.name,
+                examId: studentData?.examId,
+                eventId: studentData?.eventId,
+                answers: newAnswers, // Encrypted em prod
+                telemetryPayload: getTelemetryService().getCurrentData()
+            });
         }
 
         // --- ADAPTIVE LOGIC (IRT) ---

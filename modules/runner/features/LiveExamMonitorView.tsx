@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     ChevronLeft, Users, Activity, ShieldAlert, Wifi, Battery,
-    MessageCircle, AlertCircle, CheckCircle2, Clock, Smartphone
+    MessageCircle, AlertCircle, CheckCircle2, Clock, Smartphone, 
+    Radio, Network, Lock, PowerOff
 } from 'lucide-react';
 import { useSafeAppStore, AppStore } from '../../../store/useAppStore';
 import { ExamStatus, RegistrationStatus } from '../../../types';
 import { Badge } from '../../../components/ui/Badge';
 import { getMeshNetwork, MeshMessage } from '../../../services/meshNetworkService';
 import { saveSession } from '../../../services/offlineDb';
+import { wifiHotspotService, HotspotStatus } from '../../../services/wifiHotspotService';
 
 export const LiveExamMonitorView = () => {
     const state = useSafeAppStore();
@@ -51,10 +53,38 @@ export const LiveExamMonitorView = () => {
 
     }, [realtimeChannel]);
 
+    // --- HOTSPOT (REDE PRIVADA) ---
+    const [hotspotState, setHotspotState] = useState<HotspotStatus>({ isActive: false, ssid: '', connectedDevices: 0 });
+    const [isStartingHotspot, setIsStartingHotspot] = useState(false);
+
+    const toggleHotspot = async () => {
+        if (hotspotState.isActive) {
+            await wifiHotspotService.stopHotspot();
+            setHotspotState({ isActive: false, ssid: '', connectedDevices: 0 });
+        } else {
+            setIsStartingHotspot(true);
+            try {
+                // Senha e SSID definidos por convenção da escola ou dinâmicos
+                const config = {
+                    ssid: `ExamePad-${exam.id.substring(0, 4)}`,
+                    password: wifiHotspotService.generatePassword()
+                };
+                const status = await wifiHotspotService.createHotspot(config);
+                setHotspotState(status);
+            } catch (err) {
+                console.error("Falha Hotspot", err);
+                alert("Ocorreu um erro ao ativar o modo Roteador.");
+            } finally {
+                setIsStartingHotspot(false);
+            }
+        }
+    };
+
     // --- MESH NETWORK (OFFLINE MONITORING) ---
     const [meshPeers, setMeshPeers] = useState<any[]>([]);
     const [meshSubmissions, setMeshSubmissions] = useState<Record<string, boolean>>({});
-
+    const [telemetryState, setTelemetryState] = useState<Record<string, any>>({});
+    
     useEffect(() => {
         if (!examId) return;
 
@@ -79,11 +109,37 @@ export const LiveExamMonitorView = () => {
                 });
 
                 mesh.setOnMessageReceived((msg: MeshMessage) => {
-                    if (msg.type === 'TELEMETRY' || msg.type === 'ANSWER') {
-                        console.log(`[MESH DATA] From ${msg.from}:`, msg.payload);
+                    if (msg.type === 'TELEMETRY' || msg.type === 'ANSWER' || msg.type === 'AUTOSAVE') {
+                        const p = msg.payload;
+
+                        if (msg.type === 'AUTOSAVE') {
+                            setTelemetryState(prev => ({
+                                ...prev,
+                                [p.studentId]: {
+                                    ...prev[p.studentId],
+                                    ...p.telemetryPayload, // update counts invisibly
+                                    lastSaved: new Date()
+                                }
+                            }));
+                            saveSession({
+                                sessionId: `partial_${p.studentId}_${p.examId}`,
+                                studentId: p.studentId,
+                                studentName: p.studentName,
+                                eventId: p.eventId,
+                                encryptedData: JSON.stringify(p.answers),
+                                timestamp: new Date().toISOString(),
+                                synced: false
+                            }).catch(err => console.debug("Erro silent Autosave", err));
+                        }
                         
+                        if (msg.type === 'TELEMETRY') {
+                            setTelemetryState(prev => ({
+                                ...prev,
+                                [p.studentId]: p
+                            }));
+                        }
+
                         if (msg.type === 'ANSWER') {
-                            const p = msg.payload;
                             console.log(`📡 Recebido ANSWER via Mesh de ${p.studentName}`);
                             
                             // Adicionar à lista visual para alterar UI
@@ -139,6 +195,7 @@ export const LiveExamMonitorView = () => {
             const isOnline = onlineUsers.includes(r.studentId);
             const isMesh = meshPeers.some(p => p.id === r.studentId);
             const hasMeshSubmission = !!meshSubmissions[r.studentId];
+            const telemetry = telemetryState[r.studentId];
 
             return {
                 id: r.studentId,
@@ -156,11 +213,17 @@ export const LiveExamMonitorView = () => {
                     isOnline ? 'Online' :
                         isMesh ? 'Via Mesh' : 'Offline',
 
-                progress: (hasMeshSubmission || attempt?.status === 'submitted' || r.status === RegistrationStatus.FINALIZADO) ? 100 : (attempt ? 40 : 0),
-                battery: isMesh ? meshPeers.find(p => p.id === r.studentId)?.metadata?.battery || 95 : 95,
+                progress: hasMeshSubmission || attempt?.status === 'submitted' || r.status === RegistrationStatus.FINALIZADO 
+                    ? 100 
+                    : (telemetry?.answeredCount && telemetry?.totalQuestions 
+                        ? Math.round((telemetry.answeredCount / telemetry.totalQuestions) * 100) 
+                        : (attempt ? 40 : 0)),
+                        
+                battery: telemetry?.batteryLevel ?? (isMesh ? meshPeers.find(p => p.id === r.studentId)?.metadata?.battery || 95 : 95),
                 connection: isOnline ? 'EXCELLENT' : isMesh ? 'MESH' : 'OFFLINE',
                 securityAlerts: allAlerts,
-                violationCount: (attempt?.violationCount || 0) + studentLiveAlerts.length
+                violationCount: (attempt?.violationCount || 0) + studentLiveAlerts.length,
+                telemetryInfo: telemetry ? `${telemetry.answeredCount}/${telemetry.totalQuestions}` : null
             };
         });
 
@@ -210,8 +273,29 @@ export const LiveExamMonitorView = () => {
                     </div>
                 </div>
 
-                <div className="flex gap-2">
-                    <button className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
+                <div className="flex gap-4 items-center">
+                    {/* Painel do Hostpot */}
+                    {hotspotState.isActive ? (
+                        <div className="flex items-center gap-3 bg-indigo-50 border gap-4 border-indigo-200 pl-4 pr-1 py-1 rounded-full">
+                            <div className="flex flex-col">
+                                <span className="text-[10px] font-bold text-indigo-400 uppercase leading-tight">Rede Privada em Sala</span>
+                                <span className="text-xs font-bold text-indigo-900 leading-tight">SSID: {hotspotState.ssid} / Pw: {wifiHotspotService.getSavedConfig()?.password}</span>
+                            </div>
+                            <button onClick={toggleHotspot} className="bg-white hover:bg-rose-50 border border-slate-200 text-rose-600 p-2 rounded-full transition shadow-sm">
+                                <PowerOff size={16} />
+                            </button>
+                        </div>
+                    ) : (
+                        <button 
+                            onClick={toggleHotspot}
+                            disabled={isStartingHotspot} 
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition disabled:opacity-50"
+                        >
+                            <Radio size={16} className={isStartingHotspot ? "animate-pulse" : ""} /> {isStartingHotspot ? 'Ativando...' : 'Criar Rede Offline (Sala)'}
+                        </button>
+                    )}
+
+                    <button className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-800 transition">
                         <MessageCircle size={18} /> Chat Global
                     </button>
                 </div>
@@ -253,10 +337,13 @@ export const LiveExamMonitorView = () => {
                                 </div>
                             </div>
 
-                            {/* Progress Bar */}
+                            {/* Progress Bar & Telemetry */}
                             <div className="space-y-1 mb-4">
-                                <div className="flex justify-between text-[10px] font-bold text-slate-500">
-                                    <span>Progresso</span>
+                                <div className="flex justify-between items-center text-[10px] font-bold text-slate-500">
+                                    <span className="flex items-center gap-1">
+                                        Progresso 
+                                        {student.telemetryInfo && <span className="bg-brand-primary/10 text-brand-primary px-1.5 py-0.5 rounded ml-1">{student.telemetryInfo}</span>}
+                                    </span>
                                     <span>{student.progress}%</span>
                                 </div>
                                 <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
