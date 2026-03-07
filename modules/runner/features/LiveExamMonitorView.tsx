@@ -3,14 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
     ChevronLeft, Users, Activity, ShieldAlert, Wifi, Battery,
     MessageCircle, AlertCircle, CheckCircle2, Clock, Smartphone, 
-    Radio, Network, Lock, PowerOff
+    Radio, Network, Lock, PowerOff, Unlock
 } from 'lucide-react';
 import { useSafeAppStore, AppStore } from '../../../store/useAppStore';
 import { ExamStatus, RegistrationStatus } from '../../../types';
 import { Badge } from '../../../components/ui/Badge';
 import { getMeshNetwork, MeshMessage } from '../../../services/meshNetworkService';
 import { saveSession } from '../../../services/offlineDb';
-import { wifiHotspotService, HotspotStatus } from '../../../services/wifiHotspotService';
+import { wifiHotspotService, WifiHotspotService, HotspotStatus } from '../../../services/wifiHotspotService';
 
 export const LiveExamMonitorView = () => {
     const state = useSafeAppStore();
@@ -64,10 +64,14 @@ export const LiveExamMonitorView = () => {
         } else {
             setIsStartingHotspot(true);
             try {
+                if (!exam) {
+                    throw new Error("Prova não carregada completamente. Aguarde.");
+                }
+
                 // Senha e SSID definidos por convenção da escola ou dinâmicos
                 const config = {
                     ssid: `ExamePad-${exam.id.substring(0, 4)}`,
-                    password: wifiHotspotService.generatePassword()
+                    password: WifiHotspotService.generatePassword()
                 };
                 const status = await wifiHotspotService.createHotspot(config);
                 setHotspotState(status);
@@ -173,6 +177,19 @@ export const LiveExamMonitorView = () => {
         };
     }, [examId]);
 
+    // --- ACTIONS ---
+    const handleUnlockStudent = (targetStudentId: string) => {
+        console.log(`Enviando ordem de desbloqueio para ${targetStudentId}`);
+        const mesh = getMeshNetwork();
+        
+        // Dispara sinal destrancador para o Tablet específico
+        mesh.broadcastMessage('UNLOCK_SCREEN', {
+            targetStudentId: targetStudentId,
+            timestamp: new Date().toISOString()
+        });
+        
+        alert('Comando de destravamento emitido. A aba do aluno já deve estar liberada.');
+    };
 
     // Process live data
     const studentsData = registrations
@@ -368,7 +385,16 @@ export const LiveExamMonitorView = () => {
                                 </div>
                             )}
 
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 mt-2">
+                                {student.securityAlerts.length > 0 && (
+                                    <button
+                                        onClick={() => handleUnlockStudent(student.id)}
+                                        className="flex-1 py-1.5 bg-indigo-50 border border-indigo-200 rounded-lg text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 transition flex items-center justify-center gap-1"
+                                        title="Permitir que o aluno volte a ver a prova."
+                                    >
+                                        <Unlock size={12} /> Desbloquear
+                                    </button>
+                                )}
                                 {student.violationCount > 3 && (
                                     <button
                                         onClick={() => student.attemptId && reopenExamAttempt(student.attemptId)}

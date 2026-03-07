@@ -142,6 +142,10 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     const [meshInitialized, setMeshInitialized] = useState(false);
     const [examUnlockedByMesh, setExamUnlockedByMesh] = useState(false);
 
+    // --- BEHAVIORAL PROCTORING (PHASE 4) ---
+    const [isScreenLocked, setIsScreenLocked] = useState(false);
+    const [lockReason, setLockReason] = useState<string>('');
+
     // --- PROCTORING HOOK ---
     const [proctoringActive, setProctoringActive] = useState(false);
 
@@ -375,6 +379,60 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     // 🔒 Fullscreen Security Hook
     const { enterKioskMode } = useFullscreenSecurity(step, cameraActive, isSessionActive);
 
+    // 👁️ Comportamental: Monitoramento Anti-Cola (Phase 4)
+    useEffect(() => {
+        if (step !== 'EXAM') return;
+
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                console.warn('⚠️ FRAUDE DETECTADA: Aluno escondeu a aba ou minimizou o app.');
+                triggerProctoringLock('TAB_SWITCH', 'O aplicativo foi minimizado ou a aba foi trocada.');
+            }
+        };
+
+        const handleBlur = () => {
+            console.warn('⚠️ FRAUDE DETECTADA: Aluno retirou o foco da janela da prova.');
+            triggerProctoringLock('TAB_SWITCH', 'Você clicou fora da área da prova ou partiu a tela.');
+        };
+
+        const triggerProctoringLock = (type: string, reasonDetails: string) => {
+            setIsScreenLocked(true);
+            setLockReason(reasonDetails);
+
+            // Logar localmente (via hook proctoring existente indireto ou Telemetria)
+            if (meshInitialized && studentData?.id) {
+                getTelemetryService().logViolation({
+                    studentId: studentData.id,
+                    eventType: type as any,
+                    severity: 'HIGH',
+                    timestamp: Date.now(),
+                    metadata: { detail: reasonDetails }
+                });
+            }
+
+            // Avisar ao professor ativamente:
+            if (studentData?.id) {
+                getMeshNetwork().broadcastMessage('ALERT', {
+                    type: 'SECURITY_EVENT',
+                    studentId: studentData.id,
+                    studentName: studentData.name,
+                    eventType: type,
+                    severity: 'HIGH',
+                    timestamp: Date.now()
+                });
+            }
+        };
+
+        // Escutar ativamente
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('blur', handleBlur);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('blur', handleBlur);
+        };
+    }, [step, meshInitialized, studentData]);
+
     // ✨ Auto-logout após completar prova (multi-login)
     useEffect(() => {
         if (step === 'COMPLETED' && isSessionActive) {
@@ -494,6 +552,13 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 if (msg.type === 'ENABLE_EXAM') {
                     console.log('🚀 Prova habilitada via Mesh pelo Professor!');
                     setExamUnlockedByMesh(true);
+                }
+                
+                if (msg.type === 'UNLOCK_SCREEN') {
+                    if (msg.payload.targetStudentId === studentId) {
+                        console.log('🔓 Tela desbloqueada remotamente pelo professor!');
+                        setIsScreenLocked(false);
+                    }
                 }
 
                 if (msg.type === 'HANDSHAKE_RESPONSE' && msg.payload.targetStudentId === studentId) {
@@ -1132,8 +1197,23 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         );
     }
 
-
     // --- EXAM UI ---
+    if (isScreenLocked) {
+        return (
+            <div className="fixed inset-0 bg-red-900 flex flex-col items-center justify-center text-white p-8 text-center z-50">
+                <AlertTriangle size={64} className="text-red-500 mb-6 animate-pulse" />
+                <h1 className="text-3xl font-bold mb-4 uppercase tracking-wider">Prova Bloqueada</h1>
+                <p className="text-lg text-red-200 font-medium max-w-lg mb-8">
+                    {lockReason}
+                </p>
+                <div className="bg-red-950 border border-red-800 p-6 rounded-2xl scale-95 md:scale-100">
+                    <p className="text-sm text-red-300 font-bold uppercase mb-2">Ação Exigida:</p>
+                    <p className="text-white">Levante a mão e solicite ao professor o <b>desbloqueio remoto</b> de sua máquina para poder continuar de onde parou.</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div
             className={`fixed inset-0 flex flex-col overflow-hidden font-sans transition-colors duration-300 ${getThemeClasses()}`}
