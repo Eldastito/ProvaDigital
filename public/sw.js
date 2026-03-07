@@ -8,7 +8,7 @@
  * - Push notifications (futuro)
  */
 
-const CACHE_NAME = 'examepad-v1';
+const CACHE_NAME = 'examepad-v2';
 const OFFLINE_URL = '/offline.html';
 
 // Assets para cache imediato
@@ -17,35 +17,37 @@ const STATIC_ASSETS = [
     '/index.html',
     '/offline.html',
     '/manifest.json',
+    '/index.css',
+    '/social1.png',
     '/icon-192.png',
-    '/icon-512.png'
+    '/icon-512.png',
+    'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap'
 ];
 
 // Instalação do Service Worker
 self.addEventListener('install', (event) => {
-    console.log('[SW] Installing...');
+    console.log('👷 [SW] Instalando Versão V2...');
 
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            console.log('[SW] Caching static assets');
+            console.log('👷 [SW] Prefetching static assets');
             return cache.addAll(STATIC_ASSETS);
         })
     );
 
-    // Força ativação imediata
     self.skipWaiting();
 });
 
 // Ativação do Service Worker
 self.addEventListener('activate', (event) => {
-    console.log('[SW] Activating...');
+    console.log('🚀 [SW] Ativando e limpando caches antigos...');
 
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cacheName) => {
-                    if (cacheName !== CACHE_NAME) {
-                        console.log('[SW] Deleting old cache:', cacheName);
+                    if (cacheName !== CACHE_NAME && !cacheName.startsWith('examepad-exams-')) {
+                        console.log('🗑️ [SW] Deletando cache obsoleto:', cacheName);
                         return caches.delete(cacheName);
                     }
                 })
@@ -53,49 +55,39 @@ self.addEventListener('activate', (event) => {
         })
     );
 
-    // Assume controle imediato
     self.clients.claim();
 });
 
-// Estratégia de fetch: Network First, fallback para Cache
+// Estratégia de fetch: Stale-While-Revalidate (Melhor para apps offline-first)
 self.addEventListener('fetch', (event) => {
-    // Ignora requisições não-GET
     if (event.request.method !== 'GET') return;
 
-    // Ignora requisições para APIs externas
-    if (!event.request.url.startsWith(self.location.origin)) return;
+    // Ignora Supabase e APIs externas dinâmicas no cache de assets
+    if (event.request.url.includes('supabase') || event.request.url.includes('google-analytics')) {
+        return;
+    }
 
     event.respondWith(
-        fetch(event.request)
-            .then((response) => {
-                // Se a resposta for válida, clona e salva no cache
-                if (response && response.status === 200) {
-                    const responseToCache = response.clone();
+        caches.match(event.request).then((cachedResponse) => {
+            const fetchPromise = fetch(event.request).then((networkResponse) => {
+                if (networkResponse && networkResponse.status === 200) {
+                    const responseToCache = networkResponse.clone();
                     caches.open(CACHE_NAME).then((cache) => {
                         cache.put(event.request, responseToCache);
                     });
                 }
-                return response;
-            })
-            .catch(() => {
-                // Se falhar (offline), tenta buscar do cache
-                return caches.match(event.request).then((cachedResponse) => {
-                    if (cachedResponse) {
-                        return cachedResponse;
-                    }
+                return networkResponse;
+            }).catch((err) => {
+                console.warn('📡 [SW] Falha de rede capturada:', event.request.url);
+                return cachedResponse; // Garantia de retorno do cache em caso de erro de rede
+            });
 
-                    // Se for navegação e não tiver cache, mostra página offline
-                    if (event.request.mode === 'navigate') {
-                        return caches.match(OFFLINE_URL);
-                    }
-
-                    // Retorna resposta vazia para outros recursos
-                    return new Response('Offline', {
-                        status: 503,
-                        statusText: 'Service Unavailable'
-                    });
-                });
-            })
+            return cachedResponse || fetchPromise;
+        }).catch(() => {
+            if (event.request.mode === 'navigate') {
+                return caches.match(OFFLINE_URL);
+            }
+        })
     );
 });
 
