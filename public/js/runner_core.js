@@ -253,9 +253,9 @@ function initCanvasGlobal() {
 
 function resizeCanvas() {
     if(!canvas) return;
-    const card = document.getElementById('question-card');
+    const card = document.querySelector('.runner-main');
     canvas.width = card.clientWidth;
-    canvas.height = card.clientHeight;
+    canvas.height = card.scrollHeight; // Utilize scrollHeight to allow drawing all the way down
     restoreDrawing();
 }
 
@@ -367,10 +367,14 @@ function setupListeners() {
 
     // Tools Toggle logic
     bindUniversalTap('btn-highlight', () => {
-        state.activeTool = (state.activeTool === 'highlight') ? null : 'highlight';
+        if (state.activeTool === 'highlight') {
+            state.activeTool = null;
+        } else {
+            state.activeTool = 'highlight';
+        }
         document.getElementById('btn-highlight').classList.toggle('active', state.activeTool === 'highlight');
         document.getElementById('btn-erase').classList.remove('active');
-        document.getElementById('question-card').classList.toggle('drawing-active', state.activeTool !== null);
+        document.body.classList.toggle('drawing-active', state.activeTool !== null);
         document.getElementById('tool-settings').classList.toggle('hidden', state.activeTool !== 'highlight');
         document.getElementById('pen-settings').classList.remove('hidden');
         document.getElementById('eraser-settings').classList.add('hidden');
@@ -378,28 +382,51 @@ function setupListeners() {
     });
 
     bindUniversalTap('btn-erase', () => {
-        state.activeTool = (state.activeTool === 'erase') ? null : 'erase';
+        if (state.activeTool === 'erase') {
+            state.activeTool = null;
+        } else {
+            state.activeTool = 'erase';
+        }
         document.getElementById('btn-erase').classList.toggle('active', state.activeTool === 'erase');
         document.getElementById('btn-highlight').classList.remove('active');
-        document.getElementById('question-card').classList.toggle('drawing-active', state.activeTool !== null);
+        document.body.classList.toggle('drawing-active', state.activeTool !== null);
         document.getElementById('tool-settings').classList.toggle('hidden', state.activeTool !== 'erase');
         document.getElementById('eraser-settings').classList.remove('hidden');
         document.getElementById('pen-settings').classList.add('hidden');
     });
 
+    bindUniversalTap('close-tools', () => {
+        state.activeTool = null;
+        document.getElementById('btn-highlight').classList.remove('active');
+        document.getElementById('btn-erase').classList.remove('active');
+        document.body.classList.remove('drawing-active');
+        document.getElementById('tool-settings').classList.add('hidden');
+    });
+
+    // Helper to compute CSS variables to Hex/RGBA for Canvas
+    function getCssColor(colorValue) {
+        if (colorValue.includes('var(')) {
+            const varName = colorValue.replace(/var\((.*?)\)/, '$1').trim();
+            return getComputedStyle(document.body).getPropertyValue(varName).trim();
+        }
+        return colorValue;
+    }
+
     // Sub-menu selectors
     document.querySelectorAll('.color-btn').forEach(btn => {
         bindUniversalTap(btn.id, () => {
-            penColor = btn.getAttribute('data-color');
+            let rawColor = btn.getAttribute('data-color');
+            penColor = getCssColor(rawColor);
             // If it's the yellow one, make it slightly transparent for highlighting
-            if(penColor === '#eab308') penColor = "rgba(234, 179, 8, 0.4)"; 
+            if(rawColor === '#eab308') penColor = "rgba(234, 179, 8, 0.4)"; 
             document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
         });
         // We can't use ID directly because there are no IDs in HTML for these, need to add event listeners manually below
         btn.addEventListener('click', (e) => {
-             penColor = e.target.getAttribute('data-color');
-             if(penColor === '#eab308') penColor = "rgba(234, 179, 8, 0.4)"; 
+             let rawColor = e.target.getAttribute('data-color');
+             penColor = getCssColor(rawColor);
+             if(rawColor === '#eab308') penColor = "rgba(234, 179, 8, 0.4)"; 
              document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
              e.target.classList.add('active');
         });

@@ -132,35 +132,37 @@
                         <textarea id="final-answer" class="scratch-box" placeholder="Sua resposta definitiva..."></textarea>
                     </div>
                 </div>
-                
-                <!-- Drawing Layer for Freehand Pen/Eraser -->
-                <canvas id="drawing-layer" class="drawing-layer"></canvas>
             </div>
-            
-            <!-- VideoLibras Container -->
-            <div id="videolibras-container">
-                <video id="libras-player" width="100%" height="100%" loop muted playsinline>
-                    <!-- Source injetado via JS -->
-                </video>
-                <div id="libras-empty">🤟 LIBRAS</div>
-            </div>
+        </main>
 
-            <!-- Drawing Tool Settings (Pen Color/Eraser Size) -->
-            <div id="tool-settings" class="hidden glass">
-                <div id="pen-settings" class="hidden">
-                    <span>Cor:</span>
-                    <button class="color-btn" style="background:var(--primary)" data-color="var(--primary)"></button>
-                    <button class="color-btn" style="background:#ef4444" data-color="#ef4444"></button>
-                    <button class="color-btn" style="background:#eab308" data-color="#eab308"></button>
-                    <button class="color-btn" style="background:#22c55e" data-color="#22c55e"></button>
-                </div>
-                <div id="eraser-settings" class="hidden">
-                    <span>Tamanho:</span>
-                    <button class="size-btn" data-size="10">P</button>
-                    <button class="size-btn" data-size="25">M</button>
-                    <button class="size-btn" data-size="50">G</button>
-                </div>
+        <!-- Drawing Layer for Freehand Pen/Eraser: Moved out to cover the entire runner-main area, allowing scroll area access -->
+        <canvas id="drawing-layer" class="drawing-layer"></canvas>
+
+        <!-- VideoLibras Container -->
+        <div id="videolibras-container">
+            <video id="libras-player" width="100%" height="100%" loop muted playsinline>
+                <!-- Source injetado via JS -->
+            </video>
+            <div id="libras-empty">🤟 LIBRAS</div>
+        </div>
+
+        <!-- Drawing Tool Settings (Pen Color/Eraser Size) -->
+        <div id="tool-settings" class="hidden glass">
+            <button id="close-tools" class="close-tools-btn" title="Fechar Menu">✕</button>
+            <div id="pen-settings" class="hidden">
+                <span>Cor:</span>
+                <button class="color-btn" style="background:var(--primary)" data-color="var(--primary)"></button>
+                <button class="color-btn" style="background:#ef4444" data-color="#ef4444"></button>
+                <button class="color-btn" style="background:#eab308" data-color="#eab308"></button>
+                <button class="color-btn" style="background:#22c55e" data-color="#22c55e"></button>
             </div>
+            <div id="eraser-settings" class="hidden">
+                <span>Tamanho:</span>
+                <button class="size-btn" data-size="10">P</button>
+                <button class="size-btn" data-size="25">M</button>
+                <button class="size-btn" data-size="50">G</button>
+            </div>
+        </div>
         </main>
 
         <!-- Footer Navigation -->

@@ -453,7 +453,7 @@ body.focus-mode .card {
     pointer-events: none; /* Only allow pointer events when tools are active */
 }
 
-.drawing-active .drawing-layer {
+body.drawing-active .drawing-layer {
     pointer-events: auto;
 }
 
@@ -473,11 +473,22 @@ body.focus-mode .card {
     z-index: 100;
 }
 
+.close-tools-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1rem;
+    cursor: pointer;
+    margin-right: 5px;
+}
+.close-tools-btn:hover { color: white; }
+
 #tool-settings span {
     color: white;
     font-size: 0.8rem;
     margin-right: 8px;
 }
+
 
 .color-btn, .size-btn {
     width: 30px; height: 30px;
