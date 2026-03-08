@@ -239,7 +239,46 @@ function bindUniversalTap(elementId, callback) {
     }, {passive: false});
 }
 
+// --- GLOBAL DRAWING STATE ---
+let canvas, ctx;
+let isDrawing = false;
+let penColor = "rgba(255, 255, 0, 0.4)";
+let penSize = 10;
+
+function initCanvasGlobal() {
+    canvas = document.getElementById('drawing-layer');
+    if (!canvas) return;
+    ctx = canvas.getContext('2d', { willReadFrequently: true });
+}
+
+function resizeCanvas() {
+    if(!canvas) return;
+    const card = document.getElementById('question-card');
+    canvas.width = card.clientWidth;
+    canvas.height = card.clientHeight;
+    restoreDrawing();
+}
+
+function saveDrawing() {
+    if(!canvas) return;
+    const qId = state.questions[state.currentQuestion].id;
+    state.answers[qId] = state.answers[qId] || {};
+    state.answers[qId].drawing = canvas.toDataURL();
+}
+
+function restoreDrawing() {
+    if(!ctx) return;
+    const qId = state.questions[state.currentQuestion].id;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (state.answers[qId] && state.answers[qId].drawing) {
+        const img = new Image();
+        img.onload = () => ctx.drawImage(img, 0, 0);
+        img.src = state.answers[qId].drawing;
+    }
+}
+
 function setupListeners() {
+    initCanvasGlobal();
     bindUniversalTap('start-exam', startExam);
     
     bindUniversalTap('btn-next', () => {
@@ -257,11 +296,10 @@ function setupListeners() {
     });
 
     // --- FREEHAND DRAWING LOGIC (Canvas) ---
-    const canvas = document.getElementById('drawing-layer');
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    let isDrawing = false;
-    let penColor = "rgba(255, 255, 0, 0.4)"; // Default HIGHLIGHTER (yellow semi-transparent)
-    let penSize = 10;
+    // Variables and global functions are now declared outside setupListeners
+    isDrawing = false;
+    penColor = "rgba(255, 255, 0, 0.4)"; // Default HIGHLIGHTER (yellow semi-transparent)
+    penSize = 10;
     
     // Resize canvas to cover the whole main area
     function resizeCanvas() {
@@ -270,29 +308,10 @@ function setupListeners() {
         canvas.height = card.clientHeight;
         restoreDrawing();
     }
+    // Tools Toggle logic bindings are kept here, but global drawing setup is moved out.
+
     window.addEventListener('resize', resizeCanvas);
-    setTimeout(resizeCanvas, 500);
-
-    // Save and restore strokes per question
-    function saveDrawing() {
-        const qId = state.questions[state.currentQuestion].id;
-        state.answers[qId] = state.answers[qId] || {};
-        state.answers[qId].drawing = canvas.toDataURL();
-    }
-
-    function restoreDrawing() {
-        const qId = state.questions[state.currentQuestion].id;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        if (state.answers[qId] && state.answers[qId].drawing) {
-            const img = new Image();
-            img.onload = () => ctx.drawImage(img, 0, 0);
-            img.src = state.answers[qId].drawing;
-        }
-    }
-
-    // Call restoreDrawing inside renderQuestion (patched via observing currentQuestion change in real app, here we will trigger on btn-next/prev)
-
-    // Drawing Events
+    setTimeout(resizeCanvas, 500);    // Drawing Events
     function getEventPos(e) {
         const rect = canvas.getBoundingClientRect();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;

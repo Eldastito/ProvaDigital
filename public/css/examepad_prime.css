@@ -576,4 +576,14 @@ body.focus-mode .card {
 .btn-secondary { background: rgba(255,255,255,0.1); color: white; }
 .btn-danger { background: var(--danger); color: white; }
 
+/* Runner Footer */
+.runner-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem 3rem 2rem; /* Added 3rem bottom padding to clear Android navigation bar */
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
 .hidden { display: none !important; }
