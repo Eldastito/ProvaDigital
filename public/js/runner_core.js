@@ -316,7 +316,11 @@ function setupListeners() {
         const rect = canvas.getBoundingClientRect();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        return { x: clientX - rect.left, y: clientY - rect.top };
+        // Adjust for scroll position and bounding rect offset
+        return { 
+            x: clientX - rect.left, 
+            y: clientY - rect.top 
+        };
     }
 
     function startPosition(e) {
@@ -440,13 +444,24 @@ function setupListeners() {
         });
     });
 
+    // Discursive / Scratchpad
+    bindUniversalTap('btn-discursive', () => {
+        const scratchModal = document.getElementById('scratchpad-modal');
+        scratchModal.classList.remove('hidden');
+    });
+
+    bindUniversalTap('close-scratchpad', () => {
+        const scratchModal = document.getElementById('scratchpad-modal');
+        scratchModal.classList.add('hidden');
+    });
+
     bindUniversalTap('btn-apply-scratch', () => {
-        const text = document.getElementById('scratch-box').value;
-        const qId = state.questions[state.currentQuestion].id;
-        document.getElementById('final-answer').value = text;
-        state.answers[qId] = state.answers[qId] || {};
-        state.answers[qId].final = text;
-        state.answers[qId].scratch = text;
+        const answer = document.getElementById('scratch-box').value;
+        const finalBox = document.getElementById('final-answer');
+        if (finalBox) finalBox.value = answer;
+        
+        state.answers[state.currentQuestion] = answer;
+        saveProgress();
     });
 
     bindUniversalTap('btn-read', () => {
@@ -529,33 +544,37 @@ function setupListeners() {
 
     // Zoom
     const zoomSlider = document.getElementById('zoom-slider');
-    zoomSlider.addEventListener('input', (e) => {
-        state.fontSize = e.target.value;
-        document.documentElement.style.setProperty('--font-base', `${state.fontSize}rem`);
-    });
+    if (zoomSlider) {
+        zoomSlider.addEventListener('input', (e) => {
+            state.fontSize = e.target.value;
+            document.documentElement.style.setProperty('--font-scale', state.fontSize);
+        });
+    }
 
     // Spacing
     const lineSlider = document.getElementById('line-slider');
-    lineSlider.addEventListener('input', (e) => {
-        state.lineHeight = e.target.value;
-        document.documentElement.style.setProperty('--line-spacing', state.lineHeight);
-    });
+    if (lineSlider) {
+        lineSlider.addEventListener('input', (e) => {
+            state.lineHeight = e.target.value;
+            document.documentElement.style.setProperty('--line-height', state.lineHeight);
+        });
+    }
 
     // Themes
     document.querySelectorAll('.theme-btn[data-theme]').forEach(btn => {
-        bindUniversalTap(btn.className, (e) => {
-            const theme = btn.getAttribute('data-theme');
-            document.body.className = theme; // Replace all theme classes
-            if (state.focusMode) document.body.classList.add('focus-mode');
-            if (state.dyslexicMode) document.body.classList.add('dyslexic-mode');
-        });
-        // Add specific click to the button elements directly just in case className bind fails due to node selection
         btn.addEventListener('click', () => {
              const theme = btn.getAttribute('data-theme');
-             document.body.className = theme;
+             document.body.className = `theme-${theme}`; // Proper class naming
              if (state.focusMode) document.body.classList.add('focus-mode');
              if (state.dyslexicMode) document.body.classList.add('dyslexic-mode');
         });
+        btn.addEventListener('touchstart', (e) => {
+             e.preventDefault();
+             const theme = btn.getAttribute('data-theme');
+             document.body.className = `theme-${theme}`; 
+             if (state.focusMode) document.body.classList.add('focus-mode');
+             if (state.dyslexicMode) document.body.classList.add('dyslexic-mode');
+        }, {passive: false});
     });
 
     // OpenDyslexic
@@ -571,9 +590,22 @@ function setupListeners() {
         if (state.librasMode) playLibras(state.questions[state.currentQuestion].libras);
     });
 
-    bindUniversalTap('btn-finish', () => { document.getElementById('custom-modal').style.display = 'flex'; });
-    bindUniversalTap('modal-cancel', () => { document.getElementById('custom-modal').style.display = 'none'; });
-    bindUniversalTap('modal-confirm', () => { window.location.reload(); });
+    bindUniversalTap('btn-finish', () => { 
+        document.getElementById('custom-modal').classList.remove('hidden');
+        
+        // Generate Analytics Report
+        const totalAnswers = Object.keys(state.answers).length;
+        const totalQuestions = state.questions.length;
+        document.getElementById('finish-report').innerText = `Você respondeu ${totalAnswers} de ${totalQuestions} perguntas.`;
+    });
+    
+    bindUniversalTap('modal-cancel', () => { 
+        document.getElementById('custom-modal').classList.add('hidden'); 
+    });
+    
+    bindUniversalTap('modal-confirm', () => { 
+        window.location.reload(); 
+    });
 }
 
 function initThreeJS() {

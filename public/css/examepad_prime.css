@@ -447,8 +447,6 @@ body.focus-mode .card {
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
     z-index: 10;
     pointer-events: none; /* Only allow pointer events when tools are active */
 }
@@ -507,30 +505,41 @@ body.drawing-active .drawing-layer {
     transform: scale(1.1);
 }
 
-/* Discursive / Scratchpad */
-.discursive-container {
+/* Floating Scratchpad Modal */
+.scratchpad-modal-content {
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    position: absolute;
+    bottom: 80px; /* Keep it above footer */
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
-    margin-top: 1.5rem;
+    padding: 15px;
+    z-index: 200;
 }
 
-.scratchpad-area {
-    background: rgba(255,255,255,0.03);
-    border: 1px dashed rgba(255,255,255,0.2);
-    border-radius: 16px;
-    padding: 1.5rem;
-    position: relative;
+.scratchpad-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
 }
 
-.scratchpad-label {
-    position: absolute;
-    top: -10px; left: 20px;
-    background: var(--bg-main);
-    padding: 0 10px;
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
+.scratchpad-title {
+    font-weight: 600;
+    color: var(--primary);
+    font-size: 1.1rem;
+}
+
+.scratchpad-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .scratch-box {

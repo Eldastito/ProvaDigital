@@ -3,6 +3,7 @@ package com.examepad.app
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
+import android.webkit.WebSettings
 import com.getcapacitor.BridgeActivity
 
 class RunnerActivity : BridgeActivity() {
@@ -19,6 +20,18 @@ class RunnerActivity : BridgeActivity() {
 
         // Impede que a tela apague
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        // Configurações Adicionais do WebView para Máxima Performance 3D/WebGL
+        bridge.webView.settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            databaseEnabled = true
+            setSupportMultipleWindows(false)
+            mediaPlaybackRequiresUserGesture = false
+            
+            // Força aceleração de hardware e renderização de alta performance
+            setLayerType(View.LAYER_TYPE_HARDWARE, null)
+        }
 
         // Tenta iniciar o Lock Task (Fixação de tela) para evitar minimizar
         try {

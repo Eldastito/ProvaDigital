@@ -28,16 +28,32 @@
     </div>
 
     <!-- Modal de Finalização Customizado -->
-    <div id="custom-modal">
-        <div class="modal-content glass">
-            <h2 class="modal-title">Finalizar Prova?</h2>
-            <p class="modal-text" id="modal-msg">Você respondeu X questões. Deseja encerrar sua participação e enviar as respostas agora?</p>
-            <div class="modal-actions">
-                <button id="modal-cancel" class="btn-secondary">Voltar</button>
-                <button id="modal-confirm" class="btn-danger">Finalizar</button>
+    <div id="custom-modal" class="modal-overlay hidden">
+            <div class="modal-content text-center">
+                <h2>Finalizar Prova</h2>
+                <p>Tem certeza de que deseja encerrar e entregar sua prova? Após confirmar, você não poderá alterar suas respostas.</p>
+                <p id="finish-report" style="margin-top: 15px; font-weight: bold; color: var(--primary);"></p>
+                <div style="display: flex; gap: 10px; margin-top: 25px; justify-content: center;">
+                    <button id="modal-cancel" class="btn-secondary">Voltar à Prova</button>
+                    <button id="modal-confirm" class="btn-primary" style="background: var(--danger);">Encerrar Prova</button>
+                </div>
             </div>
         </div>
-    </div>
+
+        <!-- Discursive / Scratchpad Modal -->
+        <div id="scratchpad-modal" class="modal-overlay hidden">
+            <div class="scratchpad-modal-content">
+                <div class="scratchpad-header">
+                    <span class="scratchpad-title">✏️ Papel de Rascunho</span>
+                    <button id="close-scratchpad" class="close-tools-btn" title="Fechar Rascunho">✕</button>
+                </div>
+                <div class="scratchpad-body">
+                    <textarea id="scratch-box" class="scratch-box" placeholder="Escreva seu rascunho aqui... (Isso não será avaliado)"></textarea>
+                    <button id="btn-apply-scratch" class="btn-primary" style="margin: 10px 0;">Aplicar Rascunho como Resposta ↓</button>
+                    <textarea id="final-answer" class="scratch-box" placeholder="Sua resposta definitiva... (Esta será enviada)"></textarea>
+                </div>
+            </div>
+        </div>
 
     <!-- Watchdog & Diagnostic Script -->
     <script>
@@ -120,18 +136,8 @@
                 <div id="options-list" class="options-container">
                     <!-- Opções injetadas aqui -->
                 </div>
-
-                <!-- Discursive / Scratchpad Area -->
-                <div id="discursive-area" class="discursive-container hidden">
-                    <div class="scratchpad-area">
-                        <span class="scratchpad-label">Papel de Rascunho</span>
-                        <textarea id="scratch-box" class="scratch-box" placeholder="Escreva seu rascunho aqui..."></textarea>
-                    </div>
-                    <button id="btn-apply-scratch" class="btn-primary">Aplicar na Resposta Final ↓</button>
-                    <div class="final-answer-area">
-                        <textarea id="final-answer" class="scratch-box" placeholder="Sua resposta definitiva..."></textarea>
-                    </div>
-                </div>
+            </div>
+        </main>
             </div>
         </main>
 
