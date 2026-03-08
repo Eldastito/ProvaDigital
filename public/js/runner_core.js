@@ -1,7 +1,7 @@
 /**
- * ExamePad - Runner Core Offline (v4.16)
+ * ExamePad - Runner Core Offline (v4.17)
  * Vanilla JS (Legacy Support - No Modules)
- * Focus: Stability fixes (Pointer Events, 3D Fallback, Silent TTS)
+ * Focus: Galaxy Tab S6 Lite Compatibility (Kiosk bypass, Fallback fixes)
  */
 
 const state = {
@@ -30,7 +30,7 @@ const state = {
 let renderer, scene, camera, model, ambientLight, hemiLight, dirLight;
 let timerInterval;
 
-// Mock Data with Image fallbacks
+// Mock Data
 function mockData() {
     return [
         {
@@ -44,7 +44,7 @@ function mockData() {
                 "Complexo de Golgi: Secreção Celular"
             ],
             model: "celula_humana.glb",
-            image: "celula_humana.png", // Fallback image
+            image: "mapa.png", // Usando imagem já existente caso 3D falhe
             libras: "video_cell.mp4"
         },
         {
@@ -53,7 +53,7 @@ function mockData() {
             text: "No modelo abaixo do Sistema Solar, identifique o planeta que possui o maior sistema de anéis visíveis.",
             options: ["Júpiter", "Saturno", "Urano", "Netuno"],
             model: "sistema_solare.glb",
-            image: "sistema_solar.png", // Fallback image
+            image: "mapa.png", // Substituir por imagem real do sistema solar depois
             libras: "video_solar.mp4"
         },
         {
@@ -82,6 +82,8 @@ function init() {
         
         document.getElementById('app-container').style.opacity = "0.3";
         document.getElementById('app-container').style.pointerEvents = "none";
+        
+        console.log("Runner v4.17: Ready.");
     } catch (e) {
         console.error("Init Error:", e);
     }
@@ -157,7 +159,12 @@ function renderQuestion() {
                 div.className = `option ${state.answers[q.id] === idx ? 'selected' : ''}`;
                 if (state.answers[`${q.id}_eliminated_${idx}`]) div.classList.add('eliminated');
                 div.innerText = opt;
-                div.onclick = () => handleOptionClick(q.id, idx);
+                // Kiosk Bypass: Support both touch and click
+                div.addEventListener('click', () => handleOptionClick(q.id, idx));
+                div.addEventListener('touchstart', (e) => {
+                    e.preventDefault(); // Prevent double trigger
+                    handleOptionClick(q.id, idx);
+                }, {passive: false});
                 optionsList.appendChild(div);
             });
         }
@@ -193,13 +200,14 @@ function updateMediaDisplay() {
         if (state.displayMode === '3D' && q.model && typeof THREE !== 'undefined' && !!THREE.GLTFLoader) {
             canvas.classList.remove('hidden');
             fallback.classList.add('hidden');
-            btnMode.innerText = "Ver 2D (Imagem)";
+            btnMode.innerText = "Ver 2D (Imagem Opcional)";
             loadModel(q.model);
         } else if (q.image) {
             canvas.classList.add('hidden');
             fallback.classList.remove('hidden');
-            fallback.src = `./assets/images/${q.image}`;
-            btnMode.innerText = "Ver 3D (Modelo)";
+            // Fix path to point to root level if not in assets/images
+            fallback.src = `./${q.image}`; 
+            btnMode.innerText = "Tentar 3D Novamente";
             if (!q.model) btnMode.classList.add('hidden');
         } else {
             container.classList.add('hidden');
@@ -219,45 +227,55 @@ function handleOptionClick(qId, idx) {
     }
 }
 
-function setupListeners() {
-    document.getElementById('start-exam').onclick = startExam;
+// Binds both click and touchstart to bypass kiosk restrictions
+function bindUniversalTap(elementId, callback) {
+    const el = document.getElementById(elementId);
+    if(!el) return;
+    el.addEventListener('click', callback);
+    el.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        callback(e);
+    }, {passive: false});
+}
 
-    document.getElementById('btn-next').onclick = () => {
+function setupListeners() {
+    bindUniversalTap('start-exam', startExam);
+    
+    bindUniversalTap('btn-next', () => {
         if (state.currentQuestion < state.questions.length - 1) {
             state.currentQuestion++;
             renderQuestion();
         }
-    };
-    document.getElementById('btn-prev').onclick = () => {
+    });
+    
+    bindUniversalTap('btn-prev', () => {
         if (state.currentQuestion > 0) {
             state.currentQuestion--;
             renderQuestion();
         }
-    };
+    });
 
-    // Tools using Pointer Events for Tablet
-    document.getElementById('btn-highlight').onpointerdown = (e) => {
+    // Tools using direct events
+    bindUniversalTap('btn-highlight', () => {
         state.activeTool = (state.activeTool === 'highlight') ? null : 'highlight';
         document.getElementById('btn-highlight').classList.toggle('active', state.activeTool === 'highlight');
         document.getElementById('btn-erase').classList.remove('active');
         document.getElementById('question-text').style.cursor = state.activeTool === 'highlight' ? 'crosshair' : 'default';
-        e.stopPropagation();
-    };
+    });
 
-    document.getElementById('btn-erase').onpointerdown = (e) => {
+    bindUniversalTap('btn-erase', () => {
         state.activeTool = (state.activeTool === 'erase') ? null : 'erase';
         document.getElementById('btn-erase').classList.toggle('active', state.activeTool === 'erase');
         document.getElementById('btn-highlight').classList.remove('active');
-        e.stopPropagation();
-    };
+    });
 
-    document.addEventListener('pointerup', () => {
+    // Handle highlighting securely
+    const applyHighlight = () => {
         if (state.activeTool !== 'highlight') return;
         const sel = window.getSelection();
         if (!sel.rangeCount || sel.isCollapsed) return;
         const range = sel.getRangeAt(0);
         
-        // Safety check to ensure selection is within question-text
         const qText = document.getElementById('question-text');
         if (!qText.contains(range.commonAncestorContainer)) return;
 
@@ -267,65 +285,82 @@ function setupListeners() {
             range.surroundContents(span);
         } catch(e) { console.warn("Highlight fail."); }
         sel.removeAllRanges();
-    });
+    };
+    
+    document.addEventListener('mouseup', applyHighlight);
+    document.addEventListener('touchend', applyHighlight);
 
-    document.getElementById('btn-apply-scratch').onclick = () => {
+    bindUniversalTap('btn-apply-scratch', () => {
         const text = document.getElementById('scratch-box').value;
         const qId = state.questions[state.currentQuestion].id;
         document.getElementById('final-answer').value = text;
         state.answers[qId] = state.answers[qId] || {};
         state.answers[qId].final = text;
         state.answers[qId].scratch = text;
-    };
+    });
 
-    document.getElementById('btn-read').onclick = () => {
+    bindUniversalTap('btn-read', () => {
         const text = state.questions[state.currentQuestion].text;
+        
+        // Visual feedback
+        const originalTitle = document.getElementById('btn-read').title;
+        document.getElementById('btn-read').title = "Lendo...";
+        document.getElementById('btn-read').style.background = "rgba(255,255,255,0.4)";
+        setTimeout(() => {
+            document.getElementById('btn-read').title = originalTitle;
+            document.getElementById('btn-read').style.background = "";
+        }, 3000);
+
         if (window.speechSynthesis) {
             window.speechSynthesis.cancel();
             const utter = new SpeechSynthesisUtterance(text);
             utter.lang = 'pt-BR';
             window.speechSynthesis.speak(utter);
         }
-        // Silent fail if not supported - no alert as per user request
-    };
+    });
 
-    document.getElementById('btn-focus').onclick = () => {
+    bindUniversalTap('btn-focus', () => {
         state.focusMode = !state.focusMode;
         document.body.classList.toggle('focus-mode', state.focusMode);
         document.getElementById('btn-focus').style.background = state.focusMode ? 'var(--primary)' : '';
-    };
+    });
 
     // 3D/2D Toggle
-    document.getElementById('c3d-mode').onclick = () => {
+    bindUniversalTap('c3d-mode', () => {
         state.displayMode = (state.displayMode === '3D') ? '2D' : '3D';
         updateMediaDisplay();
-    };
+    });
 
-    document.getElementById('c3d-explode').onclick = () => {
+    bindUniversalTap('c3d-explode', () => {
         if (!model) return;
         state.isExploded = !state.isExploded;
         explodeModel(state.isExploded ? 2.0 : 0);
-        document.getElementById('c3d-explode').innerText = state.isExploded ? "Resetar Posição" : "Inspecionar (Explodir)";
-    };
+        document.getElementById('c3d-explode').innerText = state.isExploded ? "Resetar Posição" : "Inspecionar";
+    });
 
-    document.getElementById('c3d-reset').onclick = () => {
+    bindUniversalTap('c3d-reset', () => {
         if (model) {
             model.rotation.set(0,0,0);
             explodeModel(0);
             state.isExploded = false;
-            document.getElementById('c3d-explode').innerText = "Inspecionar (Explodir)";
+            document.getElementById('c3d-explode').innerText = "Inspecionar";
         }
-    };
+    });
 
-    document.getElementById('btn-libras').onclick = () => {
+    // Access Hub & Libras
+    const hub = document.getElementById('access-hub');
+    bindUniversalTap('btn-access', () => hub.classList.toggle('open'));
+    bindUniversalTap('close-hub', () => hub.classList.remove('open'));
+    
+    bindUniversalTap('btn-libras', () => {
         state.librasMode = !state.librasMode;
         document.getElementById('videolibras-container').style.display = state.librasMode ? 'block' : 'none';
         if (state.librasMode) playLibras(state.questions[state.currentQuestion].libras);
-    };
+    });
 
-    document.getElementById('btn-finish').onclick = () => { document.getElementById('custom-modal').style.display = 'flex'; };
-    document.getElementById('modal-cancel').onclick = () => { document.getElementById('custom-modal').style.display = 'none'; };
-    document.getElementById('modal-confirm').onclick = () => { window.location.reload(); };
+    bindUniversalTap('btn-finish', () => { document.getElementById('custom-modal').style.display = 'flex'; });
+    bindUniversalTap('modal-cancel', () => { document.getElementById('custom-modal').style.display = 'none'; });
+    bindUniversalTap('modal-confirm', () => { window.location.reload(); });
 }
 
 function initThreeJS() {
@@ -353,9 +388,17 @@ function initThreeJS() {
         model.rotation.x += (y - prevY) * 0.01;
         prevX = x; prevY = y;
     };
-    canvas.addEventListener('pointerdown', (e) => onDown(e.clientX, e.clientY));
-    window.addEventListener('pointermove', (e) => onMove(e.clientX, e.clientY));
-    window.addEventListener('pointerup', () => { isDragging = false; });
+    
+    canvas.addEventListener('mousedown', (e) => onDown(e.clientX, e.clientY));
+    window.addEventListener('mouseup', () => { isDragging = false; });
+    canvas.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY));
+    
+    canvas.addEventListener('touchstart', (e) => onDown(e.touches[0].clientX, e.touches[0].clientY), {passive: false});
+    window.addEventListener('touchend', () => { isDragging = false; });
+    canvas.addEventListener('touchmove', (e) => { 
+        onMove(e.touches[0].clientX, e.touches[0].clientY); 
+        e.preventDefault(); 
+    }, {passive: false});
 
     function animate() {
         requestAnimationFrame(animate);
@@ -386,7 +429,7 @@ function loadModel(path) {
         loadingEl.classList.add('hidden');
     }, undefined, (err) => {
         console.error("3D Load Error:", err);
-        loadingEl.innerText = "FALHA 3D - USE MODO 2D";
+        loadingEl.innerText = "ERRO 3D - CLIQUE 'VER 2D'";
     });
 }
 

@@ -430,7 +430,7 @@ body.focus-mode .card {
     opacity: 0.3;
     text-decoration: line-through;
     position: relative;
-    /* Removed pointer-events: none to allow un-eliminating */
+/* Removed pointer-events: none to allow un-eliminating */
 }
 
 .option.eliminated::after {
