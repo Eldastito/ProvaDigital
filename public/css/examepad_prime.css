@@ -442,6 +442,60 @@ body.focus-mode .card {
     transform: rotate(-2deg);
 }
 
+/* Freehand Drawing Canvas */
+.drawing-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    pointer-events: none; /* Only allow pointer events when tools are active */
+}
+
+.drawing-active .drawing-layer {
+    pointer-events: auto;
+}
+
+/* Tool Settings Menu */
+#tool-settings {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.9);
+    padding: 10px 15px;
+    border-radius: 12px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    border: 1px solid rgba(255,255,255,0.1);
+    z-index: 100;
+}
+
+#tool-settings span {
+    color: white;
+    font-size: 0.8rem;
+    margin-right: 8px;
+}
+
+.color-btn, .size-btn {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    background: rgba(255,255,255,0.1);
+    color: white;
+    font-size: 0.8rem;
+    font-weight: bold;
+    display: flex; justify-content: center; align-items: center;
+}
+
+.color-btn.active, .size-btn.active {
+    border-color: white;
+    transform: scale(1.1);
+}
+
 /* Discursive / Scratchpad */
 .discursive-container {
     display: flex;

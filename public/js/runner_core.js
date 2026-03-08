@@ -183,6 +183,7 @@ function renderQuestion() {
         if (state.librasMode) playLibras(q.libras);
 
         updateProgress();
+        restoreDrawing();
         card.style.opacity = 1;
     }, 50);
 }
@@ -255,40 +256,143 @@ function setupListeners() {
         }
     });
 
-    // Tools using direct events
+    // --- FREEHAND DRAWING LOGIC (Canvas) ---
+    const canvas = document.getElementById('drawing-layer');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    let isDrawing = false;
+    let penColor = "rgba(255, 255, 0, 0.4)"; // Default HIGHLIGHTER (yellow semi-transparent)
+    let penSize = 10;
+    
+    // Resize canvas to cover the whole main area
+    function resizeCanvas() {
+        const card = document.getElementById('question-card');
+        canvas.width = card.clientWidth;
+        canvas.height = card.clientHeight;
+        restoreDrawing();
+    }
+    window.addEventListener('resize', resizeCanvas);
+    setTimeout(resizeCanvas, 500);
+
+    // Save and restore strokes per question
+    function saveDrawing() {
+        const qId = state.questions[state.currentQuestion].id;
+        state.answers[qId] = state.answers[qId] || {};
+        state.answers[qId].drawing = canvas.toDataURL();
+    }
+
+    function restoreDrawing() {
+        const qId = state.questions[state.currentQuestion].id;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (state.answers[qId] && state.answers[qId].drawing) {
+            const img = new Image();
+            img.onload = () => ctx.drawImage(img, 0, 0);
+            img.src = state.answers[qId].drawing;
+        }
+    }
+
+    // Call restoreDrawing inside renderQuestion (patched via observing currentQuestion change in real app, here we will trigger on btn-next/prev)
+
+    // Drawing Events
+    function getEventPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+
+    function startPosition(e) {
+        if (!state.activeTool) return;
+        isDrawing = true;
+        draw(e);
+        e.preventDefault();
+    }
+    
+    function endPosition() {
+        if (!isDrawing) return;
+        isDrawing = false;
+        ctx.beginPath();
+        saveDrawing();
+    }
+
+    function draw(e) {
+        if (!isDrawing || !state.activeTool) return;
+        
+        const pos = getEventPos(e);
+        ctx.lineWidth = state.activeTool === 'erase' ? penSize * 3 : penSize;
+        ctx.lineCap = "round";
+        
+        if (state.activeTool === 'erase') {
+            ctx.globalCompositeOperation = "destination-out";
+            ctx.strokeStyle = "rgba(0,0,0,1)";
+        } else {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.strokeStyle = penColor;
+        }
+
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+        e.preventDefault();
+    }
+
+    // Bind Canvas events
+    canvas.addEventListener('mousedown', startPosition);
+    canvas.addEventListener('mouseup', endPosition);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseleave', endPosition);
+
+    canvas.addEventListener('touchstart', startPosition, { passive: false });
+    canvas.addEventListener('touchend', endPosition);
+    canvas.addEventListener('touchmove', draw, { passive: false });
+
+    // Tools Toggle logic
     bindUniversalTap('btn-highlight', () => {
         state.activeTool = (state.activeTool === 'highlight') ? null : 'highlight';
         document.getElementById('btn-highlight').classList.toggle('active', state.activeTool === 'highlight');
         document.getElementById('btn-erase').classList.remove('active');
-        document.getElementById('question-text').style.cursor = state.activeTool === 'highlight' ? 'crosshair' : 'default';
+        document.getElementById('question-card').classList.toggle('drawing-active', state.activeTool !== null);
+        document.getElementById('tool-settings').classList.toggle('hidden', state.activeTool !== 'highlight');
+        document.getElementById('pen-settings').classList.remove('hidden');
+        document.getElementById('eraser-settings').classList.add('hidden');
+        penColor = "rgba(255, 255, 0, 0.4)"; // Default marker
     });
 
     bindUniversalTap('btn-erase', () => {
         state.activeTool = (state.activeTool === 'erase') ? null : 'erase';
         document.getElementById('btn-erase').classList.toggle('active', state.activeTool === 'erase');
         document.getElementById('btn-highlight').classList.remove('active');
+        document.getElementById('question-card').classList.toggle('drawing-active', state.activeTool !== null);
+        document.getElementById('tool-settings').classList.toggle('hidden', state.activeTool !== 'erase');
+        document.getElementById('eraser-settings').classList.remove('hidden');
+        document.getElementById('pen-settings').classList.add('hidden');
     });
 
-    // Handle highlighting securely
-    const applyHighlight = () => {
-        if (state.activeTool !== 'highlight') return;
-        const sel = window.getSelection();
-        if (!sel.rangeCount || sel.isCollapsed) return;
-        const range = sel.getRangeAt(0);
-        
-        const qText = document.getElementById('question-text');
-        if (!qText.contains(range.commonAncestorContainer)) return;
+    // Sub-menu selectors
+    document.querySelectorAll('.color-btn').forEach(btn => {
+        bindUniversalTap(btn.id, () => {
+            penColor = btn.getAttribute('data-color');
+            // If it's the yellow one, make it slightly transparent for highlighting
+            if(penColor === '#eab308') penColor = "rgba(234, 179, 8, 0.4)"; 
+            document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+        // We can't use ID directly because there are no IDs in HTML for these, need to add event listeners manually below
+        btn.addEventListener('click', (e) => {
+             penColor = e.target.getAttribute('data-color');
+             if(penColor === '#eab308') penColor = "rgba(234, 179, 8, 0.4)"; 
+             document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+             e.target.classList.add('active');
+        });
+    });
 
-        const span = document.createElement('span');
-        span.className = 'text-highlighted';
-        try {
-            range.surroundContents(span);
-        } catch(e) { console.warn("Highlight fail."); }
-        sel.removeAllRanges();
-    };
-    
-    document.addEventListener('mouseup', applyHighlight);
-    document.addEventListener('touchend', applyHighlight);
+    document.querySelectorAll('.size-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+             penSize = parseInt(e.target.getAttribute('data-size'));
+             document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+             e.target.classList.add('active');
+        });
+    });
 
     bindUniversalTap('btn-apply-scratch', () => {
         const text = document.getElementById('scratch-box').value;
@@ -303,20 +407,30 @@ function setupListeners() {
         const text = state.questions[state.currentQuestion].text;
         
         // Visual feedback
-        const originalTitle = document.getElementById('btn-read').title;
-        document.getElementById('btn-read').title = "Lendo...";
-        document.getElementById('btn-read').style.background = "rgba(255,255,255,0.4)";
+        const btn = document.getElementById('btn-read');
+        const originalTitle = btn.title;
+        
+        if (!window.speechSynthesis || window.speechSynthesis.getVoices().length === 0) {
+            btn.title = "Vozes indisponíveis no Tablet";
+            btn.style.background = "#ef4444"; // Red for error
+            setTimeout(() => {
+                btn.title = originalTitle;
+                btn.style.background = "";
+            }, 3000);
+            return; // Abort TTS if no voice is available on device
+        }
+
+        btn.title = "Lendo...";
+        btn.style.background = "rgba(255,255,255,0.4)";
         setTimeout(() => {
-            document.getElementById('btn-read').title = originalTitle;
-            document.getElementById('btn-read').style.background = "";
+            btn.title = originalTitle;
+            btn.style.background = "";
         }, 3000);
 
-        if (window.speechSynthesis) {
-            window.speechSynthesis.cancel();
-            const utter = new SpeechSynthesisUtterance(text);
-            utter.lang = 'pt-BR';
-            window.speechSynthesis.speak(utter);
-        }
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'pt-BR';
+        window.speechSynthesis.speak(utter);
     });
 
     bindUniversalTap('btn-focus', () => {
@@ -347,10 +461,63 @@ function setupListeners() {
         }
     });
 
-    // Access Hub & Libras
+    // Access Hub Settings & Dismissal
     const hub = document.getElementById('access-hub');
-    bindUniversalTap('btn-access', () => hub.classList.toggle('open'));
+    bindUniversalTap('btn-access', (e) => {
+        hub.classList.toggle('open');
+        e.stopPropagation(); // Prevents immediate closure
+    });
     bindUniversalTap('close-hub', () => hub.classList.remove('open'));
+    
+    // Close hub when clicking outside
+    document.addEventListener('click', (e) => {
+        if (hub.classList.contains('open') && !hub.contains(e.target) && e.target.id !== 'btn-access') {
+            hub.classList.remove('open');
+        }
+    });
+    document.addEventListener('touchstart', (e) => {
+        if (hub.classList.contains('open') && !hub.contains(e.target) && e.target.id !== 'btn-access') {
+            hub.classList.remove('open');
+        }
+    });
+
+    // Zoom
+    const zoomSlider = document.getElementById('zoom-slider');
+    zoomSlider.addEventListener('input', (e) => {
+        state.fontSize = e.target.value;
+        document.documentElement.style.setProperty('--font-base', `${state.fontSize}rem`);
+    });
+
+    // Spacing
+    const lineSlider = document.getElementById('line-slider');
+    lineSlider.addEventListener('input', (e) => {
+        state.lineHeight = e.target.value;
+        document.documentElement.style.setProperty('--line-spacing', state.lineHeight);
+    });
+
+    // Themes
+    document.querySelectorAll('.theme-btn[data-theme]').forEach(btn => {
+        bindUniversalTap(btn.className, (e) => {
+            const theme = btn.getAttribute('data-theme');
+            document.body.className = theme; // Replace all theme classes
+            if (state.focusMode) document.body.classList.add('focus-mode');
+            if (state.dyslexicMode) document.body.classList.add('dyslexic-mode');
+        });
+        // Add specific click to the button elements directly just in case className bind fails due to node selection
+        btn.addEventListener('click', () => {
+             const theme = btn.getAttribute('data-theme');
+             document.body.className = theme;
+             if (state.focusMode) document.body.classList.add('focus-mode');
+             if (state.dyslexicMode) document.body.classList.add('dyslexic-mode');
+        });
+    });
+
+    // OpenDyslexic
+    bindUniversalTap('btn-dyslexic', () => {
+        state.dyslexicMode = !state.dyslexicMode;
+        document.body.classList.toggle('dyslexic-mode', state.dyslexicMode);
+        document.getElementById('btn-dyslexic').style.background = state.dyslexicMode ? 'var(--primary)' : '';
+    });
     
     bindUniversalTap('btn-libras', () => {
         state.librasMode = !state.librasMode;
