@@ -1,6 +1,7 @@
 /**
- * ExamePad - Runner Core Offline (v4.14)
+ * ExamePad - Runner Core Offline (v4.15)
  * Vanilla JS (Legacy Support - No Modules)
+ * Focus: Bug fixes (Timer, 3D, TTS) and interactivity.
  */
 
 const state = {
@@ -25,7 +26,7 @@ const state = {
     }
 };
 
-let renderer, scene, camera, model, ambientLight, dirLight;
+let renderer, scene, camera, model, ambientLight, hemiLight, dirLight;
 let timerInterval;
 
 // Mock Data
@@ -78,6 +79,8 @@ function init() {
         
         document.getElementById('app-container').style.opacity = "0.3";
         document.getElementById('app-container').style.pointerEvents = "none";
+        
+        console.log("Runner v4.15: Ready.");
     } catch (e) {
         console.error("Init Error:", e);
     }
@@ -101,6 +104,29 @@ function startExam() {
     }
 }
 
+function startTimer() {
+    const totalSeconds = state.durationMinutes * 60;
+    const timerElement = document.getElementById('timer');
+    if (timerInterval) clearInterval(timerInterval);
+    
+    timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+        let remaining = totalSeconds - elapsed;
+        
+        if (remaining <= 0) {
+            remaining = 0;
+            clearInterval(timerInterval);
+            timerElement.style.color = "#ef4444";
+            document.getElementById('modal-confirm').click();
+        }
+        
+        const hrs = String(Math.floor(remaining / 3600)).padStart(2, '0');
+        const mins = String(Math.floor((remaining % 3600) / 60)).padStart(2, '0');
+        const secs = String(remaining % 60).padStart(2, '0');
+        timerElement.innerText = `${hrs}:${mins}:${secs}`;
+    }, 1000);
+}
+
 function renderQuestion() {
     const q = state.questions[state.currentQuestion];
     const card = document.getElementById('question-card');
@@ -108,13 +134,12 @@ function renderQuestion() {
     
     setTimeout(() => {
         document.getElementById('q-index').innerText = state.currentQuestion + 1;
-        document.getElementById('question-text').innerHTML = q.text; // Use innerHTML for highlighter support
+        document.getElementById('question-text').innerHTML = q.text;
         document.getElementById('pagination').innerText = `Questão ${state.currentQuestion + 1} de ${state.questions.length}`;
 
-        // Reset Question States
         state.isExploded = false;
+        document.getElementById('c3d-explode').innerText = "Inspecionar (Explodir)";
 
-        // Discursive vs Objective
         const optionsList = document.getElementById('options-list');
         const discursiveArea = document.getElementById('discursive-area');
         
@@ -137,7 +162,6 @@ function renderQuestion() {
             });
         }
 
-        // 3D Media
         if (q.model && typeof THREE !== 'undefined' && !!THREE.GLTFLoader) {
             document.getElementById('question-media').classList.remove('hidden');
             loadModel(q.model);
@@ -145,7 +169,6 @@ function renderQuestion() {
             document.getElementById('question-media').classList.add('hidden');
         }
 
-        // Navigation
         document.getElementById('btn-prev').disabled = state.currentQuestion === 0;
         if (state.currentQuestion === state.questions.length - 1) {
             document.getElementById('btn-next').classList.add('hidden');
@@ -155,7 +178,6 @@ function renderQuestion() {
             document.getElementById('btn-finish').classList.add('hidden');
         }
 
-        // Libras Player
         if (state.librasMode) playLibras(q.libras);
 
         updateProgress();
@@ -176,7 +198,6 @@ function handleOptionClick(qId, idx) {
 function setupListeners() {
     document.getElementById('start-exam').onclick = startExam;
 
-    // Navigation
     document.getElementById('btn-next').onclick = () => {
         if (state.currentQuestion < state.questions.length - 1) {
             state.currentQuestion++;
@@ -190,7 +211,6 @@ function setupListeners() {
         }
     };
 
-    // Tools
     document.getElementById('btn-highlight').onclick = () => {
         state.activeTool = (state.activeTool === 'highlight') ? null : 'highlight';
         document.getElementById('btn-highlight').classList.toggle('active', state.activeTool === 'highlight');
@@ -211,11 +231,12 @@ function setupListeners() {
         const range = sel.getRangeAt(0);
         const span = document.createElement('span');
         span.className = 'text-highlighted';
-        range.surroundContents(span);
+        try {
+            range.surroundContents(span);
+        } catch(e) { console.warn("Highlight error (overlapping ranges)."); }
         sel.removeAllRanges();
     };
 
-    // Discursive Scratchpad
     document.getElementById('btn-apply-scratch').onclick = () => {
         const text = document.getElementById('scratch-box').value;
         const qId = state.questions[state.currentQuestion].id;
@@ -225,13 +246,6 @@ function setupListeners() {
         state.answers[qId].scratch = text;
     };
 
-    document.getElementById('final-answer').oninput = (e) => {
-        const qId = state.questions[state.currentQuestion].id;
-        state.answers[qId] = state.answers[qId] || {};
-        state.answers[qId].final = e.target.value;
-    };
-
-    // Accessibility
     document.getElementById('btn-read').onclick = () => {
         const text = state.questions[state.currentQuestion].text;
         if (window.speechSynthesis) {
@@ -240,6 +254,9 @@ function setupListeners() {
             utter.lang = 'pt-BR';
             utter.rate = 1.0;
             window.speechSynthesis.speak(utter);
+            console.log("TTS: Reading question...");
+        } else {
+            alert("TTS não suportado neste dispositivo.");
         }
     };
 
@@ -249,10 +266,10 @@ function setupListeners() {
         document.getElementById('btn-focus').style.background = state.focusMode ? 'var(--primary)' : '';
     };
 
-    // Hub
     const hub = document.getElementById('access-hub');
     document.getElementById('btn-access').onclick = () => hub.classList.toggle('open');
     document.getElementById('close-hub').onclick = () => hub.classList.remove('open');
+    
     document.getElementById('btn-libras').onclick = () => {
         state.librasMode = !state.librasMode;
         document.getElementById('videolibras-container').style.display = state.librasMode ? 'block' : 'none';
@@ -261,8 +278,9 @@ function setupListeners() {
 
     // 3D Controls
     document.getElementById('c3d-explode').onclick = () => {
+        if (!model) return;
         state.isExploded = !state.isExploded;
-        explodeModel(state.isExploded ? 2.5 : 0);
+        explodeModel(state.isExploded ? 2.0 : 0);
         document.getElementById('c3d-explode').innerText = state.isExploded ? "Resetar Posição" : "Inspecionar (Explodir)";
     };
 
@@ -275,7 +293,6 @@ function setupListeners() {
         }
     };
 
-    // Modal
     document.getElementById('btn-finish').onclick = () => { document.getElementById('custom-modal').style.display = 'flex'; };
     document.getElementById('modal-cancel').onclick = () => { document.getElementById('custom-modal').style.display = 'none'; };
     document.getElementById('modal-confirm').onclick = () => { window.location.reload(); };
@@ -289,83 +306,75 @@ function initThreeJS() {
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(canvas.clientWidth, canvas.clientHeight);
 
-    ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-    scene.add(ambientLight);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+    hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
+    hemiLight.position.set(0, 20, 0);
+    scene.add(hemiLight);
 
-    dirLight = new THREE.DirectionalLight(0xffffff, 1);
-    dirLight.position.set(5, 10, 7.5);
+    dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(3, 10, 10);
     scene.add(dirLight);
 
     camera.position.set(0, 0, 8);
     
-    // Improved Mouse/Touch Rotation
+    // Smooth Mouse/Touch Rotation
     let isDragging = false, prevX = 0, prevY = 0;
-    canvas.onmousedown = (e) => { isDragging = true; prevX = e.clientX; prevY = e.clientY; };
-    canvas.onmouseup = () => { isDragging = false; };
-    canvas.onmousemove = (e) => {
+    const onDown = (x, y) => { isDragging = true; prevX = x; prevY = y; };
+    const onMove = (x, y) => {
         if (!isDragging || !model) return;
-        const deltaX = e.clientX - prevX;
-        const deltaY = e.clientY - prevY;
-        model.rotation.y += deltaX * 0.01;
-        model.rotation.x += deltaY * 0.01;
-        prevX = e.clientX; prevY = e.clientY;
+        model.rotation.y += (x - prevX) * 0.01;
+        model.rotation.x += (y - prevY) * 0.01;
+        prevX = x; prevY = y;
     };
-    // Touch support (important for tablets)
-    canvas.ontouchstart = (e) => { isDragging = true; prevX = e.touches[0].clientX; prevY = e.touches[0].clientY; };
-    canvas.ontouchend = () => { isDragging = false; };
-    canvas.ontouchmove = (e) => {
-        if (!isDragging || !model) return;
-        const deltaX = e.touches[0].clientX - prevX;
-        const deltaY = e.touches[0].clientY - prevY;
-        model.rotation.y += deltaX * 0.01;
-        model.rotation.x += deltaY * 0.01;
-        prevX = e.touches[0].clientX; prevY = e.touches[0].clientY;
-        e.preventDefault();
-    };
+    canvas.onmousedown = (e) => onDown(e.clientX, e.clientY);
+    window.onmouseup = () => { isDragging = false; };
+    canvas.onmousemove = (e) => onMove(e.clientX, e.clientY);
+    canvas.ontouchstart = (e) => onDown(e.touches[0].clientX, e.touches[0].clientY);
+    window.ontouchend = () => { isDragging = false; };
+    canvas.ontouchmove = (e) => { onMove(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); };
 
     function animate() {
         requestAnimationFrame(animate);
-        if (model && !isDragging) model.rotation.y += 0.002;
+        if (model && !isDragging) model.rotation.y += 0.003;
         renderer.render(scene, camera);
     }
     animate();
 }
 
 function loadModel(path) {
-    document.getElementById('loading-3d').classList.remove('hidden');
-    const loader = new THREE.GLTFLoader();
-    const fullPath = `./assets/models/${path}`;
+    const loadingEl = document.getElementById('loading-3d');
+    loadingEl.classList.remove('hidden');
+    loadingEl.innerText = "Carregando 3D...";
     
-    loader.load(fullPath, (gltf) => {
+    const loader = new THREE.GLTFLoader();
+    loader.load(`./assets/models/${path}`, (gltf) => {
         if (model) scene.remove(model);
         model = gltf.scene;
         scene.add(model);
         
-        // Auto-Center and Fit
+        // Auto-Fit Centralization
         const box = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = 4.5 / maxDim; // Adjust scale factor
+        const scale = 5.0 / maxDim; 
         model.scale.set(scale, scale, scale);
         model.position.sub(center.multiplyScalar(scale));
         
-        document.getElementById('loading-3d').classList.add('hidden');
+        loadingEl.classList.add('hidden');
     }, undefined, (err) => {
-        console.error("Model Load Error:", err);
-        document.getElementById('loading-3d').innerText = "VÍNCULO 3D FALHOU";
+        console.error("Model Error:", err);
+        loadingEl.innerText = "ERRO AO CARREGAR 3D";
     });
 }
 
 function explodeModel(factor) {
     if (!model) return;
     model.traverse((child) => {
-        if (child.isMesh && child.userData.originalPos === undefined) {
-            child.userData.originalPos = child.position.clone();
-        }
         if (child.isMesh) {
+            if (child.userData.origPos === undefined) child.userData.origPos = child.position.clone();
             const dir = child.position.clone().normalize();
-            child.position.copy(child.userData.originalPos).add(dir.multiplyScalar(factor));
+            child.position.copy(child.userData.origPos).add(dir.multiplyScalar(factor));
         }
     });
 }
@@ -382,13 +391,15 @@ function playLibras(videoId) {
     player.classList.remove('hidden');
     empty.classList.add('hidden');
     player.play().catch(() => {
-        console.warn("Auto-play blocked or video missing.");
-        empty.innerText = "MP4 NÃO ENCONTRADO";
+        empty.innerText = "VÍDEO MP4 AUSENTE";
         empty.classList.remove('hidden');
     });
 }
 
-function startTimer() { /* Standard Timer Logic */ }
-function updateProgress() { /* Standard Progress Logic */ }
+function updateProgress() {
+    const progress = ((state.currentQuestion + 1) / state.questions.length) * 100;
+    const bar = document.getElementById('progress-fill');
+    if (bar) bar.style.width = `${progress}%`;
+}
 
 init();

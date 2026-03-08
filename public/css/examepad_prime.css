@@ -217,14 +217,15 @@ body {
 /* VideoLibras Overlay */
 #videolibras-container {
     position: fixed;
-    bottom: 100px; right: 20px;
-    width: 150px; height: 150px;
-    background: rgba(0,0,0,0.8);
-    border: 2px solid var(--primary);
-    border-radius: 20px;
+    bottom: 110px; right: 20px;
+    width: 220px; height: 220px; /* Increased size */
+    background: rgba(0,0,0,0.85);
+    border: 3px solid var(--primary);
+    border-radius: 24px;
     z-index: 500;
     overflow: hidden;
     display: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
 #videolibras-container span {
@@ -428,8 +429,8 @@ body.focus-mode .card {
 .option.eliminated {
     opacity: 0.3;
     text-decoration: line-through;
-    pointer-events: none;
     position: relative;
+    /* Removed pointer-events: none to allow un-eliminating */
 }
 
 .option.eliminated::after {
