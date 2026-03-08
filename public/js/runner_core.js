@@ -1,7 +1,7 @@
 /**
- * ExamePad - Runner Core Offline (v4.15)
+ * ExamePad - Runner Core Offline (v4.16)
  * Vanilla JS (Legacy Support - No Modules)
- * Focus: Bug fixes (Timer, 3D, TTS) and interactivity.
+ * Focus: Stability fixes (Pointer Events, 3D Fallback, Silent TTS)
  */
 
 const state = {
@@ -19,6 +19,7 @@ const state = {
     lineHeight: 1.6,
     activeTool: null, // 'highlight', 'erase'
     isExploded: false,
+    displayMode: '3D', // '3D' or '2D'
     student: {
         name: "MICHEL FELIX DA SILVA",
         id: "EP-2024-9981",
@@ -29,13 +30,13 @@ const state = {
 let renderer, scene, camera, model, ambientLight, hemiLight, dirLight;
 let timerInterval;
 
-// Mock Data
+// Mock Data with Image fallbacks
 function mockData() {
     return [
         {
             id: 1,
             type: 'objective',
-            text: "Observe o modelo 3D da célula humana abaixo. Qual organela está representada em destaque e qual sua principal função?",
+            text: "Observe o modelo abaixo da célula humana. Qual organela está representada em destaque e qual sua principal função?",
             options: [
                 "Mitocôndria: Produção de ATP (Energia)", 
                 "Ribossomos: Síntese de Proteínas", 
@@ -43,14 +44,16 @@ function mockData() {
                 "Complexo de Golgi: Secreção Celular"
             ],
             model: "celula_humana.glb",
+            image: "celula_humana.png", // Fallback image
             libras: "video_cell.mp4"
         },
         {
             id: 2,
             type: 'objective',
-            text: "No modelo 3D do Sistema Solar abaixo, identifique o planeta que possui o maior sistema de anéis visíveis.",
+            text: "No modelo abaixo do Sistema Solar, identifique o planeta que possui o maior sistema de anéis visíveis.",
             options: ["Júpiter", "Saturno", "Urano", "Netuno"],
             model: "sistema_solare.glb",
+            image: "sistema_solar.png", // Fallback image
             libras: "video_solar.mp4"
         },
         {
@@ -58,6 +61,7 @@ function mockData() {
             type: 'discursive',
             text: "Descreva a importância da fotossíntese para o equilíbrio da biosfera terrestre.",
             model: null,
+            image: null,
             libras: "video_photo.mp4"
         }
     ];
@@ -68,7 +72,6 @@ function init() {
     try {
         state.questions = mockData();
         
-        // Populate Header
         document.getElementById('exam-title').innerText = state.examTitle;
         document.getElementById('exam-meta').innerText = state.examMeta;
         document.getElementById('std-name').innerText = `ALUNO: ${state.student.name}`;
@@ -79,8 +82,6 @@ function init() {
         
         document.getElementById('app-container').style.opacity = "0.3";
         document.getElementById('app-container').style.pointerEvents = "none";
-        
-        console.log("Runner v4.15: Ready.");
     } catch (e) {
         console.error("Init Error:", e);
     }
@@ -117,7 +118,6 @@ function startTimer() {
             remaining = 0;
             clearInterval(timerInterval);
             timerElement.style.color = "#ef4444";
-            document.getElementById('modal-confirm').click();
         }
         
         const hrs = String(Math.floor(remaining / 3600)).padStart(2, '0');
@@ -162,12 +162,7 @@ function renderQuestion() {
             });
         }
 
-        if (q.model && typeof THREE !== 'undefined' && !!THREE.GLTFLoader) {
-            document.getElementById('question-media').classList.remove('hidden');
-            loadModel(q.model);
-        } else {
-            document.getElementById('question-media').classList.add('hidden');
-        }
+        updateMediaDisplay();
 
         document.getElementById('btn-prev').disabled = state.currentQuestion === 0;
         if (state.currentQuestion === state.questions.length - 1) {
@@ -183,6 +178,35 @@ function renderQuestion() {
         updateProgress();
         card.style.opacity = 1;
     }, 50);
+}
+
+function updateMediaDisplay() {
+    const q = state.questions[state.currentQuestion];
+    const container = document.getElementById('question-media');
+    const canvas = document.getElementById('canvas-3d');
+    const fallback = document.getElementById('img-fallback');
+    const btnMode = document.getElementById('c3d-mode');
+    
+    if (q.model || q.image) {
+        container.classList.remove('hidden');
+        
+        if (state.displayMode === '3D' && q.model && typeof THREE !== 'undefined' && !!THREE.GLTFLoader) {
+            canvas.classList.remove('hidden');
+            fallback.classList.add('hidden');
+            btnMode.innerText = "Ver 2D (Imagem)";
+            loadModel(q.model);
+        } else if (q.image) {
+            canvas.classList.add('hidden');
+            fallback.classList.remove('hidden');
+            fallback.src = `./assets/images/${q.image}`;
+            btnMode.innerText = "Ver 3D (Modelo)";
+            if (!q.model) btnMode.classList.add('hidden');
+        } else {
+            container.classList.add('hidden');
+        }
+    } else {
+        container.classList.add('hidden');
+    }
 }
 
 function handleOptionClick(qId, idx) {
@@ -211,31 +235,39 @@ function setupListeners() {
         }
     };
 
-    document.getElementById('btn-highlight').onclick = () => {
+    // Tools using Pointer Events for Tablet
+    document.getElementById('btn-highlight').onpointerdown = (e) => {
         state.activeTool = (state.activeTool === 'highlight') ? null : 'highlight';
         document.getElementById('btn-highlight').classList.toggle('active', state.activeTool === 'highlight');
         document.getElementById('btn-erase').classList.remove('active');
         document.getElementById('question-text').style.cursor = state.activeTool === 'highlight' ? 'crosshair' : 'default';
+        e.stopPropagation();
     };
 
-    document.getElementById('btn-erase').onclick = () => {
+    document.getElementById('btn-erase').onpointerdown = (e) => {
         state.activeTool = (state.activeTool === 'erase') ? null : 'erase';
         document.getElementById('btn-erase').classList.toggle('active', state.activeTool === 'erase');
         document.getElementById('btn-highlight').classList.remove('active');
+        e.stopPropagation();
     };
 
-    document.getElementById('question-text').onmouseup = () => {
+    document.addEventListener('pointerup', () => {
         if (state.activeTool !== 'highlight') return;
         const sel = window.getSelection();
         if (!sel.rangeCount || sel.isCollapsed) return;
         const range = sel.getRangeAt(0);
+        
+        // Safety check to ensure selection is within question-text
+        const qText = document.getElementById('question-text');
+        if (!qText.contains(range.commonAncestorContainer)) return;
+
         const span = document.createElement('span');
         span.className = 'text-highlighted';
         try {
             range.surroundContents(span);
-        } catch(e) { console.warn("Highlight error (overlapping ranges)."); }
+        } catch(e) { console.warn("Highlight fail."); }
         sel.removeAllRanges();
-    };
+    });
 
     document.getElementById('btn-apply-scratch').onclick = () => {
         const text = document.getElementById('scratch-box').value;
@@ -252,12 +284,9 @@ function setupListeners() {
             window.speechSynthesis.cancel();
             const utter = new SpeechSynthesisUtterance(text);
             utter.lang = 'pt-BR';
-            utter.rate = 1.0;
             window.speechSynthesis.speak(utter);
-            console.log("TTS: Reading question...");
-        } else {
-            alert("TTS não suportado neste dispositivo.");
         }
+        // Silent fail if not supported - no alert as per user request
     };
 
     document.getElementById('btn-focus').onclick = () => {
@@ -266,17 +295,12 @@ function setupListeners() {
         document.getElementById('btn-focus').style.background = state.focusMode ? 'var(--primary)' : '';
     };
 
-    const hub = document.getElementById('access-hub');
-    document.getElementById('btn-access').onclick = () => hub.classList.toggle('open');
-    document.getElementById('close-hub').onclick = () => hub.classList.remove('open');
-    
-    document.getElementById('btn-libras').onclick = () => {
-        state.librasMode = !state.librasMode;
-        document.getElementById('videolibras-container').style.display = state.librasMode ? 'block' : 'none';
-        if (state.librasMode) playLibras(state.questions[state.currentQuestion].libras);
+    // 3D/2D Toggle
+    document.getElementById('c3d-mode').onclick = () => {
+        state.displayMode = (state.displayMode === '3D') ? '2D' : '3D';
+        updateMediaDisplay();
     };
 
-    // 3D Controls
     document.getElementById('c3d-explode').onclick = () => {
         if (!model) return;
         state.isExploded = !state.isExploded;
@@ -293,6 +317,12 @@ function setupListeners() {
         }
     };
 
+    document.getElementById('btn-libras').onclick = () => {
+        state.librasMode = !state.librasMode;
+        document.getElementById('videolibras-container').style.display = state.librasMode ? 'block' : 'none';
+        if (state.librasMode) playLibras(state.questions[state.currentQuestion].libras);
+    };
+
     document.getElementById('btn-finish').onclick = () => { document.getElementById('custom-modal').style.display = 'flex'; };
     document.getElementById('modal-cancel').onclick = () => { document.getElementById('custom-modal').style.display = 'none'; };
     document.getElementById('modal-confirm').onclick = () => { window.location.reload(); };
@@ -307,17 +337,14 @@ function initThreeJS() {
     renderer.setSize(canvas.clientWidth, canvas.clientHeight);
 
     scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-    hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
-    hemiLight.position.set(0, 20, 0);
+    hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.9);
     scene.add(hemiLight);
-
     dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    dirLight.position.set(3, 10, 10);
+    dirLight.position.set(5, 10, 7);
     scene.add(dirLight);
 
-    camera.position.set(0, 0, 8);
+    camera.position.set(0, 0, 10);
     
-    // Smooth Mouse/Touch Rotation
     let isDragging = false, prevX = 0, prevY = 0;
     const onDown = (x, y) => { isDragging = true; prevX = x; prevY = y; };
     const onMove = (x, y) => {
@@ -326,12 +353,9 @@ function initThreeJS() {
         model.rotation.x += (y - prevY) * 0.01;
         prevX = x; prevY = y;
     };
-    canvas.onmousedown = (e) => onDown(e.clientX, e.clientY);
-    window.onmouseup = () => { isDragging = false; };
-    canvas.onmousemove = (e) => onMove(e.clientX, e.clientY);
-    canvas.ontouchstart = (e) => onDown(e.touches[0].clientX, e.touches[0].clientY);
-    window.ontouchend = () => { isDragging = false; };
-    canvas.ontouchmove = (e) => { onMove(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); };
+    canvas.addEventListener('pointerdown', (e) => onDown(e.clientX, e.clientY));
+    window.addEventListener('pointermove', (e) => onMove(e.clientX, e.clientY));
+    window.addEventListener('pointerup', () => { isDragging = false; });
 
     function animate() {
         requestAnimationFrame(animate);
@@ -344,7 +368,6 @@ function initThreeJS() {
 function loadModel(path) {
     const loadingEl = document.getElementById('loading-3d');
     loadingEl.classList.remove('hidden');
-    loadingEl.innerText = "Carregando 3D...";
     
     const loader = new THREE.GLTFLoader();
     loader.load(`./assets/models/${path}`, (gltf) => {
@@ -352,19 +375,18 @@ function loadModel(path) {
         model = gltf.scene;
         scene.add(model);
         
-        // Auto-Fit Centralization
         const box = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = 5.0 / maxDim; 
+        const scale = 5.5 / (maxDim || 1);
         model.scale.set(scale, scale, scale);
         model.position.sub(center.multiplyScalar(scale));
         
         loadingEl.classList.add('hidden');
     }, undefined, (err) => {
-        console.error("Model Error:", err);
-        loadingEl.innerText = "ERRO AO CARREGAR 3D";
+        console.error("3D Load Error:", err);
+        loadingEl.innerText = "FALHA 3D - USE MODO 2D";
     });
 }
 
@@ -390,10 +412,7 @@ function playLibras(videoId) {
     player.src = `./assets/videos/${videoId}`;
     player.classList.remove('hidden');
     empty.classList.add('hidden');
-    player.play().catch(() => {
-        empty.innerText = "VÍDEO MP4 AUSENTE";
-        empty.classList.remove('hidden');
-    });
+    player.play().catch(() => { empty.classList.remove('hidden'); });
 }
 
 function updateProgress() {
