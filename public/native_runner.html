@@ -86,6 +86,14 @@
             <div id="question-card" class="glass card">
                 <div class="question-header">
                     <span class="badge">Questão <span id="q-index">1</span></span>
+                    
+                    <!-- Pedagogical Tool Dock -->
+                    <div class="tool-dock">
+                        <button id="btn-highlight" class="tool-btn" title="Marca-Texto">🖍️</button>
+                        <button id="btn-erase" class="tool-btn" title="Borracha (Eliminar Opções)">🧽</button>
+                        <button id="btn-scratch" class="tool-btn" title="Rascunho">📝</button>
+                    </div>
+
                     <div class="accessibility-tools">
                         <button id="btn-read" title="Ouvir Questão">🔊</button>
                         <button id="btn-focus" title="Modo Foco">👁️</button>
@@ -100,16 +108,36 @@
                 <div id="question-media" class="media-container hidden">
                     <canvas id="canvas-3d"></canvas>
                     <div id="loading-3d" class="hidden">Carregando Modelo 3D...</div>
+                    <!-- 3D Pro Controls -->
+                    <div class="controls-3d">
+                        <button id="c3d-explode" class="c3d-btn">Inspecionar (Explodir)</button>
+                        <button id="c3d-reset" class="c3d-btn">Resetar</button>
+                    </div>
                 </div>
 
                 <div id="options-list" class="options-container">
                     <!-- Opções injetadas aqui -->
                 </div>
+
+                <!-- Discursive / Scratchpad Area -->
+                <div id="discursive-area" class="discursive-container hidden">
+                    <div class="scratchpad-area">
+                        <span class="scratchpad-label">Papel de Rascunho</span>
+                        <textarea id="scratch-box" class="scratch-box" placeholder="Escreva seu rascunho aqui..."></textarea>
+                    </div>
+                    <button id="btn-apply-scratch" class="btn-primary">Aplicar na Resposta Final ↓</button>
+                    <div class="final-answer-area">
+                        <textarea id="final-answer" class="scratch-box" placeholder="Sua resposta definitiva..."></textarea>
+                    </div>
+                </div>
             </div>
             
             <!-- VideoLibras Container -->
             <div id="videolibras-container">
-                <span>LIBRAS<br>INDISPONÍVEL</span>
+                <video id="libras-player" width="100%" height="100%" loop muted playsinline>
+                    <!-- Source injetado via JS -->
+                </video>
+                <div id="libras-empty">🤟 LIBRAS</div>
             </div>
         </main>
 
