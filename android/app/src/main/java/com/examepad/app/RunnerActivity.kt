@@ -3,14 +3,14 @@ package com.examepad.app
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
-import android.webkit.WebSettings
+import androidx.core.view.ViewCompat
 import com.getcapacitor.BridgeActivity
 
 class RunnerActivity : BridgeActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Ativa Modo Imersivo Stick (Esconde barras de sistema persistentemente)
+        // Ativa Modo Imersivo Sticky (Esconde barras de sistema persistentemente)
         window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                 or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                 or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
@@ -21,17 +21,18 @@ class RunnerActivity : BridgeActivity() {
         // Impede que a tela apague
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // Configurações Adicionais do WebView para Máxima Performance 3D/WebGL
+        // 1. Configurações de Software/Javascript (WebSettings)
         bridge.webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
             databaseEnabled = true
             setSupportMultipleWindows(false)
             mediaPlaybackRequiresUserGesture = false
-            
-            // Força aceleração de hardware e renderização de alta performance
-            setLayerType(View.LAYER_TYPE_HARDWARE, null)
         }
+        
+        // 2. Configuração de Hardware (WebView/View)
+        // Usamos ViewCompat para garantir compatibilidade e evitar erros de resolução do IDE
+        ViewCompat.setLayerType(bridge.webView, View.LAYER_TYPE_HARDWARE, null)
 
         // Tenta iniciar o Lock Task (Fixação de tela) para evitar minimizar
         try {
@@ -41,7 +42,6 @@ class RunnerActivity : BridgeActivity() {
         }
 
         // Redireciona para o runner especial offline via esquema do Capacitor
-        // Adicionamos um pequeno delay para garantir que o Bridge do Capacitor esteja inicializado
         window.decorView.postDelayed({
             bridge.webView.loadUrl("https://localhost/native_runner.html")
         }, 500)

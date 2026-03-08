@@ -143,16 +143,18 @@ function renderQuestion() {
         document.getElementById('c3d-explode').innerText = "Inspecionar (Explodir)";
 
         const optionsList = document.getElementById('options-list');
-        const discursiveArea = document.getElementById('discursive-area');
+        const scratchpadModal = document.getElementById('scratchpad-modal');
         
         if (q.type === 'discursive') {
             optionsList.classList.add('hidden');
-            discursiveArea.classList.remove('hidden');
-            document.getElementById('scratch-box').value = state.answers[q.id]?.scratch || "";
-            document.getElementById('final-answer').value = state.answers[q.id]?.final || "";
+            // Scratchpad area is now a modal, so we just ensure it exists
+            if (scratchpadModal) {
+                document.getElementById('scratch-box').value = state.answers[q.id]?.scratch || "";
+                document.getElementById('final-answer').value = state.answers[q.id]?.final || "";
+            }
         } else {
             optionsList.classList.remove('hidden');
-            discursiveArea.classList.add('hidden');
+            if (scratchpadModal) scratchpadModal.classList.add('hidden');
             optionsList.innerHTML = '';
             q.options.forEach((opt, idx) => {
                 const div = document.createElement('div');
