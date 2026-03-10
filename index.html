@@ -27,13 +27,19 @@
   <link rel="stylesheet" href="/vendor/katex/katex.min.css">
   <script defer src="/vendor/katex/katex.min.js"></script>
   <script src="/vendor/tailwind.min.js"></script>
+  <script src="/vendor/lucide.js"></script>
   <script>
-    // Fix for missing Globe reference in bundled lucide-react usage
-    window.addEventListener('load', () => {
-      if (typeof lucide !== 'undefined' && !window.Globe) {
-        window.Globe = lucide.Globe || (lucide.icons && lucide.icons.Globe);
-      }
-    });
+    // Define immediate global aliases for Lucide icons before modules load
+    (function() {
+      const fix = () => {
+        if (window.lucide) {
+          window.Globe = window.lucide.Globe || (window.lucide.icons && window.lucide.icons.Globe);
+          console.log('✅ Lucide Globe Aliased');
+        }
+      };
+      if (typeof lucide !== 'undefined') fix();
+      else window.addEventListener('DOMContentLoaded', fix);
+    })();
   </script>
 
   <script>
@@ -158,6 +164,7 @@
       overflow-y: hidden;
     }
   </style>
+
   <script type="importmap">
 {
   "imports": {
@@ -172,12 +179,11 @@
   }
 }
 </script>
-  <link rel="stylesheet" href="/index.css">
+  <script type="module" crossorigin src="/index.tsx"></script>
 </head>
 
 <body class="bg-slate-50 text-slate-900 antialiased">
   <div id="root"></div>
-  <script type="module" src="/index.tsx"></script>
 
   <!-- Service Worker Registration -->
   <script>
