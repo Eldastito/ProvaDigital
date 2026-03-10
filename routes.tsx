@@ -9,6 +9,7 @@ import { uuidv4 } from './utils/helpers';
 const LoginPage = lazy(() => import('./modules/auth/LoginPage').then(m => ({ default: m.LoginPage })));
 const DashboardLayout = lazy(() => import('./components/DashboardLayout').then(m => ({ default: m.DashboardLayout })));
 const DashboardView = lazy(() => import('./components/DashboardView').then(m => ({ default: m.DashboardView })));
+import { SimpleDashboard } from './components/SimpleDashboard';
 
 // Item Bank & Builder
 const ItemsListView = lazy(() => import('./components/ItemsListView').then(m => ({ default: m.ItemsListView })));
@@ -192,7 +193,7 @@ export const appRoutes: RouteObject[] = [
             ...managementModule.routes,
             ...parentsModule.routes,
 
-            { path: 'dashboard', element: <S><DashboardView /></S> },
+            { path: 'dashboard', element: <S><SimpleDashboard /></S> },
             { path: 'items', element: <S><ItemsListView /></S> },
             { path: 'items/new', element: <S><ItemEditorView /></S> },
             { path: 'items/ai-generator', element: <S><AIQuestionGeneratorView /></S> },
