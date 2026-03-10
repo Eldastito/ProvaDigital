@@ -1,1 +1,1 @@
-Couldn't find the requested file /dist/umd/zustand.js in zustand.
+Not found: /zustand@4.5.5/umd/zustand.production.min.js
