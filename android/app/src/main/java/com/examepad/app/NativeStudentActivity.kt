@@ -13,16 +13,14 @@ class NativeStudentActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Layout Programático para garantir carregamento sem XML se houver erro de compilação de resource
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(48, 80, 48, 48)
-            setBackgroundColor(android.graphics.Color.parseColor("#0f172a")) // Deep Navy
+            setBackgroundColor(android.graphics.Color.parseColor("#0f172a"))
         }
 
-        // Header
         val title = TextView(this).apply {
-            text = "Minhas Provas"
+            text = "ExamePad"
             textSize = 28f
             setTextColor(android.graphics.Color.WHITE)
             setTypeface(null, android.graphics.Typeface.BOLD)
@@ -30,58 +28,54 @@ class NativeStudentActivity : AppCompatActivity() {
         root.addView(title)
 
         val subtitle = TextView(this).apply {
-            text = "Ambiente 100% Seguro e Offline"
+            text = "Selecione o modo de operação"
             textSize = 14f
             setTextColor(android.graphics.Color.parseColor("#94a3b8"))
             setPadding(0, 8, 0, 64)
         }
         root.addView(subtitle)
 
-        // Card de Prova Disponível
-        val examCard = MaterialCardView(this).apply {
+        // BOTÃO DO ALUNO (Card)
+        val studentCard = MaterialCardView(this).apply {
             setRadius(32f)
             setCardBackgroundColor(android.graphics.Color.parseColor("#1e293b"))
-            setStrokeWidth(2)
-            setStrokeColor(android.graphics.Color.parseColor("#334155"))
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-        }
-
-        val cardContent = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(48, 48, 48, 48)
-        }
-
-        val examName = TextView(this).apply {
-            text = "Avaliação Diagnóstica Integrada"
-            textSize = 18f
-            setTextColor(android.graphics.Color.WHITE)
-            setTypeface(null, android.graphics.Typeface.BOLD)
-        }
-        cardContent.addView(examName)
-
-        val examMeta = TextView(this).apply {
-            text = "CIÊNCIAS | 10 Questões | 3D Habilitado"
-            textSize = 12f
-            setTextColor(android.graphics.Color.parseColor("#10b981")) // Mint
-            setPadding(0, 8, 0, 32)
-        }
-        cardContent.addView(examMeta)
-
-        val btnStart = MaterialButton(this).apply {
-            setText("INICIAR PROVA")
-            setCornerRadius(16)
-            setBackgroundColor(android.graphics.Color.parseColor("#6366f1"))
+            setPadding(32, 32, 32, 32)
+            val params = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+            params.setMargins(0, 0, 0, 32)
+            layoutParams = params
             setOnClickListener {
                 startActivity(Intent(this@NativeStudentActivity, RunnerActivity::class.java))
             }
         }
-        cardContent.addView(btnStart)
+        val studentLayout = LinearLayout(this).apply { 
+            orientation = LinearLayout.VERTICAL
+            setPadding(48, 48, 48, 48)
+        }
+        studentLayout.addView(TextView(this).apply { text = "MODO ALUNO"; setTextColor(android.graphics.Color.WHITE); setTypeface(null, android.graphics.Typeface.BOLD) })
+        studentLayout.addView(TextView(this).apply { text = "Iniciar realização de prova"; setTextColor(android.graphics.Color.GRAY); textSize = 12f })
+        studentCard.addView(studentLayout)
+        root.addView(studentCard)
 
-        examCard.addView(cardContent)
-        root.addView(examCard)
+        // BOTÃO DO PROFESSOR (Card)
+        val profferCard = MaterialCardView(this).apply {
+            setRadius(32f)
+            setCardBackgroundColor(android.graphics.Color.parseColor("#1e293b"))
+            setStrokeWidth(2)
+            setStrokeColor(android.graphics.Color.parseColor("#6366f1")) // Indigo border
+            val params = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+            layoutParams = params
+            setOnClickListener {
+                startActivity(Intent(this@NativeStudentActivity, ProfferActivity::class.java))
+            }
+        }
+        val profferLayout = LinearLayout(this).apply { 
+            orientation = LinearLayout.VERTICAL
+            setPadding(48, 48, 48, 48)
+        }
+        profferLayout.addView(TextView(this).apply { text = "MODO PROFESSOR"; setTextColor(android.graphics.Color.parseColor("#6366f1")); setTypeface(null, android.graphics.Typeface.BOLD) })
+        profferLayout.addView(TextView(this).apply { text = "Monitorar sala em tempo real"; setTextColor(android.graphics.Color.GRAY); textSize = 12f })
+        profferCard.addView(profferLayout)
+        root.addView(profferCard)
 
         setContentView(root)
     }

@@ -16,6 +16,7 @@
             android:label="ExamePad Dashboard"
             android:theme="@style/AppTheme.Material"
             android:launchMode="singleTask"
+            android:screenOrientation="portrait"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -24,9 +25,17 @@
         </activity>
 
         <activity
+            android:name=".ProfferActivity"
+            android:label="Painel do Professor"
+            android:theme="@style/AppTheme.Material"
+            android:screenOrientation="portrait"
+            android:exported="false" />
+
+        <activity
             android:name=".RunnerActivity"
             android:label="ExamePad Runner"
             android:theme="@style/AppTheme.Material"
+            android:screenOrientation="portrait"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
             android:exported="false" />
 
@@ -54,20 +63,27 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     
-    <!-- Wi-Fi & Hotspot (Mesh Network) -->
+    <!-- Wi-Fi & Hotspot -->
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     
-    <!-- Location (Required for Wi-Fi scanning on Android 10+) -->
+    <!-- Location (Required for Wi-Fi and BLE scanning) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     
+    <!-- Bluetooth (BLE Presence) -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
     <!-- Camera (QR Scanner) -->
     <uses-permission android:name="android.permission.CAMERA" />
 
-    <!-- System Settings (Necessary for SSID persistence in some plugins) -->
+    <!-- System Settings -->
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
 
 </manifest>
