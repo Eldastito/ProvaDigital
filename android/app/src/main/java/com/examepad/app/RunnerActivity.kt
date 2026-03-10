@@ -34,6 +34,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
+import com.examepad.app.security.KioskManager
 import com.getcapacitor.BridgeActivity
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
@@ -47,8 +48,9 @@ import java.util.concurrent.Executors
 class RunnerActivity : BridgeActivity() {
     
     private var warningCount = 0
-    private val MAX_WARNINGS = 2
+    private val MAX_WARNINGS = 3
     private lateinit var dbHelper: ExamDatabaseHelper
+    private lateinit var kioskManager: KioskManager
     private var socketClient: ExamSocketClient? = null
     private var socketServer: ExamSocketServer? = null
     
@@ -70,6 +72,7 @@ class RunnerActivity : BridgeActivity() {
         override fun run() {
             sendHeartbeat()
             checkBlePresence()
+            syncPendingAnswers() // Tenta sincronizar respostas offline
             heartbeatHandler.postDelayed(this, 15000)
         }
     }
@@ -88,6 +91,7 @@ class RunnerActivity : BridgeActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         dbHelper = ExamDatabaseHelper(this)
+        kioskManager = KioskManager(this)
         cameraExecutor = Executors.newSingleThreadExecutor()
         
         val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
@@ -103,6 +107,7 @@ class RunnerActivity : BridgeActivity() {
         }
         rootLayout.addView(nativeUiContainer)
 
+        dbHelper.insertLog("APP_START", "Iniciando Scanner de QR Code")
         window.decorView.postDelayed({ setupScannerUI() }, 100)
     }
 
@@ -125,28 +130,20 @@ class RunnerActivity : BridgeActivity() {
 
     private fun startBleScanning() {
         if (bluetoothAdapter == null || !bluetoothAdapter!!.isEnabled) return
-        
         val scanner = bluetoothAdapter!!.bluetoothLeScanner
         val filter = ScanFilter.Builder().setServiceUuid(ParcelUuid(ROOM_UUID)).build()
         val settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_POWER).build()
-
         val scanCallback = object : ScanCallback() {
-            override fun onScanResult(callbackType: Int, result: ScanResult) {
-                lastBleSeenTime = System.currentTimeMillis()
-            }
+            override fun onScanResult(callbackType: Int, result: ScanResult) { lastBleSeenTime = System.currentTimeMillis() }
         }
-        
-        try {
-            scanner.startScan(listOf(filter), settings, scanCallback)
-        } catch (e: SecurityException) {
-            Log.e("PresenceBLE", "Sem permissão para escanear Bluetooth")
-        }
+        try { scanner.startScan(listOf(filter), settings, scanCallback) } 
+        catch (e: SecurityException) { Log.e("PresenceBLE", "Sem permissão BLE") }
     }
 
     private fun checkBlePresence() {
         if (System.currentTimeMillis() - lastBleSeenTime > BLE_TIMEOUT_MS) {
-            // ALERTA: Aluno possivelmente fora da sala
             socketClient?.sendEvent("BLE_OUT_OF_RANGE", JSONObject())
+            dbHelper.insertLog("SECURITY_BLE", "Fora do alcance do beacon da sala")
             Toast.makeText(this, "Atenção: Mantenha-se dentro da sala de prova!", Toast.LENGTH_LONG).show()
         }
     }
@@ -185,6 +182,8 @@ class RunnerActivity : BridgeActivity() {
     private fun finalizeConnection(teacherIp: String) {
         nativeUiContainer?.removeAllViews()
         socketClient = ExamSocketClient(teacherIp)
+        kioskManager.startKioskMode()
+        dbHelper.insertLog("EXAM_CONNECTED", "Conectado ao IP: $teacherIp")
         startExamFlow()
     }
 
@@ -196,7 +195,11 @@ class RunnerActivity : BridgeActivity() {
                 when (type) {
                     "TEACHER_MESSAGE" -> showTeacherOverlay(payload.optString("message"))
                     "FORCE_FINISH" -> executeForcedFinish()
-                    "CONFIRMATION_OK" -> handleHandshakeSuccess()
+                    "CONFIRMATION_OK" -> {
+                        val qId = payload.optString("question_id")
+                        dbHelper.markAsSynced(qId)
+                        dbHelper.insertLog("SYNC_SUCCESS", "Questão $qId sincronizada")
+                    }
                 }
             }
         }
@@ -225,49 +228,102 @@ class RunnerActivity : BridgeActivity() {
             layoutParams = params; setOnClickListener { sendHelpRequest() }
         }
         nativeUiContainer?.addView(helpBtn)
-        bridge.webView.let { webView -> val p = webView.layoutParams; if (p is ViewGroup.MarginLayoutParams) { p.bottomMargin = 0; webView.layoutParams = p } }
     }
 
-    private fun handleHandshakeSuccess() { runOnUiThread { Toast.makeText(this, "Recebimento confirmado!", Toast.LENGTH_SHORT).show(); finish() } }
-    private fun sendHelpRequest() { socketClient?.sendEvent("HELP_REQUEST", JSONObject()); Toast.makeText(this, "Ajuda solicitada!", Toast.LENGTH_SHORT).show() }
+    private fun sendHelpRequest() { 
+        socketClient?.sendEvent("HELP_REQUEST", JSONObject())
+        dbHelper.insertLog("HELP_REQUESTED", "Aluno solicitou ajuda")
+        Toast.makeText(this, "Ajuda solicitada!", Toast.LENGTH_SHORT).show() 
+    }
+    
+    private fun syncPendingAnswers() {
+        val unsynced = dbHelper.getUnsyncedAnswers()
+        if (unsynced.length() > 0) {
+            for (i in 0 until unsynced.length()) {
+                val ans = unsynced.getJSONObject(i)
+                val data = JSONObject().apply { 
+                    put("question_id", ans.getString("question_id"))
+                    put("value", ans.getString("value"))
+                    put("is_retry", true)
+                }
+                socketClient?.sendEvent("ANSWER_SUBMIT", data)
+            }
+        }
+    }
+
     private fun showTeacherOverlay(text: String) {
         if (teacherOverlay != null) return
         val rootLayout = window.decorView.findViewById<ViewGroup>(android.R.id.content)
         val card = MaterialCardView(this).apply { radius = 32f; setCardBackgroundColor(Color.parseColor("#4f46e5")); cardElevation = 20f; val params = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { gravity = Gravity.TOP; setMargins(40, 100, 40, 0) }; this.layoutParams = params }
         val layout = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(48, 48, 48, 48) }
-        val title = TextView(this).apply { this.text = "AVISO DO PROFESSOR"; setTextColor(Color.WHITE); textSize = 12f; setTypeface(null, Typeface.BOLD) }
-        val content = TextView(this).apply { this.text = text; setTextColor(Color.WHITE); textSize = 18f; setPadding(0, 16, 0, 32) }
-        val btn = MaterialButton(this).apply { this.text = "OK, ENTENDI"; setBackgroundColor(Color.WHITE); setTextColor(Color.BLACK); setOnClickListener { rootLayout.removeView(card); teacherOverlay = null; sendHeartbeat(); hideSystemUI() } }
-        layout.addView(title); layout.addView(content); layout.addView(btn); card.addView(layout); teacherOverlay = card; rootLayout.addView(card); sendHeartbeat()
+        layout.addView(TextView(this).apply { this.text = "AVISO DO PROFESSOR"; setTextColor(Color.WHITE); textSize = 12f; setTypeface(null, Typeface.BOLD) })
+        layout.addView(TextView(this).apply { this.text = text; setTextColor(Color.WHITE); textSize = 18f; setPadding(0, 16, 0, 32) })
+        layout.addView(MaterialButton(this).apply { this.text = "OK, ENTENDI"; setBackgroundColor(Color.WHITE); setTextColor(Color.BLACK); setOnClickListener { rootLayout.removeView(card); teacherOverlay = null; sendHeartbeat(); hideSystemUI() } })
+        card.addView(layout); teacherOverlay = card; rootLayout.addView(card); sendHeartbeat()
     }
-    private fun executeForcedFinish() { isExamEnded = true; AlertDialog.Builder(this).setTitle("PROVA ENCERRADA").setMessage("O tempo acabou.").setCancelable(false).setPositiveButton("Sair") { _, _ -> finish() }.show() }
-    private fun sendHeartbeat() { val data = JSONObject().apply { put("battery", getBatteryLevel()); put("status", if (teacherOverlay != null) "MESSAGE_VIEW" else "ACTIVE") }; socketClient?.sendEvent("HEARTBEAT", data) }
+
+    private fun executeForcedFinish() { 
+        isExamEnded = true; kioskManager.stopKioskMode()
+        dbHelper.insertLog("EXAM_FORCED_FINISH", "Prova encerrada pelo professor")
+        AlertDialog.Builder(this).setTitle("PROVA ENCERRADA").setMessage("O tempo acabou.").setCancelable(false).setPositiveButton("Sair") { _, _ -> finish() }.show() 
+    }
+
+    private fun sendHeartbeat() { 
+        val data = JSONObject().apply { 
+            put("battery", getBatteryLevel())
+            put("status", if (teacherOverlay != null) "MESSAGE_VIEW" else "ACTIVE")
+            put("kiosk_active", kioskManager.isKioskModeActive())
+            put("unsynced_count", dbHelper.getUnsyncedAnswers().length())
+        }
+        socketClient?.sendEvent("HEARTBEAT", data) 
+    }
+
     private fun getBatteryLevel(): Int { val bm = getSystemService(BATTERY_SERVICE) as android.os.BatteryManager; return bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY) }
 
     inner class ExamInterface {
         @JavascriptInterface
-        fun saveAnswer(qId: String, valAns: String) { dbHelper.saveAnswer(qId, valAns); val data = JSONObject().apply { put("question_id", qId); put("value", valAns) }; socketClient?.sendEvent("ANSWER_SUBMIT", data) }
+        fun saveAnswer(qId: String, valAns: String) { 
+            dbHelper.saveAnswer(qId, valAns, false) // Salva localmente primeiro
+            dbHelper.insertLog("ANSWER_SAVED_LOCAL", "Questão: $qId")
+            val data = JSONObject().apply { put("question_id", qId); put("value", valAns) }
+            socketClient?.sendEvent("ANSWER_SUBMIT", data) // Tenta enviar
+        }
         @JavascriptInterface
         fun setQuestionInfo(info: String) { runOnUiThread { questionStatusTxt?.text = info } }
         @JavascriptInterface
         fun requestHelp() { sendHelpRequest() }
         @JavascriptInterface
-        fun finishExam() { runOnUiThread { socketClient?.sendEvent("EXAM_FINISHED", JSONObject()) } }
+        fun finishExam() { 
+            runOnUiThread { 
+                kioskManager.stopKioskMode()
+                dbHelper.insertLog("EXAM_FINISHED_BY_STUDENT", "Aluno clicou em finalizar")
+                socketClient?.sendEvent("EXAM_FINISHED", JSONObject()) 
+            } 
+        }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) hideSystemUI()
-        else if (!isExamEnded && teacherOverlay == null && scannerView == null) { handleAppExitAttempt() }
+        else if (!isExamEnded && teacherOverlay == null && scannerView == null) handleAppExitAttempt()
     }
 
     private fun handleAppExitAttempt() {
-        warningCount++; socketClient?.sendEvent("SECURITY_WARNING", JSONObject().apply { put("warning", warningCount) })
-        if (warningCount >= MAX_WARNINGS) { isExamEnded = true; AlertDialog.Builder(this).setTitle("AMBIENTE VIOLADO").setMessage("Prova bloqueada.").setCancelable(false).setPositiveButton("Sair") { _, _ -> finish() }.show() }
-        else { Toast.makeText(this, "Não saia da prova! ($warningCount/$MAX_WARNINGS)", Toast.LENGTH_LONG).show() }
+        warningCount++
+        val data = JSONObject().apply { put("warning_index", warningCount); put("reason", "LOST_FOCUS") }
+        socketClient?.sendEvent("SECURITY_WARNING", data)
+        dbHelper.insertLog("SECURITY_WARNING", "Tentativa de saída detectada ($warningCount)")
+        if (warningCount >= MAX_WARNINGS) { 
+            isExamEnded = true; kioskManager.stopKioskMode()
+            AlertDialog.Builder(this).setTitle("AMBIENTE VIOLADO").setMessage("Prova bloqueada.").setCancelable(false).setPositiveButton("Sair") { _, _ -> finish() }.show() 
+        } else { Toast.makeText(this, "Aviso de Segurança: $warningCount/$MAX_WARNINGS", Toast.LENGTH_LONG).show() }
     }
 
     private fun hideSystemUI() { window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_FULLSCREEN) }
 
-    override fun onDestroy() { heartbeatHandler.removeCallbacks(heartbeatRunnable); socketClient?.stop(); socketServer?.stop(); cameraExecutor.shutdown(); super.onDestroy() }
+    override fun onDestroy() { 
+        heartbeatHandler.removeCallbacks(heartbeatRunnable); kioskManager.stopKioskMode()
+        dbHelper.insertLog("APP_DESTROY", "RunnerActivity encerrada")
+        socketClient?.stop(); socketServer?.stop(); cameraExecutor.shutdown(); super.onDestroy()
+    }
 }

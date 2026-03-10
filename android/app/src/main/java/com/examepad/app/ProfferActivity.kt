@@ -165,11 +165,24 @@ class ProfferActivity : AppCompatActivity() {
             "HEARTBEAT" -> {
                 val battery = payload.optInt("battery")
                 val status = payload.optString("status")
-                if (status == "MESSAGE_VIEW") card.updateStatus("LENDO", Color.YELLOW, "Bat: $battery%")
-                else card.updateStatus("Ativo", Color.parseColor("#10b981"), "Bat: $battery%")
+                val kioskActive = payload.optBoolean("kiosk_active", true)
+                
+                if (!kioskActive) {
+                    card.updateStatus("KIOSK INATIVO", Color.RED, "⚠️ SEGURANÇA VIOLADA")
+                } else if (status == "MESSAGE_VIEW") {
+                    card.updateStatus("LENDO", Color.YELLOW, "Bat: $battery%")
+                } else {
+                    card.updateStatus("Ativo", Color.parseColor("#10b981"), "Bat: $battery%")
+                }
             }
             "HELP_REQUEST" -> card.updateStatus("PEDIU AJUDA", Color.parseColor("#f97316"), "Auxílio solicitado")
-            "SECURITY_WARNING" -> { card.warningCount++; card.updateStatus("ALERTA", Color.RED, "Violações: ${card.warningCount}") }
+            "SECURITY_WARNING" -> { 
+                val warnIdx = payload.optInt("warning_index")
+                val reason = payload.optString("reason")
+                card.warningCount = warnIdx
+                card.updateStatus("TENTATIVA SAÍDA", Color.RED, "Aviso $warnIdx | Motivo: $reason") 
+                card.pulseWarning()
+            }
             "EXAM_FINISHED" -> { card.isFinished = true; card.updateStatus("FINALIZADO", Color.CYAN, "Dados no Cofre") }
             "ANSWER_SUBMIT" -> card.updateLastAction("Salvo: ${payload.optString("question_id")}")
             "BLE_OUT_OF_RANGE" -> card.updateStatus("FORA DA SALA", Color.RED, "Sinal BLE perdido!")
@@ -198,10 +211,16 @@ class ProfferActivity : AppCompatActivity() {
         private fun showIndividualMessageDialog() { AlertDialog.Builder(this@ProfferActivity).setTitle("Aviso").setItems(standardMessages) { _, which -> sendMessageToStudent("TEACHER_MESSAGE", standardMessages[which]) }.setNegativeButton("Voltar", null).show() }
         private fun confirmForcedFinish() { AlertDialog.Builder(this@ProfferActivity).setTitle("Encerrar este aluno?").setPositiveButton("Sim") { _, _ -> sendMessageToStudent("FORCE_FINISH", "") }.setNegativeButton("Não", null).show() }
         fun sendMessageToStudent(type: String, text: String) { val client = ExamSocketClient(currentIp, 9999); val data = JSONObject().apply { put("message", text) }; client.sendEvent(type, data) }
+        
+        fun pulseWarning() {
+            view.setStrokeColor(Color.RED)
+            view.postDelayed({ if (warningCount > 0 && !isFinished) view.setStrokeWidth(6) else view.setStrokeWidth(2) }, 100)
+        }
+
         fun updateStatus(status: String, color: Int, meta: String) {
             statusTxt.text = status; statusTxt.setTextColor(color); actionTxt.text = "$meta | IP: $currentIp"
-            if (status == "Ativo") { view.setStrokeColor(Color.parseColor("#334155")) }
-            else if (color == Color.RED) { view.setStrokeColor(Color.RED) }
+            if (status == "Ativo") { view.setStrokeColor(Color.parseColor("#334155")); view.setStrokeWidth(2) }
+            else if (color == Color.RED) { view.setStrokeColor(Color.RED); view.setStrokeWidth(4) }
         }
         fun updateLastAction(action: String) { actionTxt.text = "$action | IP: $currentIp" }
     }

@@ -189,7 +189,7 @@ export default function App() {
     localStorage.setItem('examepad_theme', theme);
   }, [store.settings.theme]);
 
-  const element = useRoutes(appRoutes);
+  const element = useRoutes(appRoutes(!!currentUser));
   const currentTheme = store.settings.theme || 'light';
   const userRoleClass = currentUser ? `role-${currentUser.role.toLowerCase()}` : '';
 

@@ -173,14 +173,14 @@ const S = ({ children }: { children: React.ReactNode }) => (
     <Suspense fallback={<PageLoader />}>{children}</Suspense>
 );
 
-export const appRoutes: RouteObject[] = [
+export const appRoutes = (isAuthenticated: boolean): RouteObject[] => [
     {
         path: '/',
         element: <Navigate to="/dashboard" replace />
     },
     {
         path: '/login',
-        element: <S><LoginPage /></S>
+        element: isAuthenticated ? <Navigate to="/dashboard" replace /> : <S><LoginPage /></S>
     },
     {
         path: '/',
