@@ -2,12 +2,12 @@ import React, { lazy, Suspense } from 'react';
 import { UserRole } from '../../types';
 import { AppModule } from '../core/types';
 import {
-    Shield, Truck, History, Settings, FileUp, Terminal, Target, Gamepad2, Package, Users, FileText, BookOpen, Database, Activity, Lock
+    Shield, Truck, History, Settings, FileUp, Terminal, Target, Gamepad2, Package, Users, FileText, BookOpen, Database, Activity, Lock, Globe
 } from 'lucide-react';
 import { ProtectedRoute } from '../../components/ProtectedRoute';
 
 const SaaSControlPanelView = lazy(() => import('./SaaSControlPanelView').then(m => ({ default: m.SaaSControlPanelView })));
-const LogisticsManagementView = lazy(() => import('./LogisticsManagementView').then(m => ({ default: m.LogisticsManagementView })));
+const LogisticsManagementView = lazy(() => import('./LogisticsManagementView'));
 const AuditLogView = lazy(() => import('./components/AuditLogView').then(m => ({ default: m.AuditLogView })));
 const GovernanceView = lazy(() => import('./components/GovernanceView').then(m => ({ default: m.GovernanceView })));
 const CapabilitiesView = lazy(() => import('./components/CapabilitiesView').then(m => ({ default: m.CapabilitiesView })));

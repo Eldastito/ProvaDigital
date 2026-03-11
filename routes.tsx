@@ -55,8 +55,8 @@ const BulkImportView = lazy(() => import('./modules/admin/components/BulkImportV
 const CapabilitiesView = lazy(() => import('./modules/admin/components/CapabilitiesView').then(m => ({ default: m.CapabilitiesView })));
 const GovernanceView = lazy(() => import('./modules/admin/components/GovernanceView').then(m => ({ default: m.GovernanceView })));
 const AuditLogView = lazy(() => import('./modules/admin/components/AuditLogView').then(m => ({ default: m.AuditLogView })));
-const LogisticsManagementView = lazy(() => import('./modules/admin/LogisticsManagementView').then(m => ({ default: m.LogisticsManagementView })));
-const CustodianOperationsView = lazy(() => import('./modules/logistics/CustodianOperationsView').then(m => ({ default: m.CustodianOperationsView })));
+const LogisticsManagementView = lazy(() => import('./modules/admin/LogisticsManagementView'));
+const CustodianOperationsView = lazy(() => import('./modules/logistics/CustodianOperationsView'));
 
 // Student Portal
 const StudentDashboardView = lazy(() => import('./modules/student-portal/StudentDashboardView').then(m => ({ default: m.StudentDashboardView })));
@@ -193,7 +193,7 @@ export const appRoutes = (isAuthenticated: boolean): RouteObject[] => [
             ...managementModule.routes,
             ...parentsModule.routes,
 
-            { path: 'dashboard', element: <S><SimpleDashboard /></S> },
+            { path: 'dashboard', element: <S><DashboardView /></S> },
             { path: 'items', element: <S><ItemsListView /></S> },
             { path: 'items/new', element: <S><ItemEditorView /></S> },
             { path: 'items/ai-generator', element: <S><AIQuestionGeneratorView /></S> },
