@@ -2,7 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import { UserRole } from '../../types';
 import { AppModule } from '../core/types';
 import {
-    Shield, Truck, History, Settings, FileUp, Terminal, Target, Gamepad2, Package, Users, FileText, BookOpen, Database, Activity, Lock, Globe
+    Shield, Truck, History, Settings, FileUp, Terminal, Target, Gamepad2, Package, Users, FileText, BookOpen, Database, Activity, Lock, Globe, MessageSquare
 } from 'lucide-react';
 import { ProtectedRoute } from '../../components/ProtectedRoute';
 
@@ -62,5 +62,6 @@ export const adminModule: AppModule = {
         { icon: Lock, label: 'Privacidade & LGPD', path: '/admin/privacidade' },
         { icon: Globe, label: 'Ecossistema v4.0', path: '/admin/global' },
         { icon: Terminal, label: 'Diagnóstico Sistema', path: '/diag-ai' },
+        { icon: MessageSquare, label: 'Chat', path: '/communication' },
     ]
 };

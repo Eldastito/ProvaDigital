@@ -3,7 +3,7 @@ import { UserRole } from '../../types';
 import { AppModule } from '../core/types';
 import {
     PieChart, BarChart, TrendingUp, Globe, ShoppingBag,
-    Printer, Users, Shield, Zap, Stethoscope, FileText, BookOpen, LayoutDashboard
+    Printer, Users, Shield, Zap, Stethoscope, FileText, BookOpen, LayoutDashboard, MessageSquare
 } from 'lucide-react';
 import { ProtectedRoute } from '../../components/ProtectedRoute';
 
@@ -52,5 +52,6 @@ export const strategicModule: AppModule = {
         { icon: Shield, label: 'Risco', path: '/risk-dashboard' },
         { icon: Zap, label: 'Risco Preditivo', path: '/predictive-risk' },
         { icon: Stethoscope, label: 'Saúde Mental', path: '/neuro-screening' },
+        { icon: MessageSquare, label: 'Chat', path: '/communication' },
     ]
 };

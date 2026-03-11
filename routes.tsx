@@ -206,6 +206,7 @@ export const appRoutes = (isAuthenticated: boolean): RouteObject[] => [
             { path: 'exams/:id/results', element: <S><ResultsEntryView /></S> },
             { path: 'allocation', element: <S><AllocationView /></S> },
             { path: 'my-profile', element: <S><UserProfileView /></S> },
+            { path: 'communication', element: <S><CommunicationView /></S> },
 
             // Online Exam core (shared)
             { path: 'online-exam', element: <S><ExamLauncher /></S> },

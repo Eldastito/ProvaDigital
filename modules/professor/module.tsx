@@ -3,7 +3,7 @@ import { UserRole } from '../../types';
 import { AppModule } from '../core/types';
 import {
     PieChart, Calendar, Home, Activity, CalendarCheck,
-    FileText, FlaskConical, BookOpen, GraduationCap, BarChart, LayoutDashboard, MonitorPlay
+    FileText, FlaskConical, BookOpen, GraduationCap, BarChart, LayoutDashboard, MonitorPlay, MessageCircle
 } from 'lucide-react';
 import { ProtectedRoute } from '../../components/ProtectedRoute';
 
@@ -48,6 +48,7 @@ export const professorModule: AppModule = {
         { icon: BookOpen, label: 'Minhas Provas', path: '/exams' },
         { icon: GraduationCap, label: 'Aplicação', path: '/online-exam' },
         { icon: BarChart, label: 'Analytics', path: '/analytics' },
+        { icon: MessageCircle, label: 'Chat', path: '/communication' },
         { icon: GraduationCap, label: 'Planos de Ensino', path: '/study-plans' },
     ]
 };
