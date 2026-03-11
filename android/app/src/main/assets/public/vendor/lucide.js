@@ -4,7 +4,7 @@
  *
  * Do NOT use SRI with dynamically generated files! More information: https://www.jsdelivr.com/using-sri-with-dynamic-files
  */
-import{forwardRef as a,createElement as e}from"/npm/react@19.0.0/+esm";
+import{forwardRef as a,createElement as e}from"react";
 /**
  * @license lucide-react v0.474.0 - ISC
  *

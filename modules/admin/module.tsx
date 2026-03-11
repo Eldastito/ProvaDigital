@@ -7,7 +7,7 @@ import {
 import { ProtectedRoute } from '../../components/ProtectedRoute';
 
 const SaaSControlPanelView = lazy(() => import('./SaaSControlPanelView').then(m => ({ default: m.SaaSControlPanelView })));
-const LogisticsManagementView = lazy(() => import('./LogisticsManagementView'));
+const LogisticsManagementView = lazy(() => import('./LogisticsManagementView').then(m => ({ default: m.LogisticsManagementView })));
 const AuditLogView = lazy(() => import('./components/AuditLogView').then(m => ({ default: m.AuditLogView })));
 const GovernanceView = lazy(() => import('./components/GovernanceView').then(m => ({ default: m.GovernanceView })));
 const CapabilitiesView = lazy(() => import('./components/CapabilitiesView').then(m => ({ default: m.CapabilitiesView })));

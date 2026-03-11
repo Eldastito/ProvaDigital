@@ -7,7 +7,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.13.2'
+        classpath 'com.android.tools.build:gradle:8.7.3'
         classpath 'com.google.gms:google-services:4.4.4'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
 
@@ -22,6 +22,30 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+    }
+}
+
+// Tenta corrigir o Proguard obsoleto em módulos de terceiros
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty('android')) {
+            project.android.buildTypes.all { buildType ->
+                try {
+                    def oldFile = "proguard-android.txt"
+                    def newFile = "proguard-android-optimize.txt"
+                    
+                    def currentFiles = buildType.proguardFiles
+                    if (currentFiles.any { it.toString().contains(oldFile) }) {
+                        def updatedFiles = currentFiles.collect { 
+                            it.toString().contains(oldFile) ? project.android.getDefaultProguardFile(newFile) : it
+                        }
+                        buildType.setProguardFiles(updatedFiles)
+                    }
+                } catch (Exception e) {
+                    // Ignora
+                }
+            }
+        }
     }
 }
 

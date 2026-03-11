@@ -1,5 +1,7 @@
 package com.examepad.app
 
+import android.content.Context
+import android.provider.Settings
 import android.util.Log
 import kotlinx.coroutines.*
 import java.io.OutputStreamWriter
@@ -11,16 +13,23 @@ class ExamSocketClient(private val teacherIp: String, private val teacherPort: I
 
     private val clientScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    fun sendEvent(type: String, data: JSONObject) {
+    fun sendEvent(type: String, data: JSONObject, context: Context? = null) {
         clientScope.launch {
             try {
                 val socket = Socket()
                 socket.connect(InetSocketAddress(teacherIp, teacherPort), 2000)
                 
+                // Tenta pegar um ID mais confiável
+                val deviceId = if (context != null) {
+                    Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+                } else {
+                    android.os.Build.MODEL + "_" + android.os.Build.ID
+                }
+
                 val writer = OutputStreamWriter(socket.outputStream)
                 val payload = JSONObject().apply {
                     put("type", type)
-                    put("student_id", "STU_" + android.os.Build.SERIAL) // Identificador único
+                    put("student_id", deviceId)
                     put("payload", data)
                     put("timestamp", System.currentTimeMillis())
                 }

@@ -9,7 +9,7 @@ import { uuidv4 } from './utils/helpers';
 const LoginPage = lazy(() => import('./modules/auth/LoginPage').then(m => ({ default: m.LoginPage })));
 const DashboardLayout = lazy(() => import('./components/DashboardLayout').then(m => ({ default: m.DashboardLayout })));
 const DashboardView = lazy(() => import('./components/DashboardView').then(m => ({ default: m.DashboardView })));
-import { SimpleDashboard } from './components/SimpleDashboard';
+const SimpleDashboard = lazy(() => import('./components/SimpleDashboard').then(m => ({ default: m.SimpleDashboard })));
 
 // Item Bank & Builder
 const ItemsListView = lazy(() => import('./components/ItemsListView').then(m => ({ default: m.ItemsListView })));
@@ -55,8 +55,8 @@ const BulkImportView = lazy(() => import('./modules/admin/components/BulkImportV
 const CapabilitiesView = lazy(() => import('./modules/admin/components/CapabilitiesView').then(m => ({ default: m.CapabilitiesView })));
 const GovernanceView = lazy(() => import('./modules/admin/components/GovernanceView').then(m => ({ default: m.GovernanceView })));
 const AuditLogView = lazy(() => import('./modules/admin/components/AuditLogView').then(m => ({ default: m.AuditLogView })));
-const LogisticsManagementView = lazy(() => import('./modules/admin/LogisticsManagementView'));
-const CustodianOperationsView = lazy(() => import('./modules/logistics/CustodianOperationsView'));
+const LogisticsManagementView = lazy(() => import('./modules/admin/LogisticsManagementView').then(m => ({ default: m.LogisticsManagementView })));
+const CustodianOperationsView = lazy(() => import('./modules/logistics/CustodianOperationsView').then(m => ({ default: m.CustodianOperationsView })));
 
 // Student Portal
 const StudentDashboardView = lazy(() => import('./modules/student-portal/StudentDashboardView').then(m => ({ default: m.StudentDashboardView })));
