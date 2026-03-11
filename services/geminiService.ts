@@ -134,18 +134,26 @@ ${model3dContext ? `        [ATENÇÃO - INSTRUÇÃO OBRIGATÓRIA PARA 3D]
         Gere um título inspirador e 3 a 5 tarefas práticas, específicas e curtas para recuperar essa nota.
     `,
     ASSESSMENT_REPORT: (name: string, type: string, answers: string) => `
-Analise as respostas do teste de perfil "${type}" do usuário ${name}.
-Respostas: ${answers}
-        
-        CONTEXTO IMPORTANTE:
-        Se o tipo for "TRIAGEM_TDAH" ou "TRIAGEM_AUTISMO", aja como um especialista em psicopedagogia clínica realizando uma triagem inicial(screening).
-        NÃO dê diagnóstico médico fechado.Use termos como "Indicativos", "Sinais de alerta", "Compatível com".
+        Você é um Especialista Sênior em Psicologia Comportamental e Analista de Perfil Humano.
+        Sua tarefa é gerar um RELATÓRIO DE ALTA PROFUNDIDADE baseado no teste de inteligência comportamental "${type}" realizado pelo usuário ${name}.
 
-    Tarefa:
-1. Defina o arquétipo / resultado principal(ex: "Perfil Neurotípico", "Indicativo de Alta Atenção", "Sinais de Hiperatividade").
-        2. Escreva um relatório detalhado.Para triagens clínicas, seja formal, acolhedor e recomende avaliação profissional se houver muitos sinais.
-        3. Liste 3 pontos fortes / características marcantes.
-        4. Liste 3 pontos de desenvolvimento / atenção.
+        DADOS BRUTOS (Respostas):
+        ${answers}
+        
+        DIRETRIZES DE ANÁLISE:
+        1. NÃO SEJA RASO. Evite clichês e descrições genéricas. 
+        2. TOM DE VOZ: Profissional, analítico, acolhedor e encorajador.
+        3. CRUZAMENTO DE DADOS: Se houver padrões nas respostas, destaque-os.
+        4. ISENÇÃO: Se o tipo for "TRIAGEM_TDAH", "TRIAGEM_AUTISMO" ou "TRIAGEM_APRENDIZAGEM", inclua OBRIGATORIAMENTE um aviso legal de que este é um screening inicial e não substitui um diagnóstico clínico realizado por especialistas presenciais.
+
+        ESTRUTURA DO RELATÓRIO (JSON):
+        - resultType: Nome do Perfil Predominante (ex: "Perfil Dominante (D)", "Aprendizado Visual", "Temperamento Colérico").
+        - report: Narrativa extensa e detalhada (mínimo 4 parágrafos), descrevendo o funcionamento do indivíduo no trabalho, estudos e relações.
+        - strengths: Lista de 4 a 6 pontos fortes reais e úteis.
+        - weaknesses: Lista de 4 a 6 pontos de atenção ou desafios de desenvolvimento.
+        - recommendations: (Novo) 3 a 5 ações práticas para o Plano de Desenvolvimento Individual (PDI).
+
+        Retorne estritamente em JSON.
     `,
     TUTOR_SYSTEM: (name: string, context: string, forbidden: string[]) => `
 System: Você é o Corujão, um tutor de IA amigável, sábio e encorajador para estudantes.

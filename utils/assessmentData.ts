@@ -1,160 +1,188 @@
 
 import { AssessmentType } from '../types';
 
-// Dados expandidos para 30 perguntas por teste clínico
-export const ASSESSMENTS_DATA: Record<AssessmentType, { question: string, options: string[] }[]> = {
+export const ASSESSMENTS_DATA: Record<AssessmentType, { question: string, options: string[], category?: string }[]> = {
     [AssessmentType.DISC]: [
-        { question: "Diante de um problema difícil e urgente, você:", options: ["Assume o comando e resolve rápido", "Convence outros a ajudarem com entusiasmo", "Analisa com calma e método antes de agir", "Busca harmonia e consenso da equipe"] },
-        { question: "Em um grupo de trabalho, você costuma ser:", options: ["O líder focado em metas", "O motivador e comunicador", "O especialista em qualidade e regras", "O ouvinte e apoiador do time"] },
-        // ... (Simulação de continuidade para brevidade, assumindo estrutura completa)
-        { question: "Sob pressão, você tende a:", options: ["Agir", "Falar", "Pensar", "Sentir"] }
+        { question: "Em uma situação social, você se descreveria como:", options: ["Entusiasta e persuasivo", "Calmo e apoiador", "Direto e decidido", "Cuidadoso e analítico"] },
+        { question: "Quando está trabalhando em um projeto, você prefere:", options: ["Trabalhar de forma rápida para ver resultados", "Interagir com as pessoas envolvidas", "Seguir um plano passo a passo", "Garantir que todos os detalhes estejam perfeitos"] },
+        { question: "Em conflitos, sua tendência é:", options: ["Enfrentar o problema de frente", "Tentar suavizar o clima com humor", "Evitar o confronto para manter a paz", "Argumentar com base em fatos e lógica"] },
+        { question: "Seus amigos diriam que você é:", options: ["Uma pessoa de ação", "A alma da festa", "Um porto seguro", "Um conselheiro sábio"] },
+        { question: "Você se sente mais confortável quando:", options: ["Está no controle da situação", "É o centro das atenções", "Tudo está previsível e estável", "Existem regras e padrões claros"] },
+        { question: "Ao tomar uma decisão, o que mais pesa é:", options: ["A eficiência e rapidez", "O impacto nas pessoas", "O consenso do grupo", "A precisão dos dados"] },
+        { question: "Em uma reunião, você costuma:", options: ["Expor suas ideias com autoridade", "Animar o grupo e gerar ideias", "Ouvir a todos antes de falar", "Fazer perguntas técnicas e críticas"] },
+        { question: "Sua maior motivação é:", options: ["Vencer desafios", "Ser reconhecido e admirado", "Sentir-se útil e aceito", "Fazer as coisas do jeito certo"] },
+        { question: "Ao receber uma crítica, você:", options: ["Toma como um desafio para melhorar", "Fica magoado mas tenta disfarçar", "Aceita com paciência para evitar brigas", "Analisa se a crítica tem base lógica"] },
+        { question: "Na comunicação, você prefere ser:", options: ["Objetivo e focado em metas", "Caloroso e envolvente", "Tranquilo e paciente", "Formal e detalhista"] },
+        { question: "Seu ritmo de trabalho é melhor definido como:", options: ["Rápido e impaciente", "Energético e variado", "Ritmado e constante", "Metódico e preciso"] },
+        { question: "Como você lida com mudanças inesperadas?", options: ["Aproveito a oportunidade para liderar", "Fico empolgado com a novidade", "Sinto um pouco de desconforto mas aceito", "Analiso cuidadosamente os novos riscos"] },
+        { question: "O que mais te irrita nos outros?", options: ["Indecisão e lentidão", "Falta de entusiasmo", "Conflitos e grosserias", "Desorganização e erros"] },
+        { question: "Em uma equipe, você é o que:", options: ["Mantém o foco no resultado final", "Promove a união e o clima positivo", "Garante que o trabalho flua sem atritos", "Verifica se tudo segue as normas"] },
+        { question: "Seu maior medo profissional é:", options: ["Perder o controle ou falhar", "Ser rejeitado ou ignorado", "Instabilidade e mudanças bruscas", "Ser criticado por cometer erros"] },
+        { question: "Diante de um desafio, sua primeira reação é:", options: ["Atacar e vencer", "Engajar e contagiar", "Apoiar e colaborar", "Investigar e calcular"] },
+        { question: "O que você mais valoriza em um colega?", options: ["Competência e agilidade", "Carisma e bom humor", "Lealdade e paciência", "Capacidade analítica"] },
+        { question: "Ao dar um feedback, você foca em:", options: ["O que precisa ser feito imediatamente", "Como a pessoa pode se sentir motivada", "Manter a harmonia do relacionamento", "Expor os fatos de forma clara e fria"] },
+        { question: "Em um ambiente sob pressão, você costuma:", options: ["Tornar-se mais autoritário", "Tornar-se mais falante e agitado", "Tornar-se mais calado e passivo", "Tornar-se mais rígido com as regras"] },
+        { question: "Qual desses ambientes você prefere?", options: ["Dinâmico e competitivo", "Social e interativo", "Calmo e acolhedor", "Estruturado e lógico"] }
     ],
     [AssessmentType.LEARNING_STYLE]: [
-        { question: "Para aprender algo novo, prefiro:", options: ["Ver gráficos e imagens", "Ouvir explicações", "Colocar a mão na massa", "Ler instruções detalhadas"] }
-    ],
-    [AssessmentType.POSITIVE_PSYCH]: [
-        { question: "Sinto-me mais energizado quando:", options: ["Concluo uma tarefa difícil", "Ajudo alguém", "Aprendo algo novo", "Lidero um grupo"] }
+        { question: "Você quer aprender um programa novo no computador. Você:", options: ["Lê o manual ou as instruções", "Pede para alguém te explicar", "Assiste a um tutorial em vídeo", "Começa a clicar e testar por conta própria"] },
+        { question: "Ao cozinhar um prato novo, você:", options: ["Segue a receita escrita rigorosamente", "Vê uma foto do prato pronto para se guiar", "Telefona para um amigo para pedir dicas", "Vai testando os temperos enquanto faz"] },
+        { question: "Você está ajudando alguém a chegar em um lugar. Você:", options: ["Desenha um mapa", "Dá as instruções verbalmente", "Escreve o endereço e os nomes das ruas", "Vai junto com a pessoa até o local"] },
+        { question: "Você prefere um professor que use:", options: ["Gráficos e apresentações visuais", "Discussões e debates em grupo", "Textos e apostilas detalhadas", "Laboratórios e atividades práticas"] },
+        { question: "Ao estudar para uma prova, você:", options: ["Faz esquemas e mapas mentais", "Lê a matéria em voz alta", "Reescreve seus resumos", "Faz muitos exercícios práticos"] },
+        { question: "Você quer comprar um jogo novo. O que mais te influencia?", options: ["A arte e as imagens na caixa", "A recomendação verbal de amigos", "As análises escritas em sites", "Poder testar o jogo antes de comprar"] },
+        { question: "Em um museu, você prefere:", options: ["Olhar as obras de arte", "Ouvir o audioguia", "Ler as placas explicativas", "Participar de oficinas interativas"] },
+        { question: "Ao lembrar de um evento, o que vem primeiro?", options: ["As imagens do que aconteceu", "As vozes e conversas", "As palavras ditas ou escritas", "As sensações e o que você fez"] },
+        { question: "Para montar um móvel, você:", options: ["Olha atentamente os diagramas", "Vê um vídeo de alguém montando", "Lê o passo a passo devagar", "Tenta montar só de olhar as peças"] },
+        { question: "Quando você se perde na cidade, você:", options: ["Usa o mapa no celular", "Pede informação para alguém", "Lê as placas das ruas com atenção", "Segue sua intuição de direção"] },
+        { question: "Qual dessas opções te ajuda mais a relaxar?", options: ["Assistir a um filme", "Ouvir uma música ou podcast", "Ler um livro", "Fazer um exercício ou caminhada"] },
+        { question: "Em uma palestra, você geralmente:", options: ["Foca nos slides", "Foca no que o palestrante fala", "Anota as frases importantes", "Faz desenhos ou rabiscos enquanto ouve"] },
+        { question: "Se você precisa explicar algo complexo, você:", options: ["Faz um desenho ou gráfico", "Explica usando metáforas faladas", "Escreve um pequeno texto ou lista", "Usa as mãos e objetos para demonstrar"] },
+        { question: "Ao escolher um restaurante, você:", options: ["Olha as fotos dos pratos no Instagram", "Pede indicação para amigos", "Lê as avaliações escritas", "Prefere ir ao local para sentir o clima"] },
+        { question: "Você se lembra melhor de:", options: ["Rostos das pessoas", "Nomes das pessoas", "O que você conversou com elas", "Onde você as conheceu e o que faziam"] },
+        { question: "Para aprender a usar um novo celular, você:", options: ["Explora as telas visualmente", "Pergunta para quem já sabe", "Lê as dicas que aparecem na tela", "Sai mexendo em tudo por instinto"] }
     ],
     [AssessmentType.TEMPERAMENT]: [
-        { question: "Minha reação inicial a surpresas é:", options: ["Explosiva/Rápida", "Animada/Falante", "Analítica/Preocupada", "Calma/Observadora"] }
+        { question: "Como você reage quando algo sai do seu controle de repente?", options: ["Fico irritado e tento retomar o controle rapidamente", "Fico ansioso mas tento manter o otimismo", "Fico triste e me recolho para processar", "Mantenho a calma e espero a situação se resolver"] },
+        { question: "Em um grupo novo, você geralmente é quem:", options: ["Toma a iniciativa de liderar", "Conversa com todos e faz amigos", "Observa discretamente antes de se envolver", "Fica quieto e prefere falar só o necessário"] },
+        { question: "Sua maior força é a sua:", options: ["Determinação e coragem", "Alegria e sociabilidade", "Profundidade e lealdade", "Paciência e diplomacia"] },
+        { question: "Qual dessas palavras melhor define seu estilo de trabalho?", options: ["Produtividade", "Criatividade", "Perfeccionismo", "Estabilidade"] },
+        { question: "Quando você está cansado, você prefere:", options: ["Fazer algo ativo para desestressar", "Sair com amigos para se divertir", "Ficar sozinho lendo ou ouvindo música", "Descansar em silêncio sem ser incomodado"] },
+        { question: "Seu humor costuma ser:", options: ["Intenso e focado", "Vibrante e oscilante", "Sério e introspectivo", "Constante e tranquilo"] },
+        { question: "Ao planejar uma viagem, você foca em:", options: ["As atividades e metas que quer alcançar", "As festas e pessoas que quer conhecer", "Os detalhes e possíveis problemas para evitar", "O conforto e o relaxamento que terá"] },
+        { question: "Como você lida com erros próprios?", options: ["Corrijo e sigo em frente sem remoer", "Tento rir da situação para não ficar mal", "Analiso profundamente por que errei", "Aceito com tranquilidade e tento não repetir"] },
+        { question: "Sua comunicação é mais:", options: ["Impulsiva e direta", "Entusiasta e prolixa", "Sensível e poética", "Lenta e cuidadosa"] },
+        { question: "Você se considera uma pessoa mais:", options: ["Prática", "Emocional", "Intelectual", "Observadora"] },
+        { question: "Quando você tem um objetivo importante, você:", options: ["Não para até conseguir terminar", "Fica empolgado mas pode se distrair", "Planeja cada detalhe antes de começar", "Faz uma coisa de cada vez com calma"] },
+        { question: "Como você prefere lidar com críticas?", options: ["Ignoro e sigo firme no meu caminho", "Tento entender e mudar de imediato", "Fico pensando nelas por muito tempo", "Aceito sem problemas, se forem justas"] },
+        { question: "Seus sentimentos são melhor descritos como:", options: ["Fugazes mas intensos", "Superficiais e alegres", "Profundos e duradouros", "Escondidos e discretos"] },
+        { question: "Em uma briga, você:", options: ["Fala o que pensa na hora (explosivo)", "Tenta desconversar e fazer piada", "Fica profundamente magoado e se cala", "Tenta acalmar os ânimos de todos"] },
+        { question: "O que te motiva a sair da cama?", options: ["Meus objetivos e conquistas", "Minhas amizades e diversão", "Minhas responsabilidades e deveres", "A paz e a rotina do dia"] }
+    ],
+    [AssessmentType.POSITIVE_PSYCH]: [
+        { question: "Sinto uma curiosidade genuína por quase tudo.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Curiosidade" },
+        { question: "Adoro aprender coisas novas, dentro ou fora da escola.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Amor ao Aprendizado" },
+        { question: "Sempre penso em formas novas e criativas de fazer as coisas.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Criatividade" },
+        { question: "Sou capaz de analisar os fatos sem deixar minhas emoções interferirem.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Pensamento Crítico" },
+        { question: "Tenho clareza dos meus valores e ajo de acordo com eles.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Integridade" },
+        { question: "Sou uma pessoa corajosa e enfrento meus medos.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Bravura" },
+        { question: "Termino tudo o que começo, não importa quão difícil seja.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Persistência" },
+        { question: "Trato todas as pessoas com bondade e compaixão.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Bondade" },
+        { question: "Sou capaz de amar e ser amado profundamente.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Capacidade de Amar" },
+        { question: "Sempre considerar os sentimentos dos outros antes de agir.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Inteligência Social" },
+        { question: "Acredito que todos merecem as mesmas oportunidades e direitos.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Justiça" },
+        { question: "Sou um bom líder e consigo motivar as pessoas para um objetivo comum.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Liderança" },
+        { question: "Trabalho bem em equipe e sou leal ao meu grupo.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Trabalho em Equipe" },
+        { question: "Perdoo facilmente as pessoas que me magoaram.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Perdão" },
+        { question: "Sou uma pessoa modesta e prefiro não ostentar minhas conquistas.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Humildade" },
+        { question: "Sou cauteloso e evito correr riscos desnecessários.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Prudência" },
+        { question: "Consigo controlar minhas emoções e impulsos com facilidade.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Autorregulação" },
+        { question: "Vejo beleza e perfeição em muitas coisas ao meu redor.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Apreciação da Beleza" },
+        { question: "Sou extremamente grato pelas coisas boas da minha vida.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Gratidão" },
+        { question: "Sou otimista em relação ao futuro e espero o melhor.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Esperança" },
+        { question: "Gosto de fazer os outros rirem e vejo o lado engraçado da vida.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Humor" },
+        { question: "Sinto que minha vida tem um propósito e um sentido maior.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Espiritualidade" },
+        { question: "Abordo a vida com entusiasmo, energia e vigor.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Entusiasmo" },
+        { question: "Sou capaz de dar conselhos sábios e ter uma visão ampla das coisas.", options: ["Discordo Totalmente", "Discordo", "Neutro", "Concordo", "Concordo Totalmente"], category: "Perspectiva" }
     ],
     
     // ---------------------------------------------------------------------------
-    // TRIAGEM TDAH (Foco: Atenção, Hiperatividade, Funções Executivas/TOL, Memória Operacional/ETNMO)
+    // TRIAGENS CLÍNICAS (MANTIDAS)
     // ---------------------------------------------------------------------------
     [AssessmentType.TDAH_SCREENING]: [
-        // Bloco 1: Desatenção (SNAP-IV Base)
         { question: "1. Comete erros por descuido em tarefas escolares ou de trabalho?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
         { question: "2. Tem dificuldade em manter a atenção em tarefas prolongadas ou palestras?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
         { question: "3. Parece não ouvir quando falam diretamente com ele(a)?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
-        { question: "4. Não segue instruções até o fim e não termina deveres/tarefas (sem ser por oposição)?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
+        { question: "4. Não segue instruções até o fim e não termina deveres/tarefas?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
         { question: "5. Tem dificuldade para organizar tarefas sequenciais?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
         { question: "6. Evita ou reluta em envolver-se em tarefas que exigem esforço mental constante?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
         { question: "7. Perde coisas necessárias para tarefas (lápis, livros, ferramentas)?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
         { question: "8. Distrai-se facilmente com estímulos externos (barulhos, movimentos)?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
         { question: "9. É esquecido em atividades diárias (ex: recados, compromissos)?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
-        
-        // Bloco 2: Hiperatividade/Impulsividade (SNAP-IV Base)
         { question: "10. Mexe com as mãos/pés ou se remexe na cadeira?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
         { question: "11. Sai do lugar em situações onde se espera que fique sentado?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
-        { question: "12. Corre ou escala em situações inapropriadas (em adultos: sensação de inquietude)?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
+        { question: "12. Corre ou escala em situações inapropriadas?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
         { question: "13. Tem dificuldade em brincar ou realizar atividades de lazer silenciosamente?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
         { question: "14. Age como se estivesse 'ligado na tomada' (motor contínuo)?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
         { question: "15. Fala em demasia, sem respeitar turnos?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
-        { question: "16. Responde perguntas antes que elas sejam terminadas (impulsividade verbal)?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
+        { question: "16. Responde perguntas antes que elas sejam terminadas?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
         { question: "17. Tem dificuldade de esperar sua vez em filas ou jogos?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
         { question: "18. Interrompe ou se intromete em conversas alheias?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
-
-        // Bloco 3: Funções Executivas (Baseado na TORRE DE LONDRES - Planejamento/Resolução de Problemas)
-        { question: "19. (TOL) Diante de um problema novo, consegue planejar os passos antes de agir?", options: ["Sempre planeja", "Planeja às vezes", "Raramente planeja", "Age por tentativa e erro (impulsivo)"] },
-        { question: "20. (TOL) Quando percebe que uma estratégia falhou, consegue mudar de abordagem rapidamente (Flexibilidade)?", options: ["Facilmente", "Com alguma dificuldade", "Com muita dificuldade", "Persiste no erro/Desiste"] },
-        { question: "21. (TOL) Consegue antecipar as consequências de suas ações a longo prazo?", options: ["Sempre", "Às vezes", "Raramente", "Nunca"] },
-        { question: "22. (Executivo) Consegue iniciar uma tarefa chata sem precisar de múltiplos avisos (Iniciação)?", options: ["Sempre", "Às vezes", "Raramente", "Nunca"] },
-        { question: "23. (Executivo) Tem dificuldade em estimar quanto tempo uma tarefa levará (Cegueira temporal)?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
-
-        // Bloco 4: Memória Operacional (Baseado na ETNMO)
-        { question: "24. (Memória) Consegue lembrar de uma instrução com 3 etapas (ex: pegue o livro, abra na pág 10 e leia o texto)?", options: ["Facilmente", "Esquece uma parte", "Esquece quase tudo", "Precisa de repetição constante"] },
-        { question: "25. (Memória) Ao fazer cálculos mentais, perde os números 'guardados' na cabeça?", options: ["Nunca", "Às vezes", "Frequentemente", "Sempre"] },
-        { question: "26. (Memória) Esquece o início da frase quando chega ao final de um parágrafo longo?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
-        { question: "27. (Memória) Tem dificuldade em copiar do quadro para o caderno (perde a referência visual)?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
-        
-        // Bloco 5: Regulação Emocional
+        { question: "19. Diante de um problema novo, consegue planejar os passos antes de agir?", options: ["Sempre planeja", "Planeja às vezes", "Raramente planeja", "Age por tentativa e erro"] },
+        { question: "20. Quando percebe que uma estratégia falhou, consegue mudar de abordagem rapidamente?", options: ["Facilmente", "Com alguma dificuldade", "Com muita dificuldade", "Desiste"] },
+        { question: "21. Consegue antecipar as consequências de suas ações a longo prazo?", options: ["Sempre", "Às vezes", "Raramente", "Nunca"] },
+        { question: "22. Consegue iniciar uma tarefa chata sem precisar de múltiplos avisos?", options: ["Sempre", "Às vezes", "Raramente", "Nunca"] },
+        { question: "23. Tem dificuldade em estimar quanto tempo uma tarefa levará?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
+        { question: "24. Consegue lembrar de uma instrução com 3 etapas?", options: ["Facilmente", "Esquece uma parte", "Esquece quase tudo", "Precisa de repetição"] },
+        { question: "25. Ao fazer cálculos mentais, perde os números 'guardados' na cabeça?", options: ["Nunca", "Às vezes", "Frequentemente", "Sempre"] },
+        { question: "26. Esquece o início da frase quando chega ao final de um parágrafo longo?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
+        { question: "27. Tem dificuldade em copiar do quadro para o caderno?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
         { question: "28. Tem explosões de raiva desproporcionais ao motivo?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
         { question: "29. Fica frustrado facilmente quando algo não sai como esperado?", options: ["Nunca", "Às vezes", "Frequentemente", "Muito Frequentemente"] },
         { question: "30. O humor oscila drasticamente durante o dia?", options: ["Não", "Levemente", "Moderadamente", "Intensamente"] }
     ],
-
-    // ---------------------------------------------------------------------------
-    // TRIAGEM AUTISMO (Foco: Social, Comunicação, Rigidez, Sensorial)
-    // ---------------------------------------------------------------------------
     [AssessmentType.AUTISM_SCREENING]: [
-        // Social / Interação
         { question: "1. Prefere fazer coisas sozinho a fazer com outras pessoas?", options: ["Definitivamente concordo", "Concordo parcialmente", "Discordo parcialmente", "Definitivamente discordo"] },
         { question: "2. Tem dificuldade em manter contato visual natural durante conversas?", options: ["Sempre", "Frequentemente", "Raramente", "Nunca"] },
         { question: "3. Acha difícil entender as intenções ou 'entrelinhas' das outras pessoas?", options: ["Sempre", "Frequentemente", "Raramente", "Nunca"] },
         { question: "4. Em grupo, tende a se isolar ou ficar na periferia da atividade?", options: ["Sempre", "Frequentemente", "Raramente", "Nunca"] },
         { question: "5. Tem dificuldade em fazer amigos da mesma idade?", options: ["Muita dificuldade", "Alguma dificuldade", "Pouca dificuldade", "Nenhuma dificuldade"] },
-        { question: "6. Não compartilha interesses (ex: não aponta coisas legais para mostrar aos outros)?", options: ["Verdadeiro", "Falso"] },
+        { question: "6. Não compartilha interesses (ex: mostrar coisas legais aos outros)?", options: ["Verdadeiro", "Falso"] },
         { question: "7. Acha confuso participar de conversas rápidas em grupo?", options: ["Sempre", "Frequentemente", "Raramente", "Nunca"] },
-        { question: "8. Tem dificuldade em confortar alguém que está triste (não sabe o que fazer)?", options: ["Sempre", "Frequentemente", "Raramente", "Nunca"] },
-        
-        // Comunicação / Linguagem Pragmática
-        { question: "9. Tende a interpretar frases literalmente (dificuldade com ironia/metáforas)?", options: ["Sempre", "Frequentemente", "Raramente", "Nunca"] },
+        { question: "8. Tem dificuldade em confortar alguém que está triste?", options: ["Sempre", "Frequentemente", "Raramente", "Nunca"] },
+        { question: "9. Tende a interpretar frases literalmente (dificuldade com ironia)?", options: ["Sempre", "Frequentemente", "Raramente", "Nunca"] },
         { question: "10. Tem um tom de voz monótono, atípico ou 'pedante'?", options: ["Sim", "Às vezes", "Não"] },
         { question: "11. Costuma ser considerado 'sem filtro' ou excessivamente honesto?", options: ["Sempre", "Frequentemente", "Raramente", "Nunca"] },
-        { question: "12. Acha difícil saber quando é a sua vez de falar em uma conversa (interrompe ou fica mudo)?", options: ["Sempre", "Frequentemente", "Raramente", "Nunca"] },
-        { question: "13. Fala excessivamente sobre seu assunto favorito sem perceber o desinteresse do outro?", options: ["Sempre", "Frequentemente", "Raramente", "Nunca"] },
-        { question: "14. Tem dificuldade com jogos de 'faz de conta' ou imaginação social?", options: ["Muita dificuldade", "Alguma dificuldade", "Nenhuma dificuldade"] },
-        
-        // Comportamentos Restritos e Repetitivos
+        { question: "12. Acha difícil saber quando é a sua vez de falar?", options: ["Sempre", "Frequentemente", "Raramente", "Nunca"] },
+        { question: "13. Fala excessivamente sobre seu assunto favorito sem notar desinteresse?", options: ["Sempre", "Frequentemente", "Raramente", "Nunca"] },
+        { question: "14. Tem dificuldade com jogos de 'faz de conta'?", options: ["Muita dificuldade", "Alguma dificuldade", "Nenhuma dificuldade"] },
         { question: "15. Fica muito incomodado se sua rotina diária é alterada de repente?", options: ["Extremamente", "Moderadamente", "Levemente", "Não"] },
-        { question: "16. Tem interesses muito intensos e focados em assuntos específicos (ex: dinossauros, trens, datas)?", options: ["Sim, obsessivo", "Sim, intenso", "Interesses normais", "Não"] },
+        { question: "16. Tem interesses muito intensos e focados em assuntos específicos?", options: ["Sim, obsessivo", "Sim, intenso", "Interesses normais", "Não"] },
         { question: "17. Prefere categorizar informações (listar, ordenar) do que ficção?", options: ["Sempre", "Frequentemente", "Raramente", "Nunca"] },
-        { question: "18. Faz movimentos repetitivos (balançar mãos, corpo) quando ansioso ou excitado?", options: ["Frequentemente", "Às vezes", "Raramente", "Nunca"] },
+        { question: "18. Faz movimentos repetitivos (balançar mãos) quando ansioso?", options: ["Frequentemente", "Às vezes", "Raramente", "Nunca"] },
         { question: "19. Apega-se a rituais ou sequências específicas para fazer as coisas?", options: ["Sempre", "Frequentemente", "Raramente", "Nunca"] },
-        { question: "20. Fica fascinado por partes de objetos (ex: rodas girando) em vez do objeto todo?", options: ["Sim", "Não"] },
-        
-        // Sensorial (Hiper ou Hipo)
-        { question: "21. Tem sensibilidade excessiva a barulhos altos (tapa os ouvidos)?", options: ["Sempre", "Frequentemente", "Raramente", "Nunca"] },
-        { question: "22. Incomoda-se muito com etiquetas de roupa ou certas texturas de tecido?", options: ["Sempre", "Frequentemente", "Raramente", "Nunca"] },
-        { question: "23. É muito seletivo com comida (textura, cor, cheiro)?", options: ["Extremamente seletivo", "Moderadamente", "Normal", "Come de tudo"] },
-        { question: "24. Busca pressão profunda (abraços fortes) ou gosta de lugares apertados?", options: ["Sim", "Às vezes", "Não"] },
-        { question: "25. Não sente dor ou temperatura como as outras pessoas (Hipo)?", options: ["Verdadeiro", "Falso"] },
+        { question: "20. Fica fascinado por partes de objetos em vez do objeto todo?", options: ["Sim", "Não"] },
+        { question: "21. Tem sensibilidade excessiva a barulhos altos?", options: ["Sempre", "Frequentemente", "Raramente", "Nunca"] },
+        { question: "22. Incomoda-se muito com etiquetas de roupa ou texturas?", options: ["Sempre", "Frequentemente", "Raramente", "Nunca"] },
+        { question: "23. É muito seletivo com comida (textura, cheiro)?", options: ["Extremamente", "Moderadamente", "Normal", "Não"] },
+        { question: "24. Busca pressão profunda (abraços fortes) ou lugares apertados?", options: ["Sim", "Às vezes", "Não"] },
+        { question: "25. Não sente dor ou temperatura como as outras pessoas?", options: ["Verdadeiro", "Falso"] },
         { question: "26. Incomoda-se com luzes fortes ou fluorescentes?", options: ["Sempre", "Frequentemente", "Raramente", "Nunca"] },
-        
-        // Desenvolvimento Geral
         { question: "27. Teve atraso na fala na infância?", options: ["Sim, significativo", "Sim, leve", "Não"] },
         { question: "28. Anda ou andava na ponta dos pés?", options: ["Sim", "Às vezes", "Não"] },
-        { question: "29. Tem dificuldade de coordenação motora grossa (desajeitado)?", options: ["Sim", "Não"] },
+        { question: "29. Tem dificuldade de coordenação motora grossa?", options: ["Sim", "Não"] },
         { question: "30. Mostra ansiedade social significativa?", options: ["Sempre", "Em situações novas", "Raramente", "Nunca"] }
     ],
-
-    // ---------------------------------------------------------------------------
-    // TRIAGEM DE APRENDIZAGEM (NOVO - Baseado em TDE / TDF)
-    // ---------------------------------------------------------------------------
     [AssessmentType.LEARNING_SCREENING]: [
-        // Leitura (Decodificação e Fluência)
-        { question: "1. (Leitura) Lê palavras de forma silabada ou hesitante para sua idade?", options: ["Sempre", "Frequentemente", "Raramente", "Lê com fluência"] },
-        { question: "2. (Leitura) Troca letras visualmente semelhantes (p/b, q/d, m/n)?", options: ["Muitas trocas", "Algumas trocas", "Raras trocas", "Nenhuma troca"] },
-        { question: "3. (Leitura) Inventa o final das palavras ao ler (adivinhação)?", options: ["Frequentemente", "Às vezes", "Raramente", "Nunca"] },
-        { question: "4. (Compreensão) Lê o texto mas não entende o que leu?", options: ["Sempre", "Frequentemente", "Raramente", "Entende bem"] },
-        { question: "5. (Compreensão) Tem dificuldade em identificar a ideia principal do texto?", options: ["Muita dificuldade", "Alguma dificuldade", "Pouca dificuldade", "Nenhuma"] },
-        
-        // Escrita (Ortografia e Produção)
-        { question: "6. (Escrita) Sua caligrafia é ilegível ou desorganizada (Disgrafia)?", options: ["Muito ilegível", "Difícil de ler", "Razoável", "Legível e organizada"] },
-        { question: "7. (Escrita) Comete erros ortográficos graves (trocas fonéticas, omissões)?", options: ["Muitos erros", "Alguns erros", "Poucos erros", "Ortografia adequada"] },
-        { question: "8. (Escrita) Aglutina palavras (escrevetudo junto) ou separa indevidamente?", options: ["Frequentemente", "Às vezes", "Raramente", "Nunca"] },
-        { question: "9. (Escrita) Tem dificuldade em estruturar um parágrafo com começo, meio e fim?", options: ["Muita dificuldade", "Alguma dificuldade", "Pouca dificuldade", "Escreve bem"] },
-        { question: "10. (Escrita) Evita escrever a todo custo?", options: ["Sempre evita", "Evita se puder", "Escreve se mandarem", "Gosta de escrever"] },
-
-        // Matemática (Discalculia - TDE Subteste Aritmética)
-        { question: "11. (Mat) Tem dificuldade em associar número à quantidade?", options: ["Muita dificuldade", "Alguma dificuldade", "Nenhuma dificuldade"] },
-        { question: "12. (Mat) Usa os dedos para contar em idades onde já deveria fazer mentalmente?", options: ["Sempre", "Frequentemente", "Raramente", "Nunca"] },
-        { question: "13. (Mat) Confunde sinais de operações (+, -, x, /)?", options: ["Frequentemente", "Às vezes", "Raramente", "Nunca"] },
-        { question: "14. (Mat) Tem dificuldade em alinhar números para fazer contas armadas?", options: ["Sim", "Às vezes", "Não"] },
-        { question: "15. (Mat) Não entende conceitos de tempo (horas, dias, ontem/amanhã)?", options: ["Muita dificuldade", "Alguma dificuldade", "Nenhuma dificuldade"] },
-        { question: "16. (Mat) Tem dificuldade com raciocínio lógico-matemático (problemas)?", options: ["Muita dificuldade", "Alguma dificuldade", "Nenhuma dificuldade"] },
-
-        // Discriminação Fonológica (TDF)
-        { question: "17. (Fonologia) Tem dificuldade em rimas (não percebe que 'pato' rima com 'gato')?", options: ["Sim", "Às vezes", "Não"] },
-        { question: "18. (Fonologia) Tem dificuldade em separar sílabas batendo palmas?", options: ["Sim", "Às vezes", "Não"] },
-        { question: "19. (Fonologia) Troca sons na fala (/r/ por /l/, /s/ por /z/)?", options: ["Muitas trocas", "Algumas trocas", "Fala correta"] },
-        { question: "20. (Fonologia) Tem dificuldade em identificar com que som uma palavra começa?", options: ["Sim", "Às vezes", "Não"] },
-
-        // Habilidades Motoras e Viso-Espaciais
-        { question: "21. Tem dificuldade em recortar com tesoura ou segurar o lápis corretamente?", options: ["Muita dificuldade", "Alguma dificuldade", "Nenhuma"] },
+        { question: "1. Lê palavras de forma silabada ou hesitante?", options: ["Sempre", "Frequentemente", "Raramente", "Fluente"] },
+        { question: "2. Troca letras visualmente semelhantes (p/b, q/d)?", options: ["Muitas", "Algumas", "Raras", "Nenhuma"] },
+        { question: "3. Inventa o final das palavras ao ler?", options: ["Frequentemente", "Às vezes", "Raramente", "Nunca"] },
+        { question: "4. Lê o texto mas não entende o que leu?", options: ["Sempre", "Frequentemente", "Raramente", "Entende bem"] },
+        { question: "5. Tem dificuldade em identificar a ideia principal?", options: ["Muita", "Alguma", "Pouca", "Nenhuma"] },
+        { question: "6. Sua caligrafia é ilegível ou desorganizada?", options: ["Muito", "Difícil", "Razoável", "Legível"] },
+        { question: "7. Comete erros ortográficos graves (trocas fonéticas)?", options: ["Muitos", "Alguns", "Poucos", "Adequada"] },
+        { question: "8. Aglutina palavras ou separa indevidamente?", options: ["Frequentemente", "Às vezes", "Raramente", "Nunca"] },
+        { question: "9. Tem dificuldade em estruturar um parágrafo?", options: ["Muita", "Alguma", "Pouca", "Boa"] },
+        { question: "10. Evita escrever a todo custo?", options: ["Sempre", "Evita se puder", "Se mandarem", "Gosta"] },
+        { question: "11. Tem dificuldade em associar número à quantidade?", options: ["Muita", "Alguma", "Nenhuma"] },
+        { question: "12. Usa os dedos para contar em idades avançadas?", options: ["Sempre", "Frequentemente", "Raramente", "Nunca"] },
+        { question: "13. Confunde sinais de operações (+, -, x, /)?", options: ["Frequentemente", "Às vezes", "Raramente", "Nunca"] },
+        { question: "14. Tem dificuldade em alinhar números em contas armadas?", options: ["Sim", "Às vezes", "Não"] },
+        { question: "15. Não entende conceitos de tempo (horas, ontem/amanhã)?", options: ["Muita", "Alguma", "Nenhuma"] },
+        { question: "16. Tem dificuldade com raciocínio lógico-matemático?", options: ["Muita", "Alguma", "Nenhuma"] },
+        { question: "17. Tem dificuldade em rimas?", options: ["Sim", "Às vezes", "Não"] },
+        { question: "18. Tem dificuldade em separar sílabas?", options: ["Sim", "Às vezes", "Não"] },
+        { question: "19. Troca sons na fala (/r/ por /l/)?", options: ["Muitas", "Algumas", "Correta"] },
+        { question: "20. Tem dificuldade em identificar o som inicial?", options: ["Sim", "Às vezes", "Não"] },
+        { question: "21. Tem dificuldade em recortar com tesoura?", options: ["Muita", "Alguma", "Nenhuma"] },
         { question: "22. Confunde direita e esquerda?", options: ["Sempre", "Frequentemente", "Às vezes", "Nunca"] },
-        { question: "23. Esbarra em objetos ou pessoas (coordenação motora global)?", options: ["Frequentemente", "Às vezes", "Nunca"] },
+        { question: "23. Esbarra em objetos ou pessoas?", options: ["Frequentemente", "Às vezes", "Nunca"] },
         { question: "24. Tem dificuldade em copiar formas geométricas?", options: ["Sim", "Às vezes", "Não"] },
-
-        // Linguagem Oral
-        { question: "25. Tem vocabulário pobre para a idade?", options: ["Sim", "Um pouco", "Não, vocabulário rico"] },
-        { question: "26. Tem dificuldade em contar uma história ou relatar um fato na ordem correta?", options: ["Muita dificuldade", "Alguma dificuldade", "Nenhuma"] },
-        { question: "27. Demora para encontrar a palavra certa (nomeação)?", options: ["Frequentemente", "Às vezes", "Nunca"] },
-
-        // Fatores Externos/Emocionais
-        { question: "28. Parece ansioso ou com medo de errar na escola?", options: ["Muito ansioso", "Um pouco", "Tranquilo"] },
-        { question: "29. Desiste facilmente diante de dificuldades?", options: ["Sempre", "Às vezes", "Nunca (Persistente)"] },
+        { question: "25. Tem vocabulário pobre para a idade?", options: ["Sim", "Um pouco", "Não, rico"] },
+        { question: "26. Tem dificuldade em contar uma história em ordem?", options: ["Muita", "Alguma", "Nenhuma"] },
+        { question: "27. Demora para encontrar a palavra certa?", options: ["Frequentemente", "Às vezes", "Nunca"] },
+        { question: "28. Parece ansioso ou com medo de errar na escola?", options: ["Muito", "Um pouco", "Tranquilo"] },
+        { question: "29. Desiste facilmente diante de dificuldades?", options: ["Sempre", "Às vezes", "Nunca"] },
         { question: "30. O desempenho piora sob pressão de tempo?", options: ["Piora muito", "Piora um pouco", "Não altera"] }
     ]
 };

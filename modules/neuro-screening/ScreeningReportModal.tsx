@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Activity, AlertCircle, Award, Brain, CheckCircle, Printer, X, Calendar, User, FileText, ClipboardCheck } from 'lucide-react';
+import { Activity, AlertCircle, Award, Brain, CheckCircle, Printer, X, Calendar, User, FileText, ClipboardCheck, Zap } from 'lucide-react';
 import { AssessmentResult, AssessmentType } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
 import { uuidv4 } from '../../utils/helpers';
@@ -278,6 +278,23 @@ export const ScreeningReportModal = ({ report, studentName, studentId, observati
                                 </ul>
                             </div>
                         </div>
+
+                        {/* Recommendations (PDI) */}
+                        {report.recommendations && report.recommendations.length > 0 && (
+                            <div className="bg-brand-light/20 rounded-2xl p-6 md:p-8 border border-brand-primary/20 shadow-sm print:bg-white print:border print:border-slate-300 print:rounded-lg print:p-4 print:shadow-none">
+                                <h4 className="font-bold text-brand-dark mb-6 flex items-center gap-2 text-lg md:text-xl print:text-black print:text-base print:mb-3">
+                                    <Brain size={24} className="print:hidden" /> Plano de Desenvolvimento Individual (Recomendações)
+                                </h4>
+                                <ul className="space-y-4 print:space-y-2">
+                                    {report.recommendations.map((r, i) => (
+                                        <li key={i} className="flex items-start gap-3">
+                                            <Zap size={18} className="text-brand-primary mt-0.5 flex-shrink-0 print:text-black print:w-4 print:h-4" />
+                                            <div className="text-slate-700 text-sm font-medium print:text-black">{r}</div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
 
                         {/* Signature Section (Print Only) */}
                         <div className="hidden print:flex justify-between mt-20 pt-12 break-inside-avoid">

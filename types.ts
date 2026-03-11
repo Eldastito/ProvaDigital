@@ -226,6 +226,7 @@ export interface AssessmentResult {
   report: string;
   strengths: string[];
   weaknesses: string[];
+  recommendations?: string[]; // NOVO: Recomendações práticas do PDI
   validatedBy?: string; // NOVO: Profissional que validou a triagem (Hardening)
 }
 

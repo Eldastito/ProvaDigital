@@ -176,7 +176,9 @@ export const UserProfileView = () => {
                         AssessmentType.DISC,
                         AssessmentType.LEARNING_STYLE,
                         AssessmentType.POSITIVE_PSYCH,
-                        AssessmentType.TEMPERAMENT
+                        AssessmentType.TEMPERAMENT,
+                        AssessmentType.TDAH_SCREENING,
+                        AssessmentType.AUTISM_SCREENING
                     ].map((type) => {
                         const result = userProfile.assessments.find(a => a.type === type);
 
@@ -201,7 +203,9 @@ export const UserProfileView = () => {
                                     </div>
 
                                     <h3 className="text-xl font-bold text-slate-800 mb-2">{type.replace(/_/g, ' ')}</h3>
-                                    <p className="text-sm text-slate-600 mb-6 min-h-[40px] leading-relaxed">{getAssessmentDescription(type)}</p>
+                                    <p className="text-xs text-slate-500 mb-6 min-h-[40px] leading-relaxed uppercase font-bold tracking-tighter">
+                                        {getAssessmentDescription(type)}
+                                    </p>
 
                                     {result ? (
                                         <div className="space-y-4">

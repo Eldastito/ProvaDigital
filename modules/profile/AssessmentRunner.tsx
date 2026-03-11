@@ -117,6 +117,8 @@ export const AssessmentRunner = ({ type, userName, onComplete, onCancel }: Asses
         );
     }
 
+    const isLikert = questions[currentIndex]?.options.length >= 5;
+
     return (
         <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-4xl mx-auto overflow-hidden flex flex-col h-full min-h-[600px]">
             {/* Header */}
@@ -127,9 +129,9 @@ export const AssessmentRunner = ({ type, userName, onComplete, onCancel }: Asses
                         {isClinical ? (
                             <span className="text-xs font-bold bg-rose-100 text-rose-600 px-2 py-1 rounded flex items-center gap-1"><Activity size={12}/> INSTRUMENTO CLÍNICO</span>
                         ) : (
-                            <span className="text-xs font-bold bg-brand-light text-brand-primary px-2 py-1 rounded">AVALIAÇÃO DE PERFIL</span>
+                            <span className="text-xs font-bold bg-brand-light text-brand-primary px-2 py-1 rounded">INTELIGÊNCIA COMPORTAMENTAL</span>
                         )}
-                        <p className="text-sm text-slate-400 font-medium">Item {currentIndex + 1} de {questions.length}</p>
+                        <p className="text-sm text-slate-400 font-medium">Questão {currentIndex + 1} de {questions.length}</p>
                     </div>
                 </div>
                 <button onClick={onCancel} className="p-3 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition"><X size={28}/></button>
@@ -146,25 +148,27 @@ export const AssessmentRunner = ({ type, userName, onComplete, onCancel }: Asses
                     {questions[currentIndex]?.question}
                 </h2>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto w-full">
+                <div className={`grid gap-6 max-w-4xl mx-auto w-full ${isLikert ? 'grid-cols-1 md:grid-cols-5' : 'grid-cols-1 md:grid-cols-2'}`}>
                     {questions[currentIndex]?.options.map((opt, idx) => (
                         <button 
                             key={idx}
                             onClick={() => handleOptionSelect(opt)}
-                            className="text-left p-6 rounded-2xl border-2 border-white bg-white hover:border-brand-primary hover:bg-sky-50 transition-all duration-200 group flex flex-col justify-center shadow-sm hover:shadow-xl hover:-translate-y-1 relative overflow-hidden"
+                            className={`text-center p-6 rounded-2xl border-2 border-white bg-white hover:border-brand-primary hover:bg-sky-50 transition-all duration-200 group flex flex-col justify-center shadow-sm hover:shadow-xl hover:-translate-y-1 relative overflow-hidden ${isLikert ? 'aspect-square' : ''}`}
                         >
                             <div className="absolute top-0 right-0 w-16 h-16 bg-slate-50 rounded-bl-full -mr-8 -mt-8 group-hover:bg-brand-primary/10 transition-colors"></div>
-                            <span className="text-lg text-slate-700 font-semibold group-hover:text-brand-dark relative z-10">{opt}</span>
-                            <div className="mt-4 flex items-center text-brand-primary text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                                Selecionar <ArrowRight size={16} className="ml-2"/>
-                            </div>
+                            <span className={`text-slate-700 font-bold group-hover:text-brand-dark relative z-10 ${isLikert ? 'text-sm' : 'text-lg'}`}>{opt}</span>
+                            {!isLikert && (
+                                <div className="mt-4 flex items-center justify-center text-brand-primary text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                                    Selecionar <ArrowRight size={16} className="ml-2"/>
+                                </div>
+                            )}
                         </button>
                     ))}
                 </div>
             </div>
             
             <div className="p-6 bg-white border-t border-slate-100 text-center text-sm text-slate-400 font-medium">
-                {isClinical ? "Observação Clínica: Considere frequência, intensidade e contexto." : "Responda com honestidade."}
+                {isClinical ? "Observação Clínica: Responda com base na frequência e intensidade." : "Não existem respostas certas ou erradas, apenas o seu estilo único."}
             </div>
         </div>
     );
