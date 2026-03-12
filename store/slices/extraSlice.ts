@@ -1,6 +1,7 @@
 import { StateCreator } from 'zustand';
 import { Announcement, ChatMessage, ChatGroup, GamifiedEvent, ArcadeGame, LessonPlan, StudyPlan, MentorshipRequest, NeuroReportDelivery, DiaryEntry } from '../../types';
 import { AppStore } from '../useAppStore';
+import { supabase } from '../../services/supabaseClient';
 
 export interface ExtraSlice {
     announcements: Announcement[];
@@ -27,6 +28,7 @@ export interface ExtraSlice {
     updateMessages: (messages: ChatMessage[]) => void;
     updateChatGroups: (groups: ChatGroup[]) => void;
     addDiaryEntries: (entries: DiaryEntry[]) => Promise<void>;
+    loadDiaryEntries: (userId: string, role: string) => Promise<void>;
     addNeuroReportDelivery: (delivery: NeuroReportDelivery) => Promise<void>;
     addMentorshipRequest: (request: MentorshipRequest) => void;
     acceptMentorshipRequest: (requestId: string) => Promise<void>;
@@ -66,7 +68,49 @@ export const createExtraSlice: StateCreator<AppStore, [], [], ExtraSlice> = (set
     })),
     updateMessages: (messages) => set({ messages }),
     updateChatGroups: (groups) => set({ chatGroups: groups }),
-    addDiaryEntries: async (entries) => set((state) => ({ diaryEntries: [...state.diaryEntries, ...entries] })),
+    addDiaryEntries: async (entries) => {
+        const { error } = await supabase.from('diary_entries').insert(
+            entries.map(e => ({
+                id: e.id,
+                student_id: e.studentId,
+                class_id: e.classId,
+                teacher_id: e.teacherId,
+                date: e.date,
+                attendance: e.attendance,
+                occurrences: e.occurrences
+            }))
+        );
+
+        if (error) {
+            console.error("Error saving diary entries:", error);
+            throw error;
+        }
+
+        set((state) => ({ diaryEntries: [...state.diaryEntries, ...entries] }));
+    },
+    loadDiaryEntries: async (userId, role) => {
+        // O RLS já filtra os dados corretos com base no userId/role
+        const { data, error } = await supabase.from('diary_entries').select('*');
+
+        if (error) {
+            console.error("Error loading diary entries:", error);
+            return;
+        }
+
+        if (data) {
+            const formatted = data.map(e => ({
+                id: e.id,
+                studentId: e.student_id,
+                classId: e.class_id,
+                teacherId: e.teacher_id,
+                date: e.date,
+                attendance: e.attendance as any,
+                occurrences: e.occurrences
+            })) as DiaryEntry[];
+
+            set({ diaryEntries: formatted });
+        }
+    },
     addNeuroReportDelivery: async (delivery) => set((state) => ({ neuroReportDeliveries: [...state.neuroReportDeliveries, delivery] })),
     addMentorshipRequest: (request) => set((state) => ({ mentorshipRequests: [...state.mentorshipRequests, request] })),
     acceptMentorshipRequest: async (requestId) => {

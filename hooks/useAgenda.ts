@@ -9,7 +9,17 @@ export const useAgenda = (targetStudentId?: string) => {
     const { currentUser: user } = state;
 
     // Default to current user or provided student (for parents)
-    const studentId = targetStudentId || user.id;
+    const studentId = targetStudentId || user?.id;
+    if (!studentId) return {
+        currentMonth: new Date(),
+        showAgendaModal: false,
+        setShowAgendaModal: () => {},
+        changeMonth: () => {},
+        getEventsForDay: () => [],
+        getAllMonthEvents: () => [],
+        daysInMonth: 0,
+        firstDayOfMonth: 0
+    };
     const student = state.students.find(s => s.id === studentId);
 
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -54,7 +64,7 @@ export const useAgenda = (targetStudentId?: string) => {
         const d = String(targetDate.getDate()).padStart(2, '0');
         const dateStr = `${y}-${m}-${d}`;
 
-        const schoolId = student?.schoolId || user.schoolId;
+        const schoolId = student?.schoolId || user?.schoolId;
 
         // Base Institutional Events (Available to all)
         const instEventsForDay: AgendaEvent[] = [];
@@ -101,7 +111,7 @@ export const useAgenda = (targetStudentId?: string) => {
             ...exams.map(e => ({
                 type: e.title.toLowerCase().includes('trabalho') ? 'TRABALHO' : 'PROVA',
                 title: e.title,
-                date: e.scheduledDate
+                date: e.scheduledDate || ''
             })),
             ...scheduledExams.map(s => ({
                 type: s.examTitle.toLowerCase().includes('trabalho') ? 'TRABALHO' : 'PROVA',
@@ -112,12 +122,12 @@ export const useAgenda = (targetStudentId?: string) => {
             ...announcements.map(a => ({
                 type: a.type === 'AVISO' ? 'OUTRO' : 'EVENTO',
                 title: a.title,
-                date: a.eventDate
+                date: a.eventDate || ''
             })),
             ...gameEvents.map(e => ({
                 type: 'COMPETICAO',
                 title: e.title,
-                date: e.eventDate
+                date: e.eventDate || ''
             }))
         ];
     };

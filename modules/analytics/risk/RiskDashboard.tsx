@@ -621,8 +621,8 @@ const StudentRiskCard = ({
                     </div>
                     <div className="text-right hidden md:block">
                         <div className="text-sm font-medium text-slate-700">Frequência Estimada</div>
-                        <div className={`text-lg font-bold ${assessment.simulatedAttendance < 75 ? 'text-red-600' : 'text-green-600'}`}>
-                            {assessment.simulatedAttendance}%
+                        <div className={`text-lg font-bold ${assessment.attendance < 75 ? 'text-red-600' : 'text-green-600'}`}>
+                            {assessment.attendance}%
                         </div>
                     </div>
                     {isExpanded ? <ChevronUp className="text-slate-400" /> : <ChevronDown className="text-slate-400" />}

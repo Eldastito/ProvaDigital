@@ -9,7 +9,7 @@ import { AgendaModal } from '../../components/Calendar/AgendaModal';
 import { useAgenda } from '../../hooks/useAgenda';
 
 export const ParentsDashboardView = () => {
-    const { currentUser, students, results, exams, selectedChildId, setSelectedChildId, institutionalEvents } = useAppStore();
+    const { currentUser, students, results, exams, selectedChildId, setSelectedChildId, institutionalEvents, diaryEntries, loadDiaryEntries } = useAppStore();
     const [isLoading, setIsLoading] = React.useState(true);
 
     const {
@@ -21,22 +21,26 @@ export const ParentsDashboardView = () => {
         getAllMonthEvents,
         daysInMonth,
         firstDayOfMonth
-    } = useAgenda(selectedChildId);
+    } = useAgenda(selectedChildId || undefined);
 
     // Get children
     const myChildren = currentUser?.childrenIds
         ? students.filter(s => currentUser.childrenIds?.includes(s.id))
         : [];
 
-    // Initialize selectedChildId
+    // Initialize selectedChildId and Load Diary
     React.useEffect(() => {
         if (myChildren.length > 0) {
             if (!selectedChildId) {
                 setSelectedChildId(myChildren[0].id);
             }
+            // Load real diary data from Supabase
+            if (currentUser) {
+                loadDiaryEntries(currentUser.id, currentUser.role);
+            }
             setIsLoading(false);
         }
-    }, [myChildren, selectedChildId, setSelectedChildId]);
+    }, [myChildren, selectedChildId, setSelectedChildId, currentUser, loadDiaryEntries]);
 
     // Cleanup loading if no children linked after sync
     React.useEffect(() => {
@@ -53,11 +57,13 @@ export const ParentsDashboardView = () => {
     const childExams = selectedChild ? exams.filter(e => e.classIds?.includes(selectedChild.classId || '')) : [];
 
     // --- INTELLIGENCE ENGINE ---
+    const childDiaryHistory = selectedChild ? diaryEntries.filter(d => d.studentId === selectedChild.id) : [];
+    
     const riskAssessment = selectedChild
-        ? calculateRiskScore(selectedChild, childResults)
+        ? calculateRiskScore(selectedChild, childResults, 5, childDiaryHistory)
         : null;
 
-    const attendancePercentage = riskAssessment?.simulatedAttendance || 0;
+    const attendancePercentage = riskAssessment?.attendance || 0;
     const averageScore = childResults.length > 0
         ? (childResults.reduce((sum, r) => sum + (r.totalScore || 0), 0) / childResults.length).toFixed(1)
         : '0.0';

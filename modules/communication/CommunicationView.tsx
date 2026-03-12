@@ -7,12 +7,14 @@ import { ChatRoomList } from './ChatRoomList';
 import { ChatMessageItem } from './ChatMessageItem';
 
 export const CommunicationView = () => {
-    const { currentUser: user, users: allUsers, students, selectedChildId, tenantId } = useSafeAppStore();
+    const { currentUser: user, users: allUsers, students, selectedChildId } = useSafeAppStore();
+    const tenantId = user?.tenantId;
     const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
     const [inputText, setInputText] = useState('');
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
     
     // Contatos Autorizados (Vínculos Escolares)
     const authorizedContacts = React.useMemo(() => {
@@ -36,6 +38,10 @@ export const CommunicationView = () => {
                 const history = await chatService.loadMessages(roomId);
                 setMessages(history);
 
+                // Marca como lido ao abrir
+                await chatService.markAsRead(roomId, user.id);
+                setUnreadCounts(prev => ({ ...prev, [selectedContactId]: 0 }));
+
                 // Inscrição Realtime
                 const subscription = chatService.subscribeToMessages(roomId, (payload) => {
                     const newMessage = payload.new as ChatMessage;
@@ -43,6 +49,11 @@ export const CommunicationView = () => {
                         if (prev.some(m => m.id === newMessage.id)) return prev;
                         return [...prev, newMessage];
                     });
+
+                    // Se a sala estiver aberta, marca como lido imediatamente
+                    if (newMessage.senderId !== user.id) {
+                        chatService.markAsRead(roomId, user.id).catch(console.error);
+                    }
                 });
 
                 return () => {
@@ -57,6 +68,14 @@ export const CommunicationView = () => {
 
         setupChat();
     }, [selectedContactId, user, tenantId]);
+
+    // Efeito: Carregar contagens globais iniciais
+    useEffect(() => {
+        if (!user) return;
+        chatService.getUnreadCounts(user.id)
+            .then(setUnreadCounts)
+            .catch(console.error);
+    }, [user, authorizedContacts]);
 
     // Auto-scroll
     useEffect(() => {
@@ -86,7 +105,7 @@ export const CommunicationView = () => {
                 contacts={authorizedContacts}
                 selectedContactId={selectedContactId}
                 onSelectContact={setSelectedContactId}
-                unreadCounts={{}} // Futuro: Implementar via store
+                unreadCounts={unreadCounts}
             />
 
             {/* Área de Chat */}
@@ -136,7 +155,7 @@ export const CommunicationView = () => {
                                         <ChatMessageItem 
                                             key={msg.id} 
                                             message={msg} 
-                                            isOwn={msg.sender_id === user?.id} 
+                                            isOwn={msg.senderId === user?.id} 
                                         />
                                     ))}
                                     {messages.length === 0 && (

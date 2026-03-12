@@ -54,7 +54,16 @@ export const chatService = {
             .single();
 
         if (error) throw error;
-        return data;
+        // Map the single message data to ChatMessage format
+        return {
+            id: data.id,
+            senderId: data.sender_id,
+            content: data.content,
+            timestamp: data.created_at,
+            isRead: data.is_read, // Assuming 'is_read' field exists in the DB and is returned
+            type: data.type,
+            attachment: data.attachment_json
+        } as ChatMessage;
     },
 
     /**
@@ -85,6 +94,61 @@ export const chatService = {
                 filter: `room_id=eq.${roomId}`
             }, onNewMessage)
             .subscribe();
+    },
+
+    /**
+     * Marca todas as mensagens de uma sala como lidas para o usuário atual.
+     */
+    markAsRead: async (roomId: string, userId: string) => {
+        const { error } = await supabase
+            .from('chat_participants')
+            .update({ last_read_at: new Date().toISOString() })
+            .match({ room_id: roomId, user_id: userId });
+
+        if (error) throw error;
+    },
+
+    /**
+     * Busca a contagem de mensagens não lidas para cada contato.
+     */
+    getUnreadCounts: async (userId: string) => {
+        // Esta é uma query complexa que idealmente seria um RPC para performance.
+        // Por enquanto, faremos o básico via JS.
+        const { data: participations, error: pError } = await supabase
+            .from('chat_participants')
+            .select('room_id, last_read_at')
+            .eq('user_id', userId);
+
+        if (pError) throw pError;
+
+        const counts: Record<string, number> = {};
+
+        for (const p of participations) {
+            const { count, error: mError } = await supabase
+                .from('chat_messages')
+                .select('*', { count: 'exact', head: true })
+                .eq('room_id', p.room_id)
+                .neq('sender_id', userId)
+                .gt('created_at', p.last_read_at || '1970-01-01');
+
+            if (mError) {
+                console.error('Erro ao contar não lidas:', mError);
+                continue;
+            }
+
+            // Precisamos saber quem é o outro participante para mapear no contato
+            const { data: otherPart, error: oError } = await supabase
+                .from('chat_participants')
+                .select('user_id')
+                .eq('room_id', p.room_id)
+                .neq('user_id', userId)
+                .single();
+
+            if (oError) continue;
+            counts[otherPart.user_id] = count || 0;
+        }
+
+        return counts;
     },
 
     /**

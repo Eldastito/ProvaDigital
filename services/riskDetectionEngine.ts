@@ -1,7 +1,7 @@
 /**
  * Motor de Inteligência para Detecção de Risco (Evasão/Desempenho)
  */
-import { Student, ExamResult, AppState, RiskLevel } from '../types';
+import { Student, ExamResult, AppState, RiskLevel, DiaryEntry } from '../types';
 
 export interface RiskFactor {
     name: string;
@@ -50,12 +50,24 @@ const calculateRealAttendance = (studentResults: ExamResult[], totalExamsCount: 
     return Math.min(100, Math.max(0, percentage));
 };
 
-export const calculateRiskScore = (student: Student, results: ExamResult[], classTotalExams: number = 5): RiskAssessment => {
+/**
+ * Calcula a assiduidade com base nas entradas do diário de classe.
+ */
+const calculateDiaryAttendance = (diaryEntries: DiaryEntry[]): number => {
+    if (diaryEntries.length === 0) return 100;
+
+    const presentCount = diaryEntries.filter(e => e.attendance === 'PRESENT' || e.attendance === 'JUSTIFIED').length;
+    return (presentCount / diaryEntries.length) * 100;
+};
+
+export const calculateRiskScore = (student: Student, results: ExamResult[], classTotalExams: number = 5, diaryEntries: DiaryEntry[] = []): RiskAssessment => {
     const factors: RiskFactor[] = [];
     let riskScore = 0;
 
-    // 1. ANÁLISE DE FREQUÊNCIA (Peso: 40 points)
-    const attendance = calculateRealAttendance(results, classTotalExams);
+    // 1. ANÁLISE DE FREQUÊNCIA (Prioriza Diário > Provas)
+    const attendance = diaryEntries.length > 0 
+        ? calculateDiaryAttendance(diaryEntries)
+        : calculateRealAttendance(results, classTotalExams);
 
     if (attendance < 75) {
         riskScore += 40;
@@ -215,8 +227,11 @@ export const calculateBatchRisk = (students: Student[], state: AppState): RiskAs
         // Obter total de provas da turma desse aluno
         const totalClassExams = classExamCounts.get(student.classId) || 5; // Fallback seguro (MVP default)
 
+        // Obter entradas de diário do aluno
+        const studentDiary = (state.diaryEntries || []).filter(d => d.studentId === student.id);
+
         // Calcular score
-        return calculateRiskScore(student, studentResults, totalClassExams);
+        return calculateRiskScore(student, studentResults, totalClassExams, studentDiary);
     });
 
     // Ordenar por score (maior risco primeiro)
