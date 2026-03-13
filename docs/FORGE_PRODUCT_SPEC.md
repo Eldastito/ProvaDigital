@@ -58,4 +58,23 @@ A FORGE Smart School não é apenas um LMS (Learning Management System), mas um 
 | **Neuro** | Triagem Cognitiva | **JÁ EXISTE** |
 | **Diary** | Registro qualitativo | **PARCIAL** |
 | **Calendar** | Alocação de Ativos | **PARCIAL** |
-| **Environment** | IoT / Sensores | **NOVO** |
+---
+
+## 6. Ecossistema Mobile (Apps Nativos Android)
+Além do núcleo pedagógico (Professor/Aluno/Coordenador), a plataforma deve expandir para apps nativos especializados para explorar ao máximo a rede Mesh e sensores:
+
+### 6.1 FORGE Logistics (Suporte e Custódia)
+- **Perfil:** Operadores de campo (`CUSTODY_OPS`).
+- **Função:** Inventário rápido via QR Code, monitoramento de bateria em massa via Bluetooth Mesh e diagnóstico de nós de rede em áreas de sombra.
+
+### 6.2 FORGE Family (Portfólio e Alertas)
+- **Perfil:** Pais e Responsáveis (`PAIS`).
+- **Função:** Notificações push em tempo real (frequência/ocorrências) e visualização offline do desempenho do aluno em áreas sem conectividade 4G/5G constante.
+
+### 6.3 FORGE Specialist (NeuroScreening Pró)
+- **Perfil:** Psicopedagogos e Médicos.
+- **Função:** Triagens cognitivas de alta precisão usando drivers nativos para latência de toque mínima e sensores de movimento (giroscópio/acelerômetro) para detectar tremores e padrões motores.
+
+### 6.4 FORGE Smart Building (Manutenção e IoT)
+- **Perfil:** Zeladoria e Gestão de Facilidades.
+- **Função:** Controle direto de dispositivos da Camada 3 (Ar condicionado, luzes, sensores de CO2) via Mesh, com alertas de background para eventos críticos de infraestrutura.
