@@ -105,7 +105,7 @@ class GovernanceService {
         return {
             activeOrganizationId: user.tenantId || 'legacy_default',
             activeSchoolId: user.schoolId || undefined,
-            activeMembershipId: `legacy_membership_${user.id}`,
+            activeMembershipId: `legacy_membership_${user.id}${user.schoolId ? `_${user.schoolId}` : ''}`,
             activeScopeType: mapping.scope,
             scopeRefId: mapping.scope === 'UNIT' ? user.schoolId : user.tenantId,
             roleId: mapping.roleId,
