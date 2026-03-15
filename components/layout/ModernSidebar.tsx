@@ -23,6 +23,7 @@ import {
 import { useSafeAppStore } from '../../store/useAppStore';
 import { UserRole, TenantType } from '../../types';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useGovernance } from '../../hooks/useGovernance';
 import { studentModule } from '../../modules/student-portal/module';
 import { professorModule } from '../../modules/professor/module';
 import { adminModule } from '../../modules/admin/module';
@@ -90,6 +91,7 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
     const store = useSafeAppStore();
     const { currentUser, toggleTheme, settings, setCurrentUser, students, schools, tenants, selectedChildId, setSelectedChildId } = store;
     const { canView } = usePermissions();
+    const { can } = useGovernance('Sidebar');
     const navigate = useNavigate();
     const location = useLocation();
     const currentPath = location.pathname;
@@ -233,7 +235,12 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
                 {/* Unified Access Tools */}
                 <SectionHeader label="Ferramentas" collapsed={collapsed} />
                 {allItems
-                    .filter(item => !item.resource || canView(item.resource))
+                    .filter(item => {
+                        const legacyDecision = !item.resource || canView(item.resource);
+                        // Shadow Check: Não altera o resultado, apenas gera log/audit
+                        if (item.resource) can(item.resource as any, 'VIEW');
+                        return legacyDecision;
+                    })
                     .map(item => (
                         <NavItem
                             key={item.path}

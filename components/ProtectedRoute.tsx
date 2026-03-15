@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { usePermissions } from '../hooks/usePermissions';
+import { useGovernance } from '../hooks/useGovernance';
 import { Resource, Action } from '../types';
 
 interface ProtectedRouteProps {
@@ -14,9 +15,15 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     action = 'VIEW',
     fallbackPath = '/dashboard'
 }) => {
-    const { can } = usePermissions();
+    const { can: canLegacy } = usePermissions();
+    const { can: canShadow } = useGovernance('ProtectedRoute');
 
-    if (!can(action, resource)) {
+    const legacyDecision = canLegacy(action, resource);
+    
+    // Shadow Audit: Observa sem interferir
+    canShadow(resource, action);
+
+    if (!legacyDecision) {
         return <Navigate to={fallbackPath} replace />;
     }
 
