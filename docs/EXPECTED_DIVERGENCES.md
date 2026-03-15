@@ -6,7 +6,6 @@ Este documento cataloga as divergências já identificadas e aceitas entre o sis
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | Professor | Sidebar | analytics | view | DENY | ALLOW | Core permite analytics básico da unidade; legado restringe por role simples | CALIBRANDO |
 | Diretor | API | system_mgmt | manage | ALLOW | DENY | Core bloqueia gestão sistêmica para diretor; legado tem permissão solta | ACEITA_CORE_CORRETO |
-| Aluno | ProtectedRoute | item_bank | view | ALLOW | ALLOW | Comportamento alinhado em fluxo de execução | MONITORANDO |
 
 ---
 **Legenda de Status**:

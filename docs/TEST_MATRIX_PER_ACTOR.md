@@ -31,6 +31,7 @@ Para garantir a verdade dos dados, o Staging deve conter:
 3. **Cross-Tenant Test**: (Admin POA) tentar acessar dados de (Admin Canoas).
 4. **Cross-School Test**: (Professor Escola A) tentar acessar turma da (Escola B).
 5. **Multi-Membership Test**: Garantir que a troca de contexto entre Escola A e B atualiza corretamente o `activeMembershipId`, `activeSchoolId` e o contexto efetivo usado pelo `can()`.
+6. **Guardian Negative Test**: (Pai Aluno A) tentando acessar dados do (Aluno B) ou contexto da (Escola B).
 
 ## Critérios de Validação Técnica
 - **Deduplicação**: Máximo de 1 log divergent por par (Resource, Action) por superfície.
