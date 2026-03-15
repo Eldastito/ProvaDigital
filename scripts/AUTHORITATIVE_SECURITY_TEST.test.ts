@@ -16,6 +16,7 @@ import { useAppStore } from '../store/useAppStore';
 const MOCK_GUARDIAN: User = {
     id: 'guardian_secure_1',
     name: 'Pai Autorizado',
+    email: 'guardian@test.com',
     role: UserRole.PAIS,
     tenantId: 'tenant_A',
     schoolId: 'school_1',
@@ -26,6 +27,7 @@ const MOCK_GUARDIAN: User = {
 const MOCK_GUARDIAN_NO_LINK: User = {
     id: 'guardian_no_link',
     name: 'Pai Sem Vínculo',
+    email: 'nolink@test.com',
     role: UserRole.PAIS,
     tenantId: 'tenant_A',
     schoolId: 'school_1',
@@ -36,8 +38,8 @@ const MOCK_GUARDIAN_NO_LINK: User = {
 const MOCK_STATE: Partial<AppState> = {
     currentUser: MOCK_GUARDIAN,
     results: [
-        { id: 'res_1', studentId: 'student_valid_1', examId: 'ex_1', totalScore: 8, gradedAt: '2024-01-01' },
-        { id: 'res_2', studentId: 'student_invalid_1', examId: 'ex_1', totalScore: 10, gradedAt: '2024-01-01' }
+        { id: 'res_1', studentId: 'student_valid_1', examId: 'ex_1', totalScore: 8, gradedAt: '2024-01-01', answers: [] },
+        { id: 'res_2', studentId: 'student_invalid_1', examId: 'ex_1', totalScore: 10, gradedAt: '2024-01-01', answers: [] }
     ],
     exams: [],
     students: []
