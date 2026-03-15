@@ -160,8 +160,25 @@ export const userService = {
             }
 
             // 2. Update the student if primary guardian is not set
-            // Note: We don't need a separate store call if this is part of a create/update flow,
-            // but for safety we ensure the student record in store/DB reflects this too.
         }
+    },
+    /**
+     * Validação Autoritativa: Verifica se um Responsável tem vínculo com um Aluno
+     */
+    canGuardianAccessStudent: (guardian: User, studentId: string): boolean => {
+        if (guardian.role !== UserRole.PAIS) return false;
+        return guardian.childrenIds?.includes(studentId) || false;
+    },
+
+    /**
+     * Log de Auditoria de Segurança Server/Service-side
+     */
+    logSecurityViolation: (actorId: string, targetId: string, surface: string, reason: string) => {
+        console.error(`[SECURITY_AUTHORITY_FAILURE][${new Date().toISOString()}] Access Denied:`, {
+            actor: actorId,
+            target: targetId,
+            surface,
+            reason
+        });
     }
 };

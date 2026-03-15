@@ -5,6 +5,7 @@ import { UserRole, RiskLevel, Exam, ExamResult, GamifiedEventStatus, ScheduledEx
 import { useFeatureFlag } from '../../../context/FeatureFlagContext';
 import { MOCK_TENANT_ID } from '../../../utils/mockData';
 import { schedulingService } from '../../../services/schedulingService';
+import { userService } from '../../../services/userService';
 
 export const useStudentDashboard = () => {
     const state = useSafeAppStore();
@@ -20,14 +21,24 @@ export const useStudentDashboard = () => {
     let studentIdToView = user.id;
     if (isParent) {
         if (state.selectedChildId) {
-            // Hotfix Legado: Validar se o Aluno Selecionado pertence ao Responsável
-            const isMyChild = user.childrenIds?.includes(state.selectedChildId);
-            if (isMyChild) {
+            // VALIDAÇÃO AUTORITATIVA (PLANO DE DADOS)
+            const isAuthorized = userService.canGuardianAccessStudent(user, state.selectedChildId);
+            
+            if (isAuthorized) {
                 studentIdToView = state.selectedChildId;
             } else {
-                console.error(`🚨 Tentativa de acesso indevido do Responsável ${user.id} ao aluno ${state.selectedChildId}`);
-                // Fallback para o primeiro filho legítimo para evitar crash, mas bloqueando o dado indevido
-                studentIdToView = (user.childrenIds && user.childrenIds.length > 0) ? user.childrenIds[0] : 'unauthorized';
+                // Log autoritativo e reset de contexto
+                userService.logSecurityViolation(
+                    user.id, 
+                    state.selectedChildId, 
+                    'useStudentDashboard/UI', 
+                    'Acesso negado: Aluno não vinculado ao responsável'
+                );
+                
+                // Resetar o contexto para evitar persistência do ID inválido
+                // Usamos a ação do store diretamente
+                setTimeout(() => state.setSelectedChildId(null), 0);
+                studentIdToView = 'unauthorized';
             }
         } else if (user.childrenIds && user.childrenIds.length > 0) {
             studentIdToView = user.childrenIds[0];

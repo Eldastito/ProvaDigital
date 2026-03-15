@@ -1,5 +1,7 @@
 import { supabase } from './supabaseClient';
 import { AppState, UserRole, RiskLevel, ExamResult } from '../types';
+import { userService } from './userService';
+import { useAppStore } from '../store/useAppStore';
 
 export interface PerformanceData {
     examTitle: string;
@@ -131,6 +133,22 @@ export class AnalyticsService {
      * Obter estatísticas individuais do aluno (110% REAL DATA)
      */
     getStudentStats(studentId: string) {
+        // VALIDAÇÃO AUTORITATIVA (PLANO DE DADOS)
+        const currentUser = this.state?.currentUser || useAppStore.getState().currentUser;
+        
+        if (currentUser?.role === UserRole.PAIS) {
+            const isAuthorized = userService.canGuardianAccessStudent(currentUser, studentId);
+            if (!isAuthorized) {
+                userService.logSecurityViolation(
+                    currentUser.id, 
+                    studentId, 
+                    'AnalyticsService.getStudentStats', 
+                    'Tentativa de acesso a dados de aluno não vinculado'
+                );
+                return null; // Semântica de negação: Retorno nulo impede vazamento
+            }
+        }
+
         if (!this.state) return this.getMockStudentStats(studentId);
 
         const studentResults = this.state.results.filter(r => r.studentId === studentId);

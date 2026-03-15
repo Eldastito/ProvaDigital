@@ -1,5 +1,7 @@
 import { supabase } from './supabaseClient';
-import { ExamResult } from '../types';
+import { ExamResult, UserRole } from '../types';
+import { userService } from './userService';
+import { useAppStore } from '../store/useAppStore';
 
 export interface GrowthMetric {
     studentId: string;
@@ -21,6 +23,20 @@ export const growthService = {
         baselineExamId: string,
         followupExamId: string
     ): Promise<GrowthMetric | null> {
+        // VALIDAÇÃO AUTORITATIVA (PLANO DE DADOS)
+        const currentUser = useAppStore.getState().currentUser;
+        if (currentUser?.role === UserRole.PAIS) {
+            if (!userService.canGuardianAccessStudent(currentUser, studentId)) {
+                userService.logSecurityViolation(
+                    currentUser.id, 
+                    studentId, 
+                    'growthService.calculateStudentGrowth', 
+                    'Tentativa de acesso a métricas de crescimento de aluno não vinculado'
+                );
+                return null;
+            }
+        }
+
         const { data: results, error } = await supabase
             .from('exam_results')
             .select('total_score, exam_id, student_id')
