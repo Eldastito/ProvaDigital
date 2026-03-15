@@ -6,6 +6,7 @@ Este documento cataloga as divergências já identificadas e aceitas entre o sis
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | Professor | Sidebar | analytics | view | DENY | ALLOW | Core permite analytics básico da unidade; legado restringe por role simples | CALIBRANDO |
 | Diretor | API | system_mgmt | manage | ALLOW | DENY | Core bloqueia gestão sistêmica para diretor; legado tem permissão solta | ACEITA_CORE_CORRETO |
+| Pais | ProtectedRoute | student_data | view | ALLOW | DENY | **CRITICAL**: Legado permite acesso cross-school indevido p/ pais. Core bloqueia. | RISCO_LEGADO_IDENTIFICADO |
 
 ---
 **Legenda de Status**:

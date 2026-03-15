@@ -5,20 +5,29 @@ import { Action, Resource, UserRole, RESOURCE_DEPENDENCIES } from '../types';
 export const usePermissions = () => {
     const { currentUser, globalPermissions, tenants } = useAppStore();
 
-    const can = (action: Action, resource: Resource): boolean => {
+    const can = (action: Action, resource: Resource, contextId?: string): boolean => {
         if (!currentUser) return false;
 
         // 1. Check SYSTEM_ADMIN & MASTER_SAAS override (Absolute Global Management)
         if (currentUser.role === UserRole.SYSTEM_ADMIN || currentUser.role === UserRole.MASTER_SAAS) return true;
 
         // 2. Check Tenant Level Restrictions (Feature Flags)
-        // Se o tenant desativou a feature, ninguém (exceto super admin) pode usar.
         const tenant = tenants.find(t => t.id === currentUser.tenantId);
         if (tenant?.disabledResources?.includes(resource)) {
             return false;
         }
 
-        // 3. Check Role Matrix
+        // 3. Hotfix Legado: Validação de Vínculo de Aluno p/ Pais
+        if (currentUser.role === UserRole.PAIS && resource === 'STUDENT_DATA') {
+            if (!contextId) return false; // Bloqueio preventivo se não houver contexto
+            const hasLink = currentUser.childrenIds?.includes(contextId);
+            if (!hasLink) {
+                console.error(`🚨 Acesso negado: Responsável ${currentUser.id} tentou acessar aluno ${contextId} sem vínculo.`);
+                return false;
+            }
+        }
+
+        // 4. Check Role Matrix
         const rolePerms = globalPermissions[currentUser.role];
         if (!rolePerms) return false;
 

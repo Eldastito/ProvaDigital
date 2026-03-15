@@ -2,59 +2,89 @@
 import { governanceService, GovernanceContext } from '../services/governanceService';
 import { UserRole, Resource, Action } from '../types';
 
-console.log('--- 🧪 SIMULAÇÃO DE SHADOW MODE (RELATÓRIO INICIAL) ---');
+console.log('--- 🧪 ONDA 1 - STAGING CONTROLADO (SHADOW MODE) ---');
+console.log('Baseline Commit: frozen');
 
-const simulateAudit = (profileName: string, user: any, tests: { resource: Resource, action: Action, surface: string, legacy: boolean }[]) => {
-    console.log(`\n>>> Perfil: ${profileName} [${user.role}]`);
+const simulateJourney = (actor: string, user: any, tests: { resource: string, action: string, surface: string, legacy: boolean, targetSchool?: string, targetOrg?: string }[]) => {
+    console.log(`\n>>> Ator: ${actor} [Role: ${user.role}]`);
     const context = governanceService.resolveLegacyContext(user);
     
     tests.forEach(t => {
-        // can() no service agora aceita legacyDecision e surface
-        governanceService.can(t.resource, t.action, context, t.legacy, t.surface);
+        // Mock do Hotfix Legado
+        let correctedLegacy = t.legacy;
+        if (user.role === UserRole.PAIS && t.resource === 'STUDENT_DATA' && t.targetSchool !== user.schoolId) {
+            correctedLegacy = false; // Hotfix aplicado: Bloqueia cross-school
+        }
+
+        const customContext: Partial<GovernanceContext> = {};
+        if (t.targetSchool) customContext.targetSchoolId = t.targetSchool;
+        if (t.targetOrg) customContext.targetOrganizationId = t.targetOrg;
+
+        governanceService.can(t.resource, t.action, { ...context, ...customContext }, correctedLegacy, t.surface);
     });
 };
 
-// 1. ADMIN DA PLATAFORMA (Expectativa: Alinhado)
-simulateAudit('Admin Master', {
-    id: 'admin_1',
-    role: UserRole.MASTER_SAAS,
-    tenantId: 'saas_default'
+// 1. GESTOR MUNICIPAL 1 (POA) -> CROSS-TENANT NEGATIVE
+simulateJourney('Gestor POA', {
+    id: 'poa_admin',
+    role: UserRole.TENANT_ADMIN,
+    tenantId: 'poa_municipality'
 }, [
-    { resource: 'SYSTEM_MGMT', action: 'VIEW', surface: 'Sidebar', legacy: true },
-    { resource: 'FINANCIAL', action: 'EDIT', surface: 'ProtectedRoute', legacy: true }
+    { resource: 'SCHOOL_DATA', action: 'VIEW', surface: 'Sidebar', legacy: true, targetOrg: 'poa_municipality' },
+    { resource: 'SCHOOL_DATA', action: 'VIEW', surface: 'ProtectedRoute', legacy: false, targetOrg: 'canoas_municipality' } // Tentando ver Canoas
 ]);
 
-// 2. DIRETOR DE ESCOLA (Expectativa: Divergência por Escopo em Cross-School)
-simulateAudit('Gestor Escolar', {
-    id: 'gestor_1',
-    role: UserRole.DIRETOR,
-    tenantId: 'municipal_a',
-    schoolId: 'school_primary'
-}, [
-    { resource: 'SCHOOL_DATA', action: 'VIEW', surface: 'Sidebar', legacy: true },
-    // Simulação de acesso a outra escola (Divergência)
-    { resource: 'SCHOOL_DATA', action: 'VIEW', surface: 'ProtectedRoute', legacy: true } 
-]);
-
-// 3. PROFESSOR (Expectativa: Alinhado em ferramentas básicas)
-simulateAudit('Professor', {
-    id: 'prof_1',
+// 2. PROFESSOR MULTI-ESCOLA -> CONTEXT SWITCH
+simulateJourney('Prof Multi (Escola A)', {
+    id: 'prof_multi',
     role: UserRole.PROFESSOR,
-    tenantId: 'municipal_a',
-    schoolId: 'school_primary'
+    tenantId: 'poa_municipality',
+    schoolId: 'school_a'
 }, [
-    { resource: 'ITEM_BANK', action: 'VIEW', surface: 'Sidebar', legacy: true },
-    { resource: 'ITEM_BANK', action: 'CREATE', surface: 'Sidebar', legacy: true }
+    { resource: 'ITEM_BANK', action: 'VIEW', surface: 'Sidebar', legacy: true, targetSchool: 'school_a' },
+    { resource: 'TURMAS', action: 'VIEW', surface: 'ProtectedRoute', legacy: true, targetSchool: 'school_a' }
 ]);
 
-// 4. TESTE DE DEDUPLICAÇÃO (Gate 2)
-console.log('\n[DEDUPLICAÇÃO] Rodando mesma chamada 3x para verificar controle de volume...');
-const repeatUser = { id: 'repeat', role: UserRole.PROFESSOR, tenantId: 'a' };
-const repeatContext = governanceService.resolveLegacyContext(repeatUser as any);
-// Fazendo chamadas repetidas que divergem (se divergissem, seriam logadas apenas uma vez)
-governanceService.can('ANALYTICS' as any, 'VIEW', repeatContext, false, 'Sidebar'); 
-governanceService.can('ANALYTICS' as any, 'VIEW', repeatContext, false, 'Sidebar');
-governanceService.can('ANALYTICS' as any, 'VIEW', repeatContext, false, 'Sidebar');
+simulateJourney('Prof Multi (Escola B)', {
+    id: 'prof_multi',
+    role: UserRole.PROFESSOR,
+    tenantId: 'poa_municipality',
+    schoolId: 'school_b'
+}, [
+    { resource: 'ITEM_BANK', action: 'VIEW', surface: 'Sidebar', legacy: true, targetSchool: 'school_b' },
+    // Teste Cross-School (Professor Escola B tentando ver Escola A)
+    { resource: 'TURMAS', action: 'VIEW', surface: 'ProtectedRoute', legacy: true, targetSchool: 'school_a' }
+]);
 
-console.log('\n--- Fim da Simulação ---');
-console.log('Nota: Verifique os logs de [GOVERNANCE AUDIT] acima.');
+// 3. PAI / RESPONSÁVEL -> GUARDIAN NEGATIVE TEST
+simulateJourney('Responsável (Aluno A)', {
+    id: 'guardian_a',
+    role: UserRole.PAIS,
+    tenantId: 'poa_municipality',
+    schoolId: 'school_a'
+}, [
+    { resource: 'STUDENT_DATA' as any, action: 'VIEW', surface: 'Sidebar', legacy: true }, // Vendo Aluno A
+    // Tenta ver Aluno B (Deveria ser CRITICAL se o legado permitir incorretamente)
+    { resource: 'STUDENT_DATA' as any, action: 'VIEW', surface: 'ProtectedRoute', legacy: true, targetSchool: 'school_b' }
+]);
+
+// 4. LEGADO SEM MEMBERSHIP COMPLETO
+simulateJourney('Legado Incompleto (Supervisor)', {
+    id: 'legacy_only',
+    role: UserRole.SUPERVISOR,
+    tenantId: 'poa_municipality'
+}, [
+    { resource: 'SCHOOL_DATA', action: 'VIEW', surface: 'Sidebar', legacy: true }
+]);
+
+// 5. REDE PRIVADA
+simulateJourney('Diretor Privado', {
+    id: 'diretor_priv',
+    role: UserRole.DIRETOR,
+    tenantId: 'private_group_x',
+    schoolId: 'elite_school'
+}, [
+    { resource: 'SCHOOL_DATA', action: 'VIEW', surface: 'Sidebar', legacy: true }
+]);
+
+console.log('\n--- Fim da Simulação Onda 1 ---');

@@ -9,6 +9,10 @@ import { schedulingService } from '../../../services/schedulingService';
 export const useStudentDashboard = () => {
     const state = useSafeAppStore();
     const { currentUser: user, registerStudentToEvent, setOwlTutorContext } = state;
+    
+    // Safety check for null user
+    if (!user) return {} as any;
+
     const isParent = user.role === UserRole.PAIS;
     const { isEnabled } = useFeatureFlag();
 
@@ -16,9 +20,19 @@ export const useStudentDashboard = () => {
     let studentIdToView = user.id;
     if (isParent) {
         if (state.selectedChildId) {
-            studentIdToView = state.selectedChildId;
+            // Hotfix Legado: Validar se o Aluno Selecionado pertence ao Responsável
+            const isMyChild = user.childrenIds?.includes(state.selectedChildId);
+            if (isMyChild) {
+                studentIdToView = state.selectedChildId;
+            } else {
+                console.error(`🚨 Tentativa de acesso indevido do Responsável ${user.id} ao aluno ${state.selectedChildId}`);
+                // Fallback para o primeiro filho legítimo para evitar crash, mas bloqueando o dado indevido
+                studentIdToView = (user.childrenIds && user.childrenIds.length > 0) ? user.childrenIds[0] : 'unauthorized';
+            }
         } else if (user.childrenIds && user.childrenIds.length > 0) {
             studentIdToView = user.childrenIds[0];
+        } else {
+            studentIdToView = 'unauthorized';
         }
     }
 
@@ -38,7 +52,7 @@ export const useStudentDashboard = () => {
         updatedAt: new Date().toISOString()
     } as any;
 
-    const analytics = new AnalyticsService(state);
+    const analytics = new AnalyticsService(state as any);
 
     const realStats = foundStudent ? analytics.getStudentStats(foundStudent.id) : null;
     const stats = realStats || {

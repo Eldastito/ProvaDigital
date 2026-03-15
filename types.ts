@@ -114,6 +114,7 @@ export enum ItemLifecycleStatus {
 export type Resource =
   | 'SCHOOL_DATA'      // Escolas, Turmas
   | 'USER_DATA'        // Alunos, Professores
+  | 'STUDENT_DATA'     // NOVO: Acesso granular a dados de alunos (p/ Pais)
   | 'ITEM_BANK'        // Questões
   | 'EXAM_MGMT'        // Provas, Alocação
   | 'OFFLINE_OPS'      // App Tablet, Sync
