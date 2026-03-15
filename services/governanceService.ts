@@ -26,6 +26,8 @@ export interface GovernanceContext {
     organizationType: OrganizationType;
 }
 
+export type DivergenceSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+
 interface DivergenceLog {
     resource: string;
     action: string;
@@ -35,6 +37,7 @@ interface DivergenceLog {
     coreDecision: boolean;
     legacyReason: string;
     coreReason: string;
+    severity: DivergenceSeverity;
 }
 
 class GovernanceService {
@@ -44,11 +47,11 @@ class GovernanceService {
     private decisionCache = new Map<string, boolean>();
 
     /**
-     * Motor de Autorização em Shadow Mode (Fase A)
+     * Motor de Autorização em Shadow Mode (Fase A/B)
      * Memoizado para performance em "hot paths" (Sidebar/ProtectedRoute)
      */
     can(resource: string, action: string, context: GovernanceContext, legacyDecision: boolean, surface: string = 'GENERIC'): boolean {
-        const cacheKey = `${context.activeMembershipId}:${resource}:${action}:${context.targetSchoolId || ''}`;
+        const cacheKey = `${context.activeMembershipId}:${resource}:${action}:${context.targetSchoolId || ''}:${context.targetOrganizationId || ''}`;
         
         // 1. Recuperar decisão memoizada se disponível
         let coreDecision = this.decisionCache.get(cacheKey);
@@ -57,7 +60,9 @@ class GovernanceService {
             this.decisionCache.set(cacheKey, coreDecision);
         }
         
-        // 2. Auditoria com Deduplicação (Gate 2)
+        // 2. Auditoria com Deduplicação e Severidade (Gate 1 & 4)
+        const severity = this.calculateSeverity(resource, action, context, legacyDecision, coreDecision);
+
         this.auditShadowDecision({
             resource,
             action,
@@ -66,7 +71,8 @@ class GovernanceService {
             legacyDecision,
             coreDecision,
             legacyReason: 'UserRole Legacy Mapping',
-            coreReason: this.getCoreReason(resource, action, context, coreDecision)
+            coreReason: this.getCoreReason(resource, action, context, coreDecision),
+            severity
         });
 
         return legacyDecision;
@@ -121,8 +127,34 @@ class GovernanceService {
         return `Role template: ${context.roleId}`;
     }
 
+    private calculateSeverity(
+        resource: string, 
+        action: string, 
+        context: GovernanceContext, 
+        legacy: boolean, 
+        core: boolean
+    ): DivergenceSeverity {
+        if (legacy === core) return 'LOW';
+
+        // 1. CRITICAL: Vazamento Cross-tenant ou Cross-school (Core bloqueia, Legado permite)
+        const isCrossBoundaryPermitted = legacy && !core && (
+            (context.targetOrganizationId && context.targetOrganizationId !== context.activeOrganizationId) ||
+            (context.targetSchoolId && context.targetSchoolId !== context.activeSchoolId)
+        );
+        if (isCrossBoundaryPermitted) return 'CRITICAL';
+
+        // 2. HIGH: Bloqueio de Fluxo Essencial (Core bloqueia indevidamente o que o legado permite)
+        const essentialResources = ['EXAM_MGMT', 'USER_DATA', 'SCHOOL_DATA'];
+        if (!core && legacy && essentialResources.includes(resource)) return 'HIGH';
+
+        // 3. MEDIUM: Diferença em Analytics ou visualização secundária
+        if (resource === 'ANALYTICS') return 'MEDIUM';
+
+        return 'LOW';
+    }
+
     /**
-     * Auditoria com Deduplicação para evitar avalanche de logs (Gate 2)
+     * Auditoria com Deduplicação e Severidade (Gate 1 & 4)
      */
     private auditShadowDecision(data: DivergenceLog) {
         if (data.legacyDecision === data.coreDecision) return;
@@ -130,15 +162,20 @@ class GovernanceService {
         const auditKey = `${data.resource}:${data.action}:${data.legacyDecision}:${data.coreDecision}:${data.surface}`;
         if (this.auditCache.has(auditKey)) return;
 
-        console.warn(`[GOVERNANCE AUDIT] Divergence in ${data.surface}`, {
+        const logType = data.severity === 'CRITICAL' ? 'error' : (data.severity === 'HIGH' ? 'warn' : 'log');
+        
+        console[logType](`[GOVERNANCE AUDIT][${data.severity}] Divergence in ${data.surface}`, {
             resource: data.resource,
             action: data.action,
             legacy: data.legacyDecision,
             core: data.coreDecision,
+            severity: data.severity,
             reason: data.coreReason,
             context: {
                 role: data.context.roleId,
-                org: data.context.activeOrganizationId
+                org: data.context.activeOrganizationId,
+                targetOrg: data.context.targetOrganizationId,
+                targetSchool: data.context.targetSchoolId
             }
         });
 
