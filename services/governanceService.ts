@@ -122,12 +122,31 @@ class GovernanceService {
             return false;
         }
 
-        // Isolamento Organizacional (ORG) - NOVO: Requisito Sessão 19
+        // Isolamento Organizacional (ORG) - REFINADO p/ Sessão 21
+        // Se houver targetOrganizationId diferente da ativa, verificamos subordinação
         if (context.activeScopeType === 'ORG' && context.targetOrganizationId && context.targetOrganizationId !== context.activeOrganizationId) {
-            return false;
+            // Em Shadow Mode sem DB, usamos uma regra de prefixo ou mock de hierarquia para o simulador
+            // No mundo real, aqui haveria uma consulta à tabela de organizations para verificar parent_id
+            const isSubordinate = this.checkSubordinationMock(context.activeOrganizationId, context.targetOrganizationId);
+            if (!isSubordinate) return false;
         }
 
         return true; 
+    }
+
+    /**
+     * Helper temporário para o simulador de Staging (Hierarchy Mock)
+     * Implementa a lógica de "Quem pode ver quem" na árvore pública
+     */
+    private checkSubordinationMock(activeOrgId: string, targetOrgId: string): boolean {
+        // Regras de Hierarquia RS (Exemplo para Sessão 21)
+        const hierarchy: Record<string, string[]> = {
+            'state_rs_org': ['poa_organization', 'canoas_organization', 'school_poa_1', 'school_canoas_99'],
+            'poa_organization': ['school_poa_1'],
+            'canoas_organization': ['school_canoas_99']
+        };
+
+        return hierarchy[activeOrgId]?.includes(targetOrgId) || false;
     }
 
     private getCoreReason(resource: string, action: string, context: GovernanceContext, decision: boolean): string {
