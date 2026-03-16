@@ -1,7 +1,7 @@
 # Evidência Técnica: Regressão Baseline v3 (Onda 2)
 
 **Baseline Canônica**: `15bbe48` | **Tag**: `onda-2-staging-freeze-v3`
-**Status**: ✅ **APROVADA PARA PRODUÇÃO (SESSÃO 19)**
+**Status**: ✅ **APROVADA PARA EXECUÇÃO DA SESSÃO 19 EM STAGING/HOMOLOGAÇÃO CONTROLADA**
 
 ## 1. Integridade Analítica (0 Regressões)
 O script `BASELINE_V3_REGRESSION.test.ts` validou os domínios já aprovados contra as mudanças estruturais da v3:
