@@ -52,5 +52,11 @@ A Onda 2 será interrompida automaticamente (pausa na coleta e notificação ime
 - **Divergência Zero Crítica**: O encerramento da onda exige 0 divergências críticas e 0 vazamentos comprovados.
 - **Checkpoint Intermediário**: Reunião de alinhamento técnico após o 3º dia de coleta.
 
+## 8. Baselines e Congelamento (Changelog)
+- **Freeze Oficial v1**: Commit `onda-2-staging-freeze` (Janela Inicial).
+- **Baseline v2 (Re-baseline)**: Commit `b127afa`.
+  - **Motivo**: Exceção controlada para ajuste no `governanceService.ts` visando diferenciar `activeMembershipId` em contextos multi-escola.
+  - **Status**: Congelado novamente para conclusão do cohort de Professores.
+
 ---
-**Freeze Oficial**: Commit/Tag `onda-2-staging-freeze` | **Responsável**: Antigravity
+**Responsável Técnico**: Antigravity | **Data**: 2026-03-15
