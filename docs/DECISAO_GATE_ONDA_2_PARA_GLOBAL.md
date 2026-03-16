@@ -1,7 +1,6 @@
 # Decisão de Gate: Transição para Escopo GLOBAL (MEC/Federal)
 
-**Baseline de Referência**: `15bbe48` (Lógica) | `5421371` (Audit)
-**Data**: 2026-03-15
+**Baseline de Referência**: `GLOBAL v4` | **Tag**: `onda-2-global-freeze-v4`
 **Veredito**: 🟢 **READY FOR GLOBAL PLANNING**
 
 ---

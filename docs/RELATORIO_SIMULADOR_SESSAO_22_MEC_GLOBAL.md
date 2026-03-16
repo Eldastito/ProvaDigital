@@ -1,7 +1,7 @@
 # Relatório Técnico: Simulador Sessão 22 (MEC / GLOBAL Onisciência)
 
 **Data**: 2026-03-15
-**Baseline de Trabalho**: `v4-pre-global-simulator` (Commit `f3dcdb9` -> Atual)
+**Baseline de Trabalho**: `GLOBAL v4` | **Tag**: `onda-2-global-freeze-v4`
 **Status**: ✅ **SUCESSO (ARQUITETURA GLOBAL VALIDADA)**
 
 ## 1. Regras de Autorização GLOBAL (MEC)

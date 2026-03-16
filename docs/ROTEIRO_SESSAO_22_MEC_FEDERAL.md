@@ -2,7 +2,7 @@
 
 **Perfil**: Gestor Federal (MEC / Equipe Técnica)
 **Escopo**: `GLOBAL`
-**Baseline Canônica**: `5421371` | **Tag**: `onda-2-staging-freeze-v3`
+**Baseline Canônica**: `GLOBAL v4` | **Tag**: `onda-2-global-freeze-v4`
 **Status**: 🟡 **EM PLANEJAMENTO**
 
 ## 1. Definição do Escopo GLOBAL (Onisciência Controlada)
@@ -10,9 +10,13 @@ O Gestor Federal possui autoridade transversal sobre o ecossistema público, mas
 
 - **REDE PÚBLICA**: Acesso total (estaduais, municipais, escolas em Staging).
 - **REDE PRIVADA**: 
-    - **Default Deny**: Nenhuma visibilidade padrão.
-    - **Acesso Delegado**: Somente organizações privadas com Grant Explícito (`federal_visibility_enabled`).
-- **RESTRITO**: Proibido acesso a `ExamePad Ops`, `SaaS Platform`, Financeiro e Logística.
+    - **Default Deny**: Nenhuma visibilidade padrão (Bloqueio sumário).
+    - **Grant Explícito**: Somente organizações com a flag `federal_visibility_enabled: true` no banco de dados.
+    - **Precedência**: A flag de organização é a autoridade única de consentimento nesta fase.
+- **ESCOPO READ_AGGREGATED_AND_INSTITUTIONAL**:
+    - **Acesso**: Dashboard agregado, totais por rede, listagem de escolas.
+    - **Bloqueio**: Proibido acesso a `STUDENT_PEDAGOGICAL_DATA` (Notas, Itinerários individuais) e Dados Sensíveis.
+- **RESTRITO**: Proibido acesso a `EXAMEPAD_OPS`, `SAAS_PLATFORM`, Financeiro e Logística.
 
 ## 2. Jornada do Piloto (Leitura Agregada)
 1. **Login e Dashboard Federal (Onisciente)**:
