@@ -54,9 +54,9 @@ A Onda 2 será interrompida automaticamente (pausa na coleta e notificação ime
 
 ## 8. Baselines e Congelamento (Changelog Canônico)
 - **Freeze Oficial v1**: Commit `onda-2-staging-freeze` (Janela Inicial).
-- **Baseline v2 (Baseline Canônica)**: Commit `87b037a` | Tag `onda-2-staging-freeze-v2`.
-  - **Histórico**: Inclui ajuste no `governanceService.ts` (id de membership) e mini-regressão validada.
-  - **Status**: Congelado para início do Ponto de Controle de Gestores.
+- **Baseline v3 (Baseline Canônica)**: Commit `15bbe48` | Tag `onda-2-staging-freeze-v3`.
+  - **Histórico**: Introdução do Escopo `ORG`, renomeação de `REGIONAL`, e implementação de trava de isolamento organizacional no `GovernanceService`.
+  - **Status**: Congelado para início do Piloto de Gestor de Rede.
 
 ---
 **Responsável Técnico**: Antigravity | **Data**: 2026-03-15

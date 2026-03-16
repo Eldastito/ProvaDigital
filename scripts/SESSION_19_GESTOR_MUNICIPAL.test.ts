@@ -80,7 +80,7 @@ describe('SIMULAÇÃO TÉCNICA: SESSÃO 19 (GESTOR MUNICIPAL - ORG SCOPE)', () =
         console.log('✅ Etapa 4: Bloqueio de visão hierárquica superior validado.');
     });
 
-    it('Performance Audit (ORG Scope - Baseline 87b037a)', () => {
+    it('Performance Audit (ORG Scope - Baseline 15bbe48)', () => {
         const start = performance.now();
         for(let i=0; i<3000; i++) {
             governanceService.resolveLegacyContext(MOCK_MUNICIPAL_MANAGER_S19);

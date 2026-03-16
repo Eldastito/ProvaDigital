@@ -2,7 +2,7 @@
 
 **Perfil**: Gestor de Rede (Secretário Municipal/Equipe Técnica)
 **Escopo**: `ORG` (Prefeitura de Exemplo A)
-**Baseline Canônica**: `87b037a`
+**Baseline Canônica**: `15bbe48` | **Tag**: `onda-2-staging-freeze-v3`
 **Status**: 🟡 **AGUARDANDO GO PARA EXECUÇÃO**
 
 ## 1. Escopo Autorizado (Sessão 19)
