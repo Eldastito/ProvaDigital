@@ -1,7 +1,7 @@
 # Relatório Consolidado: Cohort Professores (Onda 2)
 
 **Sessões Executadas**: 11 a 15 (Cohort Completo)
-**Baseline**: v2 (Freeze Commit `ede8c69`)
+**Baseline**: v2 (Freeze Commit `0d6c474` / Tag `onda-2-staging-freeze-v2`)
 **Status Final**: ✅ **VALIDADO E OPERACIONAL**
 
 ## 1. Cobertura do Cohort
