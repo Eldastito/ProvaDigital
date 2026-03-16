@@ -117,21 +117,66 @@ class GovernanceService {
     private evaluateCoreDecision(resource: string, action: string, context: GovernanceContext): boolean {
         if (context.roleId === 'platform_owner') return true;
 
-        // Isolamento de Unidade (UNIT)
-        if (context.activeScopeType === 'UNIT' && context.targetSchoolId && context.targetSchoolId !== context.activeSchoolId) {
+        // 1. Bloqueio de Recursos Críticos de Operação/SaaS para MEC (GLOBAL)
+        const restrictedResources = ['EXAMEPAD_OPS', 'SAAS_PLATFORM', 'FINANCE', 'LOGISTICS'];
+        if (context.roleId === 'mec_superadmin' && restrictedResources.includes(resource)) {
             return false;
         }
 
-        // Isolamento Organizacional (ORG) - REFINADO p/ Sessão 21
+        // 2. Restrição Pedagógica GLOBAL (MEC)
+        // MEC pode ver agregados, mas nunca dados pedagógicos individuais/sensíveis
+        if (context.activeScopeType === 'GLOBAL' && resource === 'STUDENT_PEDAGOGICAL_DATA') {
+            return false;
+        }
+
+        // 3. Isolamento de Unidade (UNIT) - REFINADO
+        // Atores UNIT (Professor/Diretor) só enxergam sua escola.
+        // Atores GLOBAL ignoram esta trava para permitir drill-down.
+        if (context.activeScopeType === 'UNIT' && context.roleId !== 'mec_superadmin') {
+            if (context.targetSchoolId && context.targetSchoolId !== context.activeSchoolId) {
+                return false;
+            }
+        }
+
+        // 4. Lógica GLOBAL (MEC) - REQUISITO Sessão 22
+        if (context.activeScopeType === 'GLOBAL' && context.roleId === 'mec_superadmin') {
+            // Se o alvo for uma organização, verificamos se é privada e se tem Grant
+            if (context.targetOrganizationId) {
+                const isPrivate = this.isPrivateOrganizationMock(context.targetOrganizationId);
+                if (isPrivate) {
+                    const hasSharedVisibility = this.checkPrivateGrantMock(context.targetOrganizationId);
+                    if (!hasSharedVisibility) return false;
+                }
+            }
+            return true; // Acesso onisciente à rede pública por padrão
+        }
+
+        // 4. Isolamento Organizacional (ORG) - REFINADO p/ Sessão 21
         // Se houver targetOrganizationId diferente da ativa, verificamos subordinação
         if (context.activeScopeType === 'ORG' && context.targetOrganizationId && context.targetOrganizationId !== context.activeOrganizationId) {
-            // Em Shadow Mode sem DB, usamos uma regra de prefixo ou mock de hierarquia para o simulador
-            // No mundo real, aqui haveria uma consulta à tabela de organizations para verificar parent_id
             const isSubordinate = this.checkSubordinationMock(context.activeOrganizationId, context.targetOrganizationId);
             if (!isSubordinate) return false;
         }
 
         return true; 
+    }
+
+    /**
+     * Helper temporário para identificar organizações privadas no simulador
+     */
+    private isPrivateOrganizationMock(orgId: string): boolean {
+        // No simulador, qualquer org com prefixo 'private_' ou contida na lista é privada
+        const privateOrgs = ['private_school_A', 'private_school_B', 'private_group_X'];
+        return orgId.startsWith('private_') || privateOrgs.includes(orgId);
+    }
+
+    /**
+     * Helper temporário para Grant Explícito na Rede Privada (Sessão 22)
+     */
+    private checkPrivateGrantMock(orgId: string): boolean {
+        // Apenas a Escola A liberou visibilidade federal (Grant Ativo)
+        const grantedOrgs = ['private_school_A'];
+        return grantedOrgs.includes(orgId);
     }
 
     /**

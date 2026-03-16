@@ -1,0 +1,101 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.16 [39m[90mC:/Users/miche/Downloads/examepad-saas-prova-digital[39m
+
+[90mstdout[2m | scripts/SESSION_22_MEC_GLOBAL.test.ts[2m > [22m[2mSIMULADOR T├ëCNICO: SESS├âO 22 (GESTOR FEDERAL - GLOBAL ONISCIENCE)[2m > [22m[2mCaso 1: MEC Dashboard Federal legitimado
+[22m[39mÔ£à Caso 1: MEC Dashboard inicializado.
+
+[90mstdout[2m | scripts/SESSION_22_MEC_GLOBAL.test.ts[2m > [22m[2mSIMULADOR T├ëCNICO: SESS├âO 22 (GESTOR FEDERAL - GLOBAL ONISCIENCE)[2m > [22m[2mCaso 2: MEC -> Estado P├║blico (RS)
+[22m[39mÔ£à Caso 2: MEC -> Estado P├║blico RS permitido.
+
+[90mstdout[2m | scripts/SESSION_22_MEC_GLOBAL.test.ts[2m > [22m[2mSIMULADOR T├ëCNICO: SESS├âO 22 (GESTOR FEDERAL - GLOBAL ONISCIENCE)[2m > [22m[2mCaso 3: MEC -> Munic├¡pio P├║blico (POA)
+[22m[39mÔ£à Caso 3: MEC -> Munic├¡pio P├║blico POA permitido.
+
+[90mstdout[2m | scripts/SESSION_22_MEC_GLOBAL.test.ts[2m > [22m[2mSIMULADOR T├ëCNICO: SESS├âO 22 (GESTOR FEDERAL - GLOBAL ONISCIENCE)[2m > [22m[2mCaso 4: MEC -> Escola P├║blica
+[22m[39mÔ£à Caso 4: MEC -> Escola P├║blica permitido.
+
+[90mstdout[2m | scripts/SESSION_22_MEC_GLOBAL.test.ts[2m > [22m[2mSIMULADOR T├ëCNICO: SESS├âO 22 (GESTOR FEDERAL - GLOBAL ONISCIENCE)[2m > [22m[2mCaso 5: Retorno Escola -> Federal com Limpeza
+[22m[39mÔ£à Caso 5: Retorno de escola p/ federal limpou contexto.
+
+[90mstdout[2m | scripts/SESSION_22_MEC_GLOBAL.test.ts[2m > [22m[2mSIMULADOR T├ëCNICO: SESS├âO 22 (GESTOR FEDERAL - GLOBAL ONISCIENCE)[2m > [22m[2mCaso 6: MEC -> Escola Privada COM Grant
+[22m[39mÔ£à Caso 6: MEC -> Escola Privada A (Grant Ativo) permitido.
+
+[90mstdout[2m | scripts/SESSION_22_MEC_GLOBAL.test.ts[2m > [22m[2mSIMULADOR T├ëCNICO: SESS├âO 22 (GESTOR FEDERAL - GLOBAL ONISCIENCE)[2m > [22m[2mCaso 8: MEC -> Grupo Privado (Sem Grant)
+[22m[39mÔ£à Caso 8: MEC -> Grupo Privado X (Sem Grant) bloqueado.
+
+[90mstdout[2m | scripts/SESSION_22_MEC_GLOBAL.test.ts[2m > [22m[2mSIMULADOR T├ëCNICO: SESS├âO 22 (GESTOR FEDERAL - GLOBAL ONISCIENCE)[2m > [22m[2mCaso 9: MEC -> ExamePad Ops
+[22m[39mÔ£à Caso 9: Bloqueio de ExamePad Ops para o MEC.
+
+[90mstdout[2m | scripts/SESSION_22_MEC_GLOBAL.test.ts[2m > [22m[2mSIMULADOR T├ëCNICO: SESS├âO 22 (GESTOR FEDERAL - GLOBAL ONISCIENCE)[2m > [22m[2mCaso 10: MEC -> SaaS Platform
+[22m[39mÔ£à Caso 10: Bloqueio de SaaS Platform para o MEC.
+
+[90mstdout[2m | scripts/SESSION_22_MEC_GLOBAL.test.ts[2m > [22m[2mSIMULADOR T├ëCNICO: SESS├âO 22 (GESTOR FEDERAL - GLOBAL ONISCIENCE)[2m > [22m[2mCaso 11: MEC -> Financeiro/Log├¡stica
+[22m[39mÔ£à Caso 11: Bloqueio de Financeiro/Log├¡stica para o MEC.
+
+[90mstdout[2m | scripts/SESSION_22_MEC_GLOBAL.test.ts[2m > [22m[2mSIMULADOR T├ëCNICO: SESS├âO 22 (GESTOR FEDERAL - GLOBAL ONISCIENCE)[2m > [22m[2mExtra Case: Restri├º├úo Pedag├│gica Individual (Individual Grades)
+[22m[39mÔ£à Extra: Bloqueio de dados pedag├│gicos individuais para o MEC.
+
+[90mstdout[2m | scripts/SESSION_22_MEC_GLOBAL.test.ts[2m > [22m[2mSIMULADOR T├ëCNICO: SESS├âO 22 (GESTOR FEDERAL - GLOBAL ONISCIENCE)[2m > [22m[2mPerformance: GLOBALDecision Delay
+[22m[39m­ƒöÁ Lat├¬ncia GLOBAL (Onisci├¬ncia): 0.0016ms
+
+ [31mÔØ»[39m scripts/SESSION_22_MEC_GLOBAL.test.ts [2m([22m[2m14 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 18[2mms[22m[39m
+     [32mÔ£ô[39m Caso 1: MEC Dashboard Federal legitimado[32m 2[2mms[22m[39m
+     [32mÔ£ô[39m Caso 2: MEC -> Estado P├║blico (RS)[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m Caso 3: MEC -> Munic├¡pio P├║blico (POA)[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m Caso 4: MEC -> Escola P├║blica[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m Caso 5: Retorno Escola -> Federal com Limpeza[32m 0[2mms[22m[39m
+     [32mÔ£ô[39m Caso 6: MEC -> Escola Privada COM Grant[32m 0[2mms[22m[39m
+[31m     [31m├ù[31m Caso 7: MEC -> Escola Privada SEM Grant[39m[32m 4[2mms[22m[39m
+     [32mÔ£ô[39m Caso 8: MEC -> Grupo Privado (Sem Grant)[32m 0[2mms[22m[39m
+     [32mÔ£ô[39m Caso 9: MEC -> ExamePad Ops[32m 0[2mms[22m[39m
+     [32mÔ£ô[39m Caso 10: MEC -> SaaS Platform[32m 0[2mms[22m[39m
+     [32mÔ£ô[39m Caso 11: MEC -> Financeiro/Log├¡stica[32m 1[2mms[22m[39m
+[31m     [31m├ù[31m Caso 12: Stale Context (Privada Autorizada -> Privada N├úo Autorizada)[39m[32m 1[2mms[22m[39m
+     [32mÔ£ô[39m Extra Case: Restri├º├úo Pedag├│gica Individual (Individual Grades)[32m 0[2mms[22m[39m
+     [32mÔ£ô[39m Performance: GLOBALDecision Delay[32m 5[2mms[22m[39m
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 2 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  scripts/SESSION_22_MEC_GLOBAL.test.ts > SIMULADOR T├ëCNICO: SESS├âO 22 (GESTOR FEDERAL - GLOBAL ONISCIENCE) > Caso 7: MEC -> Escola Privada SEM Grant
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ÔØ» scripts/SESSION_22_MEC_GLOBAL.test.ts:81:30
+     79|         
+     80|         const isAuthorized = governanceService['evaluateCoreDecision']ÔÇª
+     81|         expect(isAuthorized).toBe(false);
+       |                              ^
+     82|         console.log('Ô£à Caso 7: MEC -> Escola Privada B (Grant Inativo)ÔÇª
+     83|     });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/2]ÔÄ»
+
+ FAIL  scripts/SESSION_22_MEC_GLOBAL.test.ts > SIMULADOR T├ëCNICO: SESS├âO 22 (GESTOR FEDERAL - GLOBAL ONISCIENCE) > Caso 12: Stale Context (Privada Autorizada -> Privada N├úo Autorizada)
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ÔØ» scripts/SESSION_22_MEC_GLOBAL.test.ts:126:30
+    124|         const isAuthorized = governanceService['evaluateCoreDecision']ÔÇª
+    125|         
+    126|         expect(isAuthorized).toBe(false);
+       |                              ^
+    127|         console.log('Ô£à Caso 12: Zero Stale Context entre privada autorÔÇª
+    128|     });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/2]ÔÄ»
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m12 passed[39m[22m[90m (14)[39m
+[2m   Start at [22m 22:45:11
+[2m   Duration [22m 1.10s[2m (transform 81ms, setup 163ms, import 69ms, tests 18ms, environment 616ms)[22m
+
