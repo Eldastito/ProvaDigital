@@ -15,7 +15,7 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 DO $$ BEGIN
-    CREATE TYPE scope_type AS ENUM ('GLOBAL', 'REGIONAL', 'UNIT');
+    CREATE TYPE scope_type AS ENUM ('GLOBAL', 'ORG', 'UNIT');
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- 2. TABELAS CENTRAIS

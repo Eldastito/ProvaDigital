@@ -11,7 +11,7 @@ export type OrganizationType =
     | 'private_group' 
     | 'school';
 
-export type ScopeType = 'GLOBAL' | 'REGIONAL' | 'UNIT';
+export type ScopeType = 'GLOBAL' | 'ORG' | 'UNIT';
 
 export interface GovernanceContext {
     activeOrganizationId: string;
@@ -91,8 +91,8 @@ class GovernanceService {
             [UserRole.MASTER_SAAS]: { roleId: 'platform_owner', orgType: 'saas_platform', scope: 'GLOBAL' },
             [UserRole.SYSTEM_ADMIN]: { roleId: 'platform_admin', orgType: 'saas_platform', scope: 'GLOBAL' },
             [UserRole.SUPER_ADMIN]: { roleId: 'mec_superadmin', orgType: 'mec', scope: 'GLOBAL' },
-            [UserRole.STATE_ADMIN]: { roleId: 'state_secretariat_admin', orgType: 'state_secretariat', scope: 'REGIONAL' },
-            [UserRole.TENANT_ADMIN]: { roleId: 'municipal_secretariat_admin', orgType: 'municipal_secretariat', scope: 'REGIONAL' },
+            [UserRole.STATE_ADMIN]: { roleId: 'state_secretariat_admin', orgType: 'state_secretariat', scope: 'ORG' },
+            [UserRole.TENANT_ADMIN]: { roleId: 'municipal_secretariat_admin', orgType: 'municipal_secretariat', scope: 'ORG' },
             [UserRole.DIRETOR]: { roleId: 'school_manager', orgType: 'school', scope: 'UNIT' },
             [UserRole.SUPERVISOR]: { roleId: 'school_supervisor', orgType: 'school', scope: 'UNIT' },
             [UserRole.PROFESSOR]: { roleId: 'teacher', orgType: 'school', scope: 'UNIT' },
@@ -116,9 +116,17 @@ class GovernanceService {
 
     private evaluateCoreDecision(resource: string, action: string, context: GovernanceContext): boolean {
         if (context.roleId === 'platform_owner') return true;
+
+        // Isolamento de Unidade (UNIT)
         if (context.activeScopeType === 'UNIT' && context.targetSchoolId && context.targetSchoolId !== context.activeSchoolId) {
             return false;
         }
+
+        // Isolamento Organizacional (ORG) - NOVO: Requisito Sessão 19
+        if (context.activeScopeType === 'ORG' && context.targetOrganizationId && context.targetOrganizationId !== context.activeOrganizationId) {
+            return false;
+        }
+
         return true; 
     }
 

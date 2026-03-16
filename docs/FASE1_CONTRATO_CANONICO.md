@@ -15,7 +15,7 @@ Para evitar inconsistências, a regra de hierarquia é estrita:
 A decisão final (`can`) segue o motor de precedência:
 1. **Deny Explícito**: Políticas de bloqueio em qualquer nível vencem tudo.
 2. **Membership**: Regra vinculada a um vínculo específico (`membership_id`) vence o papel genérico.
-3. **Escopo Mais Específico**: Regras de `UNIT` > `REGIONAL` > `GLOBAL`.
+3. **Escopo Mais Específico**: Regras de `UNIT` > `ORG` > `GLOBAL`.
 4. **Role (Papel)**: Capacidades herdadas do template do papel.
 
 ---
@@ -23,7 +23,7 @@ A decisão final (`can`) segue o motor de precedência:
 ## 3. Contrato Formal de Contexto
 
 ```typescript
-type ScopeType = 'GLOBAL' | 'REGIONAL' | 'UNIT';
+type ScopeType = 'GLOBAL' | 'ORG' | 'UNIT';
 
 interface GovernanceContext {
     activeOrganizationId: string;    // SSOT da Org
