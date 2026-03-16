@@ -1,7 +1,7 @@
 # Micro-Relatório: Sessão 16 (Gestor Escolar Piloto)
 
 **Data**: 2026-03-15
-**Baseline Canônica**: `38ee4a5` | **Tag**: `onda-2-staging-freeze-v2`
+**Baseline Canônica**: `87b037a` | **Tag**: `onda-2-staging-freeze-v2`
 **Atores**: 1 Gestor Escolar (Escopo UNIT)
 **Status**: ✅ **SUCESSO TOTAL**
 

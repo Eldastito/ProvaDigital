@@ -29,4 +29,4 @@ O gestor executará as seguintes etapas sob monitoramento do Shadow Mode:
 - **Divergência**: Zero divergências críticas detectadas pelo Shadow Mode.
 
 ---
-**Baseline Canônica**: `38ee4a5` | **Freeze v2**: Ativo
+**Baseline Canônica**: `87b037a` | **Freeze v2**: Ativo
