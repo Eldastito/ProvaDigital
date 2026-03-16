@@ -3,7 +3,7 @@
 **Perfil**: Gestor Estadual (Secretário de Estado / Coord. Regional RS)
 **Tipo de Organização**: `state_secretariat`
 **Escopo**: `ORG` (Conforme Contrato v3)
-**Baseline Canônica**: `15bbe48` | **Tag**: `onda-2-staging-freeze-v3`
+**Baseline Canônica**: `5421371` | **Tag**: `onda-2-staging-freeze-v3`
 **Status**: 🟡 **EM PLANEJAMENTO**
 
 ## 1. Definição do Escopo ORG Estadual

@@ -3,7 +3,7 @@
 **Data**: 2026-03-15
 **Ambiente**: Staging/Homologação Controlada
 **Perfil**: Gestor Estadual (RS)
-**Baseline Canônica**: `15bbe48` | **Tag**: `onda-2-staging-freeze-v3`
+**Baseline Canônica**: `5421371` | **Tag**: `onda-2-staging-freeze-v3`
 **Status**: ✅ **SUCESSO TOTAL (ARQUITETURA VALIDADA)**
 
 ## 1. Janela de Execução e Jornada
