@@ -8,9 +8,9 @@ Esta matriz define os perfis reais e as jornadas mínimas para validação do Sh
 | **Admin SaaS** | MASTER_SAAS | GLOBAL | ExamePad Platform |
 | **Operador Operação** | SYSTEM_ADMIN | GLOBAL | ExamePad Ops |
 | **Gestor MEC** | SUPER_ADMIN | GLOBAL | MEC / Federal |
-| **Gestor Estadual** | STATE_ADMIN | REGIONAL | Sec. Estadual RS |
-| **Gestor Municipal 1** | TENANT_ADMIN | REGIONAL | Sec. Municipal POA |
-| **Gestor Municipal 2** | TENANT_ADMIN | REGIONAL | Sec. Municipal Canoas |
+| **Gestor Estadual** | STATE_ADMIN | ORG | Sec. Estadual RS |
+| **Gestor Municipal 1** | TENANT_ADMIN | ORG | Sec. Municipal POA |
+| **Gestor Municipal 2** | TENANT_ADMIN | ORG | Sec. Municipal Canoas |
 | **Diretor Unidade A** | DIRETOR | UNIT | Escola Primária A |
 | **Diretor Escola Priv** | DIRETOR | UNIT | Colégio Private Elite |
 | **Professor Titular** | PROFESSOR | UNIT | Escola Primária A |
