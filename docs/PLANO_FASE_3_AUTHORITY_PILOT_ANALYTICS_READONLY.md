@@ -1,7 +1,7 @@
 # Plano: Fase 3 — Authority Pilot (Analytics ReadOnly)
 
 **Baseline de Entrada**: `GLOBAL v4` | **Tag**: `onda-2-global-freeze-v4`
-**Status**: 🟡 **EM PLANEJAMENTO**
+**Status**: 🟢 **APROVADO PARA IMPLEMENTAÇÃO**
 
 ---
 
@@ -24,64 +24,83 @@ Promover o Core de governança para **autoridade real** em **um único módulo**
 | Gestor Municipal | `ORG` | 1 município (máx. 3 escolas) |
 
 ### Exclusões Explícitas
-- ❌ Responsáveis
-- ❌ Professores
-- ❌ Gestor Estadual
-- ❌ MEC / GLOBAL
+- ❌ Responsáveis / Professores
+- ❌ Gestor Estadual / MEC / GLOBAL
 - ❌ Qualquer perfil de escrita
 
-## 4. Mecanismo de Controle
+## 4. Feature Flag (Nome Canônico Único)
 
-### Feature Flag
+**Identificador único em código, docs e logs**: `authority_pilot_analytics_readonly`
+
 ```typescript
-// Feature Flag dedicada
-const AUTHORITY_PILOT_FLAGS = {
-  analytics_readonly: {
-    enabled: false,           // Ativar só no momento do piloto
-    modules: ['ANALYTICS', 'NETWORK_ANALYTICS'],
-    allowedScopes: ['UNIT', 'ORG'],
-    allowedActions: ['VIEW'],  // Somente leitura
-    rollbackOnError: true      // Retorna ao legado automaticamente em caso de exceção
-  }
+const AUTHORITY_PILOT_CONFIG = {
+  flagName: 'authority_pilot_analytics_readonly',
+  enabled: false,
+  // Whitelist explícita de Resources (não apenas módulos)
+  allowedResources: [
+    'ANALYTICS',
+    'NETWORK_ANALYTICS',
+    'SCHOOL_AGGREGATE_DATA',
+    'INSTITUTIONAL_METADATA'
+  ],
+  // Whitelist de Actions (somente leitura)
+  allowedActions: ['VIEW'],
+  // Whitelist de Escopos
+  allowedScopes: ['UNIT', 'ORG'],
+  // Recursos PROIBIDOS (mesmo se dentro do módulo analytics)
+  deniedResources: [
+    'STUDENT_PEDAGOGICAL_DATA',
+    'USER_MANAGEMENT',
+    'EXAMEPAD_OPS',
+    'SAAS_PLATFORM',
+    'FINANCE',
+    'LOGISTICS'
+  ]
 };
 ```
 
-### Kill Switch
-- Flag desligada = legado decide imediatamente.
-- Tempo de rollback: **< 1 segundo** (sem deploy).
-- Monitoramento: log `[AUTHORITY_PILOT]` em cada decisão do Core.
+## 5. Comportamento de Fallback (Formal)
 
-## 5. Critérios de Sucesso
-| Métrica | Meta |
+| Situação | Comportamento |
 | :--- | :--- |
-| Divergência Crítica | 0 |
-| Vazamento Cross-tenant | 0 |
-| Stale Context | 0 |
-| Latência P95 | < 2ms |
-| Rollback acionado | 0 (ideal) ou com causa documentada |
+| Core retorna decisão válida | ✅ Usa a decisão do Core |
+| Core lança exceção | ⚠️ Fallback imediato para legado **na mesma requisição** |
+| Fallback acionado | 📝 Log obrigatório `[AUTHORITY_PILOT_FALLBACK]` |
+| Contador de fallback > 3 por sessão | 🔴 Flag desligada automaticamente (auto-disable) |
+| Flag desligada (manual ou auto) | Legado reassume em < 1 segundo, sem deploy |
 
-## 6. Stop-the-Line
-Desligar a flag imediatamente se:
-- Qualquer vazamento cross-tenant.
-- Qualquer dado individual retornado indevidamente.
+### Regra de Auto-Disable
+```
+SE fallbackCount >= 3 na mesma sessão:
+  ENTÃO desligar authority_pilot_analytics_readonly
+  E registrar [AUTHORITY_PILOT_AUTO_DISABLED]
+  E notificar equipe técnica
+```
+
+## 6. Stop-the-Line (Separação Formal)
+
+### Stop-the-Line Técnico (Automático — derruba o piloto)
+- Vazamento cross-tenant ou cross-school.
+- Dado pedagógico individual retornado indevidamente.
+- Ação de escrita alcançando o Core.
 - Latência P95 > 5ms.
-- Qualquer ação de escrita alcançar o Core.
-- Feedback negativo de um gestor piloto.
+- Exceção não tratada no Core.
 
-## 7. Duração e Observação
-- **Fase de Observação**: 3 sesões controladas (mínimo).
-- **Expansão**: Só após 3 sessões limpas consecutivas.
-- **Monitoramento**: Logs `[AUTHORITY_PILOT]` revisados após cada sessão.
+### Incidente Operacional (Abre revisão — NÃO derruba automaticamente)
+- Feedback negativo de gestor sobre UX/resultado.
+- Dado agregado com valor inesperado (possível bug de query, não de segurança).
+- Lentidão percebida (mas dentro do limiar técnico).
 
-## 8. Sequência de Execução
+## 7. Sequência de Execução
 1. Implementar a Feature Flag `authority_pilot_analytics_readonly`.
 2. Testar rollback (desligar flag e confirmar que legado reassume).
-3. Ativar para 1 Gestor Escolar em 1 escola.
-4. Observar 1 sessão completa.
-5. Se limpo, ativar para 1 Gestor Municipal.
-6. Observar 1 sessão completa.
-7. Se limpo, manter ativo e monitorar por 1 sessão adicional.
-8. Gerar relatório de validação do Authority Pilot.
+3. Testar auto-disable (simular 3 fallbacks e confirmar desligamento).
+4. Ativar para 1 Gestor Escolar em 1 escola.
+5. Observar 1 sessão completa.
+6. Se limpo, ativar para 1 Gestor Municipal.
+7. Observar 1 sessão completa.
+8. Se limpo, manter ativo e monitorar por 1 sessão adicional.
+9. Gerar relatório de validação do Authority Pilot.
 
 ---
-**Assinatura**: Antigravity | **Status**: Planejamento Fase 3 Completo.
+**Assinatura**: Antigravity | **Status**: Planejamento Fase 3 Completo e Aprovado.

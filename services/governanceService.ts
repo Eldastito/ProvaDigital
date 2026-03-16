@@ -45,9 +45,25 @@ class GovernanceService {
     private auditCache = new Set<string>();
     // Cache de decisão para performance (Memoização)
     private decisionCache = new Map<string, boolean>();
+    // Contador de fallback por sessão (Authority Pilot)
+    private fallbackCount = 0;
 
     /**
-     * Motor de Autorização em Shadow Mode (Fase A/B)
+     * Configuração do Authority Pilot (Fase 3)
+     * Nome canônico único: authority_pilot_analytics_readonly
+     */
+    private authorityPilotConfig = {
+        flagName: 'authority_pilot_analytics_readonly' as const,
+        enabled: false,
+        allowedResources: ['ANALYTICS', 'NETWORK_ANALYTICS', 'SCHOOL_AGGREGATE_DATA', 'INSTITUTIONAL_METADATA'],
+        allowedActions: ['VIEW'],
+        allowedScopes: ['UNIT', 'ORG'] as ScopeType[],
+        deniedResources: ['STUDENT_PEDAGOGICAL_DATA', 'USER_MANAGEMENT', 'EXAMEPAD_OPS', 'SAAS_PLATFORM', 'FINANCE', 'LOGISTICS'],
+        maxFallbacksPerSession: 3,
+    };
+
+    /**
+     * Motor de Autorização — Shadow Mode + Authority Pilot (Fase 3)
      * Memoizado para performance em "hot paths" (Sidebar/ProtectedRoute)
      */
     can(resource: string, action: string, context: GovernanceContext, legacyDecision: boolean, surface: string = 'GENERIC'): boolean {
@@ -75,7 +91,57 @@ class GovernanceService {
             severity
         });
 
+        // 3. Authority Pilot: Core decide SE a flag estiver ativa e o recurso for whitelisted
+        if (this.isAuthorityPilotActive(resource, action, context)) {
+            try {
+                console.log(`[AUTHORITY_PILOT] Core deciding: ${resource}:${action} => ${coreDecision}`);
+                return coreDecision;
+            } catch (error) {
+                // Fallback imediato para legado na mesma requisição
+                this.fallbackCount++;
+                console.error(`[AUTHORITY_PILOT_FALLBACK] Core error, falling back to legacy. Count: ${this.fallbackCount}`, error);
+                    
+                if (this.fallbackCount >= this.authorityPilotConfig.maxFallbacksPerSession) {
+                    this.authorityPilotConfig.enabled = false;
+                    console.error(`[AUTHORITY_PILOT_AUTO_DISABLED] Fallback limit reached (${this.fallbackCount}). Flag disabled.`);
+                }
+                return legacyDecision;
+            }
+        }
+
+        // 4. Shadow Mode: Legado continua decidindo
         return legacyDecision;
+    }
+
+    /**
+     * Verifica se o Authority Pilot está ativo para este recurso/ação/escopo
+     */
+    private isAuthorityPilotActive(resource: string, action: string, context: GovernanceContext): boolean {
+        const config = this.authorityPilotConfig;
+        if (!config.enabled) return false;
+        if (config.deniedResources.includes(resource)) return false;
+        if (!config.allowedResources.includes(resource)) return false;
+        if (!config.allowedActions.includes(action)) return false;
+        if (!config.allowedScopes.includes(context.activeScopeType)) return false;
+        return true;
+    }
+
+    /**
+     * Ativa/desativa o Authority Pilot (Kill Switch)
+     */
+    setAuthorityPilot(enabled: boolean) {
+        this.authorityPilotConfig.enabled = enabled;
+        this.fallbackCount = 0;
+        console.log(`[AUTHORITY_PILOT] Flag ${enabled ? 'ENABLED' : 'DISABLED'}`);
+    }
+
+    /** Retorna o estado atual do Authority Pilot */
+    getAuthorityPilotStatus() {
+        return {
+            enabled: this.authorityPilotConfig.enabled,
+            fallbackCount: this.fallbackCount,
+            flagName: this.authorityPilotConfig.flagName,
+        };
     }
 
     /**
