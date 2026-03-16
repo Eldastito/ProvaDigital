@@ -70,7 +70,7 @@ describe('SIMULAÇÃO TÉCNICA: SESSÃO 16 (GESTOR ESCOLAR - FREEZE V2)', () => 
         console.log('✅ Etapa 4: Bloqueio de visibilidade municipal/rede para Gestor UNIT validado.');
     });
 
-    it('Performance Audit (Baseline Canônica 0d6c474)', () => {
+    it('Performance Audit (Baseline Canônica 38ee4a5)', () => {
         const start = performance.now();
         for(let i=0; i<3000; i++) {
             governanceService.resolveLegacyContext(MOCK_MANAGER_S16);
