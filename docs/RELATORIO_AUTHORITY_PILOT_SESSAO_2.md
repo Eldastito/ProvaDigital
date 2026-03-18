@@ -31,7 +31,8 @@
 ## 3. Eventos de Segurança e Auditoria
 - **Vazamento cross-school**: 0 detectado.
 - **Dado individual retornado**: 0 detectado.
-- **Divergências Críticas**: 1 (Corretamente bloqueada pelo Core em cross-school).
+- **Divergências Críticas**: 0.
+- **Evento crítico simulado bloqueado com sucesso**: 1 (Corretamente bloqueado pelo Core em tentativa cross-school).
 - **Stale context**: Não detectado.
 
 ## 4. Veredito Técnico
