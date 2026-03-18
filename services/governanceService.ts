@@ -55,10 +55,11 @@ class GovernanceService {
     private authorityPilotConfig = {
         flagName: 'authority_pilot_analytics_readonly' as const,
         enabled: false,
-        allowedResources: ['ANALYTICS', 'NETWORK_ANALYTICS', 'SCHOOL_AGGREGATE_DATA', 'INSTITUTIONAL_METADATA'],
+        // Sessão 1: Somente UNIT. NETWORK_ANALYTICS removido para conter blast radius.
+        allowedResources: ['ANALYTICS', 'SCHOOL_AGGREGATE_DATA', 'INSTITUTIONAL_METADATA'],
         allowedActions: ['VIEW'],
-        allowedScopes: ['UNIT', 'ORG'] as ScopeType[],
-        deniedResources: ['STUDENT_PEDAGOGICAL_DATA', 'USER_MANAGEMENT', 'EXAMEPAD_OPS', 'SAAS_PLATFORM', 'FINANCE', 'LOGISTICS'],
+        allowedScopes: ['UNIT'] as ScopeType[],
+        deniedResources: ['STUDENT_PEDAGOGICAL_DATA', 'USER_MANAGEMENT', 'EXAMEPAD_OPS', 'SAAS_PLATFORM', 'FINANCE', 'LOGISTICS', 'NETWORK_ANALYTICS'],
         maxFallbacksPerSession: 3,
     };
 
