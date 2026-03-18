@@ -58,7 +58,7 @@ class GovernanceService {
         // Sessão 1: Somente UNIT. NETWORK_ANALYTICS removido para conter blast radius.
         allowedResources: ['ANALYTICS', 'SCHOOL_AGGREGATE_DATA', 'INSTITUTIONAL_METADATA'],
         allowedActions: ['VIEW'],
-        allowedScopes: ['UNIT'] as ScopeType[],
+        allowedScopes: ['UNIT', 'ORG'] as ScopeType[],
         deniedResources: ['STUDENT_PEDAGOGICAL_DATA', 'USER_MANAGEMENT', 'EXAMEPAD_OPS', 'SAAS_PLATFORM', 'FINANCE', 'LOGISTICS', 'NETWORK_ANALYTICS'],
         maxFallbacksPerSession: 3,
     };
@@ -196,12 +196,17 @@ class GovernanceService {
             return false;
         }
 
-        // 3. Isolamento de Unidade (UNIT) - REFINADO
-        // Atores UNIT (Professor/Diretor) só enxergam sua escola.
-        // Atores GLOBAL ignoram esta trava para permitir drill-down.
-        if (context.activeScopeType === 'UNIT' && context.roleId !== 'mec_superadmin') {
-            if (context.targetSchoolId && context.targetSchoolId !== context.activeSchoolId) {
-                return false;
+        // 3. Isolamento de Alvo Escolar (UNIT e ORG) - REQUISITO Sessão 3A Remediação
+        // Se houver targetSchoolId, validamos o acesso baseado no escopo ativo.
+        if (context.targetSchoolId && context.roleId !== 'mec_superadmin') {
+            // Se for UNIT, só pode ver a própria escola
+            if (context.activeScopeType === 'UNIT') {
+                if (context.targetSchoolId !== context.activeSchoolId) return false;
+            } 
+            // Se for ORG, a escola deve ser subordinada à organização ativa
+            else if (context.activeScopeType === 'ORG') {
+                const isSubordinate = this.checkSubordinationMock(context.activeOrganizationId, context.targetSchoolId);
+                if (!isSubordinate) return false;
             }
         }
 
