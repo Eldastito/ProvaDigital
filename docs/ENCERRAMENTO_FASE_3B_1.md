@@ -21,7 +21,7 @@
 | :--- | :---: | :---: | :---: | :---: | :---: |
 | **Alvorada** | ✅ | ✅ | ✅ | 1.315ms | Baseline |
 | **Viamão** | ✅ | ✅ | ✅ | 1.352ms | +0.037ms |
-| **Gravataí** | ✅ | ✅ | 🕒 EM ANDAMENTO | 1.412ms | +0.057ms |
+| **Gravataí** | ✅ | ✅ | ✅ | 1.412ms | +0.057ms |
 
 ---
 
@@ -75,8 +75,8 @@ Acionamento imediato de stop-the-line se ocorrer **qualquer** item abaixo:
 | :--- | :---: |
 | `docs/REPORT_GRAVATAI_FINAL_CHECKPOINT.md` | ✅ |
 | `docs/CHECKLIST_OPERACIONAL_GRAVATAI.md` | ✅ |
-| `docs/REPORT_GRAVATAI_SOAK_4H.md` | 🕒 Pendente |
-| `docs/ENCERRAMENTO_FASE_3B_1.md` | 🕒 Pendente (este doc) |
+| `docs/REPORT_GRAVATAI_SOAK_4H.md` | ✅ |
+| `docs/ENCERRAMENTO_FASE_3B_1.md` | ✅ |
 
 ---
 *Responsável Técnico: Governança Core — 2026-03-19 14:25 UTC-3*
