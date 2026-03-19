@@ -1,0 +1,142 @@
+{
+  "profile": "adversarial",
+  "seed": 42,
+  "THRESHOLDS": {
+    "p95_L1_L2": 5,
+    "p95_L3": 7,
+    "p99": 10,
+    "error_rate_max": 0.001,
+    "recovery_delta_max_pct": 10
+  },
+  "results": [
+    {
+      "phase": "WARMUP",
+      "totalRequests": 5005,
+      "successRequests": 5005,
+      "errorRequests": 0,
+      "avgLatency": 0.3647890509490584,
+      "p50": 0.3136000000013155,
+      "p95": 0.7384999999994761,
+      "p99": 1.5397999999986496,
+      "infra": {
+        "cpuLoad": 0,
+        "memUsageMB": 60.37890625,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 0,
+        "denyHistogram": {}
+      }
+    },
+    {
+      "phase": "LEVEL_1",
+      "totalRequests": 38580,
+      "successRequests": 38580,
+      "errorRequests": 0,
+      "avgLatency": 0.21429228097463357,
+      "p50": 0.18910000000323635,
+      "p95": 0.5074000000022352,
+      "p99": 0.838000000017928,
+      "infra": {
+        "cpuLoad": 0,
+        "memUsageMB": 76.265625,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 1967,
+        "denyHistogram": {
+          "SCHOOL_AGGREGATE_DATA:VIEW": 1919,
+          "INSTITUTIONAL_METADATA:VIEW": 1935,
+          "ANALYTICS:VIEW": 1903
+        }
+      }
+    },
+    {
+      "phase": "LEVEL_2",
+      "totalRequests": 89300,
+      "successRequests": 89300,
+      "errorRequests": 0,
+      "avgLatency": 0.19993365173578082,
+      "p50": 0.16769999999087304,
+      "p95": 0.4663999999756925,
+      "p99": 0.7978000000002794,
+      "infra": {
+        "cpuLoad": 0,
+        "memUsageMB": 109.2265625,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 4505,
+        "denyHistogram": {
+          "INSTITUTIONAL_METADATA:VIEW": 4406,
+          "SCHOOL_AGGREGATE_DATA:VIEW": 4501,
+          "ANALYTICS:VIEW": 4523
+        }
+      }
+    },
+    {
+      "phase": "LEVEL_3",
+      "totalRequests": 161700,
+      "successRequests": 161700,
+      "errorRequests": 0,
+      "avgLatency": 0.16468770933824625,
+      "p50": 0.12879999994765967,
+      "p95": 0.4221999999717809,
+      "p99": 0.694199999968987,
+      "infra": {
+        "cpuLoad": 0,
+        "memUsageMB": 126.03515625,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 7997,
+        "denyHistogram": {
+          "SCHOOL_AGGREGATE_DATA:VIEW": 8104,
+          "INSTITUTIONAL_METADATA:VIEW": 8083,
+          "ANALYTICS:VIEW": 8103
+        }
+      }
+    },
+    {
+      "phase": "RECOVERY",
+      "totalRequests": 5050,
+      "successRequests": 5050,
+      "errorRequests": 0,
+      "avgLatency": 0.2992145742574421,
+      "p50": 0.2639000000199303,
+      "p95": 0.6464000000269152,
+      "p99": 1.0973000000230968,
+      "infra": {
+        "cpuLoad": 0,
+        "memUsageMB": 63.9921875,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 0,
+        "denyHistogram": {}
+      }
+    }
+  ],
+  "finalDecision": "Falha de Governança: Vazamento detectado.",
+  "exitCode": 2
+}

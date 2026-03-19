@@ -29,8 +29,8 @@ A próxima fase deve usar como **baseline funcional** o commit/tag `d0d4edc` (`f
 
 Qualquer ação que expanda o escopo deve respeitar as seguintes condições:
 
-- O commit `d0d4edc` deve estar sincronizado em `origin/main`
-- A tag `fase-3b1-encerrada` deve estar presente no remoto
+- A tag `fase-3b1-encerrada` deve existir no remoto e apontar para a âncora funcional `d0d4edc82789a9e918287ef7068578e622c8b9d6`.
+- A branch `main` atual deve conter a documentação de transição/abertura (HEAD documental `b7485c5` ou superior).
 - Nenhum município já ativo (POA, Canoas, Alvorada, Viamão, Gravataí) pode estar com p95 > 5ms antes do início
 - O histograma de deny deve continuar aderente ao padrão 88/12 (±5%)
 

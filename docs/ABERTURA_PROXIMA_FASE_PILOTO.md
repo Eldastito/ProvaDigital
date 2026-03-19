@@ -1,7 +1,8 @@
 # Abertura Formal: Fase 4 — Burst & Real-world Scalability
 
 **Início da Fase:** 2026-03-19  
-**Baseline de Entrada (Funcional):** `d0d4edc` (Tag: `fase-3b1-encerrada`)  
+**Âncora Funcional (Fase 3B.1):** `d0d4edc` (Tag: `fase-3b1-encerrada`)  
+**HEAD Documental (Atual):** `b7485c5`  
 **Status do Ecossistema:** 5 Municípios Ativos (POA, Canoas, Alvorada, Viamão, Gravataí)
 
 ---

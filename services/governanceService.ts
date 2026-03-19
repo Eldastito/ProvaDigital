@@ -62,6 +62,10 @@ class GovernanceService {
         allowedOrganizations: ['poa_organization', 'canoas_organization', 'alvorada_organization', 'viamao_organization', 'gravatai_organization'] as string[], // Baseline aprovada
         deniedResources: ['STUDENT_PEDAGOGICAL_DATA', 'USER_MANAGEMENT', 'EXAMEPAD_OPS', 'SAAS_PLATFORM', 'FINANCE', 'LOGISTICS', 'NETWORK_ANALYTICS'],
         maxFallbacksPerSession: 3,
+        // Telemetria (Fase 4 Patch)
+        shadowDelegationCount: 0,
+        readonlyBlockCount: 0,
+        mutationDelegationCount: 0,
     };
 
     /**
@@ -93,7 +97,19 @@ class GovernanceService {
             severity
         });
 
-        // 3. Authority Pilot: Core decide SE a flag estiver ativa e o recurso for whitelisted
+        // 3. Bloqueio Explícito de Mutação em Readonly (Fase 4 Patch)
+        const isMutation = ['CREATE', 'EDIT', 'DELETE'].includes(action);
+        if (this.authorityPilotConfig.enabled && isMutation) {
+             // Se o contexto está mapeado para o piloto (org permitida e escopo correto)
+             if (this.authorityPilotConfig.allowedOrganizations.includes(context.activeOrganizationId) && 
+                 this.authorityPilotConfig.allowedScopes.includes(context.activeScopeType)) {
+                 this.authorityPilotConfig.readonlyBlockCount++;
+                 console.warn(`[AUTHORITY_PILOT][READONLY_BLOCK] Mutation blocked: ${resource}:${action}. Reason: PILOT_READONLY_MUTATION_BLOCKED`);
+                 return false; 
+             }
+        }
+
+        // 4. Authority Pilot: Core decide SE a flag estiver ativa e o recurso for whitelisted
         if (this.isAuthorityPilotActive(resource, action, context)) {
             try {
                 console.log(`[AUTHORITY_PILOT] Core deciding: ${resource}:${action} => ${coreDecision}`);
@@ -111,7 +127,11 @@ class GovernanceService {
             }
         }
 
-        // 4. Shadow Mode: Legado continua decidindo
+        // 5. Shadow Mode: Legado continua decidindo
+        if (this.authorityPilotConfig.enabled) {
+            this.authorityPilotConfig.shadowDelegationCount++;
+            if (isMutation) this.authorityPilotConfig.mutationDelegationCount++;
+        }
         return legacyDecision;
     }
 
@@ -146,6 +166,11 @@ class GovernanceService {
             allowedOrganizations: [...this.authorityPilotConfig.allowedOrganizations],
             fallbackCount: this.fallbackCount,
             flagName: this.authorityPilotConfig.flagName,
+            telemetry: {
+                shadowDelegation: this.authorityPilotConfig.shadowDelegationCount,
+                readonlyBlock: this.authorityPilotConfig.readonlyBlockCount,
+                mutationDelegation: this.authorityPilotConfig.mutationDelegationCount
+            }
         };
     }
 

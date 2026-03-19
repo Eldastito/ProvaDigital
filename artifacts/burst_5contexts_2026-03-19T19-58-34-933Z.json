@@ -1,0 +1,166 @@
+{
+  "profile": "adversarial",
+  "seed": 42,
+  "THRESHOLDS": {
+    "p95_L1_L2": 5,
+    "p95_L3": 7,
+    "p99": 10,
+    "error_rate_max": 0.001,
+    "recovery_delta_max_pct": 10
+  },
+  "results": [
+    {
+      "phase": "WARMUP",
+      "totalRequests": 5030,
+      "successRequests": 5030,
+      "errorRequests": 0,
+      "avgLatency": 0.3580828031809371,
+      "p50": 0.30010000000038417,
+      "p95": 0.7166999999972177,
+      "p99": 1.2530000000006112,
+      "infra": {
+        "cpuLoad": 0,
+        "memUsageMB": 60.54296875,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 0,
+        "readonlyBlock": 0,
+        "shadowDelegation": 0,
+        "mutationDelegation": 0,
+        "denyHistogram": {}
+      }
+    },
+    {
+      "phase": "LEVEL_1",
+      "totalRequests": 38340,
+      "successRequests": 38340,
+      "errorRequests": 0,
+      "avgLatency": 0.23535407668226388,
+      "p50": 0.21299999998882413,
+      "p95": 0.5291999999899417,
+      "p99": 0.8775999999925261,
+      "infra": {
+        "cpuLoad": 0,
+        "memUsageMB": 75.1328125,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 0,
+        "readonlyBlock": 1909,
+        "shadowDelegation": 3775,
+        "mutationDelegation": 0,
+        "denyHistogram": {
+          "INSTITUTIONAL_METADATA:VIEW": 1829,
+          "SCHOOL_AGGREGATE_DATA:VIEW": 1870,
+          "EXAMEPAD_OPS:CREATE": 675,
+          "ANALYTICS:VIEW": 1886,
+          "SAAS_PLATFORM:CREATE": 608,
+          "FINANCE:CREATE": 626
+        }
+      }
+    },
+    {
+      "phase": "LEVEL_2",
+      "totalRequests": 83100,
+      "successRequests": 83100,
+      "errorRequests": 0,
+      "avgLatency": 0.28838514681113153,
+      "p50": 0.26089999999385327,
+      "p95": 0.6401000000187196,
+      "p99": 1.1097000000008848,
+      "infra": {
+        "cpuLoad": 0,
+        "memUsageMB": 109.3515625,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 0,
+        "readonlyBlock": 4136,
+        "shadowDelegation": 8476,
+        "mutationDelegation": 0,
+        "denyHistogram": {
+          "SCHOOL_AGGREGATE_DATA:VIEW": 4108,
+          "INSTITUTIONAL_METADATA:VIEW": 4047,
+          "ANALYTICS:VIEW": 4209,
+          "FINANCE:CREATE": 1352,
+          "EXAMEPAD_OPS:CREATE": 1383,
+          "SAAS_PLATFORM:CREATE": 1401
+        }
+      }
+    },
+    {
+      "phase": "LEVEL_3",
+      "totalRequests": 150000,
+      "successRequests": 150000,
+      "errorRequests": 0,
+      "avgLatency": 0.2237783693333727,
+      "p50": 0.19300000002840534,
+      "p95": 0.5154999999795109,
+      "p99": 0.8332999999984168,
+      "infra": {
+        "cpuLoad": 0,
+        "memUsageMB": 125.828125,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 0,
+        "readonlyBlock": 7474,
+        "shadowDelegation": 15065,
+        "mutationDelegation": 0,
+        "denyHistogram": {
+          "INSTITUTIONAL_METADATA:VIEW": 7577,
+          "SCHOOL_AGGREGATE_DATA:VIEW": 7417,
+          "ANALYTICS:VIEW": 7503,
+          "EXAMEPAD_OPS:CREATE": 2510,
+          "FINANCE:CREATE": 2479,
+          "SAAS_PLATFORM:CREATE": 2485
+        }
+      }
+    },
+    {
+      "phase": "RECOVERY",
+      "totalRequests": 5040,
+      "successRequests": 5040,
+      "errorRequests": 0,
+      "avgLatency": 0.2966259325397712,
+      "p50": 0.2505999999702908,
+      "p95": 0.6190000000060536,
+      "p99": 1.1572999999625608,
+      "infra": {
+        "cpuLoad": 0,
+        "memUsageMB": 112.96484375,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 0,
+        "readonlyBlock": 0,
+        "shadowDelegation": 0,
+        "mutationDelegation": 0,
+        "denyHistogram": {}
+      }
+    }
+  ],
+  "finalDecision": "Aprovado por performance e governança.",
+  "exitCode": 0
+}
