@@ -1,20 +1,12 @@
-# Transição: Fase 3B.1 → Próxima Fase
-
-**Data de Transição:** 2026-03-19  
-**Âncora Oficial Fase 3B.1:** `d0d4edc82789a9e918287ef7068578e622c8b9d6`  
-**Tag de Encerramento:** `fase-3b1-encerrada`
-
----
-
 ## 🧱 1. Baseline de Entrada para a Próxima Fase
 
-A próxima fase parte diretamente do commit `d0d4edc`, **não mais de** `28eea1f63c4`.
+A próxima fase deve usar como **baseline funcional** o commit/tag `d0d4edc` (`fase-3b1-encerrada`) e como **referência documental corrente** a branch `main` a partir de `85dccb5` (que inclui este documento de transição sem alterar o motor operacional).
 
 | Item | Valor |
 | :--- | :--- |
-| **Commit de referência** | `d0d4edc82789a9e918287ef7068578e622c8b9d6` |
-| **Tag** | `fase-3b1-encerrada` |
-| **Branch** | `main` |
+| **Âncora Funcional (Fase 3B.1)** | `d0d4edc82789a9e918287ef7068578e622c8b9d6` |
+| **HEAD Documental (Atual)** | `85dccb5` |
+| **Tag de Encerramento** | `fase-3b1-encerrada` |
 | **Municípios Ativos** | POA, Canoas, Alvorada, Viamão, Gravataí |
 | **Baseline normativa** | `docs/BASELINE_CONGELADA_FASE_3B_1.md` (Commit `28eea1f63c4`) |
 | **Métrica mestre** | p95 End-to-End < 5.0ms |
