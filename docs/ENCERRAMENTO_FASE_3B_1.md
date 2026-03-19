@@ -27,7 +27,7 @@
 
 ## 📋 3. Critérios Objetivos de Saída do Soak (Gravataí)
 
-Todos os 12 critérios foram atendidos conforme `docs/REPORT_GRAVATAI_SOAK_4H.md`:
+Todos os 16 critérios foram atendidos conforme `docs/REPORT_GRAVATAI_SOAK_4H.md`:
 
 ### Performance
 - [x] p95 E2E de Gravataí permanece **< 5.0ms** em todas as faixas observadas (1.412ms)
@@ -41,7 +41,7 @@ Todos os 12 critérios foram atendidos conforme `docs/REPORT_GRAVATAI_SOAK_4H.md
 - [x] Fallback count: **0**
 
 ### Integridade Read-only
-- [x] Write attempts: **0** (confirmado por deny explícito, notó só ausência de evento)
+- [x] Write attempts: **0** (confirmado por deny explícito, não só ausência de evento)
 - [x] Acessos sensíveis (`STUDENT_PEDAGOGICAL_DATA`): **100% bloqueados**
 - [x] Deny histogram mantido aderente ao baseline 88/12 (±5%)
 
@@ -69,7 +69,7 @@ Acionamento imediato de stop-the-line se ocorrer **qualquer** item abaixo:
 
 ---
 
-## 📁 5. Artefatos Esperados de Encerramento Final
+## 📁 5. Artefatos de Encerramento Final
 
 | Artefato | Status |
 | :--- | :---: |
