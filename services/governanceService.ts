@@ -59,6 +59,7 @@ class GovernanceService {
         allowedResources: ['ANALYTICS', 'SCHOOL_AGGREGATE_DATA', 'INSTITUTIONAL_METADATA'],
         allowedActions: ['VIEW'],
         allowedScopes: ['UNIT', 'ORG'] as ScopeType[],
+        allowedOrganizations: ['poa_organization', 'canoas_organization', 'alvorada_organization', 'viamao_organization', 'gravatai_organization'] as string[], // Baseline aprovada
         deniedResources: ['STUDENT_PEDAGOGICAL_DATA', 'USER_MANAGEMENT', 'EXAMEPAD_OPS', 'SAAS_PLATFORM', 'FINANCE', 'LOGISTICS', 'NETWORK_ANALYTICS'],
         maxFallbacksPerSession: 3,
     };
@@ -124,6 +125,8 @@ class GovernanceService {
         if (!config.allowedResources.includes(resource)) return false;
         if (!config.allowedActions.includes(action)) return false;
         if (!config.allowedScopes.includes(context.activeScopeType)) return false;
+        // Validação Contextual (Fase 3B.1)
+        if (!config.allowedOrganizations.includes(context.activeOrganizationId)) return false;
         return true;
     }
 
@@ -140,9 +143,25 @@ class GovernanceService {
     getAuthorityPilotStatus() {
         return {
             enabled: this.authorityPilotConfig.enabled,
+            allowedOrganizations: [...this.authorityPilotConfig.allowedOrganizations],
             fallbackCount: this.fallbackCount,
             flagName: this.authorityPilotConfig.flagName,
         };
+    }
+
+    /** Habilita piloto para uma organização específica */
+    enablePilotForOrganization(orgId: string) {
+        if (!this.authorityPilotConfig.allowedOrganizations.includes(orgId)) {
+            this.authorityPilotConfig.allowedOrganizations.push(orgId);
+            console.log(`[AUTHORITY_PILOT] Context ENABLED for: ${orgId}`);
+        }
+    }
+
+    /** Desabilita piloto para uma organização específica */
+    disablePilotForOrganization(orgId: string) {
+        this.authorityPilotConfig.allowedOrganizations = 
+            this.authorityPilotConfig.allowedOrganizations.filter(id => id !== orgId);
+        console.log(`[AUTHORITY_PILOT] Context DISABLED for: ${orgId}`);
     }
 
     /**
@@ -258,9 +277,17 @@ class GovernanceService {
     private checkSubordinationMock(activeOrgId: string, targetOrgId: string): boolean {
         // Regras de Hierarquia RS (Exemplo para Sessão 21)
         const hierarchy: Record<string, string[]> = {
-            'state_rs_org': ['poa_organization', 'canoas_organization', 'school_poa_1', 'school_canoas_99'],
+            'state_rs_org': [
+                'poa_organization', 'canoas_organization', 'alvorada_organization', 
+                'viamao_organization', 'gravatai_organization',
+                'school_poa_1', 'school_canoas_99', 'school_alvorada_1', 
+                'school_viamao_2', 'school_gravatai_3'
+            ],
             'poa_organization': ['school_poa_1'],
-            'canoas_organization': ['school_canoas_99']
+            'canoas_organization': ['school_canoas_99'],
+            'alvorada_organization': ['school_alvorada_1'],
+            'viamao_organization': ['school_viamao_2'],
+            'gravatai_organization': ['school_gravatai_3']
         };
 
         return hierarchy[activeOrgId]?.includes(targetOrgId) || false;
