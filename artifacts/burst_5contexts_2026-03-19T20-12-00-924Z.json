@@ -1,0 +1,171 @@
+{
+  "profile": "adversarial",
+  "seed": 42,
+  "THRESHOLDS": {
+    "p95_L1_L2": 5,
+    "p95_L3": 7,
+    "p99": 10,
+    "error_rate_max": 0.001,
+    "recovery_delta_max_pct": 10
+  },
+  "results": [
+    {
+      "phase": "WARMUP",
+      "totalRequests": 4960,
+      "successRequests": 4960,
+      "errorRequests": 0,
+      "avgLatency": 0.3475008467741699,
+      "p50": 0.3003000000026077,
+      "p95": 0.7387000000016997,
+      "p99": 1.3188000000009197,
+      "infra": {
+        "cpuLoad": 0,
+        "memUsageMB": 60.421875,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 0,
+        "readonly_block_count": 0,
+        "shadow_delegation_count": 0,
+        "mutation_delegation_count": 0,
+        "legacy_allow_count_for_mutations": 0,
+        "denyHistogram": {}
+      }
+    },
+    {
+      "phase": "LEVEL_1",
+      "totalRequests": 37940,
+      "successRequests": 37940,
+      "errorRequests": 0,
+      "avgLatency": 0.26221306536628575,
+      "p50": 0.24299999998765998,
+      "p95": 0.5733999999938533,
+      "p99": 0.9255000000121072,
+      "infra": {
+        "cpuLoad": 0,
+        "memUsageMB": 76.390625,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 0,
+        "readonly_block_count": 1837,
+        "shadow_delegation_count": 3808,
+        "mutation_delegation_count": 0,
+        "legacy_allow_count_for_mutations": 0,
+        "denyHistogram": {
+          "EXAMEPAD_OPS:CREATE": 608,
+          "SAAS_PLATFORM:CREATE": 610,
+          "INSTITUTIONAL_METADATA:VIEW": 1898,
+          "ANALYTICS:VIEW": 1914,
+          "SCHOOL_AGGREGATE_DATA:VIEW": 1940,
+          "FINANCE:CREATE": 619
+        }
+      }
+    },
+    {
+      "phase": "LEVEL_2",
+      "totalRequests": 88550,
+      "successRequests": 88550,
+      "errorRequests": 0,
+      "avgLatency": 0.20786018407689483,
+      "p50": 0.17710000000079162,
+      "p95": 0.49760000000242144,
+      "p99": 0.8107000000018161,
+      "infra": {
+        "cpuLoad": 0,
+        "memUsageMB": 110.6328125,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 0,
+        "readonly_block_count": 4492,
+        "shadow_delegation_count": 8944,
+        "mutation_delegation_count": 0,
+        "legacy_allow_count_for_mutations": 0,
+        "denyHistogram": {
+          "INSTITUTIONAL_METADATA:VIEW": 4376,
+          "SCHOOL_AGGREGATE_DATA:VIEW": 4438,
+          "ANALYTICS:VIEW": 4418,
+          "SAAS_PLATFORM:CREATE": 1501,
+          "FINANCE:CREATE": 1481,
+          "EXAMEPAD_OPS:CREATE": 1510
+        }
+      }
+    },
+    {
+      "phase": "LEVEL_3",
+      "totalRequests": 146500,
+      "successRequests": 146500,
+      "errorRequests": 0,
+      "avgLatency": 0.23942196450512276,
+      "p50": 0.21240000001853332,
+      "p95": 0.5236000000149943,
+      "p99": 0.833600000012666,
+      "infra": {
+        "cpuLoad": 0,
+        "memUsageMB": 124.1640625,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 0,
+        "readonly_block_count": 7245,
+        "shadow_delegation_count": 14562,
+        "mutation_delegation_count": 0,
+        "legacy_allow_count_for_mutations": 0,
+        "denyHistogram": {
+          "SCHOOL_AGGREGATE_DATA:VIEW": 7267,
+          "SAAS_PLATFORM:CREATE": 2489,
+          "ANALYTICS:VIEW": 7276,
+          "EXAMEPAD_OPS:CREATE": 2377,
+          "INSTITUTIONAL_METADATA:VIEW": 7344,
+          "FINANCE:CREATE": 2379
+        }
+      }
+    },
+    {
+      "phase": "RECOVERY",
+      "totalRequests": 5030,
+      "successRequests": 5030,
+      "errorRequests": 0,
+      "avgLatency": 0.3209623260438932,
+      "p50": 0.2801000000326894,
+      "p95": 0.6272999999928288,
+      "p99": 1.0399999999790452,
+      "infra": {
+        "cpuLoad": 0,
+        "memUsageMB": 60.859375,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 0,
+        "readonly_block_count": 0,
+        "shadow_delegation_count": 0,
+        "mutation_delegation_count": 0,
+        "legacy_allow_count_for_mutations": 0,
+        "denyHistogram": {}
+      }
+    }
+  ],
+  "finalDecision": "Aprovado por performance e governança.",
+  "exitCode": 0
+}

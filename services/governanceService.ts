@@ -62,10 +62,11 @@ class GovernanceService {
         allowedOrganizations: ['poa_organization', 'canoas_organization', 'alvorada_organization', 'viamao_organization', 'gravatai_organization'] as string[], // Baseline aprovada
         deniedResources: ['STUDENT_PEDAGOGICAL_DATA', 'USER_MANAGEMENT', 'EXAMEPAD_OPS', 'SAAS_PLATFORM', 'FINANCE', 'LOGISTICS', 'NETWORK_ANALYTICS'],
         maxFallbacksPerSession: 3,
-        // Telemetria (Fase 4 Patch)
-        shadowDelegationCount: 0,
-        readonlyBlockCount: 0,
-        mutationDelegationCount: 0,
+        // Telemetria (Fase 4 Patch F4.1)
+        shadow_delegation_count: 0,
+        readonly_block_count: 0,
+        mutation_delegation_count: 0,
+        legacy_allow_count_for_mutations: 0,
     };
 
     /**
@@ -103,7 +104,7 @@ class GovernanceService {
              // Se o contexto está mapeado para o piloto (org permitida e escopo correto)
              if (this.authorityPilotConfig.allowedOrganizations.includes(context.activeOrganizationId) && 
                  this.authorityPilotConfig.allowedScopes.includes(context.activeScopeType)) {
-                 this.authorityPilotConfig.readonlyBlockCount++;
+                 this.authorityPilotConfig.readonly_block_count++;
                  console.warn(`[AUTHORITY_PILOT][READONLY_BLOCK] Mutation blocked: ${resource}:${action}. Reason: PILOT_READONLY_MUTATION_BLOCKED`);
                  return false; 
              }
@@ -129,8 +130,11 @@ class GovernanceService {
 
         // 5. Shadow Mode: Legado continua decidindo
         if (this.authorityPilotConfig.enabled) {
-            this.authorityPilotConfig.shadowDelegationCount++;
-            if (isMutation) this.authorityPilotConfig.mutationDelegationCount++;
+            this.authorityPilotConfig.shadow_delegation_count++;
+            if (isMutation) {
+                this.authorityPilotConfig.mutation_delegation_count++;
+                if (legacyDecision) this.authorityPilotConfig.legacy_allow_count_for_mutations++;
+            }
         }
         return legacyDecision;
     }
@@ -167,9 +171,10 @@ class GovernanceService {
             fallbackCount: this.fallbackCount,
             flagName: this.authorityPilotConfig.flagName,
             telemetry: {
-                shadowDelegation: this.authorityPilotConfig.shadowDelegationCount,
-                readonlyBlock: this.authorityPilotConfig.readonlyBlockCount,
-                mutationDelegation: this.authorityPilotConfig.mutationDelegationCount
+                shadow_delegation_count: this.authorityPilotConfig.shadow_delegation_count,
+                readonly_block_count: this.authorityPilotConfig.readonly_block_count,
+                mutation_delegation_count: this.authorityPilotConfig.mutation_delegation_count,
+                legacy_allow_count_for_mutations: this.authorityPilotConfig.legacy_allow_count_for_mutations
             }
         };
     }

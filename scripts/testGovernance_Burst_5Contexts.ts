@@ -62,9 +62,10 @@ interface PhaseMetrics {
         autoDisableCount: number;
         crossOrgLeak: number;
         writeEscape: number;
-        readonlyBlock: number;
-        shadowDelegation: number;
-        mutationDelegation: number;
+        readonly_block_count: number;
+        shadow_delegation_count: number;
+        mutation_delegation_count: number;
+        legacy_allow_count_for_mutations: number;
         denyHistogram: Record<string, number>;
     };
     infra: {
@@ -219,9 +220,10 @@ async function runPhase(phaseName: string, config: typeof PHASE_CONFIG.L1, profi
             autoDisableCount: finalGovern.enabled === false && governBaseline.enabled === true ? 1 : 0,
             crossOrgLeak: crossOrgLeaks,
             writeEscape: writeEscapes,
-            readonlyBlock: (finalGovern as any).telemetry.readonlyBlock - (governBaseline as any).telemetry.readonlyBlock,
-            shadowDelegation: (finalGovern as any).telemetry.shadowDelegation - (governBaseline as any).telemetry.shadowDelegation,
-            mutationDelegation: (finalGovern as any).telemetry.mutationDelegation - (governBaseline as any).telemetry.mutationDelegation,
+            readonly_block_count: (finalGovern as any).telemetry.readonly_block_count - (governBaseline as any).telemetry.readonly_block_count,
+            shadow_delegation_count: (finalGovern as any).telemetry.shadow_delegation_count - (governBaseline as any).telemetry.shadow_delegation_count,
+            mutation_delegation_count: (finalGovern as any).telemetry.mutation_delegation_count - (governBaseline as any).telemetry.mutation_delegation_count,
+            legacy_allow_count_for_mutations: (finalGovern as any).telemetry.legacy_allow_count_for_mutations - (governBaseline as any).telemetry.legacy_allow_count_for_mutations,
             denyHistogram
         }
     };
@@ -295,9 +297,9 @@ ${report.map(r => `| ${r.phase} | ${r.totalRequests} | ${r.p50.toFixed(2)}ms | *
 
 ## 🛡️ Integridade de Governança
 
-| Fase | Leak | Escape | Block (RO) | Shadow | Mutation Del. | Fallback |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-${report.map(r => `| ${r.phase} | ${r.governance.crossOrgLeak} | ${r.governance.writeEscape} | ${r.governance.readonlyBlock} | ${r.governance.shadowDelegation} | ${r.governance.mutationDelegation} | ${r.governance.fallbackCount} |`).join('\n')}
+| Fase | Leak | Escape | Block (RO) | Shadow | Mut. Del. | Legacy M. Allow | Fallback |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+${report.map(r => `| ${r.phase} | ${r.governance.crossOrgLeak} | ${r.governance.writeEscape} | ${r.governance.readonly_block_count} | ${r.governance.shadow_delegation_count} | ${r.governance.mutation_delegation_count} | ${r.governance.legacy_allow_count_for_mutations} | ${r.governance.fallbackCount} |`).join('\n')}
 
 ## 🛑 Histograma de Deny (Top 5)
 ${Object.entries(report.reduce((acc, r) => {
