@@ -1,4 +1,4 @@
-# Encerramento Intermediário: Fase 3B.1 — Expansão Municipal Controlada
+# Encerramento Final: Fase 3B.1 — Expansão Municipal Controlada
 
 **Status Formal:** 🟩 **SOAK CONCLUÍDO — ARQUIVAMENTO OPERACIONAL LIBERADO**  
 **Data:** 2026-03-19  
@@ -9,9 +9,9 @@
 
 ## 🏁 1. Parecer Técnico de Continuidade
 
-> **Checkpoint de ativação de Gravataí concluído com resultado satisfatório.** O sistema confirmou escalabilidade linear sob cinco contextos ativos, latência dentro da meta, aderência à baseline normativa e isolamento cross-org rigoroso.
+> **Encerramento formal da Fase 3B.1 concluído com resultado satisfatório.** O sistema confirmou escalabilidade linear sob cinco contextos ativos, latência dentro da meta, aderência à baseline normativa e isolamento cross-org rigoroso.
 >
-> O status neste momento é **GO para continuidade controlada**, com **arquivamento final da Fase 3B.1 condicionado à conclusão sem anomalias do soak operacional de 4 horas de Gravataí.** Até o momento, não há evidência de regressão funcional, saturação de contexto ou violação de integridade read-only.
+> O soak operacional de 4 horas de Gravataí foi concluído sem anomalias, com arquivamento final liberado e baseline consolidada para a próxima fase.
 
 ---
 
@@ -27,31 +27,31 @@
 
 ## 📋 3. Critérios Objetivos de Saída do Soak (Gravataí)
 
-O soak de 4h será considerado bem-sucedido **apenas se todos os itens abaixo forem atendidos:**
+Todos os 12 critérios foram atendidos conforme `docs/REPORT_GRAVATAI_SOAK_4H.md`:
 
 ### Performance
-- [ ] p95 E2E de Gravataí permanece **< 5.0ms** em todas as faixas observadas
-- [ ] Média E2E **< 1.0ms**
-- [ ] Variância de p95 abaixo de ±0.1ms entre horas
+- [x] p95 E2E de Gravataí permanece **< 5.0ms** em todas as faixas observadas (1.412ms)
+- [x] Média E2E **< 1.0ms** (0.442ms)
+- [x] Variância de p95 abaixo de ±0.1ms entre horas (±0.009ms)
 
 ### Governança e Isolamento
-- [ ] Drift de configuração: **0**
-- [ ] Cross-org leak: **0**
-- [ ] Auto-disable events: **0**
-- [ ] Fallback count: **0**
+- [x] Drift de configuração: **0**
+- [x] Cross-org leak: **0**
+- [x] Auto-disable events: **0**
+- [x] Fallback count: **0**
 
 ### Integridade Read-only
-- [ ] Write attempts: **0** (confirmado por deny explícito, não só ausência de evento)
-- [ ] Acessos sensíveis (`STUDENT_PEDAGOGICAL_DATA`): **100% bloqueados**
-- [ ] Deny histogram mantido aderente ao baseline 88/12 (±5%)
+- [x] Write attempts: **0** (confirmado por deny explícito, notó só ausência de evento)
+- [x] Acessos sensíveis (`STUDENT_PEDAGOGICAL_DATA`): **100% bloqueados**
+- [x] Deny histogram mantido aderente ao baseline 88/12 (±5%)
 
 ### Saúde de Infraestrutura
-- [ ] CPU: sem saturação sustentada acima de 80%
-- [ ] Memória: sem crescimento anômalo
-- [ ] DB latency: sem regressão vs leitura anterior
-- [ ] Connection pool: sem esgotamento ou fila crescente
-- [ ] Error rate por endpoint: **0 novos erros**
-- [ ] Retries/timeouts: dentro da faixa histórica
+- [x] CPU: sem saturação sustentada acima de 80% (pico 35%)
+- [x] Memória: sem crescimento anômalo
+- [x] DB latency: sem regressão vs leitura anterior (p95 2.1ms)
+- [x] Connection pool: sem esgotamento ou fila crescente (29/100)
+- [x] Error rate por endpoint: **0 novos erros**
+- [x] Retries/timeouts: dentro da faixa histórica (0)
 
 ---
 
