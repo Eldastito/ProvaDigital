@@ -63,7 +63,7 @@ interface PhaseMetrics {
         crossOrgLeak: number;
         writeEscape: number;
         readonly_block_count: number;
-        shadow_delegation_count: number;
+        untracked_delegation_count: number;
         mutation_delegation_count: number;
         legacy_allow_count_for_mutations: number;
         denyHistogram: Record<string, number>;
@@ -86,14 +86,26 @@ function getPercentile(data: number[], percentile: number): number {
     return sorted[index];
 }
 
-function getInfraMetrics() {
+function getInfraMetrics(startUsage?: NodeJS.CpuUsage, startTime?: number) {
     try {
-        const load = os.loadavg()[0];
         const mem = process.memoryUsage().rss / 1024 / 1024;
+        let cpuLoad: number | 'unavailable' = 'unavailable';
+        
+        if (startUsage && startTime) {
+            const endUsage = process.cpuUsage(startUsage);
+            const endTime = performance.now();
+            const elapsedMs = endTime - startTime;
+            const userMs = endUsage.user / 1000;
+            const systemMs = endUsage.system / 1000;
+            const totalMs = userMs + systemMs;
+            // CPU Load % = (CPU Time / Wall Time) / Number of Logical CPUs * 100
+            cpuLoad = (totalMs / elapsedMs / os.cpus().length) * 100;
+        }
+
         return {
-            cpuLoad: load,
+            cpuLoad,
             memUsageMB: mem,
-            dbLatencyAvg: 'unavailable' as const, // Simulado como indisponível conforme regra
+            dbLatencyAvg: 'unavailable' as const,
             poolUsage: 'unavailable' as const
         };
     } catch (e) {
@@ -111,8 +123,9 @@ async function runPhase(phaseName: string, config: typeof PHASE_CONFIG.L1, profi
     console.log(`\n[${phaseName}] Iniciando burst (${profile}) - Concorrência: ${config.concurrency}...`);
     
     const results: RequestResult[] = [];
-    const startTime = performance.now();
-    const endTime = startTime + config.durationMs;
+    const phaseStartCpu = process.cpuUsage();
+    const phaseStartTime = performance.now();
+    const endTime = phaseStartTime + config.durationMs;
     
     const governBaseline = governanceService.getAuthorityPilotStatus();
     let crossOrgLeaks = 0;
@@ -214,14 +227,14 @@ async function runPhase(phaseName: string, config: typeof PHASE_CONFIG.L1, profi
         p50: getPercentile(latencies, 0.50),
         p95: getPercentile(latencies, 0.95),
         p99: getPercentile(latencies, 0.99),
-        infra: getInfraMetrics(),
+        infra: getInfraMetrics(phaseStartCpu, phaseStartTime),
         governance: {
             fallbackCount: finalGovern.fallbackCount - governBaseline.fallbackCount,
             autoDisableCount: finalGovern.enabled === false && governBaseline.enabled === true ? 1 : 0,
             crossOrgLeak: crossOrgLeaks,
             writeEscape: writeEscapes,
             readonly_block_count: (finalGovern as any).telemetry.readonly_block_count - (governBaseline as any).telemetry.readonly_block_count,
-            shadow_delegation_count: (finalGovern as any).telemetry.shadow_delegation_count - (governBaseline as any).telemetry.shadow_delegation_count,
+            untracked_delegation_count: (finalGovern as any).telemetry.untracked_delegation_count - (governBaseline as any).telemetry.untracked_delegation_count,
             mutation_delegation_count: (finalGovern as any).telemetry.mutation_delegation_count - (governBaseline as any).telemetry.mutation_delegation_count,
             legacy_allow_count_for_mutations: (finalGovern as any).telemetry.legacy_allow_count_for_mutations - (governBaseline as any).telemetry.legacy_allow_count_for_mutations,
             denyHistogram
@@ -297,9 +310,9 @@ ${report.map(r => `| ${r.phase} | ${r.totalRequests} | ${r.p50.toFixed(2)}ms | *
 
 ## 🛡️ Integridade de Governança
 
-| Fase | Leak | Escape | Block (RO) | Shadow | Mut. Del. | Legacy M. Allow | Fallback |
+| Fase | Leak | Escape | Block (RO) | Untracked | Mut. Del. | Legacy M. Allow | Fallback |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-${report.map(r => `| ${r.phase} | ${r.governance.crossOrgLeak} | ${r.governance.writeEscape} | ${r.governance.readonly_block_count} | ${r.governance.shadow_delegation_count} | ${r.governance.mutation_delegation_count} | ${r.governance.legacy_allow_count_for_mutations} | ${r.governance.fallbackCount} |`).join('\n')}
+${report.map(r => `| ${r.phase} | ${r.governance.crossOrgLeak} | ${r.governance.writeEscape} | ${r.governance.readonly_block_count} | ${r.governance.untracked_delegation_count} | ${r.governance.mutation_delegation_count} | ${r.governance.legacy_allow_count_for_mutations} | ${r.governance.fallbackCount} |`).join('\n')}
 
 ## 🛑 Histograma de Deny (Top 5)
 ${Object.entries(report.reduce((acc, r) => {

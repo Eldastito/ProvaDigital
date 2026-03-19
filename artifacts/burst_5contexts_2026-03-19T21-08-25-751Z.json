@@ -1,0 +1,171 @@
+{
+  "profile": "adversarial",
+  "seed": 42,
+  "THRESHOLDS": {
+    "p95_L1_L2": 5,
+    "p95_L3": 7,
+    "p99": 10,
+    "error_rate_max": 0.001,
+    "recovery_delta_max_pct": 10
+  },
+  "results": [
+    {
+      "phase": "WARMUP",
+      "totalRequests": 5000,
+      "successRequests": 5000,
+      "errorRequests": 0,
+      "avgLatency": 0.37786181999992396,
+      "p50": 0.31199999999807915,
+      "p95": 0.7400999999990745,
+      "p99": 1.2815000000045984,
+      "infra": {
+        "cpuLoad": 0.16490204928207347,
+        "memUsageMB": 60.58984375,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 0,
+        "readonly_block_count": 0,
+        "untracked_delegation_count": 0,
+        "mutation_delegation_count": 0,
+        "legacy_allow_count_for_mutations": 0,
+        "denyHistogram": {}
+      }
+    },
+    {
+      "phase": "LEVEL_1",
+      "totalRequests": 38280,
+      "successRequests": 38280,
+      "errorRequests": 0,
+      "avgLatency": 0.23680960292580325,
+      "p50": 0.2078999999939697,
+      "p95": 0.5420000000158325,
+      "p99": 0.8788000000058673,
+      "infra": {
+        "cpuLoad": 0.30023309945227605,
+        "memUsageMB": 74.59765625,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 0,
+        "readonly_block_count": 1884,
+        "untracked_delegation_count": 3804,
+        "mutation_delegation_count": 0,
+        "legacy_allow_count_for_mutations": 0,
+        "denyHistogram": {
+          "SCHOOL_AGGREGATE_DATA:VIEW": 1941,
+          "ANALYTICS:VIEW": 1866,
+          "INSTITUTIONAL_METADATA:VIEW": 1934,
+          "SAAS_PLATFORM:CREATE": 626,
+          "FINANCE:CREATE": 611,
+          "EXAMEPAD_OPS:CREATE": 647
+        }
+      }
+    },
+    {
+      "phase": "LEVEL_2",
+      "totalRequests": 88000,
+      "successRequests": 88000,
+      "errorRequests": 0,
+      "avgLatency": 0.21619165909083146,
+      "p50": 0.17889999999897555,
+      "p95": 0.5231000000494532,
+      "p99": 0.8697000000393018,
+      "infra": {
+        "cpuLoad": 0.5863029401053567,
+        "memUsageMB": 109.2265625,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 0,
+        "readonly_block_count": 4360,
+        "untracked_delegation_count": 8748,
+        "mutation_delegation_count": 0,
+        "legacy_allow_count_for_mutations": 0,
+        "denyHistogram": {
+          "ANALYTICS:VIEW": 4402,
+          "EXAMEPAD_OPS:CREATE": 1431,
+          "INSTITUTIONAL_METADATA:VIEW": 4513,
+          "SCHOOL_AGGREGATE_DATA:VIEW": 4378,
+          "SAAS_PLATFORM:CREATE": 1462,
+          "FINANCE:CREATE": 1467
+        }
+      }
+    },
+    {
+      "phase": "LEVEL_3",
+      "totalRequests": 151800,
+      "successRequests": 151800,
+      "errorRequests": 0,
+      "avgLatency": 0.21332684057969048,
+      "p50": 0.17670000001089647,
+      "p95": 0.5089000000152737,
+      "p99": 0.842899999988731,
+      "infra": {
+        "cpuLoad": 1.130512271597401,
+        "memUsageMB": 123.703125,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 0,
+        "readonly_block_count": 7663,
+        "untracked_delegation_count": 14955,
+        "mutation_delegation_count": 0,
+        "legacy_allow_count_for_mutations": 0,
+        "denyHistogram": {
+          "INSTITUTIONAL_METADATA:VIEW": 7558,
+          "FINANCE:CREATE": 2561,
+          "SCHOOL_AGGREGATE_DATA:VIEW": 7521,
+          "EXAMEPAD_OPS:CREATE": 2460,
+          "ANALYTICS:VIEW": 7645,
+          "SAAS_PLATFORM:CREATE": 2642
+        }
+      }
+    },
+    {
+      "phase": "RECOVERY",
+      "totalRequests": 5005,
+      "successRequests": 5005,
+      "errorRequests": 0,
+      "avgLatency": 0.34750321678315793,
+      "p50": 0.30290000000968575,
+      "p95": 0.7313000000431202,
+      "p99": 1.2717999999877065,
+      "infra": {
+        "cpuLoad": 0.1604918314714107,
+        "memUsageMB": 60.97265625,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 0,
+        "readonly_block_count": 0,
+        "untracked_delegation_count": 0,
+        "mutation_delegation_count": 0,
+        "legacy_allow_count_for_mutations": 0,
+        "denyHistogram": {}
+      }
+    }
+  ],
+  "finalDecision": "Aprovado por performance e governança.",
+  "exitCode": 0
+}
