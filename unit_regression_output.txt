@@ -1,0 +1,67 @@
+--- ­ƒòÁ´©Å AUTHORITY PILOT - REGRESS├âO UNIT ---
+[GOVERNANCE AUDIT][MEDIUM] Divergence in UNIT_REGRESSION {
+  resource: 'ANALYTICS',
+  action: 'VIEW',
+  legacy: false,
+  core: true,
+  severity: 'MEDIUM',
+  reason: 'Role template: school_manager',
+  context: {
+    role: 'school_manager',
+    org: 'poa_organization',
+    targetOrg: undefined,
+    targetSchool: 'school_poa_1'
+  }
+}
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => true
+Ô£à Acesso ├á pr├│pria escola (UNIT Leg├¡timo): ALLOW (Esperado: ALLOW)
+[GOVERNANCE AUDIT][CRITICAL] Divergence in UNIT_REGRESSION {
+  resource: 'ANALYTICS',
+  action: 'VIEW',
+  legacy: true,
+  core: false,
+  severity: 'CRITICAL',
+  reason: 'Scope mismatch: target school_canoas_99 vs active school_poa_1',
+  context: {
+    role: 'school_manager',
+    org: 'poa_organization',
+    targetOrg: undefined,
+    targetSchool: 'school_canoas_99'
+  }
+}
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => false
+Ô£à Bloqueio de escola externa (UNIT Cross-school): DENY (Esperado: DENY)
+[GOVERNANCE AUDIT][LOW] Divergence in UNIT_REGRESSION {
+  resource: 'INSTITUTIONAL_METADATA',
+  action: 'VIEW',
+  legacy: false,
+  core: true,
+  severity: 'LOW',
+  reason: 'Role template: school_manager',
+  context: {
+    role: 'school_manager',
+    org: 'poa_organization',
+    targetOrg: 'poa_organization',
+    targetSchool: 'school_poa_1'
+  }
+}
+[AUTHORITY_PILOT] Core deciding: INSTITUTIONAL_METADATA:VIEW => true
+Ô£à Acesso a metadados da pr├│pria escola: ALLOW (Esperado: ALLOW)
+[GOVERNANCE AUDIT][MEDIUM] Divergence in UNIT_REGRESSION {
+  resource: 'ANALYTICS',
+  action: 'WRITE',
+  legacy: false,
+  core: true,
+  severity: 'MEDIUM',
+  reason: 'Role template: school_manager',
+  context: {
+    role: 'school_manager',
+    org: 'poa_organization',
+    targetOrg: undefined,
+    targetSchool: 'school_poa_1'
+  }
+}
+Ô£à Bloqueio de recurso fora da whitelist (WRITE): DENY (Esperado: DENY)
+
+Resultado Final: 4/4 testes passados.
+­ƒÄë REGRESS├âO UNIT OK!

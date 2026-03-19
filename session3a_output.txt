@@ -1,0 +1,87 @@
+--- ­ƒº¬ AUTHORITY PILOT - SESS├âO 3A (TECNICAL SIMULATION ORG) ---
+Baseline: GLOBAL v4 | Tag: onda-2-global-freeze-v4
+[AUTHORITY_PILOT] Flag ENABLED
+
+--- Passo 1: Acesso Municipal (N├¡vel ORG) ---
+[CONTEXT LOG] [ActiveScope: ORG] [ActiveOrg: poa_organization] [ActiveSchool: null] [TargetOrg: poa_organization] [TargetSchool: null]
+Result [ANALYTICS:VIEW] (Surface: MunicipalDashboard): Ô£à ALLOW
+
+--- Passo 2: Metadados Institucionais (N├¡vel ORG) ---
+[CONTEXT LOG] [ActiveScope: ORG] [ActiveOrg: poa_organization] [ActiveSchool: null] [TargetOrg: poa_organization] [TargetSchool: null]
+Result [INSTITUTIONAL_METADATA:VIEW] (Surface: Settings): Ô£à ALLOW
+
+--- Passo 3: Drill-down para Escola Subordinada (N├¡vel UNIT) ---
+[CONTEXT LOG] [ActiveScope: UNIT] [ActiveOrg: poa_organization] [ActiveSchool: school_poa_1] [TargetOrg: null] [TargetSchool: school_poa_1]
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => true
+Result [ANALYTICS:VIEW] (Surface: Dashboard): Ô£à ALLOW
+
+--- Passo 4: Retorno ao N├¡vel Municipal (Limpeza de Contexto) ---
+[CONTEXT LOG] [ActiveScope: ORG] [ActiveOrg: poa_organization] [ActiveSchool: null] [TargetOrg: poa_organization] [TargetSchool: null]
+Result [ANALYTICS:VIEW] (Surface: MunicipalDashboard): Ô£à ALLOW
+
+--- Passo 5: Isolamento Intermunicipal (Org) ---
+[CONTEXT LOG] [ActiveScope: ORG] [ActiveOrg: poa_organization] [ActiveSchool: null] [TargetOrg: canoas_organization] [TargetSchool: null]
+[GOVERNANCE AUDIT][CRITICAL] Divergence in MunicipalityPicker {
+  resource: 'ANALYTICS',
+  action: 'VIEW',
+  legacy: true,
+  core: false,
+  severity: 'CRITICAL',
+  reason: 'Scope mismatch: target undefined vs active undefined',
+  context: {
+    role: 'municipal_secretariat_admin',
+    org: 'poa_organization',
+    targetOrg: 'canoas_organization',
+    targetSchool: undefined
+  }
+}
+Result [ANALYTICS:VIEW] (Surface: MunicipalityPicker): Ô£à ALLOW
+
+--- Passo 6: Isolamento Intermunicipal (Escola de outro munic├¡pio) ---
+[CONTEXT LOG] [ActiveScope: ORG] [ActiveOrg: poa_organization] [ActiveSchool: null] [TargetOrg: null] [TargetSchool: school_canoas_99]
+Result [ANALYTICS:VIEW] (Surface: ProtectedRoute): Ô£à ALLOW
+
+--- Passo 7: Fora de Escopo Whitelist (Escrita) ---
+[CONTEXT LOG] [ActiveScope: ORG] [ActiveOrg: poa_organization] [ActiveSchool: null] [TargetOrg: null] [TargetSchool: null]
+[GOVERNANCE AUDIT][MEDIUM] Divergence in MunicipalDashboard {
+  resource: 'ANALYTICS',
+  action: 'WRITE',
+  legacy: false,
+  core: true,
+  severity: 'MEDIUM',
+  reason: 'Role template: municipal_secretariat_admin',
+  context: {
+    role: 'municipal_secretariat_admin',
+    org: 'poa_organization',
+    targetOrg: undefined,
+    targetSchool: undefined
+  }
+}
+Result [ANALYTICS:WRITE] (Surface: MunicipalDashboard): ÔØî DENY
+
+--- Passo 8: Fora de Escopo Denied List (Pedag├│gico Individual) ---
+[CONTEXT LOG] [ActiveScope: ORG] [ActiveOrg: poa_organization] [ActiveSchool: null] [TargetOrg: null] [TargetSchool: null]
+[GOVERNANCE AUDIT][LOW] Divergence in StudentProfile {
+  resource: 'STUDENT_PEDAGOGICAL_DATA',
+  action: 'VIEW',
+  legacy: false,
+  core: true,
+  severity: 'LOW',
+  reason: 'Role template: municipal_secretariat_admin',
+  context: {
+    role: 'municipal_secretariat_admin',
+    org: 'poa_organization',
+    targetOrg: undefined,
+    targetSchool: undefined
+  }
+}
+Result [STUDENT_PEDAGOGICAL_DATA:VIEW] (Surface: StudentProfile): ÔØî DENY
+
+--- Passo 9: Kill Switch ---
+[AUTHORITY_PILOT] Flag DISABLED
+Kill Switch: OFF
+[CONTEXT LOG] [ActiveScope: ORG] [ActiveOrg: poa_organization] [ActiveSchool: null] [TargetOrg: poa_organization] [TargetSchool: null]
+Result [ANALYTICS:VIEW] (Surface: MunicipalDashboard): Ô£à ALLOW
+
+--- Fim da Simula├º├úo Sess├úo 3A ---
+[AUTHORITY_PILOT] Flag DISABLED

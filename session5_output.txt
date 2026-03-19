@@ -1,0 +1,49 @@
+--- ­ƒÜÇ AUTHORITY PILOT - SESS├âO 5 (EXPANS├âO LIMITADA) ---
+[AUTHORITY_PILOT] Flag ENABLED
+
+Iniciando Piloto para: alvorada_admin em alvorada_organization
+[GOVERNANCE AUDIT][MEDIUM] Divergence in Session_5_Expansion {
+  resource: 'ANALYTICS',
+  action: 'VIEW',
+  legacy: false,
+  core: true,
+  severity: 'MEDIUM',
+  reason: 'Role template: alvorada_admin',
+  context: {
+    role: 'alvorada_admin',
+    org: 'alvorada_organization',
+    targetOrg: 'alvorada_organization',
+    targetSchool: undefined
+  }
+}
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => true
+[ORG ACCESS] alvorada_organization: Ô£à ALLOW
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => true
+[SCHOOL DRILL-DOWN] school_alvorada_1: Ô£à ALLOW
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => false
+[CROSS-ORG BLOCK] alvorada -> poa: Ô£à BLOCKED
+--------------------------------------------------
+
+Iniciando Piloto para: viamao_admin em viamao_organization
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => true
+[ORG ACCESS] viamao_organization: Ô£à ALLOW
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => true
+[SCHOOL DRILL-DOWN] school_viamao_2: Ô£à ALLOW
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => false
+[CROSS-ORG BLOCK] alvorada -> poa: Ô£à BLOCKED
+--------------------------------------------------
+
+Iniciando Piloto para: gravatai_admin em gravatai_organization
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => true
+[ORG ACCESS] gravatai_organization: Ô£à ALLOW
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => true
+[SCHOOL DRILL-DOWN] school_gravatai_3: Ô£à ALLOW
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => false
+[CROSS-ORG BLOCK] alvorada -> poa: Ô£à BLOCKED
+--------------------------------------------------
+
+--- Sum├írio da Sess├úo 5 (Expans├úo) ---
+Munic├¡pios Ativos: 3
+Fallbacks: 0
+--- FIM DA SESS├âO 5 ---
+

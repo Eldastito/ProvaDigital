@@ -1,0 +1,29 @@
+--- ­ƒøí´©Å AUTHORITY PILOT - SESS├âO 6 (TESTE DE ROLLBACK MULTI-ORG) ---
+[AUTHORITY_PILOT] Flag ENABLED
+[ROLLBACK TEST] Pilot Ativado.
+[GOVERNANCE AUDIT][MEDIUM] Divergence in Rollback_Test {
+  resource: 'ANALYTICS',
+  action: 'VIEW',
+  legacy: false,
+  core: true,
+  severity: 'MEDIUM',
+  reason: 'Role template: alvorada_admin',
+  context: {
+    role: 'alvorada_admin',
+    org: 'alvorada_organization',
+    targetOrg: 'alvorada_organization',
+    targetSchool: undefined
+  }
+}
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => true
+[STEP 1] Decisao Core (Pilot ON): Ô£à ALLOW
+
+[!!!] ACIONANDO KILL SWITCH (EMERGENCIA) [!!!]
+[AUTHORITY_PILOT] Flag DISABLED
+[STEP 2] Decisao Legado (Pilot OFF): Ôøö DENY
+
+--- Sum├írio de Rollback ---
+Pilot Status Final: OFF
+Rollback Seguro: Ô£à SIM (Legado negou conforme esperado)
+--- FIM DA SESS├âO 6 ---
+

@@ -1,0 +1,84 @@
+--- ­ƒÜÇ AUTHORITY PILOT - SESS├âO 3B (MUNICIPAL) ---
+[AUTHORITY_PILOT] Flag ENABLED
+
+Iniciando Piloto para: poa_admin em poa_organization
+
+[EXEC] Passo 1: Acesso Dashboard Municipal...
+[CONTEXT LOG] [ActiveScope: ORG] [ActiveOrg: poa_organization] [TargetOrg: poa_organization] [TargetSchool: N/A]
+[GOVERNANCE AUDIT][MEDIUM] Divergence in Session_3B_Pilot {
+  resource: 'ANALYTICS',
+  action: 'VIEW',
+  legacy: false,
+  core: true,
+  severity: 'MEDIUM',
+  reason: 'Role template: poa_admin',
+  context: {
+    role: 'poa_admin',
+    org: 'poa_organization',
+    targetOrg: 'poa_organization',
+    targetSchool: undefined
+  }
+}
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => true
+[RESULT] Ô£à ALLOW | Lat├¬ncia: 0.8650ms | Status: OK
+--------------------------------------------------
+[EXEC] Passo 2: Ver Metadados Institucionais (POA)...
+[CONTEXT LOG] [ActiveScope: ORG] [ActiveOrg: poa_organization] [TargetOrg: poa_organization] [TargetSchool: N/A]
+[GOVERNANCE AUDIT][LOW] Divergence in Session_3B_Pilot {
+  resource: 'INSTITUTIONAL_METADATA',
+  action: 'VIEW',
+  legacy: false,
+  core: true,
+  severity: 'LOW',
+  reason: 'Role template: poa_admin',
+  context: {
+    role: 'poa_admin',
+    org: 'poa_organization',
+    targetOrg: 'poa_organization',
+    targetSchool: undefined
+  }
+}
+[AUTHORITY_PILOT] Core deciding: INSTITUTIONAL_METADATA:VIEW => true
+[RESULT] Ô£à ALLOW | Lat├¬ncia: 0.1929ms | Status: OK
+--------------------------------------------------
+[EXEC] Passo 3: Drill-down para Escola POA 1 (Leg├¡timo)...
+[CONTEXT LOG] [ActiveScope: ORG] [ActiveOrg: poa_organization] [TargetOrg: poa_organization] [TargetSchool: school_poa_1]
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => true
+[RESULT] Ô£à ALLOW | Lat├¬ncia: 0.1345ms | Status: OK
+--------------------------------------------------
+[EXEC] Passo 4: Bloqueio de Outro Munic├¡pio (Canoas)...
+[CONTEXT LOG] [ActiveScope: ORG] [ActiveOrg: poa_organization] [TargetOrg: canoas_organization] [TargetSchool: N/A]
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => false
+[RESULT] Ôøö DENY | Lat├¬ncia: 0.0246ms | Status: OK
+--------------------------------------------------
+[EXEC] Passo 5: Bloqueio de Escola Externa (Canoas 99)...
+[CONTEXT LOG] [ActiveScope: ORG] [ActiveOrg: poa_organization] [TargetOrg: poa_organization] [TargetSchool: school_canoas_99]
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => false
+[RESULT] Ôøö DENY | Lat├¬ncia: 0.0260ms | Status: OK
+--------------------------------------------------
+[EXEC] Passo 6: Tentativa de Escrita (Fora da Whitelist)...
+[CONTEXT LOG] [ActiveScope: ORG] [ActiveOrg: poa_organization] [TargetOrg: poa_organization] [TargetSchool: N/A]
+[GOVERNANCE AUDIT][MEDIUM] Divergence in Session_3B_Pilot {
+  resource: 'ANALYTICS',
+  action: 'WRITE',
+  legacy: false,
+  core: true,
+  severity: 'MEDIUM',
+  reason: 'Role template: poa_admin',
+  context: {
+    role: 'poa_admin',
+    org: 'poa_organization',
+    targetOrg: 'poa_organization',
+    targetSchool: undefined
+  }
+}
+[RESULT] Ôøö DENY | Lat├¬ncia: 0.2700ms | Status: OK
+--------------------------------------------------
+
+--- Sum├írio da Sess├úo 3B ---
+Total Scenarios: 6
+Fallbacks: 0
+Enabled: true
+Tempo Total: 2.29ms
+--- FIM DA SESS├âO 3B ---
+

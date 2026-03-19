@@ -1,0 +1,77 @@
+--- ­ƒº¬ AUTHORITY PILOT - SESS├âO 2 (REPETIBILIDADE UNIT) ---
+Baseline: GLOBAL v4 | Tag: onda-2-global-freeze-v4
+[AUTHORITY_PILOT] Flag ENABLED
+
+--- Cen├írios Whitelisted (Core Autoridade) ---
+
+>>> Ator: Gestor Canoas 99 [Role: DIRETOR] [School: school_canoas_99]
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => true
+Result [ANALYTICS:VIEW] (Target: self): Ô£à ALLOW
+[AUTHORITY_PILOT] Core deciding: SCHOOL_AGGREGATE_DATA:VIEW => true
+Result [SCHOOL_AGGREGATE_DATA:VIEW] (Target: self): Ô£à ALLOW
+[AUTHORITY_PILOT] Core deciding: INSTITUTIONAL_METADATA:VIEW => true
+Result [INSTITUTIONAL_METADATA:VIEW] (Target: self): Ô£à ALLOW
+
+--- Cen├írio Cross-School (Isolamento Core) ---
+
+>>> Ator: Gestor Canoas 99 [Role: DIRETOR] [School: school_canoas_99]
+[GOVERNANCE AUDIT][CRITICAL] Divergence in ProtectedRoute {
+  resource: 'ANALYTICS',
+  action: 'VIEW',
+  legacy: true,
+  core: false,
+  severity: 'CRITICAL',
+  reason: 'Scope mismatch: target school_poa_1 vs active school_canoas_99',
+  context: {
+    role: 'school_manager',
+    org: 'canoas_organization',
+    targetOrg: undefined,
+    targetSchool: 'school_poa_1'
+  }
+}
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => false
+Result [ANALYTICS:VIEW] (Target: school_poa_1): ÔØî DENY
+
+--- Cen├írios Fora de Escopo (Legado Autoridade) ---
+
+>>> Ator: Gestor Canoas 99 [Role: DIRETOR] [School: school_canoas_99]
+[GOVERNANCE AUDIT][MEDIUM] Divergence in Dashboard {
+  resource: 'ANALYTICS',
+  action: 'WRITE',
+  legacy: false,
+  core: true,
+  severity: 'MEDIUM',
+  reason: 'Role template: school_manager',
+  context: {
+    role: 'school_manager',
+    org: 'canoas_organization',
+    targetOrg: undefined,
+    targetSchool: undefined
+  }
+}
+Result [ANALYTICS:WRITE] (Target: self): ÔØî DENY
+[GOVERNANCE AUDIT][LOW] Divergence in Report {
+  resource: 'STUDENT_PEDAGOGICAL_DATA',
+  action: 'VIEW',
+  legacy: false,
+  core: true,
+  severity: 'LOW',
+  reason: 'Role template: school_manager',
+  context: {
+    role: 'school_manager',
+    org: 'canoas_organization',
+    targetOrg: undefined,
+    targetSchool: undefined
+  }
+}
+Result [STUDENT_PEDAGOGICAL_DATA:VIEW] (Target: self): ÔØî DENY
+
+--- Teste de Kill Switch ---
+[AUTHORITY_PILOT] Flag DISABLED
+Kill Switch: OFF
+
+>>> Ator: Gestor Canoas 99 [Role: DIRETOR] [School: school_canoas_99]
+Result [ANALYTICS:VIEW] (Target: self): Ô£à ALLOW
+
+--- Fim da Simula├º├úo Sess├úo 2 ---
+[AUTHORITY_PILOT] Flag DISABLED

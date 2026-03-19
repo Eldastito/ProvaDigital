@@ -1,0 +1,70 @@
+--- ­ƒÜÇ AUTHORITY PILOT - SESS├âO 4 (SIMETRIA MUNICIPAL - CANOAS) ---
+[AUTHORITY_PILOT] Flag ENABLED
+
+Iniciando Simetria para: canoas_admin em canoas_organization
+
+[EXEC] Passo 1: Acesso Dashboard Municipal (Canoas)...
+[CONTEXT LOG] [ActiveScope: ORG] [ActiveOrg: canoas_organization] [TargetOrg: canoas_organization] [TargetSchool: N/A]
+[GOVERNANCE AUDIT][MEDIUM] Divergence in Session_4_Canoas {
+  resource: 'ANALYTICS',
+  action: 'VIEW',
+  legacy: false,
+  core: true,
+  severity: 'MEDIUM',
+  reason: 'Role template: canoas_admin',
+  context: {
+    role: 'canoas_admin',
+    org: 'canoas_organization',
+    targetOrg: 'canoas_organization',
+    targetSchool: undefined
+  }
+}
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => true
+[RESULT] Ô£à ALLOW | Lat├¬ncia: 2.0371ms | Status: OK
+--------------------------------------------------
+[EXEC] Passo 2: Ver Metadados Institucionais (Canoas)...
+[CONTEXT LOG] [ActiveScope: ORG] [ActiveOrg: canoas_organization] [TargetOrg: canoas_organization] [TargetSchool: N/A]
+[GOVERNANCE AUDIT][LOW] Divergence in Session_4_Canoas {
+  resource: 'INSTITUTIONAL_METADATA',
+  action: 'VIEW',
+  legacy: false,
+  core: true,
+  severity: 'LOW',
+  reason: 'Role template: canoas_admin',
+  context: {
+    role: 'canoas_admin',
+    org: 'canoas_organization',
+    targetOrg: 'canoas_organization',
+    targetSchool: undefined
+  }
+}
+[AUTHORITY_PILOT] Core deciding: INSTITUTIONAL_METADATA:VIEW => true
+[RESULT] Ô£à ALLOW | Lat├¬ncia: 0.3569ms | Status: OK
+--------------------------------------------------
+[EXEC] Passo 3: Drill-down para Escola Canoas 99 (Leg├¡timo)...
+[CONTEXT LOG] [ActiveScope: ORG] [ActiveOrg: canoas_organization] [TargetOrg: canoas_organization] [TargetSchool: school_canoas_99]
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => true
+[RESULT] Ô£à ALLOW | Lat├¬ncia: 0.1757ms | Status: OK
+--------------------------------------------------
+[EXEC] Passo 4: Bloqueio de Outro Munic├¡pio (POA)...
+[CONTEXT LOG] [ActiveScope: ORG] [ActiveOrg: canoas_organization] [TargetOrg: poa_organization] [TargetSchool: N/A]
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => false
+[RESULT] Ôøö DENY | Lat├¬ncia: 0.0473ms | Status: OK
+--------------------------------------------------
+[EXEC] Passo 5: Bloqueio de Escola Externa (POA 1)...
+[CONTEXT LOG] [ActiveScope: ORG] [ActiveOrg: canoas_organization] [TargetOrg: canoas_organization] [TargetSchool: school_poa_1]
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => false
+[RESULT] Ôøö DENY | Lat├¬ncia: 0.0419ms | Status: OK
+--------------------------------------------------
+[EXEC] Passo 6: Retorno ao N├¡vel Municipal (Limpando Contexto)...
+[CONTEXT LOG] [ActiveScope: ORG] [ActiveOrg: canoas_organization] [TargetOrg: canoas_organization] [TargetSchool: N/A]
+[AUTHORITY_PILOT] Core deciding: ANALYTICS:VIEW => true
+[RESULT] Ô£à ALLOW | Lat├¬ncia: 0.0382ms | Status: OK
+--------------------------------------------------
+
+--- Sum├írio da Sess├úo 4 (Canoas) ---
+Total Scenarios: 6
+Fallbacks: 0
+Tempo Total: 4.12ms
+--- FIM DA SESS├âO 4 ---
+
