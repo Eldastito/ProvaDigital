@@ -83,6 +83,25 @@ class PilotOutboxService {
     }
 
     /**
+     * Redrive: Re-enfileira um item da DLQ para nova tentativa.
+     */
+    redriveItem(eventId: string): void {
+        const item = this.items.find(i => i.event_id === eventId);
+        if (!item) throw new Error('[PILOT_OUTBOX][ERROR] Event not found for redrive.');
+
+        if (item.status !== 'DEAD_LETTERED') {
+            throw new Error(`[PILOT_OUTBOX][ERROR] Only items in DEAD_LETTERED status can be redriven. Current: ${item.status}`);
+        }
+
+        item.status = 'PENDING';
+        item.attempt_count = 0;
+        item.next_attempt_at = undefined;
+        item.processed_at = undefined;
+
+        console.log(`[PILOT_OUTBOX][REDRIVE] Event: ${eventId} reset to PENDING for manual recovery.`);
+    }
+
+    /**
      * Retorna todos os itens (Auditoria/DLQ)
      */
     getAllItems(): PilotOutboxItem[] {
