@@ -28,7 +28,9 @@ export interface PilotTestSessionDraft {
     user_id: string;
     name: string;
     intended_date: string;
+    description?: string;
     status: 'draft';
+    version: number; // Suporte a Optimistic Concurrency (Fase 6)
     test_batch_id: string;
     created_at: string;
 }
@@ -96,16 +98,60 @@ class PilotStorageService {
     /**
      * Cria um rascunho de sessão de teste (Step 3 - Recurso Funcional)
      */
-    async createFunctionalDraft(draft: Omit<PilotTestSessionDraft, 'id' | 'created_at' | 'status'>): Promise<PilotTestSessionDraft> {
+    async createFunctionalDraft(draft: Omit<PilotTestSessionDraft, 'id' | 'created_at' | 'status' | 'version'>): Promise<PilotTestSessionDraft> {
         const newDraft: PilotTestSessionDraft = {
             ...draft,
             id: `draft_${Math.random().toString(36).substring(7)}`,
             status: 'draft',
+            version: 1,
             created_at: new Date().toISOString()
         };
         this.functionalDrafts.push(newDraft);
-        console.log(`[PILOT_STORAGE] FunctionalDraft created: ${newDraft.id} for user ${newDraft.user_id}`);
+        console.log(`[PILOT_STORAGE] FunctionalDraft created: ${newDraft.id} (v1) for user ${newDraft.user_id}`);
         return newDraft;
+    }
+
+    /**
+     * Atualiza um rascunho (Fase 6 Step 1 - UPDATE Controlado)
+     * Implementa Optimistic Concurrency e Attribute Whitelist
+     */
+    async updateFunctionalDraft(id: string, updates: Partial<PilotTestSessionDraft>, expectedVersion: number): Promise<PilotTestSessionDraft> {
+        const index = this.functionalDrafts.findIndex(d => d.id === id);
+        if (index === -1) throw new Error('[PILOT_STORAGE] Draft not found');
+
+        const current = this.functionalDrafts[index];
+        
+        // 1. Check de Concorrência Otimista
+        if (current.version !== expectedVersion) {
+            throw new Error(`[PILOT_STORAGE][CONCURRENCY_ERROR] Version mismatch. Current: ${current.version}, expected: ${expectedVersion}`);
+        }
+
+        // 2. Whitelist de Atributos (Fase 6)
+        const allowedFields = ['name', 'description', 'intended_date'];
+        const updateFields = Object.keys(updates);
+        const forbiddenFields = updateFields.filter(f => !allowedFields.includes(f));
+
+        if (forbiddenFields.length > 0) {
+            throw new Error(`[PILOT_STORAGE][SECURITY_ERROR] Forbidden attributes for UPDATE: ${forbiddenFields.join(', ')}`);
+        }
+
+        // 3. Registro de Delta para Auditoria
+        const delta = updateFields.map(f => ({
+            field: f,
+            old: (current as any)[f],
+            new: (updates as any)[f]
+        }));
+
+        const updatedDraft: PilotTestSessionDraft = {
+            ...current,
+            ...updates,
+            version: current.version + 1
+        };
+
+        this.functionalDrafts[index] = updatedDraft;
+
+        console.log(`[PILOT_STORAGE][AUDIT] Draft ${id} updated (v${current.version} -> v${updatedDraft.version}). Delta:`, JSON.stringify(delta));
+        return updatedDraft;
     }
 
     /**

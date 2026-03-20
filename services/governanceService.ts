@@ -69,9 +69,13 @@ class GovernanceService {
          * Fase 5: Escrita Funcional Controlada (Step 3 - Drafts funcionais)
          */
         authority_pilot_writes_functional_draft_enabled: false,
+        /**
+         * Fase 6: Consolidação de Atributos e Hardening (Step 1 - UPDATE)
+         */
+        authority_pilot_updates_draft_attributes_enabled: false,
         // Sessão 1: Somente UNIT. NETWORK_ANALYTICS removido para conter blast radius.
         allowedResources: ['ANALYTICS', 'SCHOOL_AGGREGATE_DATA', 'INSTITUTIONAL_METADATA', 'PilotExecutionLog', 'UserPreferences', 'PilotTestSessionDraft'],
-        allowedActions: ['VIEW', 'CREATE', 'UPSERT'],
+        allowedActions: ['VIEW', 'CREATE', 'UPSERT', 'UPDATE'],
         allowedScopes: ['UNIT', 'ORG'] as ScopeType[],
         allowedOrganizations: ['poa_organization', 'canoas_organization', 'alvorada_organization', 'viamao_organization', 'gravatai_organization'] as string[], // Baseline aprovada
         deniedResources: ['STUDENT_PEDAGOGICAL_DATA', 'USER_MANAGEMENT', 'EXAMEPAD_OPS', 'SAAS_PLATFORM', 'FINANCE', 'LOGISTICS', 'NETWORK_ANALYTICS'],
@@ -85,6 +89,7 @@ class GovernanceService {
         pilot_controlled_create_success_count: 0,
         pilot_controlled_user_prefs_success_count: 0,
         pilot_controlled_functional_draft_success_count: 0,
+        pilot_controlled_attribute_update_success_count: 0,
     };
 
     /**
@@ -117,7 +122,7 @@ class GovernanceService {
         });
 
         // 3. Bloqueio de Mutação / Autoridade Positiva (Fase 5 Patch F5.2)
-        const isMutation = ['CREATE', 'EDIT', 'DELETE', 'UPSERT'].includes(action);
+        const isMutation = ['CREATE', 'EDIT', 'DELETE', 'UPSERT', 'UPDATE'].includes(action);
         if (this.authorityPilotConfig.enabled && isMutation) {
              const isPilotContext = this.authorityPilotConfig.allowedOrganizations.includes(context.activeOrganizationId) && 
                                    this.authorityPilotConfig.allowedScopes.includes(context.activeScopeType);
@@ -163,6 +168,17 @@ class GovernanceService {
                  if (isFunctionalDraftControlled) {
                      this.authorityPilotConfig.pilot_controlled_functional_draft_success_count++;
                      console.log(`[AUTHORITY_PILOT][WRITE_ALLOWED] Controlled CREATE allowed for ${resource}. Reason: PILOT_CONTROLLED_FUNCTIONAL_DRAFT_OK`);
+                     return true;
+                 }
+
+                 // GATILHO DE ESCRITA CONTROLADA (Step 6.1: UPDATE PilotTestSessionDraft Attributes)
+                 const isAttributeUpdateControlled = resource === 'PilotTestSessionDraft' && 
+                                                   action === 'UPDATE' && 
+                                                   this.authorityPilotConfig.authority_pilot_updates_draft_attributes_enabled;
+
+                 if (isAttributeUpdateControlled) {
+                     this.authorityPilotConfig.pilot_controlled_attribute_update_success_count++;
+                     console.log(`[AUTHORITY_PILOT][WRITE_ALLOWED] Controlled UPDATE allowed for ${resource}. Reason: PILOT_ATTRIBUTE_UPDATE_OK`);
                      return true;
                  }
 
@@ -247,7 +263,8 @@ class GovernanceService {
                 legacy_allow_count_for_mutations: this.authorityPilotConfig.legacy_allow_count_for_mutations,
                 pilot_controlled_create_success_count: this.authorityPilotConfig.pilot_controlled_create_success_count,
                 pilot_controlled_user_prefs_success_count: this.authorityPilotConfig.pilot_controlled_user_prefs_success_count,
-                pilot_controlled_functional_draft_success_count: this.authorityPilotConfig.pilot_controlled_functional_draft_success_count
+                pilot_controlled_functional_draft_success_count: this.authorityPilotConfig.pilot_controlled_functional_draft_success_count,
+                pilot_controlled_attribute_update_success_count: this.authorityPilotConfig.pilot_controlled_attribute_update_success_count
             }
         };
     }
@@ -399,6 +416,9 @@ class GovernanceService {
     private getCoreReason(resource: string, action: string, context: GovernanceContext, decision: boolean): string {
         if (resource === 'PilotExecutionLog' && action === 'CREATE' && decision) {
             return 'PILOT_CONTROLLED_CREATE_OK';
+        }
+        if (resource === 'PilotTestSessionDraft' && action === 'UPDATE' && decision) {
+            return 'PILOT_ATTRIBUTE_UPDATE_OK';
         }
         if (resource === 'PilotTestSessionDraft' && action === 'CREATE' && decision) {
             return 'PILOT_CONTROLLED_FUNCTIONAL_DRAFT_OK';
