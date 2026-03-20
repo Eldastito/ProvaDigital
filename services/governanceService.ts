@@ -65,8 +65,12 @@ class GovernanceService {
          */
         authority_pilot_writes_user_prefs_controlled_enabled: false,
         user_prefs_whitelist: ['pilot_ui_hint_enabled'],
+        /**
+         * Fase 5: Escrita Funcional Controlada (Step 3 - Drafts funcionais)
+         */
+        authority_pilot_writes_functional_draft_enabled: false,
         // Sessão 1: Somente UNIT. NETWORK_ANALYTICS removido para conter blast radius.
-        allowedResources: ['ANALYTICS', 'SCHOOL_AGGREGATE_DATA', 'INSTITUTIONAL_METADATA', 'PilotExecutionLog', 'UserPreferences'],
+        allowedResources: ['ANALYTICS', 'SCHOOL_AGGREGATE_DATA', 'INSTITUTIONAL_METADATA', 'PilotExecutionLog', 'UserPreferences', 'PilotTestSessionDraft'],
         allowedActions: ['VIEW', 'CREATE', 'UPSERT'],
         allowedScopes: ['UNIT', 'ORG'] as ScopeType[],
         allowedOrganizations: ['poa_organization', 'canoas_organization', 'alvorada_organization', 'viamao_organization', 'gravatai_organization'] as string[], // Baseline aprovada
@@ -80,6 +84,7 @@ class GovernanceService {
         legacy_allow_count_for_mutations: 0,
         pilot_controlled_create_success_count: 0,
         pilot_controlled_user_prefs_success_count: 0,
+        pilot_controlled_functional_draft_success_count: 0,
     };
 
     /**
@@ -147,6 +152,17 @@ class GovernanceService {
                      // mas o Core concede autoridade se o contexto for local.
                      this.authorityPilotConfig.pilot_controlled_user_prefs_success_count++;
                      console.log(`[AUTHORITY_PILOT][WRITE_ALLOWED] Controlled ${action} allowed for ${resource}. Reason: PILOT_CONTROLLED_USERPREF_OK`);
+                     return true;
+                 }
+
+                 // GATILHO DE ESCRITA CONTROLADA (Step 3: CREATE PilotTestSessionDraft)
+                 const isFunctionalDraftControlled = resource === 'PilotTestSessionDraft' && 
+                                                   action === 'CREATE' && 
+                                                   this.authorityPilotConfig.authority_pilot_writes_functional_draft_enabled;
+                 
+                 if (isFunctionalDraftControlled) {
+                     this.authorityPilotConfig.pilot_controlled_functional_draft_success_count++;
+                     console.log(`[AUTHORITY_PILOT][WRITE_ALLOWED] Controlled CREATE allowed for ${resource}. Reason: PILOT_CONTROLLED_FUNCTIONAL_DRAFT_OK`);
                      return true;
                  }
 
@@ -219,6 +235,7 @@ class GovernanceService {
         return {
             enabled: this.authorityPilotConfig.enabled,
             writes_enabled: this.authorityPilotConfig.authority_pilot_writes_controlled_create_enabled,
+            functional_draft_enabled: this.authorityPilotConfig.authority_pilot_writes_functional_draft_enabled,
             allowedOrganizations: [...this.authorityPilotConfig.allowedOrganizations],
             fallbackCount: this.fallbackCount,
             flagName: this.authorityPilotConfig.flagName,
@@ -226,8 +243,11 @@ class GovernanceService {
                 untracked_delegation_count: this.authorityPilotConfig.untracked_delegation_count,
                 readonly_block_count: this.authorityPilotConfig.readonly_block_count,
                 mutation_delegation_count: this.authorityPilotConfig.mutation_delegation_count,
+                cross_tenant_mutation_block_count: this.authorityPilotConfig.cross_tenant_mutation_block_count,
                 legacy_allow_count_for_mutations: this.authorityPilotConfig.legacy_allow_count_for_mutations,
-                pilot_controlled_create_success_count: this.authorityPilotConfig.pilot_controlled_create_success_count
+                pilot_controlled_create_success_count: this.authorityPilotConfig.pilot_controlled_create_success_count,
+                pilot_controlled_user_prefs_success_count: this.authorityPilotConfig.pilot_controlled_user_prefs_success_count,
+                pilot_controlled_functional_draft_success_count: this.authorityPilotConfig.pilot_controlled_functional_draft_success_count
             }
         };
     }
@@ -379,6 +399,12 @@ class GovernanceService {
     private getCoreReason(resource: string, action: string, context: GovernanceContext, decision: boolean): string {
         if (resource === 'PilotExecutionLog' && action === 'CREATE' && decision) {
             return 'PILOT_CONTROLLED_CREATE_OK';
+        }
+        if (resource === 'PilotTestSessionDraft' && action === 'CREATE' && decision) {
+            return 'PILOT_CONTROLLED_FUNCTIONAL_DRAFT_OK';
+        }
+        if (resource === 'UserPreferences' && (action === 'CREATE' || action === 'UPSERT') && decision) {
+            return 'PILOT_CONTROLLED_USERPREF_OK';
         }
         if (['CREATE', 'EDIT', 'DELETE'].includes(action) && !decision) {
             // Se for PilotContext mas não for o caso de escrita autorizada

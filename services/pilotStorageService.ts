@@ -22,9 +22,21 @@ export interface UserPreference {
     updated_at: string;
 }
 
+export interface PilotTestSessionDraft {
+    id: string;
+    tenant_id: string;
+    user_id: string;
+    name: string;
+    intended_date: string;
+    status: 'draft';
+    test_batch_id: string;
+    created_at: string;
+}
+
 class PilotStorageService {
     private logs: PilotExecutionLog[] = [];
     private userPrefs: UserPreference[] = [];
+    private functionalDrafts: PilotTestSessionDraft[] = [];
     
     // Whitelist de chaves autorizadas para o Pilot (Step 2)
     private userPrefsWhitelist = ['pilot_ui_hint_enabled'];
@@ -82,18 +94,43 @@ class PilotStorageService {
     }
 
     /**
+     * Cria um rascunho de sessão de teste (Step 3 - Recurso Funcional)
+     */
+    async createFunctionalDraft(draft: Omit<PilotTestSessionDraft, 'id' | 'created_at' | 'status'>): Promise<PilotTestSessionDraft> {
+        const newDraft: PilotTestSessionDraft = {
+            ...draft,
+            id: `draft_${Math.random().toString(36).substring(7)}`,
+            status: 'draft',
+            created_at: new Date().toISOString()
+        };
+        this.functionalDrafts.push(newDraft);
+        console.log(`[PILOT_STORAGE] FunctionalDraft created: ${newDraft.id} for user ${newDraft.user_id}`);
+        return newDraft;
+    }
+
+    /**
+     * Retorna drafts funcionais
+     */
+    getFunctionalDrafts(tenantId: string): PilotTestSessionDraft[] {
+        return this.functionalDrafts.filter(d => d.tenant_id === tenantId);
+    }
+
+    /**
      * Rollback por Lote (Expurgo controlado)
      */
     purgeBatch(testBatchId: string): number {
-        const initialCount = this.logs.length;
+        const initialLogs = this.logs.length;
         this.logs = this.logs.filter(l => l.test_batch_id !== testBatchId);
         
+        const initialDrafts = this.functionalDrafts.length;
+        this.functionalDrafts = this.functionalDrafts.filter(d => d.test_batch_id !== testBatchId);
+
         // No Step 2, o rollback das preferências pode ser feito por reset das chaves do pilot
         const prefCount = this.userPrefs.length;
         this.userPrefs = this.userPrefs.filter(p => !this.userPrefsWhitelist.includes(p.key));
         
-        const removedCount = (initialCount - this.logs.length) + (prefCount - this.userPrefs.length);
-        console.log(`[PILOT_STORAGE] Rollback executed. Purged logs and pilot-specific preferences.`);
+        const removedCount = (initialLogs - this.logs.length) + (initialDrafts - this.functionalDrafts.length) + (prefCount - this.userPrefs.length);
+        console.log(`[PILOT_STORAGE] Rollback executed. Purged logs, drafts and pilot-specific preferences.`);
         return removedCount;
     }
 
