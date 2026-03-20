@@ -1,7 +1,5 @@
-# Anúncio Oficial Interno: Rollout R1 — Authority Pilot
-
-## 🚀 GO AUTHORIZED WITH GUARDRAILS
-A governaça aprovou o início da preparação para o **Rollout R1 (Piloto Assistido)**.
+# Rollout R1 Autorizado — GO WITH GUARDRAILS
+A governança aprovou o início da preparação para o **Rollout R1 (Piloto Assistido)**.
 
 ### 📍 Destino: Viamão / EMEF Central
 - **Escopo**: 2 salas de aula (~50 alunos).
@@ -14,8 +12,11 @@ A governaça aprovou o início da preparação para o **Rollout R1 (Piloto Assis
 3. **Backup Ativo**: Alvorada segue pré-mobilizada como contingência.
 4. **Contingência Pedagógica**: Material impresso/legado deve estar fisicamente pronto na unidade.
 
-### 📡 Comunicação:
-O canal P1 (Voz) está reservado para o Champion Local. O suporte deve operar sob os Runbooks da Fase 10.
+### 🚀 Próximas ações imediatas:
+- Confirmar data/turno oficial com a EMEF Central.
+- Nomear responsáveis diretos (Owners) da janela operacional.
+- Realizar check de carga de bateria da frota local.
+- Validar canal de voz (P1) com o Champion Local.
 
 ---
-**Fase 11 Encerrada. Mobilização para Fase 12 iniciada.**
+**Mobilização para Fase 12 iniciada.**

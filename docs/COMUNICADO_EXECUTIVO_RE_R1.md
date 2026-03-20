@@ -2,17 +2,20 @@
 
 À Direção da **EMEF Central — Viamão**,
 
-Confirmamos a seleção desta unidade para o **Rollout R1 do Authority Pilot**. Este é um lançamento controlado e assistido, focado na validação da estabilidade e governaça digital em sala de aula.
+Confirmamos a seleção desta unidade para o **Rollout R1 do Authority Pilot**. 
 
-### 📅 Planejamento da Janela
-- **Modo**: Operação Assistida (Equipe de suporte dedicada).
-- **Critérios de Segurança**: Todos os dados são protegidos por criptografia e blindagem LGPD.
-- **Contingência**: Caso ocorra qualquer desvio técnico, o protocolo de contingência pedagógica (material impresso) será acionado imediatamente por nossa equipe para garantir que nenhum aluno seja prejudicado.
+Esta operação será realizada de forma assistida, controlada e acompanhada por nossa equipe dedicada. O objetivo é validar a fluidez da aplicação em ambiente real, garantindo a normalidade da avaliação sem qualquer prejuízo pedagógico para os alunos.
 
-### 🏁 Checkpoints de Sucesso
-Nossa meta é realizar a avaliação com fluidez total, mantendo a integridade dos resultados e a experiência simplificada para professores e alunos.
+### 📅 Planejamento e Ação da Escola
+Para o sucesso da operação, solicitamos o apoio da Direção e da Coordenação nos seguintes pontos:
+- **Confirmação de Disponibilidade**: Validação das salas e horários da janela.
+- **Apoio Logístico**: Suporte aos checkpoints de 24 horas e 1 hora antes do início.
+- **Contingência**: Manter a contingência pedagógica (material impresso) previamente alinhada pronta para uso imediato, caso nossa equipe técnica identifique necessidade de suspensão.
 
-Contamos com o apoio da coordenação para os checkpoints logísticos de 24h e 1h antes do evento.
+### 🛡️ Segurança e Integridade
+O sistema opera sob rígidos protocolos de privacidade e monitoramento em tempo real. Nossa equipe estará presente para garantir o suporte total aos professores e a integridade de cada prova realizada.
+
+Atenciosamente,
 
 ---
 **Governança Authority Pilot**

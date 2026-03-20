@@ -1,4 +1,4 @@
-# Termo de Prontidão Operacional Revisado: Rollout R1 — Viamão
+# Termo de Prontidão Operacional: Rollout R1 — Viamão
 
 ## 📋 1. Identificação e Versão Autorizada
 - **Unidade**: EMEF Central (Viamão/RS)
@@ -19,7 +19,10 @@
 Em caso de **Aborto Técnico (Rollback)**:
 - **Plano B**: Aplicação imediata da contingência pedagógica pré-definida (Material Impresso ou Reaplicação Offline Legada).
 - **Responsável**: Coordenador Pedagógico local comunica alunos/professores.
-- **Autoridade de Aborto**: Lead Operacional + Direção se falha persistir > 15 min.
+- **Autoridade de Aborto**: 
+  - **Recomendação Técnica**: Lead SRE / Lead Operacional.
+  - **Validação Institucional**: Direção / Coordenação.
+  - **Comunicação da Decisão**: Champion Local.
 
 ---
 
@@ -40,7 +43,7 @@ O Piloto R1 será avaliado em duas camadas:
 - Sincronização concluída com 0 inconsistências e 0 latência residual.
 
 ### B. Piso Mínimo de Aprovação (GO Criteria)
-- **Handshake**: 95%+ dos tablets operacionais em < 5 min. (Recuperação assistida permitida para o remanescente se < 15 min total).
+- **Handshake**: 95%+ dos tablets operacionais em < 5 min. (Recuperação assistida permitida se < 15 min total).
 - **Incidentes**: Zero incidentes P0 de Privacidade ou Governança.
 - **Outbox**: Itens processados sem erro fatal de contrato.
 - **Impacto**: Zero interrupção pedagógica crítica por falha sistêmica.
@@ -48,9 +51,9 @@ O Piloto R1 será avaliado em duas camadas:
 ---
 
 ## 📝 6. Registro de Exceções
-Qualquer desvio do protocolo (ex: uso de tablet reserva, delay de sync) deve ser registrado no log de exceções da janela, contendo: **Horário | Motivo | Responsável | Decisão**.
+Qualquer desvio do protocolo deve ser registrado no log de exceções da janela: **Horário | Motivo | Responsável | Decisão**.
 
 ---
 
-## 🏁 Veredito de Prontidão: **GO (BLINDAGEM TOTAL R1)**
-Assinado em: 20/03/2026 | SHA `9838aac`
+## 🏁 Veredito de Prontidão: **GO WITH GUARDRAILS — R1 Assistido**
+Assinado em: 20/03/2026 | SHA `9838aac` | Governança Authority Pilot
