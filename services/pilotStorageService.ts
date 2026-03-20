@@ -35,6 +35,15 @@ export interface PilotTestSessionDraft {
     created_at: string;
 }
 
+export interface PilotExport {
+    export_id: string;
+    resource_id: string;
+    version: number;
+    type: string;
+    payload_hash: string;
+    timestamp: string;
+}
+
 class PilotStorageService {
     private logs: PilotExecutionLog[] = [];
     private userPrefs: UserPreference[] = [];
@@ -203,6 +212,7 @@ class PilotStorageService {
         // Zero side-effects: Não dispara nada externo aqui.
         return updated;
     }
+
     /**
      * Exportação Segura (Fase 6 Step 3 - Egress Hardening)
      * Implementa Eligibility, Whitelist e Idempotência.
