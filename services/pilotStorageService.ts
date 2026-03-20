@@ -29,7 +29,7 @@ export interface PilotTestSessionDraft {
     name: string;
     intended_date: string;
     description?: string;
-    status: 'draft';
+    status: 'draft' | 'reviewed';
     version: number; // Suporte a Optimistic Concurrency (Fase 6)
     test_batch_id: string;
     created_at: string;
@@ -191,7 +191,7 @@ class PilotStorageService {
         // 4. Efetivar Transição
         const updated: PilotTestSessionDraft = {
             ...current,
-            status: 'reviewed' as any, // Cast for simplicity in this step
+            status: 'reviewed',
             version: current.version + 1
         };
 

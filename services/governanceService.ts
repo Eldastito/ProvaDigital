@@ -70,6 +70,10 @@ class GovernanceService {
          */
         authority_pilot_writes_functional_draft_enabled: false,
         /**
+         * Fase 6: Consolidação de Atributos e Hardening (Step 1 - UPDATE)
+         */
+        authority_pilot_updates_draft_attributes_enabled: false,
+        /**
          * Fase 6: Consolidação de Atributos e Hardening (Step 2 - Status Transition)
          */
         authority_pilot_status_transition_enabled: false,
