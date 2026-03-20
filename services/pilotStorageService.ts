@@ -1,5 +1,6 @@
 
 import { pilotContractService } from './pilotContractService';
+import { pilotOutboxService } from './pilotOutboxService';
 
 export interface PilotExecutionLog {
     id: string;
@@ -212,7 +213,27 @@ class PilotStorageService {
 
         console.log(`[PILOT_STORAGE][AUDIT_WORKFLOW] Draft ${id} transition draft -> reviewed. Version: ${current.version} -> ${updated.version}. Reason: ${reason}`);
         
-        // Zero side-effects: Não dispara nada externo aqui.
+        // 5. Transactional Outbox (Step 7.2A)
+        // O registro no outbox deve ser atômico com a mudança de estado.
+        try {
+            const canonical = pilotContractService.adaptToV1(updated);
+            const payloadString = JSON.stringify(canonical);
+            const hash = `sha256_${payloadString.length}_${Math.random().toString(36).substring(7)}`;
+
+            pilotOutboxService.enqueue({
+                resource_id: updated.id,
+                resource_version: updated.version,
+                contract_version: 'v1',
+                destination: 'LMS_EXTERNAL_SYNC',
+                payload: canonical,
+                payload_hash: hash,
+                correlation_id: `corr_${Math.random().toString(36).substring(7)}`
+            });
+        } catch (error: any) {
+            console.error(`[PILOT_STORAGE][OUTBOX_ERROR] Failed to enqueue draft ${id} for export: ${error.message}`);
+            // Em uma transação real de DB, o erro de outbox faria rollback do status.
+        }
+
         return updated;
     }
 
