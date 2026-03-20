@@ -14,7 +14,8 @@ export interface MeshSession {
     peer_id: string;
     established_at: string;
     expires_at: string;
-    session_key_hint: string; // Simulação de canal seguro
+    session_key: string; // Chave secreta de sessão (Simulada AES-256)
+    next_sequence: number; // Contador de mensagens anti-replay
 }
 
 class PilotMeshService {
@@ -60,7 +61,8 @@ class PilotMeshService {
             peer_id: peerId,
             established_at: new Date().toISOString(),
             expires_at: new Date(Date.now() + 3600000).toISOString(), // Expira em 1h
-            session_key_hint: `sk_${Math.random().toString(36).substring(7)}`
+            session_key: `sk_${Math.random().toString(36).substring(7).toUpperCase()}`,
+            next_sequence: 1
         };
 
         this.activeSessions.set(session.session_id, session);
