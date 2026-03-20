@@ -4,10 +4,10 @@
 Validar a estabilidade do motor em uma janela de tempo maior (60-120 min) com carga real simulada estável, buscando identificar tendências de longo prazo e consolidar a baseline operacional definitiva.
 
 ## 2. Preflight de Higiene
-- [ ] Confirmar `origin/main` sincronizado (SHA: `d1acfdab` ou posterior)
-- [ ] Confirmar encerramento oficial do Step 2 (GO Parcial)
-- [ ] Confirmar Authority Pilot em modo `readonly`
-- [ ] Garantir zero deploys paralelos programados
+- [x] Confirmar `origin/main` sincronizado (SHA: `db1a309` ou posterior)
+- [x] Confirmar encerramento oficial do Step 2 (GO Parcial)
+- [x] Confirmar Authority Pilot em modo `readonly`
+- [x] Garantir zero deploys paralelos programados
 
 ## 3. Parâmetros da Execução
 - **Duração**: 60 a 120 minutos
