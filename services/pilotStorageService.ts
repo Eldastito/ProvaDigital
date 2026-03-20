@@ -39,6 +39,7 @@ export interface PilotExport {
     export_id: string;
     resource_id: string;
     version: number;
+    contract_version: string;
     type: string;
     payload_hash: string;
     timestamp: string;
@@ -239,24 +240,19 @@ class PilotStorageService {
             // Aqui simulamos a re-entrega do payload via whitelist.
         }
 
-        // 4. Egress Whitelist (Anti-Leak)
-        // Somente campos públicos/seguros para interoperabilidade.
-        const egressPayload: Partial<PilotTestSessionDraft> = {
-            id: draft.id,
-            name: draft.name,
-            description: draft.description,
-            intended_date: draft.intended_date,
-            status: draft.status
-        };
+        // 4. Egress Whitelist & Contract Adaptation (V1)
+        // O Storage agora delega a formatação para o ContractService.
+        const canonicalPayload = pilotContractService.adaptToV1(draft);
 
-        // 5. Auditoria de Payload (Hash)
-        const payloadString = JSON.stringify(egressPayload);
-        const hash = `sha256_${payloadString.length}_${Math.random().toString(36).substring(7)}`; // Simulação de hash
+        // 5. Auditoria de Payload (Hash do Contrato Canônico)
+        const payloadString = JSON.stringify(canonicalPayload);
+        const hash = `sha256_${payloadString.length}_${Math.random().toString(36).substring(7)}`;
 
         const exportRecord: PilotExport = {
             export_id: `exp_${Math.random().toString(36).substring(7)}`,
             resource_id: id,
             version: expectedVersion,
+            contract_version: 'v1',
             type: exportType,
             payload_hash: hash,
             timestamp: new Date().toISOString()
@@ -266,10 +262,10 @@ class PilotStorageService {
             this.exportHistory.push(exportRecord);
         }
 
-        console.log(`[PILOT_STORAGE][AUDIT_EGRESS] Exported ${id} v${expectedVersion}. Type: ${exportType}. Hash: ${hash}. ExportID: ${exportRecord.export_id}`);
+        console.log(`[PILOT_STORAGE][AUDIT_EGRESS] Exported ${id} v${expectedVersion} as Canonical ${exportRecord.contract_version}. Type: ${exportType}. Hash: ${hash}`);
 
         return {
-            data: egressPayload,
+            data: canonicalPayload as any,
             export_id: exportRecord.export_id
         };
     }
