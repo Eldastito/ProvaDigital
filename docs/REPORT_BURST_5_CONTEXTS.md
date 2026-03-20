@@ -2,18 +2,18 @@
 # Relatório de Burst: 5 Contextos Simultâneos (Fase 4)
 
 **Profile:** OPERATIONAL
-**Timestamp:** 2026-03-20T00:04:23.586Z
+**Timestamp:** 2026-03-20T00:30:10.319Z
 **Decision:** ✅ GO - Aprovado por performance e governança.
 
 ## 📊 Performance por Fase
 
 | Fase | Requests | p50 | p95 | p99 | Erros | CPU (avg) | Mem (avg) |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| WARMUP | 5065 | 0.33ms | **0.83ms** | 1.49ms | 0 | 0.18 | 59MB |
-| LEVEL_1 | 36460 | 0.28ms | **0.77ms** | 2.05ms | 0 | 0.40 | 74MB |
-| LEVEL_2 | 82750 | 0.25ms | **0.64ms** | 1.15ms | 0 | 0.79 | 107MB |
-| LEVEL_3 | 143800 | 0.23ms | **0.56ms** | 0.90ms | 0 | 1.25 | 121MB |
-| RECOVERY | 5010 | 0.32ms | **0.74ms** | 1.25ms | 0 | 0.15 | 109MB |
+| WARMUP | 4970 | 0.34ms | **0.86ms** | 1.56ms | 0 | 0.20 | 64MB |
+| LEVEL_1 | 37940 | 0.25ms | **0.60ms** | 1.06ms | 0 | 0.38 | 79MB |
+| LEVEL_2 | 86950 | 0.21ms | **0.51ms** | 0.84ms | 0 | 0.63 | 112MB |
+| LEVEL_3 | 148900 | 0.19ms | **0.54ms** | 0.91ms | 0 | 1.13 | 119MB |
+| RECOVERY | 5020 | 0.32ms | **0.84ms** | 1.50ms | 0 | 0.21 | 64MB |
 
 ## 🛡️ Integridade de Governança
 
