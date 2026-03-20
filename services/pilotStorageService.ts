@@ -14,8 +14,20 @@ export interface PilotExecutionLog {
     created_at: string;
 }
 
+export interface UserPreference {
+    tenant_id: string;
+    user_id: string;
+    key: string;
+    value: any;
+    updated_at: string;
+}
+
 class PilotStorageService {
     private logs: PilotExecutionLog[] = [];
+    private userPrefs: UserPreference[] = [];
+    
+    // Whitelist de chaves autorizadas para o Pilot (Step 2)
+    private userPrefsWhitelist = ['pilot_ui_hint_enabled'];
 
     /**
      * Cria um novo log de execução do Pilot (Simulação de Escrita Autorizada)
@@ -42,13 +54,46 @@ class PilotStorageService {
     }
 
     /**
-     * Rollback por Lote (Expurgo controlado sem abrir DELETE)
+     * Upsert de Preferência de Usuário (Passo 2 - Escrita em Recurso Real)
+     */
+    async upsertUserPreference(pref: Omit<UserPreference, 'updated_at'>): Promise<UserPreference> {
+        if (!this.userPrefsWhitelist.includes(pref.key)) {
+            throw new Error(`[PILOT_STORAGE][SECURITY_VIOLATION] Key ${pref.key} not in Pilot whitelist.`);
+        }
+
+        const index = this.userPrefs.findIndex(p => p.tenant_id === pref.tenant_id && p.user_id === pref.user_id && p.key === pref.key);
+        const updatedPref = { ...pref, updated_at: new Date().toISOString() };
+
+        if (index >= 0) {
+            this.userPrefs[index] = updatedPref;
+        } else {
+            this.userPrefs.push(updatedPref);
+        }
+
+        console.log(`[PILOT_STORAGE] UserPreference upserted: ${pref.key} for user ${pref.user_id}`);
+        return updatedPref;
+    }
+
+    /**
+     * Retorna preferências de um usuário
+     */
+    getUserPreferences(tenantId: string, userId: string): UserPreference[] {
+        return this.userPrefs.filter(p => p.tenant_id === tenantId && p.user_id === userId);
+    }
+
+    /**
+     * Rollback por Lote (Expurgo controlado)
      */
     purgeBatch(testBatchId: string): number {
         const initialCount = this.logs.length;
         this.logs = this.logs.filter(l => l.test_batch_id !== testBatchId);
-        const removedCount = initialCount - this.logs.length;
-        console.log(`[PILOT_STORAGE] Rollback executed. Purged ${removedCount} logs for batch ${testBatchId}`);
+        
+        // No Step 2, o rollback das preferências pode ser feito por reset das chaves do pilot
+        const prefCount = this.userPrefs.length;
+        this.userPrefs = this.userPrefs.filter(p => !this.userPrefsWhitelist.includes(p.key));
+        
+        const removedCount = (initialCount - this.logs.length) + (prefCount - this.userPrefs.length);
+        console.log(`[PILOT_STORAGE] Rollback executed. Purged logs and pilot-specific preferences.`);
         return removedCount;
     }
 

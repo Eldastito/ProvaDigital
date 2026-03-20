@@ -60,19 +60,26 @@ class GovernanceService {
          * Flag granular para evitar gatilho de escrita ampla indesejada.
          */
         authority_pilot_writes_controlled_create_enabled: false,
+        /**
+         * Fase 5: Escrita Controlada (Step 2 - UserPreferences)
+         */
+        authority_pilot_writes_user_prefs_controlled_enabled: false,
+        user_prefs_whitelist: ['pilot_ui_hint_enabled'],
         // Sessão 1: Somente UNIT. NETWORK_ANALYTICS removido para conter blast radius.
-        allowedResources: ['ANALYTICS', 'SCHOOL_AGGREGATE_DATA', 'INSTITUTIONAL_METADATA', 'PilotExecutionLog'],
-        allowedActions: ['VIEW', 'CREATE'],
+        allowedResources: ['ANALYTICS', 'SCHOOL_AGGREGATE_DATA', 'INSTITUTIONAL_METADATA', 'PilotExecutionLog', 'UserPreferences'],
+        allowedActions: ['VIEW', 'CREATE', 'UPSERT'],
         allowedScopes: ['UNIT', 'ORG'] as ScopeType[],
         allowedOrganizations: ['poa_organization', 'canoas_organization', 'alvorada_organization', 'viamao_organization', 'gravatai_organization'] as string[], // Baseline aprovada
         deniedResources: ['STUDENT_PEDAGOGICAL_DATA', 'USER_MANAGEMENT', 'EXAMEPAD_OPS', 'SAAS_PLATFORM', 'FINANCE', 'LOGISTICS', 'NETWORK_ANALYTICS'],
         maxFallbacksPerSession: 3,
-        // Telemetria (Fase 4 Patch F4.1 + Fase 5 Step 1)
+        // Telemetria (Fase 4 Patch F4.1 + Fase 5 Step 1 & 2)
         untracked_delegation_count: 0, 
         readonly_block_count: 0,
-        mutation_delegation_count: 0,
+        mutation_delegation_count: 0, // DELEGAÇÃO REAL (Não deve ocorrer em modo controlado)
+        cross_tenant_mutation_block_count: 0, // Bloqueios Cross-tenant (Saneamento F5.1-Fix)
         legacy_allow_count_for_mutations: 0,
         pilot_controlled_create_success_count: 0,
+        pilot_controlled_user_prefs_success_count: 0,
     };
 
     /**
@@ -104,29 +111,42 @@ class GovernanceService {
             severity
         });
 
-        // 3. Bloqueio de Mutação / Autoridade Positiva (Fase 5 Patch F5.1)
-        const isMutation = ['CREATE', 'EDIT', 'DELETE'].includes(action);
+        // 3. Bloqueio de Mutação / Autoridade Positiva (Fase 5 Patch F5.2)
+        const isMutation = ['CREATE', 'EDIT', 'DELETE', 'UPSERT'].includes(action);
         if (this.authorityPilotConfig.enabled && isMutation) {
              const isPilotContext = this.authorityPilotConfig.allowedOrganizations.includes(context.activeOrganizationId) && 
                                    this.authorityPilotConfig.allowedScopes.includes(context.activeScopeType);
 
              if (isPilotContext) {
+                 // Bloqueio Cross-tenant em escrita (FAIL-CLOSED) - Saneamento de Semântica
+                 const isLocalTenant = !context.targetOrganizationId || context.targetOrganizationId === context.activeOrganizationId;
+                 if (!isLocalTenant) {
+                     this.authorityPilotConfig.cross_tenant_mutation_block_count++;
+                     console.error(`[AUTHORITY_PILOT][MUTATION_BLOCKED] Cross-tenant ${action} blocked for ${resource}. Reason: PILOT_CROSS_ORG_MUTATION_BLOCKED`);
+                     return false;
+                 }
+
                  // GATILHO DE ESCRITA CONTROLADA (Step 1: CREATE PilotExecutionLog)
                  const isControlledCreate = resource === 'PilotExecutionLog' && 
                                           action === 'CREATE' && 
                                           this.authorityPilotConfig.authority_pilot_writes_controlled_create_enabled;
 
                  if (isControlledCreate) {
-                     // Bloqueio Cross-tenant em escrita (FAIL-CLOSED)
-                     const isLocalTenant = !context.targetOrganizationId || context.targetOrganizationId === context.activeOrganizationId;
-                     if (!isLocalTenant) {
-                         this.authorityPilotConfig.mutation_delegation_count++;
-                         console.error(`[AUTHORITY_PILOT][MUTATION_BLOCKED] Cross-tenant CREATE blocked for ${resource}. Reason: PILOT_CROSS_ORG_MUTATION_BLOCKED`);
-                         return false;
-                     }
-
                      this.authorityPilotConfig.pilot_controlled_create_success_count++;
                      console.log(`[AUTHORITY_PILOT][WRITE_ALLOWED] Controlled CREATE allowed for ${resource}. Reason: PILOT_CONTROLLED_CREATE_OK`);
+                     return true;
+                 }
+
+                 // GATILHO DE ESCRITA CONTROLADA (Step 2: UPSERT UserPreferences - Whitelist)
+                 const isUserPrefsControlled = resource === 'UserPreferences' && 
+                                             (action === 'UPSERT' || action === 'CREATE') && 
+                                             this.authorityPilotConfig.authority_pilot_writes_user_prefs_controlled_enabled;
+                 
+                 if (isUserPrefsControlled) {
+                     // Nota: A validação da chave da whitelist ocorre na camada de serviço, 
+                     // mas o Core concede autoridade se o contexto for local.
+                     this.authorityPilotConfig.pilot_controlled_user_prefs_success_count++;
+                     console.log(`[AUTHORITY_PILOT][WRITE_ALLOWED] Controlled ${action} allowed for ${resource}. Reason: PILOT_CONTROLLED_USERPREF_OK`);
                      return true;
                  }
 
