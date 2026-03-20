@@ -1,14 +1,14 @@
-
-import { pilotContractService } from './pilotContractService';
 import { pilotContractService } from './pilotContractService';
 import { pilotOutboxService } from './pilotOutboxService';
 import { pilotPrivacyService } from './pilotPrivacyService';
+import { pilotRetentionService, PurposeClass } from './pilotRetentionService';
 
 export interface PilotExecutionLog {
     id: string;
     tenant_id: string;
     correlation_id: string;
     reason_code: string;
+    purpose_class: PurposeClass; // Classificação LGPD (Step 8.2)
     actor_type: string;
     actor_id: string;
     phase: string;
@@ -298,6 +298,43 @@ class PilotStorageService {
             data: canonicalPayload as any,
             export_id: exportRecord.export_id
         };
+    }
+
+    /**
+     * Expurgo Atômico de Logs (Step 8.2C)
+     * Elimina logs elegíveis respeitando TTL e Legal Holds.
+     */
+    async purgeLogs(authorizedBy: string): Promise<number> {
+        const initialCount = this.logs.length;
+        const classesToPurge = [PurposeClass.DEBUG, PurposeClass.OPERATIONAL, PurposeClass.SECURITY_AUDIT];
+        
+        const purgedByClass: Record<string, number> = {};
+
+        this.logs = this.logs.filter(log => {
+            const isEligible = pilotRetentionService.isEligibleForPurge(log.purpose_class, log.created_at, log.id);
+            
+            if (isEligible) {
+                purgedByClass[log.purpose_class] = (purgedByClass[log.purpose_class] || 0) + 1;
+                return false; // Remove
+            }
+            return true; // Mantém
+        });
+
+        const totalPurged = initialCount - this.logs.length;
+
+        if (totalPurged > 0) {
+            // Registrar Prova de Eliminação para cada classe afetada
+            Object.entries(purgedByClass).forEach(([pClass, count]) => {
+                pilotRetentionService.recordElimination({
+                    purpose_class: pClass as PurposeClass,
+                    batch_count: count,
+                    authorized_by: authorizedBy
+                });
+            });
+            console.log(`[PILOT_STORAGE][PURGE_COMPLETE] Total of ${totalPurged} logs eliminated across ${Object.keys(purgedByClass).length} classes.`);
+        }
+
+        return totalPurged;
     }
 
     getFunctionalDrafts(tenantId: string): PilotTestSessionDraft[] {
