@@ -1,4 +1,6 @@
 
+import { pilotContractService } from './pilotContractService';
+
 export interface PilotExecutionLog {
     id: string;
     tenant_id: string;
