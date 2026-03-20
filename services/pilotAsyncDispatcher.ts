@@ -9,8 +9,13 @@ class ExternalLMSClient {
         // Simulação de latência de rede
         await new Promise(resolve => setTimeout(resolve, 50));
         
-        // Simulação de erro aleatório para testar dispatcher (10% de chance)
-        if (Math.random() < 0.1) {
+        // Simulação de erro PERMANENTE (Contract mismatch)
+        if (payload.payload.title === 'TRIGGER_PERMANENT_ERROR') {
+            throw new Error('[EXTERNAL_LMS][CONTRACT_ERROR] Mandatory field info is malformed');
+        }
+
+        // Simulação de erro TRANSITÓRIO (Network)
+        if (Math.random() < 0.2) {
             throw new Error('[EXTERNAL_LMS][NETWORK_ERROR] Connection reset by peer');
         }
         
@@ -49,12 +54,29 @@ class PilotAsyncDispatcher {
                 pilotOutboxService.updateStatus(item.event_id, 'DELIVERED');
                 successCount++;
             } catch (error: any) {
-                // 4. Falha: Por enquanto tratamos como transiente (RETRY_SCHEDULED)
-                // O Step 7.2C vai classificar os erros.
-                pilotOutboxService.updateStatus(item.event_id, 'RETRY_SCHEDULED', {
-                    message: error.message,
-                    type: 'TRANSIENT'
-                });
+                // 4. Falha: Classificação de Erro (Step 7.2C)
+                const isPermanent = error.message.includes('CONTRACT_ERROR');
+                const maxAttempts = 3;
+
+                if (isPermanent) {
+                    console.log(`[PILOT_DISPATCHER] Permanent error detected for ${item.event_id}. Sending to DLQ.`);
+                    pilotOutboxService.updateStatus(item.event_id, 'DEAD_LETTERED', {
+                        message: error.message,
+                        type: 'PERMANENT'
+                    });
+                } else if (item.attempt_count >= maxAttempts) {
+                    console.log(`[PILOT_DISPATCHER] Max attempts reached for ${item.event_id}. Sending to DLQ.`);
+                    pilotOutboxService.updateStatus(item.event_id, 'DEAD_LETTERED', {
+                        message: `Max retries reached: ${error.message}`,
+                        type: 'POISON_MESSAGE'
+                    });
+                } else {
+                    console.log(`[PILOT_DISPATCHER] Transient error for ${item.event_id}. Scheduling retry.`);
+                    pilotOutboxService.updateStatus(item.event_id, 'RETRY_SCHEDULED', {
+                        message: error.message,
+                        type: 'TRANSIENT'
+                    });
+                }
                 failedCount++;
             }
         }
