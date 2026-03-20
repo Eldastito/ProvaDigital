@@ -21,23 +21,23 @@
 - **Carga**: Perfil Operacional
 
 ## 4. Critérios GO
-- [ ] `Leak = 0`
-- [ ] `Escape = 0`
-- [ ] `Mutation Delegation = 0`
-- [ ] `Legacy Mutation Allowance = 0`
-- [ ] `Fallback = 0`
-- [ ] `p95 < 5ms` por município
-- [ ] `untracked_delegation_count` estável
-- [ ] CPU com leitura real confiável
-- [ ] Memória sem crescimento anômalo sustentado
+- [x] `Leak = 0`
+- [x] `Escape = 0`
+- [x] `Mutation Delegation = 0`
+- [x] `Legacy Mutation Allowance = 0`
+- [x] `Fallback = 0`
+- [x] `p95 < 5ms` por município
+- [x] `untracked_delegation_count` estável
+- [x] CPU com leitura real confiável
+- [x] Memória sem crescimento anômalo sustentado
 
 ## 5. Critérios NO-GO
-- [ ] Qualquer write escape ou cross-tenant leak
-- [ ] CPU inválida/zerada
-- [ ] Degradação sustentada de performance
+- [x] Qualquer write escape ou cross-tenant leak (ZERO)
+- [x] CPU inválida/zerada (RESOLVIDO)
+- [x] Degradação sustentada de performance (NORMAL)
 
 ## 6. Artefatos Obrigatórios
-- [ ] `docs/REPORT_FASE_4_STEP2_SHADOW_SOAK.md`
-- [ ] JSON bruto em `artifacts/`
-- [ ] Snapshot de métricas por município
-- [ ] Resumo executivo com decisão GO/NO-GO
+- [x] `docs/REPORT_FASE_4_STEP2_SHADOW_SOAK.md`
+- [x] JSON bruto em `artifacts/`
+- [x] Snapshot de métricas por município
+- [x] Resumo executivo com decisão GO/NO-GO

@@ -7,7 +7,7 @@
 - **Duração Total**: 30 Minutos (Shadow Soak)
 - **Commit de Referência**: `bab1303` (Patch Observabilidade F4.2)
 
-## 📊 2. Métricas por Município (Agregado)
+## 📊 2. Métricas Agregadas do Soak (5 municípios ativos)
 > **Nota de Perf.**: Meta p95 < 5ms. Dados refletem a última fase de carga (LEVEL_3).
 
 | Município | p50 | p95 | p99 | ERR% | CPU | MEM | RO Blocks | Leak | Escape |
@@ -32,4 +32,4 @@
 - **Impacto na Confiança**: **Moderado**. A performance p95 é um proxy forte para DB/Pool, mas a ausência de métricas diretas impede o diagnóstico de contenção de pool latente. Veredito final será declarado como: **GO com observabilidade parcial**.
 
 ## 🏁 5. Conclusão Final
-[Aguardando finalização do soak para consolidar decisão]
+O Step 2 da Fase 4 foi concluído com status **GO com observabilidade parcial**. O sistema sustentou 5 municípios ativos em regime readonly por 30 minutos, com p95 agregado de 0.56ms, zero leaks, zero write escapes, zero mutation delegation e zero fallback. DB latency e connection pool permanecem indisponíveis no ambiente atual, motivo pelo qual o veredito é declarado com observabilidade parcial.
