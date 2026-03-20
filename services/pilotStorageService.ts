@@ -39,6 +39,7 @@ class PilotStorageService {
     private logs: PilotExecutionLog[] = [];
     private userPrefs: UserPreference[] = [];
     private functionalDrafts: PilotTestSessionDraft[] = [];
+    private exportHistory: PilotExport[] = []; // Cache de idempotência de exportação (F6 Step 3)
     
     // Whitelist de chaves autorizadas para o Pilot (Step 2)
     private userPrefsWhitelist = ['pilot_ui_hint_enabled'];
@@ -202,6 +203,67 @@ class PilotStorageService {
         // Zero side-effects: Não dispara nada externo aqui.
         return updated;
     }
+    /**
+     * Exportação Segura (Fase 6 Step 3 - Egress Hardening)
+     * Implementa Eligibility, Whitelist e Idempotência.
+     */
+    async exportFunctionalDraft(id: string, expectedVersion: number, exportType: string): Promise<{ data: Partial<PilotTestSessionDraft>, export_id: string }> {
+        const draft = this.functionalDrafts.find(d => d.id === id);
+        if (!draft) throw new Error('[PILOT_STORAGE][ERROR:NOT_FOUND] Draft not found for export');
+
+        // 1. Snapshot Consistency Check
+        if (draft.version !== expectedVersion) {
+            throw new Error(`[PILOT_STORAGE][ERROR:VERSION_MISMATCH] Version mismatch for export. Current: ${draft.version}, requested: ${expectedVersion}`);
+        }
+
+        // 2. Export Eligibility (apenas 'reviewed')
+        if (draft.status !== 'reviewed') {
+            throw new Error(`[PILOT_STORAGE][ERROR:INELEGIBLE_STATUS] Only 'reviewed' drafts can be exported. Current: ${draft.status}`);
+        }
+
+        // 3. Idempotency Check
+        const existingExport = this.exportHistory.find(e => e.resource_id === id && e.version === expectedVersion && e.type === exportType);
+        if (existingExport) {
+            console.log(`[PILOT_STORAGE][IDEMPOTENCY] Reusing existing export for ${id} v${expectedVersion}`);
+            // Em um cenário real, retornaríamos o payload do cache ou storage persistente.
+            // Aqui simulamos a re-entrega do payload via whitelist.
+        }
+
+        // 4. Egress Whitelist (Anti-Leak)
+        // Somente campos públicos/seguros para interoperabilidade.
+        const egressPayload: Partial<PilotTestSessionDraft> = {
+            id: draft.id,
+            name: draft.name,
+            description: draft.description,
+            intended_date: draft.intended_date,
+            status: draft.status
+        };
+
+        // 5. Auditoria de Payload (Hash)
+        const payloadString = JSON.stringify(egressPayload);
+        const hash = `sha256_${payloadString.length}_${Math.random().toString(36).substring(7)}`; // Simulação de hash
+
+        const exportRecord: PilotExport = {
+            export_id: `exp_${Math.random().toString(36).substring(7)}`,
+            resource_id: id,
+            version: expectedVersion,
+            type: exportType,
+            payload_hash: hash,
+            timestamp: new Date().toISOString()
+        };
+
+        if (!existingExport) {
+            this.exportHistory.push(exportRecord);
+        }
+
+        console.log(`[PILOT_STORAGE][AUDIT_EGRESS] Exported ${id} v${expectedVersion}. Type: ${exportType}. Hash: ${hash}. ExportID: ${exportRecord.export_id}`);
+
+        return {
+            data: egressPayload,
+            export_id: exportRecord.export_id
+        };
+    }
+
     getFunctionalDrafts(tenantId: string): PilotTestSessionDraft[] {
         return this.functionalDrafts.filter(d => d.tenant_id === tenantId);
     }

@@ -94,6 +94,7 @@ class GovernanceService {
         pilot_controlled_user_prefs_success_count: 0,
         pilot_controlled_functional_draft_success_count: 0,
         pilot_controlled_attribute_update_success_count: 0,
+        pilot_controlled_egress_success_count: 0,
     };
 
     /**
@@ -199,6 +200,16 @@ class GovernanceService {
                      return true;
                  }
 
+                 // GATILHO DE ESCRITA CONTROLADA (Step 6.3: Egress Hardening / EXPORT)
+                 const isEgressControlled = action === 'EXPORT' && 
+                                           this.authorityPilotConfig.authority_pilot_egress_hardening_enabled;
+
+                 if (isEgressControlled) {
+                     this.authorityPilotConfig.pilot_controlled_egress_success_count++;
+                     console.log(`[AUTHORITY_PILOT][READ_ALLOWED] Controlled EXPORT allowed for ${resource}. Reason: PILOT_EGRESS_HARDENING_OK`);
+                     return true;
+                 }
+
                  // Bloqueio padrão para todas as outras mutações (Fail-Closed)
                  this.authorityPilotConfig.readonly_block_count++;
                  console.warn(`[AUTHORITY_PILOT][READONLY_BLOCK] Mutation blocked: ${resource}:${action}. Reason: PILOT_READONLY_MUTATION_BLOCKED`);
@@ -281,7 +292,8 @@ class GovernanceService {
                 pilot_controlled_create_success_count: this.authorityPilotConfig.pilot_controlled_create_success_count,
                 pilot_controlled_user_prefs_success_count: this.authorityPilotConfig.pilot_controlled_user_prefs_success_count,
                 pilot_controlled_functional_draft_success_count: this.authorityPilotConfig.pilot_controlled_functional_draft_success_count,
-                pilot_controlled_attribute_update_success_count: this.authorityPilotConfig.pilot_controlled_attribute_update_success_count
+                pilot_controlled_attribute_update_success_count: this.authorityPilotConfig.pilot_controlled_attribute_update_success_count,
+                pilot_controlled_egress_success_count: this.authorityPilotConfig.pilot_controlled_egress_success_count
             }
         };
     }
