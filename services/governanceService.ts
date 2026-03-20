@@ -52,21 +52,27 @@ class GovernanceService {
      * Configuração do Authority Pilot (Fase 3)
      * Nome canônico único: authority_pilot_analytics_readonly
      */
-    private authorityPilotConfig = {
+     private authorityPilotConfig = {
         flagName: 'authority_pilot_analytics_readonly' as const,
         enabled: false,
+        /**
+         * Fase 5: Escrita Controlada (Step 1 - CREATE apenas)
+         * Flag granular para evitar gatilho de escrita ampla indesejada.
+         */
+        authority_pilot_writes_controlled_create_enabled: false,
         // Sessão 1: Somente UNIT. NETWORK_ANALYTICS removido para conter blast radius.
-        allowedResources: ['ANALYTICS', 'SCHOOL_AGGREGATE_DATA', 'INSTITUTIONAL_METADATA'],
-        allowedActions: ['VIEW'],
+        allowedResources: ['ANALYTICS', 'SCHOOL_AGGREGATE_DATA', 'INSTITUTIONAL_METADATA', 'PilotExecutionLog'],
+        allowedActions: ['VIEW', 'CREATE'],
         allowedScopes: ['UNIT', 'ORG'] as ScopeType[],
         allowedOrganizations: ['poa_organization', 'canoas_organization', 'alvorada_organization', 'viamao_organization', 'gravatai_organization'] as string[], // Baseline aprovada
         deniedResources: ['STUDENT_PEDAGOGICAL_DATA', 'USER_MANAGEMENT', 'EXAMEPAD_OPS', 'SAAS_PLATFORM', 'FINANCE', 'LOGISTICS', 'NETWORK_ANALYTICS'],
         maxFallbacksPerSession: 3,
-        // Telemetria (Fase 4 Patch F4.1 + Hardening Step 2)
-        untracked_delegation_count: 0, // Requests de leitura fora do gate (Shadow legítimo)
+        // Telemetria (Fase 4 Patch F4.1 + Fase 5 Step 1)
+        untracked_delegation_count: 0, 
         readonly_block_count: 0,
         mutation_delegation_count: 0,
         legacy_allow_count_for_mutations: 0,
+        pilot_controlled_create_success_count: 0,
     };
 
     /**
@@ -98,12 +104,33 @@ class GovernanceService {
             severity
         });
 
-        // 3. Bloqueio Explícito de Mutação em Readonly (Fase 4 Patch)
+        // 3. Bloqueio de Mutação / Autoridade Positiva (Fase 5 Patch F5.1)
         const isMutation = ['CREATE', 'EDIT', 'DELETE'].includes(action);
         if (this.authorityPilotConfig.enabled && isMutation) {
-             // Se o contexto está mapeado para o piloto (org permitida e escopo correto)
-             if (this.authorityPilotConfig.allowedOrganizations.includes(context.activeOrganizationId) && 
-                 this.authorityPilotConfig.allowedScopes.includes(context.activeScopeType)) {
+             const isPilotContext = this.authorityPilotConfig.allowedOrganizations.includes(context.activeOrganizationId) && 
+                                   this.authorityPilotConfig.allowedScopes.includes(context.activeScopeType);
+
+             if (isPilotContext) {
+                 // GATILHO DE ESCRITA CONTROLADA (Step 1: CREATE PilotExecutionLog)
+                 const isControlledCreate = resource === 'PilotExecutionLog' && 
+                                          action === 'CREATE' && 
+                                          this.authorityPilotConfig.authority_pilot_writes_controlled_create_enabled;
+
+                 if (isControlledCreate) {
+                     // Bloqueio Cross-tenant em escrita (FAIL-CLOSED)
+                     const isLocalTenant = !context.targetOrganizationId || context.targetOrganizationId === context.activeOrganizationId;
+                     if (!isLocalTenant) {
+                         this.authorityPilotConfig.mutation_delegation_count++;
+                         console.error(`[AUTHORITY_PILOT][MUTATION_BLOCKED] Cross-tenant CREATE blocked for ${resource}. Reason: PILOT_CROSS_ORG_MUTATION_BLOCKED`);
+                         return false;
+                     }
+
+                     this.authorityPilotConfig.pilot_controlled_create_success_count++;
+                     console.log(`[AUTHORITY_PILOT][WRITE_ALLOWED] Controlled CREATE allowed for ${resource}. Reason: PILOT_CONTROLLED_CREATE_OK`);
+                     return true;
+                 }
+
+                 // Bloqueio padrão para todas as outras mutações (Fail-Closed)
                  this.authorityPilotConfig.readonly_block_count++;
                  console.warn(`[AUTHORITY_PILOT][READONLY_BLOCK] Mutation blocked: ${resource}:${action}. Reason: PILOT_READONLY_MUTATION_BLOCKED`);
                  return false; 
@@ -147,7 +174,11 @@ class GovernanceService {
         if (!config.enabled) return false;
         if (config.deniedResources.includes(resource)) return false;
         if (!config.allowedResources.includes(resource)) return false;
-        if (!config.allowedActions.includes(action)) return false;
+        
+        // Na Fase 5, a ação CREATE é permitida se a flag de escrita estiver ativa
+        const isActionAllowed = config.allowedActions.includes(action);
+        if (!isActionAllowed) return false;
+
         if (!config.allowedScopes.includes(context.activeScopeType)) return false;
         // Validação Contextual (Fase 3B.1)
         if (!config.allowedOrganizations.includes(context.activeOrganizationId)) return false;
@@ -167,6 +198,7 @@ class GovernanceService {
     getAuthorityPilotStatus() {
         return {
             enabled: this.authorityPilotConfig.enabled,
+            writes_enabled: this.authorityPilotConfig.authority_pilot_writes_controlled_create_enabled,
             allowedOrganizations: [...this.authorityPilotConfig.allowedOrganizations],
             fallbackCount: this.fallbackCount,
             flagName: this.authorityPilotConfig.flagName,
@@ -174,7 +206,8 @@ class GovernanceService {
                 untracked_delegation_count: this.authorityPilotConfig.untracked_delegation_count,
                 readonly_block_count: this.authorityPilotConfig.readonly_block_count,
                 mutation_delegation_count: this.authorityPilotConfig.mutation_delegation_count,
-                legacy_allow_count_for_mutations: this.authorityPilotConfig.legacy_allow_count_for_mutations
+                legacy_allow_count_for_mutations: this.authorityPilotConfig.legacy_allow_count_for_mutations,
+                pilot_controlled_create_success_count: this.authorityPilotConfig.pilot_controlled_create_success_count
             }
         };
     }
@@ -324,6 +357,24 @@ class GovernanceService {
     }
 
     private getCoreReason(resource: string, action: string, context: GovernanceContext, decision: boolean): string {
+        if (resource === 'PilotExecutionLog' && action === 'CREATE' && decision) {
+            return 'PILOT_CONTROLLED_CREATE_OK';
+        }
+        if (['CREATE', 'EDIT', 'DELETE'].includes(action) && !decision) {
+            // Se for PilotContext mas não for o caso de escrita autorizada
+            const isPilotOrg = this.authorityPilotConfig.allowedOrganizations.includes(context.activeOrganizationId);
+            if (isPilotOrg) {
+                 const isMutationOutScope = !['CREATE'].includes(action) || resource !== 'PilotExecutionLog';
+                 if (isMutationOutScope) return 'PILOT_MUTATION_OUT_OF_SCOPE';
+                 
+                 const isWriteDisabled = !this.authorityPilotConfig.authority_pilot_writes_controlled_create_enabled;
+                 if (isWriteDisabled) return 'PILOT_WRITES_DISABLED_FOR_RESOURCE';
+
+                 const isCrossOrg = context.targetOrganizationId && context.targetOrganizationId !== context.activeOrganizationId;
+                 if (isCrossOrg) return 'PILOT_CROSS_ORG_MUTATION_BLOCKED';
+            }
+            return 'PILOT_READONLY_MUTATION_BLOCKED';
+        }
         if (!decision) return `Scope mismatch: target ${context.targetSchoolId} vs active ${context.activeSchoolId}`;
         return `Role template: ${context.roleId}`;
     }
