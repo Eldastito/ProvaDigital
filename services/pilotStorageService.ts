@@ -1,6 +1,8 @@
 
 import { pilotContractService } from './pilotContractService';
+import { pilotContractService } from './pilotContractService';
 import { pilotOutboxService } from './pilotOutboxService';
+import { pilotPrivacyService } from './pilotPrivacyService';
 
 export interface PilotExecutionLog {
     id: string;
@@ -13,6 +15,7 @@ export interface PilotExecutionLog {
     step: string;
     decision_source: string;
     payload_summary: string;
+    student_id?: string; // Pseudonimizado (LGPD)
     test_batch_id: string;
     created_at: string;
 }
@@ -61,8 +64,12 @@ class PilotStorageService {
      * Cria um novo log de execução do Pilot (Simulação de Escrita Autorizada)
      */
     async createLog(log: Omit<PilotExecutionLog, 'id' | 'created_at'>): Promise<PilotExecutionLog> {
+        // LGPD: Mascaramento dinâmico de Student ID se presente
+        const student_id = log.student_id ? pilotPrivacyService.mask(log.student_id) : undefined;
+
         const newLog: PilotExecutionLog = {
             ...log,
+            student_id,
             id: Math.random().toString(36).substring(7),
             created_at: new Date().toISOString()
         };

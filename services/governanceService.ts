@@ -83,7 +83,7 @@ class GovernanceService {
         authority_pilot_status_transition_enabled: false,
         // Sessão 1: Somente UNIT. NETWORK_ANALYTICS removido para conter blast radius.
         allowedResources: ['ANALYTICS', 'SCHOOL_AGGREGATE_DATA', 'INSTITUTIONAL_METADATA', 'PilotExecutionLog', 'UserPreferences', 'PilotTestSessionDraft'],
-        allowedActions: ['VIEW', 'CREATE', 'UPSERT', 'UPDATE', 'UPDATE_STATUS', 'EXPORT'],
+        allowedActions: ['VIEW', 'CREATE', 'UPSERT', 'UPDATE', 'UPDATE_STATUS', 'EXPORT', 'REVEAL_PII'],
         allowedScopes: ['UNIT', 'ORG'] as ScopeType[],
         allowedOrganizations: ['poa_organization', 'canoas_organization', 'alvorada_organization', 'viamao_organization', 'gravatai_organization'] as string[], // Baseline aprovada
         deniedResources: ['STUDENT_PEDAGOGICAL_DATA', 'USER_MANAGEMENT', 'EXAMEPAD_OPS', 'SAAS_PLATFORM', 'FINANCE', 'LOGISTICS', 'NETWORK_ANALYTICS'],
@@ -99,6 +99,7 @@ class GovernanceService {
         pilot_controlled_functional_draft_success_count: 0,
         pilot_controlled_attribute_update_success_count: 0,
         pilot_controlled_egress_success_count: 0,
+        pilot_pii_reveal_count: 0,
     };
 
     /**
