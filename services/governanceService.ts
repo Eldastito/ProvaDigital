@@ -74,6 +74,10 @@ class GovernanceService {
          */
         authority_pilot_updates_draft_attributes_enabled: false,
         /**
+         * Fase 6: Consolidação de Atributos e Hardening (Step 3 - Egress Hardening)
+         */
+        authority_pilot_egress_hardening_enabled: false,
+        /**
          * Fase 6: Consolidação de Atributos e Hardening (Step 2 - Status Transition)
          */
         authority_pilot_status_transition_enabled: false,
