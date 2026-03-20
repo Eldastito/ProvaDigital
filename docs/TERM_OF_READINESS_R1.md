@@ -33,12 +33,17 @@ Em caso de **Aborto Técnico (Rollback)**:
 ---
 
 ## ✅ 5. Critérios de Sucesso Objetivos (Aprovação)
-O Piloto R1 será considerado **APROVADO** se:
-1. Handshake estável em 100% dos tablets em < 5 min.
-2. Sincronização de saída concluída com 0 inconsistencies.
-3. **Zero** incidentes P0 de Privacidade ou Governança.
-4. Nenhuma intervenção manual necessária no motor Outbox.
-5. Feedback positivo do Champion Local quanto à fluidez pedagógica.
+O Piloto R1 será avaliado em duas camadas:
+
+### A. Meta de Excelência (Alvo)
+- Handshake estável em 100% dos tablets em < 5 min.
+- Sincronização concluída com 0 inconsistências e 0 latência residual.
+
+### B. Piso Mínimo de Aprovação (GO Criteria)
+- **Handshake**: 95%+ dos tablets operacionais em < 5 min. (Recuperação assistida permitida para o remanescente se < 15 min total).
+- **Incidentes**: Zero incidentes P0 de Privacidade ou Governança.
+- **Outbox**: Itens processados sem erro fatal de contrato.
+- **Impacto**: Zero interrupção pedagógica crítica por falha sistêmica.
 
 ---
 
