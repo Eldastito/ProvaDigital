@@ -70,9 +70,9 @@ class GovernanceService {
          */
         authority_pilot_writes_functional_draft_enabled: false,
         /**
-         * Fase 6: Consolidação de Atributos e Hardening (Step 1 - UPDATE)
+         * Fase 6: Consolidação de Atributos e Hardening (Step 2 - Status Transition)
          */
-        authority_pilot_updates_draft_attributes_enabled: false,
+        authority_pilot_status_transition_enabled: false,
         // Sessão 1: Somente UNIT. NETWORK_ANALYTICS removido para conter blast radius.
         allowedResources: ['ANALYTICS', 'SCHOOL_AGGREGATE_DATA', 'INSTITUTIONAL_METADATA', 'PilotExecutionLog', 'UserPreferences', 'PilotTestSessionDraft'],
         allowedActions: ['VIEW', 'CREATE', 'UPSERT', 'UPDATE'],
@@ -179,6 +179,19 @@ class GovernanceService {
                  if (isAttributeUpdateControlled) {
                      this.authorityPilotConfig.pilot_controlled_attribute_update_success_count++;
                      console.log(`[AUTHORITY_PILOT][WRITE_ALLOWED] Controlled UPDATE allowed for ${resource}. Reason: PILOT_ATTRIBUTE_UPDATE_OK`);
+                     return true;
+                 }
+
+                 // GATILHO DE ESCRITA CONTROLADA (Step 6.2: Status Transition draft -> reviewed)
+                 const isStatusTransitionControlled = resource === 'PilotTestSessionDraft' && 
+                                                    action === 'UPDATE_STATUS' && // Ação semântica específica
+                                                    this.authorityPilotConfig.authority_pilot_status_transition_enabled;
+
+                 if (isStatusTransitionControlled) {
+                     // Nota: A validação semântica 'draft -> reviewed' ocorre no Storage, 
+                     // o Core autoriza a tentativa de transição de status para este recurso.
+                     this.authorityPilotConfig.pilot_controlled_attribute_update_success_count++; // Reusando contador ou criar novo
+                     console.log(`[AUTHORITY_PILOT][WRITE_ALLOWED] Status transition allowed for ${resource}. Reason: PILOT_STATUS_TRANSITION_OK`);
                      return true;
                  }
 
@@ -417,7 +430,10 @@ class GovernanceService {
         if (resource === 'PilotExecutionLog' && action === 'CREATE' && decision) {
             return 'PILOT_CONTROLLED_CREATE_OK';
         }
-        if (resource === 'PilotTestSessionDraft' && action === 'UPDATE' && decision) {
+        if (resource === 'PilotTestSessionDraft' && action === 'UPDATE_STATUS' && decision) {
+            return 'PILOT_STATUS_TRANSITION_OK';
+        }
+        if (resource === 'PilotTestSessionDraft' && (action === 'UPDATE' || action === 'UPDATE_STATUS') && decision) {
             return 'PILOT_ATTRIBUTE_UPDATE_OK';
         }
         if (resource === 'PilotTestSessionDraft' && action === 'CREATE' && decision) {

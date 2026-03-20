@@ -155,8 +155,53 @@ class PilotStorageService {
     }
 
     /**
-     * Retorna drafts funcionais
+     * Transição de Estado (Fase 6 Step 2 - Workflow Goverisado)
+     * Implementa CAS, Pre-conditions e Audit Semântico.
      */
+    async transitionDraftStatus(id: string, expectedVersion: number, reason: string): Promise<PilotTestSessionDraft> {
+        const index = this.functionalDrafts.findIndex(d => d.id === id);
+        if (index === -1) throw new Error('[PILOT_STORAGE][ERROR:NOT_FOUND] Draft session not found');
+
+        const current = this.functionalDrafts[index];
+
+        // 1. Idempotência: Se já for reviewed, ignorar se a versão bater
+        if (current.status === 'reviewed') {
+            console.log(`[PILOT_STORAGE][IDEMPOTENCY] Draft ${id} already in reviewed status.`);
+            return current;
+        }
+
+        // 2. Atomicidade (CAS): Check de Versão e Status Atual
+        if (current.version !== expectedVersion) {
+            throw new Error(`[PILOT_STORAGE][ERROR:VERSION_MISMATCH] Version conflict. Current: ${current.version}, Expected: ${expectedVersion}`);
+        }
+        if (current.status !== 'draft') {
+            throw new Error(`[PILOT_STORAGE][ERROR:INVALID_STATE_TRANSITION] Target transition draft -> reviewed requires current status to be 'draft'. Current: ${current.status}`);
+        }
+
+        // 3. Pre-conditions (Completude)
+        const missingFields = [];
+        if (!current.name || current.name.trim() === '') missingFields.push('name');
+        if (!current.description || current.description.trim() === '') missingFields.push('description');
+        if (!current.intended_date) missingFields.push('intended_date');
+
+        if (missingFields.length > 0) {
+            throw new Error(`[PILOT_STORAGE][ERROR:PRECONDITION_FAILED] Cannot transition to 'reviewed'. Missing required data: ${missingFields.join(', ')}`);
+        }
+
+        // 4. Efetivar Transição
+        const updated: PilotTestSessionDraft = {
+            ...current,
+            status: 'reviewed' as any, // Cast for simplicity in this step
+            version: current.version + 1
+        };
+
+        this.functionalDrafts[index] = updated;
+
+        console.log(`[PILOT_STORAGE][AUDIT_WORKFLOW] Draft ${id} transition draft -> reviewed. Version: ${current.version} -> ${updated.version}. Reason: ${reason}`);
+        
+        // Zero side-effects: Não dispara nada externo aqui.
+        return updated;
+    }
     getFunctionalDrafts(tenantId: string): PilotTestSessionDraft[] {
         return this.functionalDrafts.filter(d => d.tenant_id === tenantId);
     }
