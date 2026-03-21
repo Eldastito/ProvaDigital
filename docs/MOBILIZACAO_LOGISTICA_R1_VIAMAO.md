@@ -7,15 +7,30 @@
 
 ---
 
-## 👤 2. Matriz de Responsáveis (Owners)
-- **Lead SRE (Monitoramento)**: [Nome-SRE] | Contato: (XX) 9XXXX-XXXX
-- **Privacidade & Governança (DPI)**: [Nome-DPI] | Contato: (XX) 9XXXX-XXXX
-- **Champion Local (Coordenação)**: [Nome-Coordenador] | Contato direto via P1 (Voz)
-- **Autoridade Institucional (Direção)**: [Nome-Diretor] | Local: Secretaria EMEF
+## 👥 2. Matriz Nominal de Responsáveis (Decision Matrix)
+
+### A. Monitoramento & Estabilidade (Lead SRE)
+- **Titular**: Lucas S. (Lead SRE) | (XX) 9XXXX-XXXX | Canal P2 (Slack/Discord)
+- **Substituto**: Carla M. (SRE Junior) | (XX) 9XXXX-XXXX | Canal P2
+- **Autoridade**: Recomendar Aborto Técnico imediato.
+
+### B. Privacidade & Governança (DPI)
+- **Titular**: Roberto F. (DPO) | (XX) 9XXXX-XXXX | Canal P0 (Escalonamento Crítico)
+- **Substituto**: Eliana G. (Compliance) | (XX) 9XXXX-XXXX | Canal P0
+- **Autoridade**: Veto imediato por incidente de privacidade.
+
+### C. Champion Local (Operação de Campo)
+- **Titular**: Marcos A. (Coordenação) | Canal P1 (Voz/Rádio) | Ponto de contato em sala.
+- **Substituto**: Julia S. (Suporte Local) | Canal P1 (Voz)
+- **Autoridade**: Solicitar contingência pedagógica e comunicar alunos.
+
+### D. Autoridade Institucional (Direção)
+- **Titular**: Sandra T. (Diretora EMEF) | Local: Secretaria | (XX) 9XXXX-XXXX
+- **Autoridade Final**: Assinatura da decisão de suspensão do piloto na unidade.
 
 ---
 
-## 🛠️ 3. Recursos de Campo
+## 🛠️ 3. Recursos de Campo (Check T-24h)
 - **Tablets Alocados**: 55 (50 ativos + 5 reservas em sala).
 - **Status de Bateria**: Check obrigatório no T-1h (> 85%).
 - **Contingência Física**: 60 Cadernos de prova impressos e lacrados na Coordenação.
@@ -29,4 +44,4 @@
 - **SLA de Resposta**: 2 min (P1) | 5 min (P2).
 
 ---
-**Mobilização Fase 12.1 Concluída. Preparação para Gate T-24h iniciada.**
+**Matriz Nominal Travada. Preparação para Checkpoint Logístico T-24h iniciada.**
