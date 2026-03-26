@@ -20,7 +20,7 @@ Esta matriz define o critério de **GO / NO-GO** para a promoção do piloto par
 | **SUCESSO** | **SUCESSO** | ✅ **GO** | Autorização para expansão Regional POA. |
 | **SUCESSO** | **FALHA** | ⚠️ **GO CONDICIONADO** ou ❌ **NO-GO** | Decisão executiva formal baseada no parecer técnico, severidade do impacto, risco residual e possibilidade de mitigação operacional sem improviso. |
 
-*   **Gate 1 (Capacidade & Cauda)**: Eliminatório. Foco em performance P95 e estabilidade de Handshake.
+*   **Gate 1 (Capacidade & Cauda)**: Eliminatório. Foco em performance **P95** e estabilidade de Handshake.
 *   **Gate 2 (Resiliência & Watchdog)**: Complementar. Foco em robustez operacional e recuperação automática.
 
 ---
@@ -43,7 +43,7 @@ Para garantir a auditabilidade e evitar a tentação de múltiplas tentativas in
 ## 5. Próximos Passos
 1. Execução do Mock conforme o [RUNBOOK_MOCK_SECO_R4C_POA.md](./RUNBOOK_MOCK_SECO_R4C_POA.md).
 2. Consolidação das evidências no [RELATORIO_EVIDENCIA_MOCK_SECO_R4C_POA.md](./RELATORIO_EVIDENCIA_MOCK_SECO_R4C_POA.md).
-3. Reunião de Gate Executivo após análise do p95 global e P95 por sala.
+3. Reunião de Gate Executivo após análise do **P95** global e **P95** por sala.
 
 ---
 **Assinatura**: Governança Authority Pilot | Porto Alegre

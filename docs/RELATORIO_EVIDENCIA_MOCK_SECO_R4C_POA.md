@@ -19,7 +19,7 @@ Consolidação dos principais indicadores de performance e disponibilidade do en
 | **Total >3m25s** | | |
 | **Total >3m28s** | | |
 | **Exceções Nominais** | | |
-| **Watchdog Recovery** | | |
+| **Watchdog Recovery (T2-T0)** | | |
 | **Veredito Técnico Preliminar** | | |
 
 ---
@@ -29,21 +29,21 @@ O resultado dos Gates registrados abaixo segue a **Matriz de Decisão Oficial** 
 
 | Gate | Status | Critério Mandatório | Evidência Técnica |
 | :--- | :--- | :--- | :--- |
-| **Gate 1** | [ ] | p95 Global < 3m15s | [Link Telemetria] |
-| **Gate 2** | [ ] | Recuperação Watchdog < 15s | [Log Eventos] |
+| **Gate 1** | [ ] | **P95** Global < 3m15s | [Link Telemetria] |
+| **Gate 2** | [ ] | Recuperação Watchdog < 15s | [ID Sala / Log / Captura / Impacto] |
 
 ---
 
 ## 3. Indicadores Estáveis por Sala (Obrigatório)
-O P95 por sala é o indicador de estabilidade local da rede e do handshake.
+O **P95** por sala é o indicador de estabilidade local da rede e do handshake.
 
-| Sala | Total Tablets | Máximo Handshake | P95 Sala | Cauda >3m25s | Cauda >3m28s | Geometria Padrão? | Observações |
+| Sala | Total Tablets | Máximo Handshake | **P95** Sala | Cauda >3m25s | Cauda >3m28s | Geometria Padrão? | Observações |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| Sala 1 | | | | | | [ ] Sim | |
-| Sala 2 | | | | | | [ ] Sim | |
-| Sala 3 | | | | | | [ ] Sim | |
-| Sala 4 | | | | | | [ ] Sim | |
-| Sala 5 | | | | | | [ ] Sim | |
+| Sala 1 | | | | | | [ ] Sim / [ ] Não | |
+| Sala 2 | | | | | | [ ] Sim / [ ] Não | |
+| Sala 3 | | | | | | [ ] Sim / [ ] Não | |
+| Sala 4 | | | | | | [ ] Sim / [ ] Não | |
+| Sala 5 | | | | | | [ ] Sim / [ ] Não | |
 
 ---
 
