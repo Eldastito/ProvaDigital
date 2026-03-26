@@ -30,11 +30,31 @@ O resultado dos Gates registrados abaixo segue a **Matriz de Decisão Oficial** 
 | Gate | Status | Critério Mandatório | Evidência Técnica |
 | :--- | :--- | :--- | :--- |
 | **Gate 1** | [ ] | **P95** Global < 3m15s | [Link Telemetria] |
-| **Gate 2** | [ ] | Recuperação Watchdog < 15s | [ID Sala / Log / Captura / Impacto] |
+| **Gate 2** | [ ] | **Recuperação Watchdog < 15s, sem perda de rastreabilidade e sem necessidade de intervenção manual** | [Auditoria Detalhada Seção 3] |
 
 ---
 
-## 3. Indicadores Estáveis por Sala (Obrigatório)
+## 3. Auditoria Detalhada: Gate 2 (Resiliência & Watchdog)
+Estatísticas do teste de queda controlada para validação da robustez do sistema.
+
+-   **Sala Testada**: ____________
+-   **T0 (Queda Gateway)**: ____________
+-   **T1 (Início Recuperação)**: ____________
+-   **T2 (Recuperação Plena)**: ____________
+-   **Tempo de Recuperação (T2 - T0)**: **______ segundos**
+
+**Diagnóstico Operacional**:
+-   Houve perda de rastreabilidade? [ ] Sim / [ ] Não
+-   Houve necessidade de intervenção manual? [ ] Sim / [ ] Não
+-   Observação de impacto operacional no lote: _____________________________________
+
+**Evidências Mandatórias**:
+-   [ ] Log de eventos do sistema anexado.
+-   [ ] Captura do painel regional pós-queda anexada.
+
+---
+
+## 4. Indicadores Estáveis por Sala (Obrigatório)
 O **P95** por sala é o indicador de estabilidade local da rede e do handshake.
 
 | Sala | Total Tablets | Máximo Handshake | **P95** Sala | Cauda >3m25s | Cauda >3m28s | Geometria Padrão? | Observações |
@@ -47,7 +67,7 @@ O **P95** por sala é o indicador de estabilidade local da rede e do handshake.
 
 ---
 
-## 4. Gestão de Exceções Nominais (Blindagem)
+## 5. Gestão de Exceções Nominais (Blindagem)
 Conforme a regra de **vedação de descarte silencioso**:
 
 > Dispositivos sem telemetria, com handshake incompleto ou perda de rastreabilidade permanecem incluídos na base oficial de análise do ensaio como **exceção nominal**, impactando a métrica de disponibilidade e validade do lote. Quando inexistir medição íntegra de handshake, tais dispositivos não compõem a amostra válida dos percentis de latência.
@@ -59,7 +79,7 @@ Conforme a regra de **vedação de descarte silencioso**:
 
 ---
 
-## 5. Conclusão Operacional
+## 6. Conclusão Operacional
 -   **Validade**: O lote atingiu o mínimo de 285 tablets (95%)? [ ] Sim / [ ] Não.
 -   **Tentativa Oficial**: Este ensaio é uma: [ ] 1ª Tentativa Oficial | [ ] 2ª Tentativa Oficial (Reexecução).
     -   *Se reexecução, anexar registro de causa e comparação integral com o ensaio anterior.*
