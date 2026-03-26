@@ -16,7 +16,7 @@ Para o R4C, o nível de estresse foi ajustado para representar o pico real de um
 
 O ensaio só será considerado válido se atender rigorosamente às métricas de volume e rastreabilidade:
 
-### A. Lote de Dispositivos
+### A. Lote de Dispositivos (Mínimo Nominal)
 -   **Lote previsto nominal**: 300 tablets.
 -   **Mínimo para validade**: **285 tablets ativos, identificados nominalmente e telemetrizados**.
 
@@ -38,6 +38,10 @@ O resultado deste runbook deve ser alimentado no Relatório de Evidência, conte
 -   **P95 por sala** (alinhado aos guardrails regionais).
 -   **Zero latências acima de 3m28s**.
 -   **Máximo 1 latência acima de 3m25s por sala**.
+
+## 5. Referências
+-   [VEREDITO_ESTRATEGICO_R4C_POA.md](./VEREDITO_ESTRATEGICO_R4C_POA.md)
+-   [RELATORIO_EVIDENCIA_MOCK_SECO_R4C_POA.md](./RELATORIO_EVIDENCIA_MOCK_SECO_R4C_POA.md)
 
 ---
 **Execução**: Equipe Regional POA | Coordenação Authority Pilot

@@ -18,7 +18,7 @@ Esta matriz define o critério de **GO / NO-GO** para a promoção do piloto par
 | :--- | :--- | :--- | :--- |
 | **FALHA** | Qualquer | ❌ **NO-GO** | Aborto imediato e análise de causa raiz. |
 | **SUCESSO** | **SUCESSO** | ✅ **GO** | Autorização para expansão Regional POA. |
-| **SUCESSO** | **FALHA** | ⚠️ **GO CONDICIONADO** | Decisão executiva formal baseada no parecer técnico e impacto observado. |
+| **SUCESSO** | **FALHA** | ⚠️ **GO CONDICIONADO** ou ❌ **NO-GO** | Decisão executiva formal baseada no parecer técnico, severidade do impacto, risco residual e possibilidade de mitigação operacional sem improviso. |
 
 *   **Gate 1 (Capacidade & Cauda)**: Eliminatório. Foco em performance P95 e estabilidade de Handshake.
 *   **Gate 2 (Resiliência & Watchdog)**: Complementar. Foco em robustez operacional e recuperação automática.
@@ -31,17 +31,18 @@ O ensaio será realizado no Colégio Inácio Montanha. A unidade **Julinho** foi
 ---
 
 ## 4. Política de Reexecução
-Para garantir a auditabilidade e evitar a tentação do "tentar até passar", as seguintes regras são aplicadas:
+Para garantir a auditabilidade e evitar a tentação de múltiplas tentativas informais:
 
--   Apenas **uma (1) única reexecução** é permitida após o primeiro ensaio válido.
--   Toda reexecução exige um **registro formal** da causa técnica ou operacional que justificou a nova tentativa.
--   O resultado do ensaio original **não pode ser descartado**; ele deve constar no relatório final para fins de auditoria comparativa e histórico de falhas.
+-   **Toda mobilização formal de mock registrada em agenda, equipe e lote constitui uma tentativa oficial.**
+-   Apenas **uma (1) nova tentativa oficial** é permitida após a primeira, independentemente de o ensaio anterior ter sido validado ou invalidado.
+-   **Exceção**: Abortamento pré-gate formalmente registrado antes do início do handshake coordenado.
+-   O resultado do ensaio original **não pode ser descartado**; ele deve constar no relatório final para fins de auditoria comparativa.
 
 ---
 
 ## 5. Próximos Passos
-1. Execução do Mock conforme o [RUNBOOK_MOCK_SECO_R4C_POA.md](file:///c:/Users/miche/Downloads/examepad-saas-prova-digital/docs/RUNBOOK_MOCK_SECO_R4C_POA.md).
-2. Consolidação das evidências no [RELATORIO_EVIDENCIA_MOCK_SECO_R4C_POA.md](file:///c:/Users/miche/Downloads/examepad-saas-prova-digital/docs/RELATORIO_EVIDENCIA_MOCK_SECO_R4C_POA.md).
+1. Execução do Mock conforme o [RUNBOOK_MOCK_SECO_R4C_POA.md](./RUNBOOK_MOCK_SECO_R4C_POA.md).
+2. Consolidação das evidências no [RELATORIO_EVIDENCIA_MOCK_SECO_R4C_POA.md](./RELATORIO_EVIDENCIA_MOCK_SECO_R4C_POA.md).
 3. Reunião de Gate Executivo após análise do p95 global e P95 por sala.
 
 ---
