@@ -27,7 +27,7 @@ Consolidação dos principais indicadores de performance e disponibilidade do en
 ---
 
 ## 2. Registro de Resultados (Gates de Governança)
-O resultado dos Gates registrados abaixo segue a **Matriz de Deicão Oficial** definida no [VEREDITO_ESTRATEGICO_R4C_POA.md](./VEREDITO_ESTRATEGICO_R4C_POA.md) e no [RUNBOOK_MOCK_SECO_R4C_POA.md](./RUNBOOK_MOCK_SECO_R4C_POA.md).
+O resultado dos Gates registrados abaixo segue a **Matriz de Decisão Oficial** definida no [VEREDITO_ESTRATEGICO_R4C_POA.md](./VEREDITO_ESTRATEGICO_R4C_POA.md) e no [RUNBOOK_MOCK_SECO_R4C_POA.md](./RUNBOOK_MOCK_SECO_R4C_POA.md).
 
 | Gate | Status | Critério Mandatório | Evidência Técnica |
 | :--- | :--- | :--- | :--- |
