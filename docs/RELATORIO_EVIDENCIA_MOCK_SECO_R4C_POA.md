@@ -29,13 +29,18 @@ O resultado dos Gates registrados abaixo segue a **Matriz de Decisão Oficial** 
 
 | Gate | Status | Critério Mandatório | Evidência Técnica |
 | :--- | :--- | :--- | :--- |
-| **Gate 1** | [ ] | **P95** Global < 3m15s | [Link Telemetria] |
-| **Gate 2** | [ ] | **Recuperação Watchdog < 15s, sem perda de rastreabilidade e sem necessidade de intervenção manual** | [Auditoria Detalhada Seção 3] |
+| **Gate 1** | [ ] SUCESSO<br>[ ] FALHA | **P95** Global < 3m15s | [Link Telemetria] |
+| **Gate 2** | [ ] SUCESSO<br>[ ] FALHA<br>[ ] NÃO EXECUTADO* | **Recuperação Watchdog < 15s, sem perda de rastreabilidade e sem necessidade de intervenção manual** | [Auditoria Detalhada Seção 3] |
+
+*\*Bloqueado por falha eliminatória do Gate 1.*
 
 ---
 
 ## 3. Auditoria Detalhada: Gate 2 (Resiliência & Watchdog)
 Estatísticas do teste de queda controlada para validação da robustez do sistema.
+
+-   **Gate 2 Executado?** [ ] Sim / [ ] Não
+-   *Se não, justificar: ____________________________________*
 
 -   **Sala Testada**: ____________
 -   **T0 (Queda Gateway)**: ____________
