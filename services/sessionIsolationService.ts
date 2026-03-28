@@ -1,4 +1,4 @@
-import { db } from './offlineDb';
+import { PersistenceGateway } from './persistenceGateway';
 import { StoredSession } from '../types';
 
 // O serviço passa a usar o tipo StoredSession do offlineDb para consistência
@@ -39,20 +39,19 @@ export class SessionIsolationService {
             return this.currentSession;
         }
 
-        // 2. Tentar encontrar sessão persistente (Dual Read)
-        const storageKey = this.generateStorageKey(eventId, studentId, examId);
+        // 2. Tentar encontrar sessão persistente (O(1) via Gateway)
         let existingSession = await this.findSessionByContext(eventId, studentId, examId);
 
         if (existingSession) {
             console.log(`📡 [RESUME] Sessão compatível encontrada: ${existingSession.sessionId}`);
             this.currentSession = existingSession;
-            // Se recebemos um attemptId novo mas temos sessão local, mantemos a sessão local
-            // mas podemos atualizar o attempt_id se estiver vazio
+            
             if (attemptId && !this.currentSession.attempt_id) {
                 this.currentSession.attempt_id = attemptId;
             }
         } else {
             const sessionId = `auth_${crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 11)}`;
+            const storageKey = this.generateStorageKey(eventId, studentId, examId);
 
             // Criar nova sessão
             this.currentSession = {
@@ -93,9 +92,9 @@ export class SessionIsolationService {
             };
         }
 
-        // Persistir (Update ou Create) no IndexedDB
+        // Persistir (Update ou Create) via Gateway
         if (this.currentSession) {
-            await this.persistSession(this.currentSession);
+            await PersistenceGateway.saveSession(this.currentSession);
         }
 
         return this.currentSession;
@@ -109,7 +108,7 @@ export class SessionIsolationService {
     }
 
     /**
-     * Busca sessão por contexto (Dual Read)
+     * Busca sessão por contexto (O(1))
      */
     async findSessionByContext(
         eventId: string, 
@@ -118,32 +117,12 @@ export class SessionIsolationService {
     ): Promise<StudentSession | null> {
         const storageKey = this.generateStorageKey(eventId, studentId, examId);
         
-        // 1. Busca Direta via Índice storage_key (O(1))
-        const session = await db.studentSessions.where('storage_key').equals(storageKey).first();
+        // Busca Direta via Índice storage_key (O(1)) no Gateway
+        const session = await PersistenceGateway.findSessionByStorageKey(storageKey);
         
         if (session) {
-            console.log(`📡 [RESUME] Sessão canônica encontrada via índice: ${session.sessionId}`);
-            return session;
-        }
-
-        // 2. Fallback: Busca via padrão legado session_${studentId}_${examId}_*
-        // Nota: Isso agora é gerenciado pelo MigrationService, mas mantemos o fallback por segurança extra
-        const legacyPattern = `session_${studentId}_${examId}_`;
-        const legacySession = await db.studentSessions
-            .filter(s => s.sessionId.startsWith(legacyPattern) && s.eventId === eventId && !s.migrated_legacy)
-            .first();
-
-        if (legacySession) {
-            console.log(`🧪 [MIGRATION] Sessão legada detectada. Migrando...`);
-            
-            const migrated: StudentSession = {
-                ...legacySession,
-                storage_key: storageKey,
-                migrated_legacy: true
-            };
-            
-            await this.persistSession(migrated);
-            return migrated;
+            console.log(`📡 [RESUME] Sessão canônica encontrada: ${session.sessionId}`);
+            return session as StudentSession;
         }
 
         return null;
@@ -161,7 +140,6 @@ export class SessionIsolationService {
             throw new Error('Nenhuma sessão ativa');
         }
 
-        // Procurar se já existe resposta para essa questão
         const existingIndex = this.currentSession.encryptedAnswers.findIndex(
             a => a.questionId === questionId
         );
@@ -173,15 +151,13 @@ export class SessionIsolationService {
         };
 
         if (existingIndex >= 0) {
-            // Atualizar resposta existente
             this.currentSession.encryptedAnswers[existingIndex] = answerData;
         } else {
-            // Nova resposta
             this.currentSession.encryptedAnswers.push(answerData);
         }
 
-        // Persistir imediatamente no IndexedDB
-        await this.persistSession(this.currentSession);
+        // Persistir via Gateway
+        await PersistenceGateway.saveSession(this.currentSession);
     }
 
     /**
@@ -202,8 +178,7 @@ export class SessionIsolationService {
             metadata
         });
 
-        // Persistir imediatamente
-        await this.persistSession(this.currentSession);
+        await PersistenceGateway.saveSession(this.currentSession);
     }
 
     /**
@@ -228,14 +203,14 @@ export class SessionIsolationService {
             this.currentSession.telemetry.networkQuality.push(...data.networkQuality);
         }
 
-        // Persistir periodicamente (não a cada update para performance)
-        if (Math.random() < 0.1) { // 10% de chance
-            await this.persistSession(this.currentSession);
+        // Persistência oportunista via Gateway
+        if (Math.random() < 0.1) {
+            await PersistenceGateway.saveSession(this.currentSession);
         }
     }
 
     /**
-     * Finaliza sessão (aluno termina prova)
+     * Finaliza sessão
      */
     async finishSession(): Promise<StudentSession> {
         if (!this.currentSession) {
@@ -245,33 +220,19 @@ export class SessionIsolationService {
         const duration = Date.now() - new Date(this.currentSession.startedAt).getTime();
 
         this.currentSession.finishedAt = new Date().toISOString();
-        this.currentSession.totalDuration = Math.floor(duration / 1000); // segundos
+        this.currentSession.totalDuration = Math.floor(duration / 1000);
 
-        // Persistir sessão finalizada
-        await this.persistSession(this.currentSession);
+        await PersistenceGateway.saveSession(this.currentSession);
 
-        const completedSession = { ...this.currentSession };
-
-        console.log(`✅ Sessão finalizada: ${this.currentSession.sessionId}`);
-        console.log(`   Duração: ${this.currentSession.totalDuration}s`);
-        console.log(`   Respostas: ${this.currentSession.encryptedAnswers.length}`);
-        console.log(`   Eventos de segurança: ${this.currentSession.securityEvents.length}`);
-
-        return completedSession;
+        return { ...this.currentSession };
     }
 
     /**
-     * Logout - limpa sessão da RAM mas mantém dados no IndexedDB
+     * Logout
      */
     logout(): void {
-        if (!this.currentSession) {
-            console.warn('Nenhuma sessão ativa para logout');
-            return;
-        }
+        if (!this.currentSession) return;
 
-        console.log(`🚪 Logout: ${this.currentSession.studentName}`);
-
-        // Limpar timers
         if (this.sessionState?.activeTimers) {
             this.sessionState.activeTimers.forEach(timerId => {
                 clearInterval(timerId);
@@ -279,7 +240,6 @@ export class SessionIsolationService {
             });
         }
 
-        // Limpar conexões de rede
         if (this.sessionState?.networkConnections) {
             this.sessionState.networkConnections.forEach((conn: any) => {
                 if (conn && typeof conn.close === 'function') {
@@ -288,30 +248,18 @@ export class SessionIsolationService {
             });
         }
 
-        // Limpar RAM
         this.currentSession = null;
         this.sessionState = null;
-
-        console.log('✅ RAM limpa. Dados mantidos no IndexedDB.');
     }
 
-    /**
-     * Obtém sessão atual (se houver)
-     */
     getCurrentSession(): StudentSession | null {
         return this.currentSession;
     }
 
-    /**
-     * Obtém estado volátil atual
-     */
     getSessionState(): SessionState | null {
         return this.sessionState;
     }
 
-    /**
-     * Atualiza estado volátil (não persiste)
-     */
     updateSessionState(updates: Partial<SessionState>): void {
         if (!this.sessionState) return;
 
@@ -322,70 +270,36 @@ export class SessionIsolationService {
     }
 
     /**
-     * Persiste sessão no IndexedDB utilizando se a hierarquia de identidade (T2)
-     */
-    private async persistSession(session: StudentSession): Promise<void> {
-        try {
-            await db.studentSessions.put(session);
-        } catch (error) {
-            console.error('[DB] Erro ao persistir sessão:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Carrega todas as sessões do IndexedDB (para debug/relatórios)
-     */
-    /**
-     * Carrega todas as sessões do IndexedDB
+     * Métodos delegados ao Gateway
      */
     async getAllSessions(): Promise<StudentSession[]> {
-        return db.studentSessions.toArray();
+        return await PersistenceGateway.getAllSessions() as StudentSession[];
     }
 
-    /**
-     * Carrega sessões pendentes de upload
-     */
     async getPendingSessions(): Promise<StudentSession[]> {
-        return db.studentSessions.where('uploadedToServer').equals(0).toArray(); // Dexie usa 0/1 para boolean em índices às vezes, mas aqui depende do registro
+        return await PersistenceGateway.getPendingSessions() as StudentSession[];
     }
 
-    /**
-     * Marca sessão como enviada ao servidor
-     */
     async markAsUploaded(sessionId: string): Promise<void> {
-        await db.studentSessions.update(sessionId, {
-            uploadedToServer: true,
+        await PersistenceGateway.updateSession(sessionId, {
+            uploadedToServer: true as any,
             uploadedAt: new Date().toISOString()
         });
-        console.log(`✅ Sessão ${sessionId} marcada como enviada`);
     }
 
-    /**
-     * Deleta sessões já enviadas (limpeza)
-     */
     async cleanUploadedSessions(): Promise<number> {
-        const uploaded = await db.studentSessions.where('uploadedToServer').equals(1).toArray();
-        if (uploaded.length === 0) return 0;
-
-        const ids = uploaded.map(s => s.sessionId);
-        await db.studentSessions.bulkDelete(ids);
+        const sessions = await PersistenceGateway.getAllSessions();
+        const toDelete = sessions.filter(s => s.uploadedToServer).map(s => s.sessionId);
         
-        console.log(`🗑️ ${uploaded.length} sessões enviadas removidas`);
-        return uploaded.length;
+        if (toDelete.length > 0) {
+            await PersistenceGateway.deleteSessions(toDelete);
+        }
+        
+        return toDelete.length;
     }
 
     /**
-     * @deprecated Usar generateStorageKey em conjunto com UUID técnico
-     */
-    private generateSessionId(studentId: string, examId: string): string {
-        const timestamp = Date.now();
-        const random = Math.random().toString(36).substring(2, 9);
-        return `session_${studentId}_${examId}_${timestamp}_${random}`;
-    }
-
-    /**
-     * Gera relatório de uso do tablet no dia
+     * Gera relatório diário
      */
     async generateDailyReport(): Promise<string> {
         const allSessions = await this.getAllSessions();
@@ -407,13 +321,6 @@ export class SessionIsolationService {
 
         todaySessions.forEach((session: StudentSession, index: number) => {
             report += `${index + 1}. ${session.studentName}\n`;
-            report += `   Início: ${new Date(session.startedAt).toLocaleTimeString()}\n`;
-            if (session.finishedAt) {
-                report += `   Fim: ${new Date(session.finishedAt).toLocaleTimeString()}\n`;
-                report += `   Duração: ${Math.floor(session.totalDuration! / 60)}min\n`;
-            }
-            report += `   Respostas: ${session.encryptedAnswers.length}\n`;
-            report += `   Alertas: ${session.securityEvents.length}\n`;
             report += `   Status: ${session.uploadedToServer ? '✅ Enviado' : '⏳ Pendente'}\n\n`;
         });
 

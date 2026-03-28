@@ -72,5 +72,26 @@ export const PersistenceGateway = {
         };
         await db.migrationMetadata.put(manifesto);
         return manifesto;
+    },
+
+    /**
+     * Busca sessões pendentes de sincronização
+     */
+    getPendingSessions: async (): Promise<StoredSession[]> => {
+        return await db.studentSessions.where('uploadedToServer').equals(0).toArray();
+    },
+
+    /**
+     * Deleta múltiplas sessões (Ex: Limpeza pós-upload)
+     */
+    deleteSessions: async (ids: string[]): Promise<void> => {
+        await db.studentSessions.bulkDelete(ids);
+    },
+
+    /**
+     * Atualiza campos específicos de uma sessão
+     */
+    updateSession: async (sessionId: string, updates: Partial<StoredSession>): Promise<void> => {
+        await db.studentSessions.update(sessionId, updates);
     }
 };
