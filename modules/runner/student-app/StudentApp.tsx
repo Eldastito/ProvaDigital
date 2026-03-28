@@ -815,7 +815,6 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
 
             // 6. Broadcast via Mesh (Socket.io hardening no LocalServerService aguarda este evento)
             getMeshNetwork().broadcastMessage('AUTOSAVE', finalEnvelope);
-            getMeshNetwork().broadcastMessage('AUTOSAVE', finalEnvelope);
             console.log('🔒 [MESH] Hybrid AUTOSAVE disparado com sucesso.');
 
         } catch (error) {
@@ -1294,19 +1293,6 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
             onCut={handlePreventClipboard}
             onContextMenu={handleContextMenu}
         >
-            {/* ❄️ TRAVA DE HIDRATAÇÃO (F3C.1) */}
-            {isHydrating && (
-                <div className="fixed inset-0 bg-[#0f1d2e] z-[100] flex flex-col items-center justify-center text-white">
-                    <div className="relative">
-                        <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <Wifi size={24} className="text-emerald-500 animate-pulse" />
-                        </div>
-                    </div>
-                    <h2 className="mt-6 text-xl font-bold">Iniciando Ambiente Seguro</h2>
-                    <p className="mt-2 text-slate-400 text-sm animate-pulse">Sincronizando integridade local...</p>
-                </div>
-            )}
             <AccessibilityToolbar config={a11y} onChange={setA11y} />
 
             {/* CAMERA PREVIEW (PROCTORING UI) */}
