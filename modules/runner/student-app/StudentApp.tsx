@@ -9,7 +9,7 @@ import { useProctoring } from '../../../hooks/useProctoring';
 import { StudentResultsView } from './StudentResultsView';
 import { useStudentSession } from '../hooks/useStudentSession';
 import { useFullscreenSecurity } from '../hooks/useFullscreenSecurity';
-import { saveSession, getLastSession, clearDb } from '../../../services/offlineDb';
+import { clearDb } from '../../../services/offlineDb';
 import { StoredSession } from '../../../types';
 
 import { useSafeAppStore, useAppStore } from '../../../store/useAppStore';
@@ -172,8 +172,9 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         currentSession,
         isSessionActive,
         startSession,
-        saveAnswer: saveAnswerToSession,
+        saveAnswer,
         logSecurityEvent,
+        updateTelemetry,
         finishSession,
         logout
     } = useStudentSession({
@@ -271,7 +272,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                         .single();
 
                     if (variantData?.accessibility_config) {
-                        setA11y(prev => ({ ...prev, ...variantData.accessibility_config }));
+                        setA11y((prev: any) => ({ ...prev, ...variantData.accessibility_config }));
                     }
 
                     // Buscar overrides de itens
@@ -362,27 +363,22 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
             setShuffledItems(mockItems);
         }
     }, [examItems, mockItems, loadingExam, examIdParam]);
-
     // --- AUTO-RESUME LOGIC (Moved up to fix Hooks Rule) ---
     useEffect(() => {
         if (!studentData || !studentData.id || !studentData.eventId) return;
         // FIX: Don't run check if we are already in the exam or finishing it
         if (step === 'EXAM' || step === 'COMPLETED' || step === 'SENDING') return;
 
-        const checkSavedSession = async () => {
-            // Tenta recuperar sessão anterior
-            const saved = await getLastSession(studentData.id, studentData.eventId || 'demo');
-            if (saved && !saved.synced) {
-                console.log("Sessão encontrada:", saved);
-                setFoundSession(saved);
-                setShowResumeModal(true);
-            } else {
-                setStep('CONFIRM_IDENTITY');
-            }
-        };
-
-        checkSavedSession();
-    }, [studentData]);
+        // Carregamento automático da sessão via useStudentSession (Cold Boot Nível 1)
+        // Não é mais necessário useEffect manual para getLastSession
+        if (currentSession && !currentSession.synced) {
+            console.log("Sessão encontrada:", currentSession);
+            setFoundSession(currentSession);
+            setShowResumeModal(true);
+        } else {
+            setStep('CONFIRM_IDENTITY');
+        }
+    }, [studentData, currentSession]);
 
     // 🔒 Fullscreen Security Hook
     const { enterKioskMode } = useFullscreenSecurity(step, cameraActive, isSessionActive);
@@ -701,18 +697,26 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     const handleResumeSession = () => {
         if (foundSession) {
             try {
-                const parsedAnswers = JSON.parse(foundSession.encryptedData);
-                setAnswers(parsedAnswers);
-                if (foundSession.currentQuestionIndex !== undefined) {
-                    setCurrentQuestionIdx(foundSession.currentQuestionIndex);
+                // Reconstruir answers do array de objetos (Sprint 2 schema)
+                const reconstructedAnswers: Record<string, string | string[]> = {};
+                foundSession.encryptedAnswers.forEach(a => {
+                    const question = actualItems.find(q => q.id === (typeof a.questionId === 'string' ? a.questionId : `q${a.questionId}`));
+                    if (question) {
+                        reconstructedAnswers[question.id] = a.answer;
+                    }
+                });
+
+                setAnswers(reconstructedAnswers as Record<string, string>);
+                
+                // Telemetria e Tempo
+                if (foundSession.telemetry && foundSession.telemetry.batteryLevels) {
+                    // Recuperar última questão se disponível
+                    const lastIdx = foundSession.telemetry.timePerQuestion?.length ? foundSession.telemetry.timePerQuestion.length - 1 : 0;
+                    setCurrentQuestionIdx(lastIdx);
                 }
-                if (foundSession.remainingSeconds !== undefined) {
-                    setCurrentTime(foundSession.remainingSeconds);
-                    alert(`⚠️ ATENÇÃO AO FISCAL DE SALA ⚠️\n\nO aluno ${studentData?.name} teve seu tablet substituído ou a sessão restaurada.\n\nO tempo de prova continuará de onde parou (${Math.floor(foundSession.remainingSeconds / 60)} min restantes).\n\nLEMBRETE: Os últimos 3 alunos a terminarem devem sair juntos.`);
-                }
+
                 setStep('EXAM');
                 setTimerActive(true);
-                setStep('EXAM');
                 setShowResumeModal(false);
             } catch (e) {
                 console.error("Erro ao restaurar sessão:", e);
@@ -759,7 +763,8 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
 
             // 3. Cifrar Respostas (Payload Privado)
             // Para T3, ciframos o objeto answers direto.
-            const encryptedPackage = await E2EEncryptionService.encryptAnswers(newAnswers as any, key);
+           // Cifrar dados (answers é Record<string, string>)
+       const encryptedPackage = await E2EEncryptionService.encryptData(newAnswers, key);
 
             // 4. Montar Envelope Híbrido
             const envelope: Omit<MeshHybridEnvelope, 'signature'> = {
@@ -769,7 +774,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 eventId: eventId || 'unk',
                 examId: examId || 'unk',
                 studentId: studentId || 'unk',
-                sessionId: isSessionActive ? getSessionService().getCurrentSession()?.id : undefined,
+                sessionId: currentSession?.sessionId,
                 header: {
                     progress: Math.round((count / (examItems.length || 1)) * 100),
                     answeredCount: count,
@@ -809,12 +814,22 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         if (isSessionActive && actualItems.length > 0) {
             const questionIndex = actualItems.findIndex(q => q.id === qId);
             if (questionIndex >= 0) {
-                await saveAnswerToSession(questionIndex + 1, optId);
+                await saveAnswer(questionIndex + 1, optId);
             }
         }
 
-        // 🌐 [T3] Enviar Envelope Híbrido via Mesh (Cifragem Granular)
+        // 1. Salvar no IndexedDB (Dexie V2 via SessionIsolationService)
+        await saveAnswer(currentQuestionIdx, optId as string);
+
+        // 2. Broadcast via Mesh com Envelope Híbrido (Criptografado)
         await sendHybridAutosave(newAnswers);
+
+        // Registro de telemetria
+        await updateTelemetry({
+            batteryLevel: (window as any).batteryLevel || 100,
+            lastQuestion: currentQuestionIdx,
+            answeredCount: Object.keys(newAnswers).length
+        });
 
 
         // --- ADAPTIVE LOGIC (IRT) ---
@@ -868,21 +883,6 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                     }
                 }
             }
-        }
-
-        // --- OFFLINE PERSISTENCE (PHASE 2) - Legacy support ---
-        if (studentData) {
-            saveSession({
-                sessionId: `${studentData.id}_${studentData.examId || 'demo'}`,
-                studentId: studentData.id,
-                studentName: studentData.name,
-                eventId: studentData.eventId || 'demo',
-                encryptedData: JSON.stringify(newAnswers),
-                timestamp: new Date().toISOString(),
-                synced: false,
-                currentQuestionIndex: currentQuestionIdx,
-                remainingSeconds: currentTime
-            });
         }
     };
 
@@ -942,7 +942,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
             // ✨ Finalizar sessão multi-login
             if (isSessionActive) {
                 const completedSession = await finishSession();
-                console.log('🎓 Sessão multi-login finalizada:', completedSession.id);
+                console.log('🎓 Sessão multi-login finalizada:', completedSession.sessionId);
             }
 
             const rawAnswers = Object.keys(answers).map(qId => ({
@@ -1007,23 +1007,9 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 }));
                 setStep('OFFLINE_SUBMISSION');
             } else if (studentData) {
-                // Fallback: salvar localmente para sync posterior
-                const rawAnswers = Object.keys(answers).map(qId => ({
-                    itemId: qId,
-                    selectedAlternativeId: answers[qId],
-                    text: answers[qId + '_text'] || null
-                }));
-
-                await saveSession({
-                    sessionId: uuidv4(),
-                    studentId: studentData.id,
-                    studentName: studentData.name,
-                    eventId: studentData.eventId,
-                    encryptedData: JSON.stringify(rawAnswers),
-                    timestamp: new Date().toISOString(),
-                    synced: false
-                });
-
+                // A persistência já foi garantida pelo SessionIsolationService (saveAnswer)
+                // O fallback aqui é para exibir o QR Code de contingência
+                console.warn("⚠️ Sem conexão com o servidor. Respostas seguras em cache local.");
                 alert("⚠️ Sem conexão com o servidor.\n\nSua prova foi salva com segurança no MEMÓRIA SEGURA deste tablet.\n\nAvise o professor para realizar a sincronização manual.");
                 setStep('OFFLINE_SUBMISSION'); // Mostrar QR mesmo com fallback
             } else {

@@ -1,60 +1,8 @@
-/**
- * Session Isolation Service
- * 
- * Gerencia múltiplos usuários no mesmo tablet com isolamento total.
- * 
- * Funcionalidades:
- * - Múltiplos alunos podem usar o mesmo tablet no dia
- * - Isolamento completo de dados entre sessões
- * - Limpeza de RAM ao fazer logout
- * - Persistência em IndexedDB até upload confirmado
- * - Gestão de ciclo de vida dos dados
- */
+import { db } from './offlineDb';
+import { StoredSession } from '../types';
 
-export interface StudentSession {
-    // Identificação
-    id: string; // Técnico: sessionId (UUID)
-    storage_key: string; // Canônica: storage_${eventId}_${studentId}_${examId}
-    studentId: string;
-    studentName: string;
-    examId: string;
-    eventId: string;
-    attempt_id?: string; // Oficial (opcional)
-    migrated_legacy?: boolean; // Flag de transição
-
-    // Dados criptografados
-    encryptedAnswers: Array<{
-        questionId: number;
-        answer: string | string[]; // Single ou múltipla escolha
-        timestamp: string;
-    }>;
-
-    // Logs de segurança
-    securityEvents: Array<{
-        type: 'TAB_SWITCH' | 'FACE_NOT_DETECTED' | 'FULLSCREEN_EXIT' | 'SUSPICIOUS_PATTERN';
-        severity: 'LOW' | 'MEDIUM' | 'HIGH';
-        timestamp: string;
-        metadata?: any;
-    }>;
-
-    // Telemetria
-    telemetry: {
-        timePerQuestion: number[]; // Segundos por questão
-        backtracks: number[]; // Questões revisitadas
-        batteryLevels: number[]; // % a cada 30s
-        networkQuality: number[]; // % a cada 30s
-    };
-
-    // Metadados
-    startedAt: string;
-    finishedAt?: string;
-    totalDuration?: number; // segundos
-
-    // Status de sincronização
-    qrCodeGenerated: boolean;
-    uploadedToServer: boolean;
-    uploadedAt?: string;
-}
+// O serviço passa a usar o tipo StoredSession do offlineDb para consistência
+export type StudentSession = StoredSession;
 
 export interface SessionState {
     // Estado volátil (RAM) - limpo ao logout
@@ -71,10 +19,6 @@ export interface SessionState {
 export class SessionIsolationService {
     private currentSession: StudentSession | null = null;
     private sessionState: SessionState | null = null;
-    private dbName = 'ExamePadOffline';
-    
-    // Feature Flag de Transição (Sprint 2)
-    private static DOUBLE_WRITE_LEGACY = false; 
 
     /**
      * Inicia nova sessão ou reativa sessão existente para um aluno
@@ -100,7 +44,7 @@ export class SessionIsolationService {
         let existingSession = await this.findSessionByContext(eventId, studentId, examId);
 
         if (existingSession) {
-            console.log(`📡 [RESUME] Sessão compatível encontrada: ${existingSession.id}`);
+            console.log(`📡 [RESUME] Sessão compatível encontrada: ${existingSession.sessionId}`);
             this.currentSession = existingSession;
             // Se recebemos um attemptId novo mas temos sessão local, mantemos a sessão local
             // mas podemos atualizar o attempt_id se estiver vazio
@@ -112,7 +56,7 @@ export class SessionIsolationService {
 
             // Criar nova sessão
             this.currentSession = {
-                id: sessionId,
+                sessionId: sessionId,
                 storage_key: storageKey,
                 studentId,
                 studentName,
@@ -129,6 +73,7 @@ export class SessionIsolationService {
                 },
                 startedAt: new Date().toISOString(),
                 qrCodeGenerated: false,
+                synced: false,
                 uploadedToServer: false
             };
             console.log(`✅ Nova sessão criada para ${studentName} (${sessionId})`);
@@ -149,7 +94,9 @@ export class SessionIsolationService {
         }
 
         // Persistir (Update ou Create) no IndexedDB
-        await this.persistSession(this.currentSession);
+        if (this.currentSession) {
+            await this.persistSession(this.currentSession);
+        }
 
         return this.currentSession;
     }
@@ -170,32 +117,29 @@ export class SessionIsolationService {
         examId: string
     ): Promise<StudentSession | null> {
         const storageKey = this.generateStorageKey(eventId, studentId, examId);
-        const db = await this.openDatabase();
         
-        // 1. Tentar busca direta pela storage_key (Novo padrão)
-        // Como o keyPath atual é 'id', primeiro buscamos via getAll e filtramos, 
-        // ou adicionamos um índice no upgrade posterior.
-        const sessions = await this.getAllSessions();
+        // 1. Busca Direta via Índice storage_key (O(1))
+        const session = await db.studentSessions.where('storage_key').equals(storageKey).first();
         
-        // Primeiro tenta encontrar pelo novo padrão exato
-        let session = sessions.find(s => s.storage_key === storageKey);
-        
-        if (session) return session;
+        if (session) {
+            console.log(`📡 [RESUME] Sessão canônica encontrada via índice: ${session.sessionId}`);
+            return session;
+        }
 
         // 2. Fallback: Busca via padrão legado session_${studentId}_${examId}_*
+        // Nota: Isso agora é gerenciado pelo MigrationService, mas mantemos o fallback por segurança extra
         const legacyPattern = `session_${studentId}_${examId}_`;
-        const legacySession = sessions.find(s => 
-            s.id.startsWith(legacyPattern) && s.eventId === eventId && !s.migrated_legacy
-        );
+        const legacySession = await db.studentSessions
+            .filter(s => s.sessionId.startsWith(legacyPattern) && s.eventId === eventId && !s.migrated_legacy)
+            .first();
 
         if (legacySession) {
-            console.log(`🧪 [MIGRATION] Sessão legada detectada para ${studentId}. Migrando para Identidade Canônica...`);
+            console.log(`🧪 [MIGRATION] Sessão legada detectada. Migrando...`);
             
-            // Migrar
             const migrated: StudentSession = {
                 ...legacySession,
                 storage_key: storageKey,
-                migrated_legacy: true // Marcar mas não apagar ainda
+                migrated_legacy: true
             };
             
             await this.persistSession(migrated);
@@ -308,7 +252,7 @@ export class SessionIsolationService {
 
         const completedSession = { ...this.currentSession };
 
-        console.log(`✅ Sessão finalizada: ${this.currentSession.id}`);
+        console.log(`✅ Sessão finalizada: ${this.currentSession.sessionId}`);
         console.log(`   Duração: ${this.currentSession.totalDuration}s`);
         console.log(`   Respostas: ${this.currentSession.encryptedAnswers.length}`);
         console.log(`   Eventos de segurança: ${this.currentSession.securityEvents.length}`);
@@ -381,100 +325,53 @@ export class SessionIsolationService {
      * Persiste sessão no IndexedDB utilizando se a hierarquia de identidade (T2)
      */
     private async persistSession(session: StudentSession): Promise<void> {
-        const db = await this.openDatabase();
-        const tx = db.transaction(['studentSessions'], 'readwrite');
-        const store = tx.objectStore('studentSessions');
-
-        return new Promise((resolve, reject) => {
-            // Write principal (Novo padrão)
-            const request = store.put(session);
-            
-            request.onsuccess = () => {
-                // Double Write Legado (Opcional por flag)
-                if (SessionIsolationService.DOUBLE_WRITE_LEGACY && !session.migrated_legacy) {
-                    // Aqui implementaríamos o espelhamento se necessário em campo
-                }
-                resolve();
-            };
-            request.onerror = () => reject(request.error);
-        });
+        try {
+            await db.studentSessions.put(session);
+        } catch (error) {
+            console.error('[DB] Erro ao persistir sessão:', error);
+            throw error;
+        }
     }
 
     /**
      * Carrega todas as sessões do IndexedDB (para debug/relatórios)
      */
+    /**
+     * Carrega todas as sessões do IndexedDB
+     */
     async getAllSessions(): Promise<StudentSession[]> {
-        const db = await this.openDatabase();
-        const tx = db.transaction(['studentSessions'], 'readonly');
-        const store = tx.objectStore('studentSessions');
-
-        return new Promise((resolve, reject) => {
-            const request = store.getAll();
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
+        return db.studentSessions.toArray();
     }
 
     /**
      * Carrega sessões pendentes de upload
      */
     async getPendingSessions(): Promise<StudentSession[]> {
-        const allSessions = await this.getAllSessions();
-        return allSessions.filter(s => !s.uploadedToServer);
+        return db.studentSessions.where('uploadedToServer').equals(0).toArray(); // Dexie usa 0/1 para boolean em índices às vezes, mas aqui depende do registro
     }
 
     /**
      * Marca sessão como enviada ao servidor
      */
     async markAsUploaded(sessionId: string): Promise<void> {
-        const db = await this.openDatabase();
-        const tx = db.transaction(['studentSessions'], 'readwrite');
-        const store = tx.objectStore('studentSessions');
-
-        const session = await new Promise<StudentSession>((resolve, reject) => {
-            const req = store.get(sessionId);
-            req.onsuccess = () => resolve(req.result);
-            req.onerror = () => reject(req.error);
+        await db.studentSessions.update(sessionId, {
+            uploadedToServer: true,
+            uploadedAt: new Date().toISOString()
         });
-
-        if (session) {
-            session.uploadedToServer = true;
-            session.uploadedAt = new Date().toISOString();
-            await new Promise<void>((resolve, reject) => {
-                const req = store.put(session);
-                req.onsuccess = () => resolve();
-                req.onerror = () => reject(req.error);
-            });
-
-            console.log(`✅ Sessão ${sessionId} marcada como enviada`);
-        }
+        console.log(`✅ Sessão ${sessionId} marcada como enviada`);
     }
 
     /**
      * Deleta sessões já enviadas (limpeza)
      */
     async cleanUploadedSessions(): Promise<number> {
-        const sessions = await this.getAllSessions();
-        const uploaded = sessions.filter(s => s.uploadedToServer);
+        const uploaded = await db.studentSessions.where('uploadedToServer').equals(1).toArray();
+        if (uploaded.length === 0) return 0;
 
-        if (uploaded.length === 0) {
-            return 0;
-        }
-
-        const db = await this.openDatabase();
-        const tx = db.transaction(['studentSessions'], 'readwrite');
-        const store = tx.objectStore('studentSessions');
-
-        for (const session of uploaded) {
-            await new Promise<void>((resolve, reject) => {
-                const req = store.delete(session.id);
-                req.onsuccess = () => resolve();
-                req.onerror = () => reject(req.error);
-            });
-        }
-
+        const ids = uploaded.map(s => s.sessionId);
+        await db.studentSessions.bulkDelete(ids);
+        
         console.log(`🗑️ ${uploaded.length} sessões enviadas removidas`);
-
         return uploaded.length;
     }
 
@@ -488,39 +385,13 @@ export class SessionIsolationService {
     }
 
     /**
-     * Abre conexão com IndexedDB
-     */
-    private async openDatabase(): Promise<IDBDatabase> {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(this.dbName, 1);
-
-            request.onerror = () => reject(request.error);
-            request.onsuccess = () => resolve(request.result);
-
-            request.onupgradeneeded = (event) => {
-                const db = (event.target as IDBOpenDBRequest).result;
-
-                if (!db.objectStoreNames.contains('studentSessions')) {
-                    db.createObjectStore('studentSessions', { keyPath: 'id' });
-                }
-                if (!db.objectStoreNames.contains('config')) {
-                    db.createObjectStore('config', { keyPath: 'key' });
-                }
-                if (!db.objectStoreNames.contains('questionCache')) {
-                    db.createObjectStore('questionCache', { keyPath: 'id' });
-                }
-            };
-        });
-    }
-
-    /**
      * Gera relatório de uso do tablet no dia
      */
     async generateDailyReport(): Promise<string> {
         const allSessions = await this.getAllSessions();
         const today = new Date().toISOString().split('T')[0];
 
-        const todaySessions = allSessions.filter(s =>
+        const todaySessions = allSessions.filter((s: StudentSession) =>
             s.startedAt.startsWith(today)
         );
 
@@ -530,11 +401,11 @@ export class SessionIsolationService {
 
         let report = `📊 RELATÓRIO DO TABLET - ${today}\n\n`;
         report += `Total de alunos: ${todaySessions.length}\n`;
-        report += `Sessões finalizadas: ${todaySessions.filter(s => s.finishedAt).length}\n`;
-        report += `Pendentes upload: ${todaySessions.filter(s => !s.uploadedToServer).length}\n\n`;
+        report += `Sessões finalizadas: ${todaySessions.filter((s: StudentSession) => s.finishedAt).length}\n`;
+        report += `Pendentes upload: ${todaySessions.filter((s: StudentSession) => !s.uploadedToServer).length}\n\n`;
         report += `Sessões:\n`;
 
-        todaySessions.forEach((session, index) => {
+        todaySessions.forEach((session: StudentSession, index: number) => {
             report += `${index + 1}. ${session.studentName}\n`;
             report += `   Início: ${new Date(session.startedAt).toLocaleTimeString()}\n`;
             if (session.finishedAt) {

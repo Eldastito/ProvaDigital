@@ -65,21 +65,21 @@ export class E2EEncryptionService {
     }
 
     /**
-     * Criptografa respostas do aluno
+     * Criptografa dados genéricos
      * 
-     * @param answers - Array de respostas do aluno
-     * @param key - Chave derivada para este aluno
+     * @param data - Dados a serem criptografados (devem ser JSON serializáveis)
+     * @param key - Chave derivada
      * @returns Pacote criptografado (IV + dados)
      */
-    static async encryptAnswers(
-        answers: StudentAnswer[],
+    static async encryptData<T>(
+        data: T,
         key: CryptoKey
     ): Promise<EncryptedPackage> {
         // Gerar IV aleatório (12 bytes para GCM)
         const iv = crypto.getRandomValues(new Uint8Array(12));
 
-        // Serializar respostas
-        const plaintext = JSON.stringify(answers);
+        // Serializar dados
+        const plaintext = JSON.stringify(data);
 
         // Criptografar
         const ciphertext = await crypto.subtle.encrypt(
@@ -96,30 +96,50 @@ export class E2EEncryptionService {
     }
 
     /**
-     * Descriptografa respostas do aluno
+     * Descriptografa dados genéricos
      * 
      * @param encryptedPackage - Pacote criptografado
-     * @param key - Chave derivada para este aluno
-     * @returns Array de respostas descriptografadas
+     * @param key - Chave derivada
+     * @returns Dados descriptografados do tipo T
      */
-    static async decryptAnswers(
+    static async decryptData<T>(
         encryptedPackage: EncryptedPackage,
         key: CryptoKey
-    ): Promise<StudentAnswer[]> {
+    ): Promise<T> {
         // Converter de base64 para bytes
         const iv = this.base64ToArrayBuffer(encryptedPackage.iv);
         const ciphertext = this.base64ToArrayBuffer(encryptedPackage.data);
 
         // Descriptografar
         const decrypted = await crypto.subtle.decrypt(
-            { name: 'AES-GCM', iv: iv.buffer },
+            { name: 'AES-GCM', iv: iv.buffer as ArrayBuffer },
             key,
-            ciphertext.buffer
+            ciphertext.buffer as ArrayBuffer
         );
 
         // Parsear JSON
         const plaintext = new TextDecoder().decode(decrypted);
-        return JSON.parse(plaintext);
+        return JSON.parse(plaintext) as T;
+    }
+
+    /**
+     * @deprecated Use encryptData<StudentAnswer[]>
+     */
+    static async encryptAnswers(
+        answers: StudentAnswer[],
+        key: CryptoKey
+    ): Promise<EncryptedPackage> {
+        return this.encryptData(answers, key);
+    }
+
+    /**
+     * @deprecated Use decryptData<StudentAnswer[]>
+     */
+    static async decryptAnswers(
+        encryptedPackage: EncryptedPackage,
+        key: CryptoKey
+    ): Promise<StudentAnswer[]> {
+        return this.decryptData<StudentAnswer[]>(encryptedPackage, key);
     }
 
     /**

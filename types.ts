@@ -1275,15 +1275,48 @@ export interface SecurityEvent {
 }
 
 export interface StoredSession {
-  sessionId: string;
+  // Identificação Canônica (Trava #2)
+  sessionId: string; // UUID Técnico
+  storage_key: string; // storage_${eventId}_${studentId}_${examId}
   studentId: string;
   studentName: string;
+  examId: string;
   eventId: string;
-  encryptedData: string;
-  timestamp: string;
+  attempt_id?: string; // ID oficial da tentativa no servidor
+  
+  // Dados de Sessão
+  encryptedAnswers: Array<{
+    questionId: number;
+    answer: string | string[];
+    timestamp: string;
+  }>;
+  
+  // Telemetria e Segurança (Sprint 3/4)
+  securityEvents: Array<{
+    type: string;
+    severity: 'LOW' | 'MEDIUM' | 'HIGH';
+    timestamp: string;
+    metadata?: any;
+  }>;
+  
+  telemetry: {
+    timePerQuestion: number[];
+    backtracks: number[];
+    batteryLevels: number[];
+    networkQuality: number[];
+  };
+
+  // Ciclo de Vida
+  startedAt: string;
+  finishedAt?: string;
+  totalDuration?: number;
   synced: boolean;
-  currentQuestionIndex?: number;
-  remainingSeconds?: number;
+  uploadedToServer: boolean;
+  uploadedAt?: string;
+  qrCodeGenerated: boolean;
+  
+  // Transição (Dual Read)
+  migrated_legacy?: boolean;
 }
 
 // ============================================

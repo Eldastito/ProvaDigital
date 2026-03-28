@@ -134,11 +134,7 @@ export class LocalServerService {
                 // Formato esperado do Bearer: base64(payload_json).signature
                 const parts = rawToken.split('.');
                 if (parts.length !== 2) {
-                    // Fallback para DEV: se o token for o eventId puro (legado), permitimos apenas se a flag estiver ativa
-                    if (process.env.NODE_ENV === 'development' && rawToken.length >= 10) {
-                        return next();
-                    }
-                    return res.status(403).json({ error: 'Acesso Negado: Formato de token inválido.' });
+                    return res.status(403).json({ error: 'Acesso Negado: Formato de token inválido. O servidor local exige Bearer assinado (Lock #4).' });
                 }
 
                 const [payloadB64, signature] = parts;

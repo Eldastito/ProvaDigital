@@ -9,14 +9,37 @@ export class OfflineDatabase extends Dexie {
     studentSessions!: Table<StoredSession, string>; // 'sessionId' é a chave
     cachedExams!: Table<{ examId: string; title: string; cachedAt: number }, string>;
     offlineQueue!: Table<{ id: string; examId: string; studentId: string; data: any; timestamp: number; synced: boolean }, string>;
+    migrationMetadata!: Table<{
+        id: string;
+        migrationVersion: string;
+        startedAt: number;
+        completedAt?: number;
+        sourceDbDetected: string;
+        migratedSessionCount: number;
+        validationPassed: boolean;
+        cleanupEligible: boolean;
+        details?: string;
+    }, string>;
 
     constructor() {
         super('ExamePadOfflineDB');
-        (this as any).version(1).stores({
+        
+        // Versões anteriores preservadas para histórico de migração do Dexie
+        this.version(1).stores({
             examEvents: 'id, status, date',
             studentSessions: 'sessionId, studentId, eventId, synced',
             cachedExams: 'examId, title, cachedAt',
             offlineQueue: 'id, examId, studentId, synced, timestamp'
+        });
+
+        // Versão 2 - Adiciona índice storage_key
+        this.version(2).stores({
+            studentSessions: 'sessionId, studentId, eventId, synced, storage_key'
+        });
+
+        // Versão 3 - Manifesto de Migração (Trava Operacional)
+        this.version(3).stores({
+            migrationMetadata: 'id, migrationVersion, completedAt'
         });
     }
 }
