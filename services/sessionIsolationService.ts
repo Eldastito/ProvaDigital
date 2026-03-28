@@ -13,11 +13,14 @@
 
 export interface StudentSession {
     // Identificação
-    id: string; // Único: sessionId
+    id: string; // Técnico: sessionId (UUID)
+    storage_key: string; // Canônica: storage_${eventId}_${studentId}_${examId}
     studentId: string;
     studentName: string;
     examId: string;
     eventId: string;
+    attempt_id?: string; // Oficial (opcional)
+    migrated_legacy?: boolean; // Flag de transição
 
     // Dados criptografados
     encryptedAnswers: Array<{
@@ -69,62 +72,137 @@ export class SessionIsolationService {
     private currentSession: StudentSession | null = null;
     private sessionState: SessionState | null = null;
     private dbName = 'ExamePadOffline';
+    
+    // Feature Flag de Transição (Sprint 2)
+    private static DOUBLE_WRITE_LEGACY = false; 
 
     /**
-     * Inicia nova sessão para um aluno
+     * Inicia nova sessão ou reativa sessão existente para um aluno
      */
     async startSession(
         studentId: string,
         studentName: string,
         examId: string,
-        eventId: string
+        eventId: string,
+        attemptId?: string
     ): Promise<StudentSession> {
 
-        // Verificar se há sessão ativa
-        if (this.currentSession) {
-            throw new Error('Sessão já ativa. Faça logout primeiro.');
+        // 1. Verificar se há sessão ativa na RAM
+        if (this.currentSession && 
+            this.currentSession.studentId === studentId && 
+            this.currentSession.examId === examId) {
+            console.log('🔄 Reativando sessão da RAM...');
+            return this.currentSession;
         }
 
-        const sessionId = this.generateSessionId(studentId, examId);
+        // 2. Tentar encontrar sessão persistente (Dual Read)
+        const storageKey = this.generateStorageKey(eventId, studentId, examId);
+        let existingSession = await this.findSessionByContext(eventId, studentId, examId);
 
-        // Criar nova sessão
-        this.currentSession = {
-            id: sessionId,
-            studentId,
-            studentName,
-            examId,
-            eventId,
-            encryptedAnswers: [],
-            securityEvents: [],
-            telemetry: {
-                timePerQuestion: [],
-                backtracks: [],
-                batteryLevels: [],
-                networkQuality: []
-            },
-            startedAt: new Date().toISOString(),
-            qrCodeGenerated: false,
-            uploadedToServer: false
-        };
+        if (existingSession) {
+            console.log(`📡 [RESUME] Sessão compatível encontrada: ${existingSession.id}`);
+            this.currentSession = existingSession;
+            // Se recebemos um attemptId novo mas temos sessão local, mantemos a sessão local
+            // mas podemos atualizar o attempt_id se estiver vazio
+            if (attemptId && !this.currentSession.attempt_id) {
+                this.currentSession.attempt_id = attemptId;
+            }
+        } else {
+            const sessionId = `auth_${crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 11)}`;
 
-        // Criar estado volátil (RAM)
-        this.sessionState = {
-            currentQuestion: 1,
-            uiState: {
-                scrollPosition: 0,
-                examMode: 'normal',
-                flaggedQuestions: []
-            },
-            activeTimers: [],
-            networkConnections: []
-        };
+            // Criar nova sessão
+            this.currentSession = {
+                id: sessionId,
+                storage_key: storageKey,
+                studentId,
+                studentName,
+                examId,
+                eventId,
+                attempt_id: attemptId,
+                encryptedAnswers: [],
+                securityEvents: [],
+                telemetry: {
+                    timePerQuestion: [],
+                    backtracks: [],
+                    batteryLevels: [],
+                    networkQuality: []
+                },
+                startedAt: new Date().toISOString(),
+                qrCodeGenerated: false,
+                uploadedToServer: false
+            };
+            console.log(`✅ Nova sessão criada para ${studentName} (${sessionId})`);
+        }
 
-        // Persistir sessão no IndexedDB
+        // Criar estado volátil (RAM) se não houver
+        if (!this.sessionState) {
+            this.sessionState = {
+                currentQuestion: 1,
+                uiState: {
+                    scrollPosition: 0,
+                    examMode: 'normal',
+                    flaggedQuestions: []
+                },
+                activeTimers: [],
+                networkConnections: []
+            };
+        }
+
+        // Persistir (Update ou Create) no IndexedDB
         await this.persistSession(this.currentSession);
 
-        console.log(`✅ Sessão iniciada para ${studentName} (${sessionId})`);
-
         return this.currentSession;
+    }
+
+    /**
+     * Gera chave determinística única para armazenamento persistente
+     */
+    private generateStorageKey(eventId: string, studentId: string, examId: string): string {
+        return `storage_${eventId}_${studentId}_${examId}`;
+    }
+
+    /**
+     * Busca sessão por contexto (Dual Read)
+     */
+    async findSessionByContext(
+        eventId: string, 
+        studentId: string, 
+        examId: string
+    ): Promise<StudentSession | null> {
+        const storageKey = this.generateStorageKey(eventId, studentId, examId);
+        const db = await this.openDatabase();
+        
+        // 1. Tentar busca direta pela storage_key (Novo padrão)
+        // Como o keyPath atual é 'id', primeiro buscamos via getAll e filtramos, 
+        // ou adicionamos um índice no upgrade posterior.
+        const sessions = await this.getAllSessions();
+        
+        // Primeiro tenta encontrar pelo novo padrão exato
+        let session = sessions.find(s => s.storage_key === storageKey);
+        
+        if (session) return session;
+
+        // 2. Fallback: Busca via padrão legado session_${studentId}_${examId}_*
+        const legacyPattern = `session_${studentId}_${examId}_`;
+        const legacySession = sessions.find(s => 
+            s.id.startsWith(legacyPattern) && s.eventId === eventId && !s.migrated_legacy
+        );
+
+        if (legacySession) {
+            console.log(`🧪 [MIGRATION] Sessão legada detectada para ${studentId}. Migrando para Identidade Canônica...`);
+            
+            // Migrar
+            const migrated: StudentSession = {
+                ...legacySession,
+                storage_key: storageKey,
+                migrated_legacy: true // Marcar mas não apagar ainda
+            };
+            
+            await this.persistSession(migrated);
+            return migrated;
+        }
+
+        return null;
     }
 
     /**
@@ -300,7 +378,7 @@ export class SessionIsolationService {
     }
 
     /**
-     * Persiste sessão no IndexedDB
+     * Persiste sessão no IndexedDB utilizando se a hierarquia de identidade (T2)
      */
     private async persistSession(session: StudentSession): Promise<void> {
         const db = await this.openDatabase();
@@ -308,8 +386,16 @@ export class SessionIsolationService {
         const store = tx.objectStore('studentSessions');
 
         return new Promise((resolve, reject) => {
+            // Write principal (Novo padrão)
             const request = store.put(session);
-            request.onsuccess = () => resolve();
+            
+            request.onsuccess = () => {
+                // Double Write Legado (Opcional por flag)
+                if (SessionIsolationService.DOUBLE_WRITE_LEGACY && !session.migrated_legacy) {
+                    // Aqui implementaríamos o espelhamento se necessário em campo
+                }
+                resolve();
+            };
             request.onerror = () => reject(request.error);
         });
     }
@@ -393,7 +479,7 @@ export class SessionIsolationService {
     }
 
     /**
-     * Gera ID único para sessão
+     * @deprecated Usar generateStorageKey em conjunto com UUID técnico
      */
     private generateSessionId(studentId: string, examId: string): string {
         const timestamp = Date.now();

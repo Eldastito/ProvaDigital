@@ -21,7 +21,7 @@ export interface UseStudentSessionReturn {
     isSessionActive: boolean;
 
     // Actions
-    startSession: (studentId: string, studentName: string) => Promise<void>;
+    startSession: (studentId: string, studentName: string, attemptId?: string) => Promise<void>;
     saveAnswer: (questionId: number, answer: string | string[]) => Promise<void>;
     logSecurityEvent: (type: string, severity: 'LOW' | 'MEDIUM' | 'HIGH', metadata?: any) => Promise<void>;
     updateTelemetry: (data: any) => Promise<void>;
@@ -40,21 +40,22 @@ export function useStudentSession({ examId, eventId }: UseStudentSessionProps): 
     const service = getSessionService();
 
     /**
-     * Inicia nova sessão para o aluno
+     * Inicia nova sessão para o aluno (ou reativa local existente)
      */
-    const startSession = useCallback(async (studentId: string, studentName: string) => {
+    const startSession = useCallback(async (studentId: string, studentName: string, attemptId?: string) => {
         try {
             const session = await service.startSession(
                 studentId,
                 studentName,
                 examId,
-                eventId
+                eventId,
+                attemptId
             );
 
             setCurrentSession(session);
             setIsSessionActive(true);
 
-            console.log(`✅ Sessão iniciada: ${studentName}`);
+            console.log(`✅ Sessão ${session.id.startsWith('auth_') ? 'reativada' : 'iniciada'}: ${studentName}`);
 
         } catch (error) {
             console.error('❌ Erro ao iniciar sessão:', error);
@@ -182,14 +183,53 @@ export function useStudentSession({ examId, eventId }: UseStudentSessionProps): 
     }, []);
 
     /**
-     * Sincroniza estado ao remontar componente
+     * ❄️ Cold Boot Recovery (T2)
+     * Recupera sessão do IndexedDB se a RAM estiver vazia mas houver contexto
+     */
+    useEffect(() => {
+        const recoverSession = async () => {
+            if (isSessionActive || currentSession) return;
+
+            // Se tivermos studentId no contexto (ex: de um login prévio ou state global), 
+            // podemos tentar a recuperação automática.
+            // Para efeitos de mock, se já tivermos examId e eventId, verificamos sessões pendentes.
+            
+            const sessions = await service.getAllSessions();
+            const relevantSession = sessions.find(s => 
+                s.examId === examId && 
+                s.eventId === eventId && 
+                !s.finishedAt
+            );
+
+            if (relevantSession) {
+                console.log('❄️ [COLD BOOT] Recuperando sessão ativa encontrada no storage...');
+                // Nota: Aqui estamos no Nível 1 (Automático) pois assumimos que o 
+                // componente que usa o hook já proveu examId/eventId.
+                const session = await service.startSession(
+                    relevantSession.studentId,
+                    relevantSession.studentName,
+                    relevantSession.examId,
+                    relevantSession.eventId,
+                    relevantSession.attempt_id
+                );
+                
+                setCurrentSession(session);
+                setIsSessionActive(true);
+            }
+        };
+
+        recoverSession();
+    }, [examId, eventId, isSessionActive]);
+
+    /**
+     * Sincroniza estado RAM ao remontar componente (Nível 0)
      */
     useEffect(() => {
         const existingSession = service.getCurrentSession();
         if (existingSession) {
             setCurrentSession(existingSession);
             setIsSessionActive(true);
-            console.log('🔄 Sessão existente detectada:', existingSession.studentName);
+            console.log('🔄 Sessão em RAM detectada:', existingSession.studentName);
         }
     }, []);
 
