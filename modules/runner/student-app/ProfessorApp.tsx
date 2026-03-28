@@ -12,7 +12,8 @@ import { OfflineMonitorView } from '../offline/OfflineMonitorView';
 
 import { useSafeAppStore } from '../../../store/useAppStore';
 import { TabletLauncher } from './TabletLauncher';
-import { getMeshNetwork } from '../../../services/meshNetworkService';
+import { getMeshNetwork, MeshNode, MeshMessage } from '../../../services/meshNetworkService';
+import { envConfig } from '../../../services/environmentConfig';
 
 interface ProfessorAppProps {
     onBack: () => void;
@@ -129,7 +130,7 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
             // 4. Initialize Mesh for classroom monitoring
             const mesh = getMeshNetwork();
             mesh.initialize({
-                signalingServerUrl: 'http://localhost:3001',
+                signalingServerUrl: envConfig.getSignalingUrl(),
                 roomId: `exam-${activeExam?.id || schedule?.examId || selectedClass.id}`,
                 nodeId: 'professor-tablet',
                 nodeType: 'PROFESSOR',

@@ -1,9 +1,18 @@
 
 import { getLocalServer } from './localServerService';
+import { envConfig } from './environmentConfig';
 
 async function startGateway() {
     console.log('\n\x1b[36m%s\x1b[0m', '🚀 EXAMEPAD - LOGISTICS GATEWAY (Local Mesh Hub)');
-    console.log('\x1b[33m%s\x1b[0m', 'Iniciando servidor de sinalização para rede local...\n');
+    
+    // 1. Validação de Boot Mode-Aware
+    const validation = envConfig.validateBoot();
+    if (!validation.isValid) {
+        console.error('\x1b[31m%s\x1b[0m', `❌ ERRO DE BOOT: ${validation.error}`);
+        process.exit(1);
+    }
+
+    console.log('\x1b[33m%s\x1b[0m', `Modo: ${envConfig.getMode()} - Iniciando servidor de sinalização...\n`);
 
     const server = getLocalServer();
 
@@ -11,15 +20,16 @@ async function startGateway() {
     (global as any).isNativeApp = true;
 
     try {
+        const config = envConfig.getNetworkConfig();
         await server.start({
-            port: 3001,
+            port: config.port, // Versão consolidada (SST)
             corsOrigins: ['*']
         });
 
         console.log('\x1b[32m%s\x1b[0m', '-------------------------------------------');
         console.log('\x1b[32m%s\x1b[0m', '✅ GATEWAY ATIVO - Wi-Fi Nativo Habilitado');
-        console.log('\x1b[32m%s\x1b[0m', '📍 Interface: Wi-Fi Hotspot (Windows)');
-        console.log('\x1b[32m%s\x1b[0m', '🔌 Porta: 3001');
+        console.log('\x1b[32m%s\x1b[0m', `📍 Interface: ${config.host} (SST)`);
+        console.log('\x1b[32m%s\x1b[0m', `🔌 Porta: ${config.port}`);
         console.log('\x1b[32m%s\x1b[0m', '-------------------------------------------');
         console.log('\n\x1b[37m%s\x1b[0m', 'Mantenha esta janela aberta durante o processo de carga.\n');
 

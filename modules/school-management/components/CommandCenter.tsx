@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Truck, CheckCircle, RefreshCcw, MapPin, Radio, Layers, Plus, AlertTriangle, Briefcase, Server, ShieldCheck, HelpCircle, Wifi, Smartphone, Monitor } from 'lucide-react';
 import { AppState, MeshPeer, MeshRole, MeshMessage, ProvisioningPayload, SecurityReport } from '../../../types';
 import { meshService } from '../../../services/localMeshService';
+import { envConfig } from '../../../services/environmentConfig';
 import { QRDataTransfer } from '../../../services/qrCodecService';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -40,11 +41,12 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
     useEffect(() => {
         const checkGateway = async () => {
             try {
-                const res = await fetch('http://localhost:3001/health', { mode: 'cors' });
+                const config = envConfig.getNetworkConfig();
+                const res = await fetch(`http://localhost:${config.port}/health`, { mode: 'cors' });
                 if (res.ok) {
                     setGatewayStatus('ONLINE');
                     // Se o gateway local estiver ativo, podemos usar ele para sinalização prioritária
-                    console.log('🔗 [CC] Gateway Local detectado em :3001. Mesh Wi-Fi Nativo Ativo.');
+                    console.log(`🔗 [CC] Gateway Local detectado em :${config.port}. Mesh Wi-Fi Nativo Ativo.`);
                 } else {
                     setGatewayStatus('OFFLINE');
                 }
@@ -265,7 +267,7 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                     }`} />
                 <Wifi size={16} />
                 {gatewayStatus === 'ONLINE' && (
-                    <span>🛜 Gateway Wi-Fi Ativo (Porta 3001) — <b>{peers.length} dispositivo(s)</b> na rede</span>
+                    <span>🛜 Gateway Wi-Fi Ativo (Porta {envConfig.getNetworkConfig().port}) — <b>{peers.length} dispositivo(s)</b> na rede</span>
                 )}
                 {gatewayStatus === 'CHECKING' && (
                     <span>Verificando Gateway Local...</span>

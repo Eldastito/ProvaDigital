@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Lock, CheckCircle, Play, Wifi, PenTool, Eraser, ChevronRight, ChevronLeft, ShieldCheck, Cloud, Video, AlertTriangle, Music, Trophy, HelpCircle } from 'lucide-react';
 import { AppState, QuestionType } from '../../../types';
 import { supabase } from '../../../services/supabaseClient'; // Import Real Client
+import { envConfig } from '../../../services/environmentConfig';
 import { uuidv4 } from '../../../utils/helpers';
 import { useProctoring } from '../../../hooks/useProctoring';
 import { StudentResultsView } from './StudentResultsView';
@@ -509,7 +510,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
 
             // 1. Conectar à mesh
             await getMeshNetwork().initialize({
-                signalingServerUrl: 'http://192.168.43.1:8080',
+                signalingServerUrl: envConfig.getSignalingUrl(),
                 roomId: eventId,
                 nodeId: studentId,
                 nodeType: 'STUDENT',

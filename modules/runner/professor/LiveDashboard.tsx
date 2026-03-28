@@ -23,6 +23,7 @@ import {
     Play
 } from 'lucide-react';
 import { getMeshNetwork, MeshNode, MeshMessage } from '../../../services/meshNetworkService';
+import { envConfig } from '../../../services/environmentConfig';
 
 interface StudentData {
     id: string;
@@ -63,7 +64,7 @@ export const LiveDashboard: React.FC<LiveDashboardProps> = ({
         const initMesh = async () => {
             try {
                 await mesh.initialize({
-                    signalingServerUrl: 'http://192.168.43.1:8080',
+                    signalingServerUrl: envConfig.getSignalingUrl(),
                     roomId: eventId,
                     nodeId: `professor_${Date.now()}`,
                     nodeType: 'PROFESSOR',

@@ -3,6 +3,7 @@ import { MeshMessage, MeshPeer, MeshRole, MeshMessageType } from "../types";
 import { supabase } from "./supabaseClient";
 import { io, Socket } from "socket.io-client";
 import { Capacitor } from '@capacitor/core';
+import { envConfig } from './environmentConfig';
 
 /**
  * Local Mesh Service — Hybrid Realtime (Supabase + Socket.io Gateway)
@@ -81,9 +82,11 @@ class LocalMeshService {
      */
     private connectToGateway(tenantId?: string) {
         try {
+            const config = envConfig.getNetworkConfig();
             // No emulador Android, 10.0.2.2 aponta para o host. No browser, localhost.
             const isAndroid = Capacitor.getPlatform() === 'android';
-            const gatewayUrl = isAndroid ? 'http://10.0.2.2:3001' : 'http://localhost:3001';
+            const host = isAndroid ? '10.0.2.2' : 'localhost';
+            const gatewayUrl = `http://${host}:${config.port}`;
 
             console.log(`[MESH] Tentando conectar ao Gateway: ${gatewayUrl}`);
 

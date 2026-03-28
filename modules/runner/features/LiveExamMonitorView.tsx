@@ -11,6 +11,7 @@ import { Badge } from '../../../components/ui/Badge';
 import { getMeshNetwork, MeshMessage } from '../../../services/meshNetworkService';
 import { saveSession } from '../../../services/offlineDb';
 import { wifiHotspotService, WifiHotspotService, HotspotStatus } from '../../../services/wifiHotspotService';
+import { envConfig } from '../../../services/environmentConfig';
 
 export const LiveExamMonitorView = () => {
     const state = useSafeAppStore();
@@ -97,7 +98,7 @@ export const LiveExamMonitorView = () => {
         const initMesh = async () => {
             try {
                 await mesh.initialize({
-                    signalingServerUrl: 'http://localhost:3001', // Servidor local do tablet professor
+                    signalingServerUrl: envConfig.getSignalingUrl(), // Servidor unificado (SST)
                     roomId: `exam-${examId}`,
                     nodeId: 'teacher-hq',
                     nodeType: 'PROFESSOR',
