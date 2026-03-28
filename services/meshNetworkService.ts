@@ -32,6 +32,7 @@ export interface MeshHybridEnvelope {
     studentId: string;
     sessionId?: string;
     attemptId?: string;
+    token: string; // F3A: Token de Identidade e Anti-Replay
     header: {
         progress: number;
         answeredCount: number;

@@ -126,15 +126,10 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     
     // 🔐 Cache de Chave Criptográfica (T3)
     const encryptionKeyRef = useRef<CryptoKey | null>(null);
-// Proficiência estimada
 
     // Timer logic
     const [currentTime, setCurrentTime] = useState(25 * 60); // 25 min default
     const [timerActive, setTimerActive] = useState(false);
-
-    // Auto-Resume State
-    const [foundSession, setFoundSession] = useState<StoredSession | null>(null);
-    const [showResumeModal, setShowResumeModal] = useState(false);
 
     // Kiosk Mode Check (Simulated)
     const isKioskActive = true;
@@ -381,14 +376,14 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         }
     }, [examItems, mockItems, loadingExam, examIdParam]);
     // --- AUTO-RESUME LOGIC (F3C.1 Unificada) ---
+    // A UI agora reage ao estado hidratado do hook sem reconstrução manual
     useEffect(() => {
-        if (isHydrating) return; // Aguardar hidratação completa
+        if (isHydrating) return; 
 
-        // Se uma sessão foi recuperada pelo hook (Cold Boot)
         if (currentSession && step === 'LOGIN_FORM') {
-            console.log("❄️ [F3C.1] Sessão ativa detectada durante hidratação:", currentSession.studentName);
+            console.log("❄️ [F3C.1] Sessão ativa detectada e hidratada:", currentSession.studentName);
             
-            // Sincronizar dados do aluno para a UI
+            // 1. Sincronizar dados do aluno para a UI
             setStudentData({
                 id: currentSession.studentId,
                 name: currentSession.studentName,
@@ -400,8 +395,32 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 attemptId: currentSession.attempt_id
             });
 
-            setFoundSession(currentSession);
-            setShowResumeModal(true);
+            // 2. Sincronizar Respostas e Progresso DIRETAMENTE da sessão
+            const recoveredAnswers: Record<string, string> = {};
+            if (currentSession.encryptedAnswers) {
+                currentSession.encryptedAnswers.forEach(a => {
+                    recoveredAnswers[a.questionId] = (a.answer as string);
+                });
+            }
+            setAnswers(recoveredAnswers);
+
+            // 3. Recuperar última questão da telemetria
+            if (currentSession.telemetry?.lastQuestion !== undefined) {
+                setCurrentQuestionIdx(currentSession.telemetry.lastQuestion);
+            }
+
+            // 4. Ativar timers e pular login
+            setStep('EXAM');
+            setTimerActive(true);
+
+            // 🌐 Se estiver online, inicializar mesh com dados recuperados
+            initializeMeshNetwork(
+                currentSession.studentId, 
+                currentSession.studentName, 
+                currentSession.examId, 
+                currentSession.eventId,
+                currentSession.attempt_id
+            );
         }
     }, [isHydrating, currentSession, step]);
 
@@ -531,7 +550,8 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         studentId: string,
         studentName: string,
         examId: string,
-        eventId: string
+        eventId: string,
+        attemptId?: string
     ) => {
         try {
             console.log('🌐 Inicializando mesh network...');
@@ -719,53 +739,10 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
 
 
 
-    const handleResumeSession = () => {
-        if (foundSession) {
-            try {
-                // Reconstruir answers do array de objetos (Sprint 2 schema)
-                const reconstructedAnswers: Record<string, string | string[]> = {};
-                foundSession.encryptedAnswers.forEach(a => {
-                    const question = actualItems.find(q => q.id === (typeof a.questionId === 'string' ? a.questionId : `q${a.questionId}`));
-                    if (question) {
-                        reconstructedAnswers[question.id] = a.answer;
-                    }
-                });
+    // As funções manuais handleResumeSession e handleDiscardSession foram removidas
+    // O resume agora é automático via efeito de hidratação (F3C.1)
 
-                setAnswers(reconstructedAnswers as Record<string, string>);
-                
-                // Telemetria e Tempo
-                if (foundSession.telemetry && foundSession.telemetry.batteryLevels) {
-                    // Recuperar última questão se disponível
-                    const lastIdx = foundSession.telemetry.timePerQuestion?.length ? foundSession.telemetry.timePerQuestion.length - 1 : 0;
-                    setCurrentQuestionIdx(lastIdx);
-                }
-
-                setStep('EXAM');
-                setTimerActive(true);
-                setShowResumeModal(false);
-            } catch (e) {
-                console.error("Erro ao restaurar sessão:", e);
-                alert("Erro ao restaurar dados. Iniciando nova prova.");
-                setStep('CONFIRM_IDENTITY');
-                setShowResumeModal(false);
-            }
-
-            // Re-connect to realtime if we have examId
-            if (sessionMode === 'LIVE_REAL' && examIdParam) {
-                state.initializeExamEvents(examIdParam);
-            }
-        }
-    };
-
-    const handleDiscardSession = async () => {
-        if (confirm("Tem certeza? Todo o progresso anterior será perdido.")) {
-            // await clearDb(); // Limpar tudo é agressivo em multi-user
-            setStep('CONFIRM_IDENTITY');
-            setShowResumeModal(false);
-        }
-    };
-
-    const sendHybridAutosave = async (newAnswers: any) => {
+    const sendHybridAutosave = async (newAnswers: Record<string, string>) => {
         if (!meshInitialized || !studentData) return;
 
         try {
@@ -797,10 +774,11 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
 
             // Gerar Token de Identidade e Anti-Replay (F3A)
             const token = await E2EEncryptionService.createMeshToken(
+                studentId || 'unk',
                 deviceId,
+                eventId || 'unk',
                 'STUDENT',
-                hmacSecret,
-                eventId || 'unk'
+                hmacSecret
             );
 
             const finalEnvelope: MeshHybridEnvelope = {
@@ -823,8 +801,17 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 encryptedPayload: {
                     iv: encryptedPackage.iv,
                     data: encryptedPackage.data
-                }
+                },
+                signature: '' // Placeholder para calculo abaixo
             };
+
+            // 5. Assinar Envelope Inteiro (F3A Integridade Fim-a-Fim)
+            // Assinamos o JSON do envelope (sem a própria assinatura)
+            const { signature: _, ...envelopeToSign } = finalEnvelope;
+            finalEnvelope.signature = await E2EEncryptionService.signPayload(
+                JSON.stringify(envelopeToSign),
+                hmacSecret
+            );
 
             // 6. Broadcast via Mesh (Socket.io hardening no LocalServerService aguarda este evento)
             getMeshNetwork().broadcastMessage('AUTOSAVE', finalEnvelope);
@@ -1199,6 +1186,28 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         );
     }
 
+    // ❄️ [F3C.1] Overlay de Hidratação (Bloqueio de UI durante Cold Boot)
+    if (isHydrating) {
+        return (
+            <div className="fixed inset-0 bg-[#0f172a] flex flex-col items-center justify-center z-[9999] text-white">
+                <div className="relative">
+                    <div className="w-20 h-20 border-4 border-slate-800 border-t-brand-primary rounded-full animate-spin"></div>
+                    <Lock className="absolute inset-0 m-auto text-brand-primary animate-pulse" size={32} />
+                </div>
+                <div className="mt-8 text-center">
+                    <h2 className="text-xl font-bold tracking-tight">Sincronizando Sessão Segura</h2>
+                    <p className="text-slate-400 mt-2 text-sm max-w-xs mx-auto">
+                        Verificando integridade dos dados locais para garantir um retorno seguro à prova.
+                    </p>
+                </div>
+                <div className="absolute bottom-12 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 bg-slate-900/50 px-4 py-2 rounded-full border border-white/5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                    Ambiente Endurecido (F3C)
+                </div>
+            </div>
+        );
+    }
+
     if (step === 'COMPLETED') {
         const score = (studentData as any)?.lastScore;
         const total = (studentData as any)?.lastTotal;
@@ -1256,36 +1265,6 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 }}
                 onComplete={() => setStep('COMPLETED')}
             />
-        );
-    }
-
-    if (showResumeModal) {
-        return (
-            <div className="fixed inset-0 bg-slate-900/90 flex flex-col items-center justify-center p-6 text-center z-50 animate-in fade-in">
-                <div className="bg-white p-8 rounded-2xl max-w-sm w-full shadow-2xl">
-                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
-                        <Cloud size={32} />
-                    </div>
-                    <h2 className="text-xl font-bold text-slate-900 mb-2">Prova em Andamento</h2>
-                    <p className="text-slate-600 mb-6 text-sm">
-                        Encontramos uma prova não finalizada salva neste dispositivo. Deseja continuar de onde parou?
-                    </p>
-                    <div className="space-y-3">
-                        <button
-                            onClick={handleResumeSession}
-                            className="w-full py-3 bg-brand-primary text-white font-bold rounded-xl hover:bg-brand-dark transition flex items-center justify-center gap-2"
-                        >
-                            <Play size={18} /> Continuar Prova
-                        </button>
-                        <button
-                            onClick={handleDiscardSession}
-                            className="w-full py-3 bg-slate-100 text-slate-500 font-bold rounded-xl hover:bg-slate-200 transition"
-                        >
-                            Começar do Zero
-                        </button>
-                    </div>
-                </div>
-            </div>
         );
     }
 

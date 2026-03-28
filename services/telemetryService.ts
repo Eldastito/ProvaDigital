@@ -21,6 +21,7 @@ export interface TelemetryData {
     violations: number;
     lastViolation?: string;
     batteryLevel: number;
+    lastQuestion: number; // F3C Tracking
     timestamp: number;
     metadata?: any;
 }
@@ -73,6 +74,7 @@ export class TelemetryService {
                 totalQuestions: config.totalQuestions,
                 violations: 0,
                 batteryLevel: 100,
+                lastQuestion: 0,
                 timestamp: Date.now()
             };
 
