@@ -19,6 +19,7 @@ export interface UseStudentSessionReturn {
     // Session estado
     currentSession: StudentSession | null;
     isSessionActive: boolean;
+    isHydrating: boolean;
 
     // Actions
     startSession: (studentId: string, studentName: string, attemptId?: string) => Promise<void>;
@@ -36,6 +37,7 @@ export interface UseStudentSessionReturn {
 export function useStudentSession({ examId, eventId }: UseStudentSessionProps): UseStudentSessionReturn {
     const [currentSession, setCurrentSession] = useState<StudentSession | null>(null);
     const [isSessionActive, setIsSessionActive] = useState(false);
+    const [isHydrating, setIsHydrating] = useState(true);
 
     const service = getSessionService();
 
@@ -55,7 +57,7 @@ export function useStudentSession({ examId, eventId }: UseStudentSessionProps): 
             setCurrentSession(session);
             setIsSessionActive(true);
 
-            console.log(`✅ Sessão ${session.id.startsWith('auth_') ? 'reativada' : 'iniciada'}: ${studentName}`);
+            console.log(`✅ Sessão ${session.sessionId.startsWith('auth_') ? 'reativada' : 'iniciada'}: ${studentName}`);
 
         } catch (error) {
             console.error('❌ Erro ao iniciar sessão:', error);
@@ -132,7 +134,7 @@ export function useStudentSession({ examId, eventId }: UseStudentSessionProps): 
             const completedSession = await service.finishSession();
 
             // NÃO faz logout automaticamente - aguarda QR Code
-            console.log(`✅ Sessão finalizada: ${completedSession.id}`);
+            console.log(`✅ Sessão finalizada: ${completedSession.sessionId}`);
 
             return completedSession;
 
@@ -188,33 +190,36 @@ export function useStudentSession({ examId, eventId }: UseStudentSessionProps): 
      */
     useEffect(() => {
         const recoverSession = async () => {
-            if (isSessionActive || currentSession) return;
+            if (isSessionActive || currentSession) {
+                setIsHydrating(false);
+                return;
+            }
 
-            // Se tivermos studentId no contexto (ex: de um login prévio ou state global), 
-            // podemos tentar a recuperação automática.
-            // Para efeitos de mock, se já tivermos examId e eventId, verificamos sessões pendentes.
-            
-            const sessions = await service.getAllSessions();
-            const relevantSession = sessions.find(s => 
-                s.examId === examId && 
-                s.eventId === eventId && 
-                !s.finishedAt
-            );
-
-            if (relevantSession) {
-                console.log('❄️ [COLD BOOT] Recuperando sessão ativa encontrada no storage...');
-                // Nota: Aqui estamos no Nível 1 (Automático) pois assumimos que o 
-                // componente que usa o hook já proveu examId/eventId.
-                const session = await service.startSession(
-                    relevantSession.studentId,
-                    relevantSession.studentName,
-                    relevantSession.examId,
-                    relevantSession.eventId,
-                    relevantSession.attempt_id
+            try {
+                const sessions = await service.getAllSessions();
+                const relevantSession = sessions.find(s => 
+                    s.examId === examId && 
+                    s.eventId === eventId && 
+                    !s.finishedAt
                 );
-                
-                setCurrentSession(session);
-                setIsSessionActive(true);
+
+                if (relevantSession) {
+                    console.log('❄️ [COLD BOOT] Recuperando sessão ativa encontrada no storage...');
+                    const session = await service.startSession(
+                        relevantSession.studentId,
+                        relevantSession.studentName,
+                        relevantSession.examId,
+                        relevantSession.eventId,
+                        relevantSession.attempt_id
+                    );
+                    
+                    setCurrentSession(session);
+                    setIsSessionActive(true);
+                }
+            } catch (err) {
+                console.warn('⚠️ Erro na hidratação de sessão:', err);
+            } finally {
+                setIsHydrating(false);
             }
         };
 
@@ -229,23 +234,15 @@ export function useStudentSession({ examId, eventId }: UseStudentSessionProps): 
         if (existingSession) {
             setCurrentSession(existingSession);
             setIsSessionActive(true);
+            setIsHydrating(false);
             console.log('🔄 Sessão em RAM detectada:', existingSession.studentName);
         }
-    }, []);
-
-    /**
-     * Cleanup ao desmontar
-     */
-    useEffect(() => {
-        return () => {
-            // NÃO faz logout automático ao desmontar
-            // Sessão continua até logout explícito
-        };
     }, []);
 
     return {
         currentSession,
         isSessionActive,
+        isHydrating,
         startSession,
         saveAnswer,
         logSecurityEvent,

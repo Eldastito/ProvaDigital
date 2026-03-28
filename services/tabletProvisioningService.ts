@@ -8,7 +8,7 @@
  * - Baixa dados do evento
  */
 
-import { E2EEncryptionService } from './security/e2eEncryptionService';
+import { PersistenceGateway } from './persistenceGateway';
 
 export type TabletMode = 'ROUTER' | 'PROFESSOR' | 'COORDINATOR' | 'STUDENT';
 
@@ -68,17 +68,20 @@ export class TabletProvisioningService {
         let dataDownloaded = false;
 
         try {
+            // 0. F3B: Migrar dados de IDB legado se necessário
+            await PersistenceGateway.migrateLegacyProvisioning();
+
             // 1. Verificar se há evento anterior
-            const previousEvent = await this.detectPreviousEvent(config.tabletId);
+            const previousEvent = await this.detectPreviousEvent();
 
             if (previousEvent) {
                 console.log(`🗑️ Evento anterior detectado: ${previousEvent.eventId}`);
-                await this.cleanPreviousEvent(config.tabletId, previousEvent);
+                await this.cleanPreviousEvent();
                 previousEventCleaned = true;
             }
 
             // 2. Configurar modo do tablet
-            await this.configureMode(config.tabletId, config.mode);
+            await this.configureMode(config.mode);
 
             // 3. Baixar dados do evento
             await this.downloadEventData(config);
@@ -88,14 +91,14 @@ export class TabletProvisioningService {
             switch (config.mode) {
                 case 'ROUTER':
                     if (config.networkConfig) {
-                        await this.configureRouter(config.tabletId, config.networkConfig);
+                        await this.configureRouter(config.networkConfig);
                     }
                     break;
 
                 case 'PROFESSOR':
                 case 'STUDENT':
                     if (config.securityTokens) {
-                        await this.configureSecurityTokens(config.tabletId, config.securityTokens);
+                        await this.configureSecurityTokens(config.securityTokens);
                     }
                     break;
             }
@@ -132,192 +135,78 @@ export class TabletProvisioningService {
     /**
      * Detecta se há dados de evento anterior no tablet
      */
-    private static async detectPreviousEvent(tabletId: string): Promise<EventData | null> {
-        try {
-            // Buscar no IndexedDB local
-            const db = await this.openDatabase();
-            const tx = db.transaction(['config'], 'readonly');
-            const store = tx.objectStore('config');
-            const request = store.get('currentEvent');
-            const config = await this.promisifyRequest(request);
-
-            return config || null;
-        } catch {
-            return null;
-        }
+    private static async detectPreviousEvent(): Promise<EventData | null> {
+        const config = await PersistenceGateway.getConfig('currentEvent');
+        return config || null;
     }
 
     /**
      * Limpa dados do evento anterior
      */
-    private static async cleanPreviousEvent(tabletId: string, previousEvent: EventData): Promise<void> {
-        console.log(`🗑️ Limpando dados do evento: ${previousEvent.eventId}`);
-
-        const db = await this.openDatabase();
-
-        // Deletar stores do evento anterior
-        const storesToClear = [
-            'studentSessions',
-            'questionCache',
-            'securityLog',
-            'telemetry',
-            'networkCache',
-            'config'
+    private static async cleanPreviousEvent(): Promise<void> {
+        console.log(`🗑️ Limpando dados do evento anterior (PersistenceGateway)...`);
+        
+        // Limpar chaves de configuração
+        const keysToClear = [
+            'currentEvent',
+            'securityTokens',
+            'networkConfig',
+            'provisioningStatus',
+            'tabletMode'
         ];
 
-        for (const storeName of storesToClear) {
-            try {
-                const tx = db.transaction([storeName], 'readwrite');
-                const store = tx.objectStore(storeName);
-                await store.clear();
-                console.log(`  ✅ Store ${storeName} limpo`);
-            } catch (error) {
-                console.warn(`  ⚠️ Erro ao limpar ${storeName}:`, error);
-            }
+        for (const key of keysToClear) {
+            await PersistenceGateway.deleteConfig(key);
         }
 
-        console.log(`✅ Dados do evento ${previousEvent.eventId} removidos`);
+        console.log(`✅ Dados do evento removidos do storage unificado`);
     }
 
     /**
      * Configura o modo do tablet
      */
-    private static async configureMode(tabletId: string, mode: TabletMode): Promise<void> {
-        const db = await this.openDatabase();
-        const tx = db.transaction(['config'], 'readwrite');
-        const store = tx.objectStore('config');
-
-        await store.put({
-            key: 'tabletMode',
-            value: mode,
-            configuredAt: new Date().toISOString()
-        });
-
-        console.log(`📱 Tablet ${tabletId} configurado como ${mode}`);
+    private static async configureMode(mode: TabletMode): Promise<void> {
+        await PersistenceGateway.saveConfig('tabletMode', mode);
+        console.log(`📱 Tablet configurado como ${mode} via Gateway`);
     }
 
     /**
      * Baixa dados do evento para o tablet
      */
     private static async downloadEventData(config: ProvisioningConfig): Promise<void> {
-        console.log(`⬇️ Baixando dados do evento: ${config.eventData.eventId}`);
+        console.log(`⬇️ Salvando dados do evento via Gateway: ${config.eventData.eventId}`);
+        await PersistenceGateway.saveConfig('currentEvent', config.eventData);
 
-        const db = await this.openDatabase();
-        const tx = db.transaction(['config', 'questionCache'], 'readwrite');
-
-        // Salvar configuração do evento
-        const configStore = tx.objectStore('config');
-        await configStore.put({
-            key: 'currentEvent',
-            value: config.eventData
-        });
-
-        // Salvar questões (se aplicável)
-        if (config.eventData.questions) {
-            const questionStore = tx.objectStore('questionCache');
-            for (const question of config.eventData.questions) {
-                await questionStore.put(question);
-            }
-            console.log(`  ✅ ${config.eventData.questions.length} questões baixadas`);
-        }
-
-        console.log(`✅ Dados do evento baixados`);
+        console.log(`✅ Dados do evento salvos`);
     }
 
     /**
      * Configura tablet como roteador Wi-Fi
      */
     private static async configureRouter(
-        tabletId: string,
         networkConfig: ProvisioningConfig['networkConfig']
     ): Promise<void> {
-        if (!networkConfig) return;
-
-        const db = await this.openDatabase();
-        const tx = db.transaction(['config'], 'readwrite');
-        const store = tx.objectStore('config');
-
-        await store.put({
-            key: 'networkConfig',
-            value: networkConfig
-        });
-
-        console.log(`📡 Roteador configurado: SSID=${networkConfig.ssid}`);
+        await PersistenceGateway.saveConfig('networkConfig', networkConfig);
     }
 
     /**
      * Configura tokens de segurança para mesh
      */
     private static async configureSecurityTokens(
-        tabletId: string,
         tokens: ProvisioningConfig['securityTokens']
     ): Promise<void> {
-        if (!tokens) return;
-
-        const db = await this.openDatabase();
-        const tx = db.transaction(['config'], 'readwrite');
-        const store = tx.objectStore('config');
-
-        await store.put({
-            key: 'securityTokens',
-            value: tokens
-        });
-
-        console.log(`🔐 Tokens de segurança configurados`);
+        await PersistenceGateway.saveConfig('securityTokens', tokens);
     }
 
     /**
      * Marca tablet como preparado
      */
     private static async markAsPrepared(tabletId: string, eventId: string): Promise<void> {
-        const db = await this.openDatabase();
-        const tx = db.transaction(['config'], 'readwrite');
-        const store = tx.objectStore('config');
-
-        await store.put({
-            key: 'provisioningStatus',
-            value: {
-                status: 'PREPARED',
-                tabletId,
-                eventId,
-                preparedAt: new Date().toISOString()
-            }
-        });
-    }
-
-    /**
-     * Abre conexão com IndexedDB
-     */
-    private static async openDatabase(): Promise<IDBDatabase> {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open('ExamePadOffline', 1);
-
-            request.onerror = () => reject(request.error);
-            request.onsuccess = () => resolve(request.result);
-
-            request.onupgradeneeded = (event) => {
-                const db = (event.target as IDBOpenDBRequest).result;
-
-                // Criar stores se não existirem
-                if (!db.objectStoreNames.contains('config')) {
-                    db.createObjectStore('config', { keyPath: 'key' });
-                }
-                if (!db.objectStoreNames.contains('studentSessions')) {
-                    db.createObjectStore('studentSessions', { keyPath: 'id' });
-                }
-                if (!db.objectStoreNames.contains('questionCache')) {
-                    db.createObjectStore('questionCache', { keyPath: 'id' });
-                }
-                if (!db.objectStoreNames.contains('securityLog')) {
-                    db.createObjectStore('securityLog', { keyPath: 'id', autoIncrement: true });
-                }
-                if (!db.objectStoreNames.contains('telemetry')) {
-                    db.createObjectStore('telemetry', { keyPath: 'id', autoIncrement: true });
-                }
-                if (!db.objectStoreNames.contains('networkCache')) {
-                    db.createObjectStore('networkCache', { keyPath: 'key' });
-                }
-            };
+        await PersistenceGateway.saveConfig('provisioningStatus', {
+            status: 'PREPARED',
+            tabletId,
+            eventId,
+            preparedAt: new Date().toISOString()
         });
     }
 
@@ -326,29 +215,17 @@ export class TabletProvisioningService {
      */
     static async factoryReset(tabletId: string): Promise<void> {
         console.warn(`⚠️ FACTORY RESET - Tablet ${tabletId}`);
-
-        try {
-            // Deletar todo o banco de dados
-            await new Promise<void>((resolve, reject) => {
-                const request = indexedDB.deleteDatabase('ExamePadOffline');
-                request.onsuccess = () => resolve();
-                request.onerror = () => reject(request.error);
-            });
-
-            console.log(`✅ Factory reset completo`);
-        } catch (error) {
-            console.error(`❌ Erro no factory reset:`, error);
-            throw error;
-        }
+        await PersistenceGateway.deleteConfig('currentEvent');
+        await PersistenceGateway.deleteConfig('securityTokens');
+        await PersistenceGateway.deleteConfig('provisioningStatus');
+        await PersistenceGateway.clearMainDatabase();
+        console.log(`✅ Factory reset completo via Persistence Engine`);
     }
 
     /**
-     * Helper para converter IDBRequest em Promise
+     * Obtém os tokens de segurança provisionados (F3A/F3B Unificado)
      */
-    private static promisifyRequest<T>(request: IDBRequest<T>): Promise<T> {
-        return new Promise((resolve, reject) => {
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error || 'Erro desconhecido no IndexedDB');
-        });
+    static async getSecurityTokens(): Promise<ProvisioningConfig['securityTokens'] | null> {
+        return await PersistenceGateway.getConfig('securityTokens');
     }
 }

@@ -93,5 +93,82 @@ export const PersistenceGateway = {
      */
     updateSession: async (sessionId: string, updates: Partial<StoredSession>): Promise<void> => {
         await db.studentSessions.update(sessionId, updates);
+    },
+
+    /**
+     * CONFIGURAÇÕES UNIFICADAS (F3B)
+     */
+    saveConfig: async (key: string, value: any): Promise<void> => {
+        await db.config.put({
+            key,
+            value,
+            configuredAt: new Date().toISOString()
+        });
+    },
+
+    getConfig: async (key: string): Promise<any | undefined> => {
+        const item = await db.config.get(key);
+        return item?.value;
+    },
+
+    deleteConfig: async (key: string): Promise<void> => {
+        await db.config.delete(key);
+    },
+
+    /**
+     * PONTE DE MIGRAÇÃO: Resgata dados do IDB Nativo Legado (F3B)
+     */
+    migrateLegacyProvisioning: async (): Promise<{ migrated: boolean; count: number }> => {
+        const isDone = await PersistenceGateway.getConfig('migration_legacy_idb_done');
+        if (isDone) return { migrated: false, count: 0 };
+
+        console.log('🏗️ [BRIDGE] Iniciando resgate de dados do IDB Nativo Legado...');
+        let count = 0;
+
+        try {
+            // Tentar abrir o banco legado
+            const legacyData = await new Promise<any[]>((resolve) => {
+                const request = indexedDB.open('ExamePadOffline', 1);
+                request.onsuccess = () => {
+                    const ldb = request.result;
+                    if (!ldb.objectStoreNames.contains('config')) return resolve([]);
+                    
+                    const tx = ldb.transaction(['config'], 'readonly');
+                    const store = tx.objectStore('config');
+                    const getRequest = store.getAll();
+                    getRequest.onsuccess = () => resolve(getRequest.result);
+                    getRequest.onerror = () => resolve([]);
+                };
+                request.onerror = () => resolve([]);
+            });
+
+            if (legacyData.length > 0) {
+                for (const item of legacyData) {
+                    await PersistenceGateway.saveConfig(item.key, item.value);
+                    count++;
+                }
+                console.log(`✅ [BRIDGE] ${count} chaves migradas com sucesso.`);
+            }
+
+            await PersistenceGateway.saveConfig('migration_legacy_idb_done', true);
+            return { migrated: true, count };
+        } catch (e) {
+            console.warn('⚠️ [BRIDGE] Falha na migração do IDB legado:', e);
+            return { migrated: false, count: 0 };
+        }
+    },
+
+    /**
+     * RESET TOTAL: Limpa dados operacionais (F3B)
+     */
+    clearMainDatabase: async (): Promise<void> => {
+        console.warn('🔥 [GATEWAY] Executando Wipe de dados operacionais...');
+        await Promise.all([
+            db.studentSessions.clear(),
+            db.cachedExams.clear(),
+            db.offlineQueue.clear(),
+            db.migrationMetadata.clear()
+        ]);
+        console.log('✅ [GATEWAY] Wipe concluído.');
     }
 };

@@ -234,21 +234,33 @@ export class E2EEncryptionService {
     }
 
     /**
-     * [T4] Gera um Token de Autenticação para o LocalMeshServer
+     * [F3A] Gera um Token de Autenticação Endurecido para o LocalMeshServer
      * 
-     * @param studentId - ID do aluno
-     * @param eventId - ID do evento (serve como segredo)
+     * @param studentId - ID do aluno/usuário
+     * @param tabletId - ID único do dispositivo (proveniente do provisioning)
+     * @param eventId - ID do evento
+     * @param role - Papel do usuário (RBAC)
+     * @param secret - Segredo autoritativo de provisioning (meshKey)
      * @returns Token Base64 assinado: "base64(payload).signature"
      */
-    static async createMeshToken(studentId: string, eventId: string): Promise<string> {
+    static async createMeshToken(
+        studentId: string, 
+        tabletId: string, 
+        eventId: string, 
+        role: 'STUDENT' | 'PROFESSOR' | 'COORDINATOR',
+        secret: string
+    ): Promise<string> {
         const payload = {
             studentId,
+            tabletId,
             eventId,
+            role,
+            jti: typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             timestamp: Date.now()
         };
         const payloadJson = JSON.stringify(payload);
         const payloadB64 = btoa(payloadJson);
-        const signature = await this.signPayload(payloadJson, eventId);
+        const signature = await this.signPayload(payloadJson, secret);
         
         return `${payloadB64}.${signature}`;
     }

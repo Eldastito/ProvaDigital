@@ -9,9 +9,6 @@ import { useProctoring } from '../../../hooks/useProctoring';
 import { StudentResultsView } from './StudentResultsView';
 import { useStudentSession } from '../hooks/useStudentSession';
 import { useFullscreenSecurity } from '../hooks/useFullscreenSecurity';
-import { clearDb } from '../../../services/offlineDb';
-import { StoredSession } from '../../../types';
-
 import { useSafeAppStore, useAppStore } from '../../../store/useAppStore';
 import { RichTextRenderer } from '../../../components/RichTextRenderer';
 import { AccessibilityToolbar } from '../features/AccessibilityToolbar';
@@ -20,9 +17,10 @@ import { OfflineSubmissionFlow } from '../offline/OfflineSubmissionFlow';
 import { MOCK_TENANT_ID } from '../../../utils/mockData';
 
 // === MESH NETWORK IMPORTS ===
-import { getSessionService, StudentSession } from '../../../services/sessionIsolationService';
 import { E2EEncryptionService } from '../../../services/security/e2eEncryptionService';
 import { getMeshNetwork, MeshHybridEnvelope } from '../../../services/meshNetworkService';
+import { TabletProvisioningService } from '../../../services/tabletProvisioningService';
+import { nativeBridge } from '../../../services/nativeBridgeService';
 import { getTelemetryService } from '../../../services/telemetryService';
 import { StudentAnswer } from '../../../types';
 import { getAlertingService, Alert } from '../../../services/alertingService';
@@ -166,11 +164,30 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
             setProctoringActive(false);
         }
     }, [step]);
+    
+    // F3A: Identidade Endurecida
+    const hmacSecretRef = useRef<string | null>(null);
+    const deviceIdRef = useRef<string | null>(null);
+
+    useEffect(() => {
+        const loadSecuritySpecs = async () => {
+            const tokens = await TabletProvisioningService.getSecurityTokens();
+            if (tokens?.hmacSecret) {
+                hmacSecretRef.current = tokens.hmacSecret;
+            }
+            
+            const deviceId = await nativeBridge.getDeviceId();
+            deviceIdRef.current = deviceId;
+            console.log(`🛡️ F3A Security Specs Loaded: ${deviceId} (HMAC: ${tokens ? 'YES' : 'NO'})`);
+        };
+        loadSecuritySpecs();
+    }, []);
 
     // --- MULTI-LOGIN SESSION HOOK ---
     const {
         currentSession,
         isSessionActive,
+        isHydrating,
         startSession,
         saveAnswer,
         logSecurityEvent,
@@ -363,22 +380,30 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
             setShuffledItems(mockItems);
         }
     }, [examItems, mockItems, loadingExam, examIdParam]);
-    // --- AUTO-RESUME LOGIC (Moved up to fix Hooks Rule) ---
+    // --- AUTO-RESUME LOGIC (F3C.1 Unificada) ---
     useEffect(() => {
-        if (!studentData || !studentData.id || !studentData.eventId) return;
-        // FIX: Don't run check if we are already in the exam or finishing it
-        if (step === 'EXAM' || step === 'COMPLETED' || step === 'SENDING') return;
+        if (isHydrating) return; // Aguardar hidratação completa
 
-        // Carregamento automático da sessão via useStudentSession (Cold Boot Nível 1)
-        // Não é mais necessário useEffect manual para getLastSession
-        if (currentSession && !currentSession.synced) {
-            console.log("Sessão encontrada:", currentSession);
+        // Se uma sessão foi recuperada pelo hook (Cold Boot)
+        if (currentSession && step === 'LOGIN_FORM') {
+            console.log("❄️ [F3C.1] Sessão ativa detectada durante hidratação:", currentSession.studentName);
+            
+            // Sincronizar dados do aluno para a UI
+            setStudentData({
+                id: currentSession.studentId,
+                name: currentSession.studentName,
+                reg: 'RECOVERED',
+                examTitle: 'Retomando Prova...',
+                roleTitle: 'Participante',
+                eventId: currentSession.eventId,
+                examId: currentSession.examId,
+                attemptId: currentSession.attempt_id
+            });
+
             setFoundSession(currentSession);
             setShowResumeModal(true);
-        } else {
-            setStep('CONFIRM_IDENTITY');
         }
-    }, [studentData, currentSession]);
+    }, [isHydrating, currentSession, step]);
 
     // 🔒 Fullscreen Security Hook
     const { enterKioskMode } = useFullscreenSecurity(step, cameraActive, isSessionActive);
@@ -766,8 +791,19 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
            // Cifrar dados (answers é Record<string, string>)
        const encryptedPackage = await E2EEncryptionService.encryptData(newAnswers, key);
 
-            // 4. Montar Envelope Híbrido
-            const envelope: Omit<MeshHybridEnvelope, 'signature'> = {
+            // 4. Montar Envelope Híbrido (F3A Endurecido)
+            const deviceId = deviceIdRef.current || 'unknown-tablet';
+            const hmacSecret = hmacSecretRef.current || eventId || 'root-provisioning-secret';
+
+            // Gerar Token de Identidade e Anti-Replay (F3A)
+            const token = await E2EEncryptionService.createMeshToken(
+                deviceId,
+                'STUDENT',
+                hmacSecret,
+                eventId || 'unk'
+            );
+
+            const finalEnvelope: MeshHybridEnvelope = {
                 schemaVersion: '1.2',
                 encryptionVersion: '1.0',
                 payloadType: 'AUTOSAVE',
@@ -775,6 +811,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 examId: examId || 'unk',
                 studentId: studentId || 'unk',
                 sessionId: currentSession?.sessionId,
+                token: token, // O servidor do professor validará este selo digital
                 header: {
                     progress: Math.round((count / (examItems.length || 1)) * 100),
                     answeredCount: count,
@@ -789,15 +826,8 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 }
             };
 
-            // 5. Assinar Envelope (Material Deterministico)
-            const signature = await E2EEncryptionService.signPayload(JSON.stringify(envelope), eventId || 'secret');
-            
-            const finalEnvelope: MeshHybridEnvelope = {
-                ...envelope,
-                signature
-            };
-
-            // 6. Broadcast via Mesh
+            // 6. Broadcast via Mesh (Socket.io hardening no LocalServerService aguarda este evento)
+            getMeshNetwork().broadcastMessage('AUTOSAVE', finalEnvelope);
             getMeshNetwork().broadcastMessage('AUTOSAVE', finalEnvelope);
             console.log('🔒 [MESH] Hybrid AUTOSAVE disparado com sucesso.');
 
@@ -807,24 +837,33 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     };
 
     const handleOptionSelect = async (qId: string, optId: string) => {
+        // 1. Atualizar estado local da UI (Rápido)
         const newAnswers = { ...answers, [qId]: optId };
         setAnswers(newAnswers);
 
-        // ✨ Salvar via multi-login session
+        // 2. ATOMICIDADE F3C.2: Primeiro Persistência Local (Disco), depois Mesh (Rede)
+        // Isso garante que se o tablet bugar/desligar após o clique, o dado está salvo localmente.
         if (isSessionActive && actualItems.length > 0) {
             const questionIndex = actualItems.findIndex(q => q.id === qId);
             if (questionIndex >= 0) {
-                await saveAnswer(questionIndex + 1, optId);
+                try {
+                    // Salvar via Gateway unificado (hook useStudentSession)
+                    // Usamos questionIndex + 1 para manter compatibilidade com relatórios 1-based
+                    await saveAnswer(questionIndex + 1, optId);
+                    
+                    // 3. Só agora disparamos pela Malha (Mesh)
+                    // Se a rede falhar, não tem problema, o dado já está no disco.
+                    await sendHybridAutosave(newAnswers);
+                    
+                    console.log(`💾 [F3C.2] Resposta Q${questionIndex + 1} persistida e transmitida.`);
+                } catch (saveErr) {
+                    console.error("❌ [F3C.2] Erro crítico ao persistir resposta:", saveErr);
+                    // Opcional: Mostrar alerta de erro de disco pro aluno se necessário
+                }
             }
         }
 
-        // 1. Salvar no IndexedDB (Dexie V2 via SessionIsolationService)
-        await saveAnswer(currentQuestionIdx, optId as string);
-
-        // 2. Broadcast via Mesh com Envelope Híbrido (Criptografado)
-        await sendHybridAutosave(newAnswers);
-
-        // Registro de telemetria
+        // Registro de telemetria base
         await updateTelemetry({
             batteryLevel: (window as any).batteryLevel || 100,
             lastQuestion: currentQuestionIdx,
@@ -1276,6 +1315,19 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
             onCut={handlePreventClipboard}
             onContextMenu={handleContextMenu}
         >
+            {/* ❄️ TRAVA DE HIDRATAÇÃO (F3C.1) */}
+            {isHydrating && (
+                <div className="fixed inset-0 bg-[#0f1d2e] z-[100] flex flex-col items-center justify-center text-white">
+                    <div className="relative">
+                        <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <Wifi size={24} className="text-emerald-500 animate-pulse" />
+                        </div>
+                    </div>
+                    <h2 className="mt-6 text-xl font-bold">Iniciando Ambiente Seguro</h2>
+                    <p className="mt-2 text-slate-400 text-sm animate-pulse">Sincronizando integridade local...</p>
+                </div>
+            )}
             <AccessibilityToolbar config={a11y} onChange={setA11y} />
 
             {/* CAMERA PREVIEW (PROCTORING UI) */}

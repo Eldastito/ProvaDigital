@@ -5,8 +5,8 @@ import { ExamEvent, StoredSession } from '../types';
 // Definição do Banco de Dados Offline para o Tablet
 // Usa IndexedDB por baixo do pano, permitindo armazenar megabytes de dados
 export class OfflineDatabase extends Dexie {
-    examEvents!: Table<ExamEvent, string>; // 'eventId' é a chave primária
-    studentSessions!: Table<StoredSession, string>; // 'sessionId' é a chave
+    examEvents!: Table<ExamEvent, string>;
+    studentSessions!: Table<StoredSession, string>;
     cachedExams!: Table<{ examId: string; title: string; cachedAt: number }, string>;
     offlineQueue!: Table<{ id: string; examId: string; studentId: string; data: any; timestamp: number; synced: boolean }, string>;
     migrationMetadata!: Table<{
@@ -20,11 +20,11 @@ export class OfflineDatabase extends Dexie {
         cleanupEligible: boolean;
         details?: string;
     }, string>;
+    config!: Table<{ key: string; value: any; configuredAt: string }, string>;
 
     constructor() {
         super('ExamePadOfflineDB');
         
-        // Versões anteriores preservadas para histórico de migração do Dexie
         this.version(1).stores({
             examEvents: 'id, status, date',
             studentSessions: 'sessionId, studentId, eventId, synced',
@@ -32,14 +32,16 @@ export class OfflineDatabase extends Dexie {
             offlineQueue: 'id, examId, studentId, synced, timestamp'
         });
 
-        // Versão 2 - Adiciona índice storage_key
         this.version(2).stores({
             studentSessions: 'sessionId, studentId, eventId, synced, storage_key'
         });
 
-        // Versão 3 - Manifesto de Migração (Trava Operacional)
         this.version(3).stores({
             migrationMetadata: 'id, migrationVersion, completedAt'
+        });
+
+        this.version(4).stores({
+            config: 'key'
         });
     }
 }
