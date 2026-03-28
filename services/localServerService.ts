@@ -27,6 +27,13 @@ export interface PeerInfo {
     lastSeen: number;
 }
 
+export interface SignedMeshToken {
+    studentId: string;
+    eventId: string;
+    timestamp: number;
+    signature: string;
+}
+
 /**
  * Servidor Local HTTP + WebSocket
  */
@@ -115,19 +122,54 @@ export class LocalServerService {
         });
 
         // 🛡️ Middleware de Segurança para Rotas Sink/Mesh
-        const authMiddleware = (req: any, res: any, next: any) => {
+        const authMiddleware = async (req: any, res: any, next: any) => {
             const authHeader = req.headers.authorization;
             if (!authHeader || !authHeader.startsWith('Bearer ')) {
                 return res.status(401).json({ error: 'Acesso Negado: Token não fornecido.' });
             }
-            const token = authHeader.split(' ')[1];
-            if (!token || token.length < 10) { // Validação básica de tamanho (ex: eventId ou signed token)
-                return res.status(403).json({ error: 'Acesso Negado: Token inválido.' });
-            }
-            next();
-        };
 
-        // --- MESH SYNC ENDPOINTS (PHASE 7) ---
+            const rawToken = authHeader.split(' ')[1];
+            
+            try {
+                // Formato esperado do Bearer: base64(payload_json).signature
+                const parts = rawToken.split('.');
+                if (parts.length !== 2) {
+                    // Fallback para DEV: se o token for o eventId puro (legado), permitimos apenas se a flag estiver ativa
+                    if (process.env.NODE_ENV === 'development' && rawToken.length >= 10) {
+                        return next();
+                    }
+                    return res.status(403).json({ error: 'Acesso Negado: Formato de token inválido.' });
+                }
+
+                const [payloadB64, signature] = parts;
+                const payloadJson = atob(payloadB64);
+                const payload = JSON.parse(payloadJson);
+
+                // 1. Validar integridade via HMAC
+                const { E2EEncryptionService } = await import('./security/e2eEncryptionService');
+                const isValid = await E2EEncryptionService.verifySignature(
+                    payloadJson,
+                    signature,
+                    payload.eventId || 'secret' // Usa o eventId do payload como chave para verificar a assinatura
+                );
+
+                if (!isValid) {
+                    return res.status(403).json({ error: 'Acesso Negado: Assinatura inválida.' });
+                }
+
+                // 2. Validar Expiração (Replay Attack Prevention) - TTL de 10 minutos
+                const now = Date.now();
+                const tokenAge = now - (payload.timestamp || 0);
+                if (tokenAge > 10 * 60 * 1000 || tokenAge < -60 * 1000) {
+                    return res.status(403).json({ error: 'Acesso Negado: Token expirado.' });
+                }
+
+                next();
+            } catch (error) {
+                console.error('❌ Erro na validação de auth:', error);
+                return res.status(403).json({ error: 'Acesso Negado: Falha técnica na validação.' });
+            }
+        };
 
         // 1. Download Exam (Student -> Teacher)
         this.app.get('/sync/exam/:id', authMiddleware, async (req: any, res: any) => {

@@ -20,8 +20,11 @@ import { OfflineSubmissionFlow } from '../offline/OfflineSubmissionFlow';
 import { MOCK_TENANT_ID } from '../../../utils/mockData';
 
 // === MESH NETWORK IMPORTS ===
-import { getMeshNetwork } from '../../../services/meshNetworkService';
+import { getSessionService, StudentSession } from '../../../services/sessionIsolationService';
+import { E2EEncryptionService } from '../../../services/security/e2eEncryptionService';
+import { getMeshNetwork, MeshHybridEnvelope } from '../../../services/meshNetworkService';
 import { getTelemetryService } from '../../../services/telemetryService';
+import { StudentAnswer } from '../../../types';
 import { getAlertingService, Alert } from '../../../services/alertingService';
 import { useNetworkStore, useNetworkSync } from '../../../services/stores/useNetworkStore';
 import { NetworkStatusInline } from './NetworkStatus';
@@ -121,7 +124,11 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     const [examItems, setExamItems] = useState<any[]>([]);
     const [adaptiveItems, setAdaptiveItems] = useState<any[]>([]); // Pool completo para adaptativo
     const [loadingExam, setLoadingExam] = useState(false);
-    const [currentTheta, setCurrentTheta] = useState(0); // Proficiência estimada
+    const [currentTheta, setCurrentTheta] = useState(0); 
+    
+    // 🔐 Cache de Chave Criptográfica (T3)
+    const encryptionKeyRef = useRef<CryptoKey | null>(null);
+// Proficiência estimada
 
     // Timer logic
     const [currentTime, setCurrentTime] = useState(25 * 60); // 25 min default
@@ -729,6 +736,71 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
         }
     };
 
+    const sendHybridAutosave = async (newAnswers: any) => {
+        if (!meshInitialized || !studentData) return;
+
+        try {
+            const eventId = studentData.eventId;
+            const studentId = studentData.id;
+            const examId = studentData.examId;
+
+            // 1. Derivar/Recuperar Chave (T3 Cache)
+            if (!encryptionKeyRef.current && eventId && studentId) {
+                encryptionKeyRef.current = await E2EEncryptionService.deriveStudentKey(eventId, studentId);
+            }
+            const key = encryptionKeyRef.current;
+            if (!key) return;
+
+            // 2. Telemetria Básica (Header Público)
+            const count = Object.keys(newAnswers).filter(k => !k.includes('_text')).length;
+            getTelemetryService().updateAnsweredCount(count);
+            getTelemetryService().updateCurrentQuestion(currentQuestionIdx + 1);
+            const telemetryData = getTelemetryService().getCurrentData();
+
+            // 3. Cifrar Respostas (Payload Privado)
+            // Para T3, ciframos o objeto answers direto.
+            const encryptedPackage = await E2EEncryptionService.encryptAnswers(newAnswers as any, key);
+
+            // 4. Montar Envelope Híbrido
+            const envelope: Omit<MeshHybridEnvelope, 'signature'> = {
+                schemaVersion: '1.2',
+                encryptionVersion: '1.0',
+                payloadType: 'AUTOSAVE',
+                eventId: eventId || 'unk',
+                examId: examId || 'unk',
+                studentId: studentId || 'unk',
+                sessionId: isSessionActive ? getSessionService().getCurrentSession()?.id : undefined,
+                header: {
+                    progress: Math.round((count / (examItems.length || 1)) * 100),
+                    answeredCount: count,
+                    currentQuestion: currentQuestionIdx + 1,
+                    battery: telemetryData?.batteryLevel ?? 100,
+                    isOnline: true,
+                    timestamp: new Date().toISOString()
+                },
+                encryptedPayload: {
+                    iv: encryptedPackage.iv,
+                    data: encryptedPackage.data
+                }
+            };
+
+            // 5. Assinar Envelope (Material Deterministico)
+            const signature = await E2EEncryptionService.signPayload(JSON.stringify(envelope), eventId || 'secret');
+            
+            const finalEnvelope: MeshHybridEnvelope = {
+                ...envelope,
+                signature
+            };
+
+            // 6. Broadcast via Mesh
+            getMeshNetwork().broadcastMessage('AUTOSAVE', finalEnvelope);
+            console.log('🔒 [MESH] Hybrid AUTOSAVE disparado com sucesso.');
+
+        } catch (error) {
+            console.error('❌ [MESH] Erro ao gerar envelope híbrido:', error);
+        }
+    };
+
     const handleOptionSelect = async (qId: string, optId: string) => {
         const newAnswers = { ...answers, [qId]: optId };
         setAnswers(newAnswers);
@@ -741,22 +813,9 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
             }
         }
 
-        // 🌐 Atualizar telemetria mesh e AUTOSAVE
-        if (meshInitialized) {
-            const count = Object.keys(newAnswers).filter(k => !k.includes('_text')).length;
-            getTelemetryService().updateAnsweredCount(count);
-            getTelemetryService().updateCurrentQuestion(currentQuestionIdx + 1);
-            
-            // Backup Silencioso Instantâneo da Prova na Máquina do Professor:
-            getMeshNetwork().broadcastMessage('AUTOSAVE', {
-                studentId: studentData?.id,
-                studentName: studentData?.name,
-                examId: studentData?.examId,
-                eventId: studentData?.eventId,
-                answers: newAnswers, // Encrypted em prod
-                telemetryPayload: getTelemetryService().getCurrentData()
-            });
-        }
+        // 🌐 [T3] Enviar Envelope Híbrido via Mesh (Cifragem Granular)
+        await sendHybridAutosave(newAnswers);
+
 
         // --- ADAPTIVE LOGIC (IRT) ---
         const exam = state.exams.find(e => e.id === examIdParam);
@@ -803,7 +862,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                     );
 
                     if (nextItem) {
-                        setExamItems(prev => [...prev, nextItem]);
+                        setExamItems((prev: any[]) => [...prev, nextItem]);
                         // Opcional: Auto-avançar para a nova questão?
                         // setCurrentQuestionIdx(prev => prev + 1);
                     }
@@ -939,6 +998,13 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
             if (studentData && sessionMode !== 'LIVE_REAL') {
                 // Modo offline/demo: Exibir OfflineSubmissionFlow
                 console.log('📱 Modo offline: exibindo QR Code para coleta manual');
+                const submissionAnswers: StudentAnswer[] = Object.entries(answers).map(([qId, val]) => ({
+                    itemId: qId,
+                    selectedAlternativeId: typeof val === 'string' ? val : null,
+                    text: typeof val === 'string' ? val : undefined,
+                    isCorrect: false,
+                    scoreObtained: 0
+                }));
                 setStep('OFFLINE_SUBMISSION');
             } else if (studentData) {
                 // Fallback: salvar localmente para sync posterior
@@ -1153,7 +1219,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 answers={Object.entries(answers).map(([itemId, value]) => ({
                     itemId,
                     selectedAlternativeId: typeof value === 'string' && !itemId.includes('_text') ? value : null,
-                    text: answers[`${itemId}_text`] || null,
+                    text: (answers[`${itemId}_text`] as string) || undefined, // Fix null vs undefined
                     isCorrect: false,
                     scoreObtained: 0
                 }))}
@@ -1336,7 +1402,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                                         <textarea
                                             value={answers[`${item.id}_text`] || ''}
                                             onChange={e => {
-                                                setAnswers(prev => ({
+                                                setAnswers((prev: Record<string, any>) => ({
                                                     ...prev,
                                                     [`${item.id}_text`]: e.target.value
                                                 }));

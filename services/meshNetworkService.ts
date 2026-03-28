@@ -19,6 +19,34 @@ export interface MeshMessage {
     messageId: string;
 }
 
+/**
+ * Envelope Híbrido (T3)
+ * Separa metadados públicos (header) de carga cifrada (encryptedPayload)
+ */
+export interface MeshHybridEnvelope {
+    schemaVersion: '1.2';
+    encryptionVersion: '1.0';
+    payloadType: 'AUTOSAVE' | 'ANSWER';
+    eventId: string;
+    examId: string;
+    studentId: string;
+    sessionId?: string;
+    attemptId?: string;
+    header: {
+        progress: number;
+        answeredCount: number;
+        currentQuestion: number;
+        battery: number;
+        isOnline: boolean;
+        timestamp: string;
+    };
+    encryptedPayload: {
+        iv: string; // Base64 do IV
+        data: string; // Ciphertext Base64
+    };
+    signature: string; // HMAC-SHA256
+}
+
 export interface MeshNode {
     id: string;
     type: 'PROFESSOR' | 'STUDENT' | 'COORDINATOR' | 'ROUTER';

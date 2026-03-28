@@ -112,9 +112,9 @@ export class E2EEncryptionService {
 
         // Descriptografar
         const decrypted = await crypto.subtle.decrypt(
-            { name: 'AES-GCM', iv },
+            { name: 'AES-GCM', iv: iv.buffer },
             key,
-            ciphertext
+            ciphertext.buffer
         );
 
         // Parsear JSON
@@ -211,6 +211,26 @@ export class E2EEncryptionService {
         }
 
         return true;
+    }
+
+    /**
+     * [T4] Gera um Token de Autenticação para o LocalMeshServer
+     * 
+     * @param studentId - ID do aluno
+     * @param eventId - ID do evento (serve como segredo)
+     * @returns Token Base64 assinado: "base64(payload).signature"
+     */
+    static async createMeshToken(studentId: string, eventId: string): Promise<string> {
+        const payload = {
+            studentId,
+            eventId,
+            timestamp: Date.now()
+        };
+        const payloadJson = JSON.stringify(payload);
+        const payloadB64 = btoa(payloadJson);
+        const signature = await this.signPayload(payloadJson, eventId);
+        
+        return `${payloadB64}.${signature}`;
     }
 
     // --- HELPERS ---

@@ -22,7 +22,8 @@ import {
     Signal,
     Play
 } from 'lucide-react';
-import { getMeshNetwork, MeshNode, MeshMessage } from '../../../services/meshNetworkService';
+import { getMeshNetwork, MeshNode, MeshMessage, MeshHybridEnvelope } from '../../../services/meshNetworkService';
+import { E2EEncryptionService } from '../../../services/security/e2eEncryptionService';
 import { envConfig } from '../../../services/environmentConfig';
 
 interface StudentData {
@@ -101,6 +102,8 @@ export const LiveDashboard: React.FC<LiveDashboardProps> = ({
         mesh.setOnMessageReceived((message: MeshMessage) => {
             if (message.type === 'TELEMETRY') {
                 updateStudentData(message);
+            } else if (message.type === 'AUTOSAVE') {
+                updateStudentFromAutosave(message);
             } else if (message.type === 'HEARTBEAT') {
                 updateStudentHeartbeat(message);
             } else if (message.type === 'HANDSHAKE_SUBMIT') {
@@ -131,21 +134,74 @@ export const LiveDashboard: React.FC<LiveDashboardProps> = ({
      */
     const updateStudentData = (message: MeshMessage) => {
         const { studentId, studentName, currentQuestion, answeredCount, violations, lastViolation, batteryLevel } = message.payload;
+        processStudentUpdate(studentId, {
+            name: studentName,
+            currentQuestion,
+            answeredCount,
+            violations,
+            lastViolation,
+            batteryLevel
+        });
+    };
 
+    /**
+     * [T3] Atualizar a partir de Envelope Híbrido (AUTOSAVE)
+     */
+    const updateStudentFromAutosave = async (message: MeshMessage) => {
+        const envelope = message.payload as MeshHybridEnvelope;
+
+        // 1. Detectar se é formato novo (Híbrido)
+        if (envelope.schemaVersion && envelope.header) {
+            // 🔥 [SEGURANÇA] Validar assinatura antes de processar
+            try {
+                // Reconstruir material para assinatura (envelope sem o campo signature)
+                const { signature, ...material } = envelope;
+                const isValid = await E2EEncryptionService.verifySignature(
+                    JSON.stringify(material),
+                    signature,
+                    eventId
+                );
+
+                if (!isValid) {
+                    console.error(`❌ [MESH] Envelope de ${envelope.studentId} adulterado!`);
+                    return;
+                }
+            } catch (e) {
+                console.warn("⚠️ Falha na validação do envelope, descartando p/ segurança.");
+                return;
+            }
+
+            // 2. Consumir APENAS o header (Telemetria Pública)
+            processStudentUpdate(envelope.studentId, {
+                currentQuestion: envelope.header.currentQuestion,
+                answeredCount: envelope.header.answeredCount,
+                batteryLevel: envelope.header.battery,
+            });
+            
+            return;
+        }
+
+        // 3. Fallback: Formato Legado (Texto Claro)
+        if (message.payload.studentId) {
+             const { studentId, currentQuestion, answeredCount, batteryLevel } = message.payload;
+             processStudentUpdate(studentId, { currentQuestion, answeredCount, batteryLevel });
+        }
+    };
+
+    const processStudentUpdate = (studentId: string, data: Partial<StudentData>) => {
         setStudents(prev => {
             const newMap = new Map(prev);
-
             const existing = newMap.get(studentId);
 
             const studentData: StudentData = {
                 id: studentId,
-                name: studentName || existing?.name || 'Aluno Desconhecido',
-                currentQuestion: currentQuestion || existing?.currentQuestion || 0,
-                answeredCount: answeredCount || existing?.answeredCount || 0,
+                name: data.name || existing?.name || 'Aluno Desconhecido',
+                currentQuestion: data.currentQuestion || existing?.currentQuestion || 0,
+                answeredCount: data.answeredCount || existing?.answeredCount || 0,
                 totalQuestions,
-                violations: violations || existing?.violations || 0,
-                lastViolation: lastViolation || existing?.lastViolation,
-                batteryLevel: batteryLevel || existing?.batteryLevel || 100,
+                violations: data.violations || existing?.violations || 0,
+                lastViolation: data.lastViolation || existing?.lastViolation,
+                batteryLevel: data.batteryLevel || existing?.batteryLevel || 100,
                 connectionQuality: 'good',
                 lastSeen: Date.now(),
                 submissionStatus: existing?.submissionStatus
