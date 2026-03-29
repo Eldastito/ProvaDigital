@@ -1,6 +1,6 @@
 # Relatório de Evidência: Mock Seco R4C — Porto Alegre (POA)
 
-**Status do Gate**: [ ] EM AVALIAÇÃO | [ ] APROVADO | [ ] REPROVADO  
+**Status do Gate**: **[X] EM BLOQUEIO / INCONCLUSIVO POR AUSÊNCIA DE TELEMETRIA OFICIAL**  
 **Data do Ensaio**: 26/03/2026  
 **Lote Previsto**: 300 tablets (Inácio Montanha)  
 **Mínimo Válido**: 285 identificados e telemetrizados nominalmente
@@ -20,7 +20,7 @@ Consolidação dos principais indicadores de performance e disponibilidade do en
 | **Total >3m28s** | | |
 | **Exceções Nominais** | | |
 | **Watchdog Recovery (T2-T0)**\* | | |
-| **Veredito Técnico Preliminar** | | |
+| **Veredito Técnico Preliminar** | **BLOQUEIO OPERACIONAL** | **FAIL (GOVERNANCE)** |
 
 *\*Se Gate 2 for NÃO EXECUTADO, preencher como: **N/A — bloqueado por falha eliminatória do Gate 1**.*
 
@@ -87,9 +87,9 @@ Conforme a regra de **vedação de descarte silencioso**:
 ---
 
 ## 6. Conclusão Operacional
--   **Validade**: O lote atingiu o mínimo de 285 tablets (95%)? [ ] Sim / [ ] Não.
--   **Tentativa Oficial**: Este ensaio é uma: [ ] 1ª Tentativa Oficial | [ ] 2ª Tentativa Oficial (Reexecução).
-    -   *Se reexecução, anexar registro de causa e comparação integral com o ensaio anterior.*
+-   **Validade**: O lote atingiu o mínimo de 285 tablets (95%)? [ ] Sim / **[X] Não (Telemetria Inexistente)**.
+-   **Tentativa Oficial**: Este ensaio é uma: **[X] 1ª Tentativa Oficial** | [ ] 2ª Tentativa Oficial (Reexecução).
+    -   *Observação: Gate bloqueado por falha na extração de logs do Mock Seco de 26/03/2026. Qualquer simulação sintética subsequente servirá apenas para calibração de rerun e não substitui evidência de campo.*
 
 ---
 **Responsável**: Engenharia de Pilotagem | Porto Alegre

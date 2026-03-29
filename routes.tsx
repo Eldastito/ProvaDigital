@@ -234,6 +234,9 @@ export const appRoutes = (isAuthenticated: boolean): RouteObject[] => [
         )
     },
     { path: '/apps/demo', element: <S><LiveDemoLobby onClose={() => window.history.back()} /></S> },
+    ...(import.meta.env.VITE_ENABLE_TEST_HARNESS === 'true' ? [
+        { path: '/test-f3c', element: <S><StudentApp onBack={() => window.history.back()} /></S> }
+    ] : []),
 
     // Legacy redirects
     { path: '/teacher/itens', element: <Navigate to="/items" replace /> },
