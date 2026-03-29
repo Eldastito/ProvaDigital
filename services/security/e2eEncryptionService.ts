@@ -7,10 +7,10 @@
  * - HMAC-SHA256 para integridade de QR Codes
  * 
  * Fluxo:
- * 1. Aluno finaliza prova → Criptografa respostas com chave única
- * 2. Professor escaneia QR → Armazena dados criptografados (NÃO descriptografa)
- * 3. Coordenador consolida escola → Descriptografa com chave mestra
- * 4. Servidor recebe → Processa em lote
+ * 1. Aluno finaliza prova → Criptografa respostas com chave única derivada do contexto.
+ * 2. Professor escaneia QR/Recebe via Mesh → Armazena dados criptografados (NÃO descriptografa).
+ * 3. Consolidação → Descriptografa com as chaves derivadas dos alunos para processamento.
+ * 4. Servidor/Coordenador → Coleta evidências e gera relatório de notas.
  */
 
 import { StudentAnswer } from '../../types';
@@ -22,7 +22,7 @@ export interface EncryptedPackage {
 
 export interface SignedPayload {
     type: 'STUDENT_SUBMISSION' | 'CLASSROOM_BATCH' | 'SCHOOL_BATCH';
-    payload: any;
+    payload: Record<string, any>;
     signature: string; // HMAC signature
     timestamp: string;
 }
@@ -196,7 +196,7 @@ export class E2EEncryptionService {
      */
     static async createSignedPayload(
         type: SignedPayload['type'],
-        payload: any,
+        payload: Record<string, any>,
         secret: string
     ): Promise<SignedPayload> {
         const dataStr = JSON.stringify(payload);

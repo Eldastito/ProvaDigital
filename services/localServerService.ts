@@ -158,7 +158,14 @@ export class LocalServerService {
             // A raiz de confiança é o hmacSecret do provisionamento
             const { TabletProvisioningService } = await import('./tabletProvisioningService');
             const tokens = await TabletProvisioningService.getSecurityTokens();
-            const secret = tokens?.hmacSecret || payload.eventId || 'root-provisioning-secret';
+            
+            // SECURITY: No fallback allowed in operational mode. Missing secret = failed trust.
+            if (!tokens?.hmacSecret) {
+                const err = `SEC-ERR-001: Missing hmacSecret in operational mode (Peer: ${payload.tabletId})`;
+                console.error(`❌ ${err}`);
+                return { isValid: false, error: 'Unauthorized: Security infrastructure not initialized' };
+            }
+            const secret = tokens.hmacSecret;
 
             const { E2EEncryptionService } = await import('./security/e2eEncryptionService');
             const isSignatureValid = await E2EEncryptionService.verifySignature(payloadJson, parts[1], secret);

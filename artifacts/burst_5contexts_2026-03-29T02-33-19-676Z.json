@@ -1,0 +1,150 @@
+{
+  "profile": "operational",
+  "seed": 20260328,
+  "THRESHOLDS": {
+    "p95_L1_L2": 5,
+    "p95_L3": 7,
+    "p99": 10,
+    "error_rate_max": 0.001,
+    "recovery_delta_max_pct": 10
+  },
+  "results": [
+    {
+      "phase": "WARMUP",
+      "totalRequests": 4800,
+      "successRequests": 4800,
+      "errorRequests": 0,
+      "avgLatency": 0.6390333333333439,
+      "p50": 0.4338999999999942,
+      "p95": 1.1666999999979453,
+      "p99": 5.724500000000262,
+      "infra": {
+        "cpuLoad": 0.26032338498812385,
+        "memUsageMB": 64.19140625,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 0,
+        "readonly_block_count": 0,
+        "untracked_delegation_count": 0,
+        "mutation_delegation_count": 0,
+        "legacy_allow_count_for_mutations": 0,
+        "denyHistogram": {}
+      }
+    },
+    {
+      "phase": "LEVEL_1",
+      "totalRequests": 36260,
+      "successRequests": 36260,
+      "errorRequests": 0,
+      "avgLatency": 0.4601780529508816,
+      "p50": 0.3228999999992084,
+      "p95": 0.8470000000088476,
+      "p99": 2.938899999979185,
+      "infra": {
+        "cpuLoad": 0.48018954474588377,
+        "memUsageMB": 74.515625,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 0,
+        "readonly_block_count": 0,
+        "untracked_delegation_count": 0,
+        "mutation_delegation_count": 0,
+        "legacy_allow_count_for_mutations": 0,
+        "denyHistogram": {}
+      }
+    },
+    {
+      "phase": "LEVEL_2",
+      "totalRequests": 80650,
+      "successRequests": 80650,
+      "errorRequests": 0,
+      "avgLatency": 0.34092354990706275,
+      "p50": 0.30380000002332963,
+      "p95": 0.7021999999997206,
+      "p99": 1.2841999999945983,
+      "infra": {
+        "cpuLoad": 0.900446388474354,
+        "memUsageMB": 108.8125,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 0,
+        "readonly_block_count": 0,
+        "untracked_delegation_count": 0,
+        "mutation_delegation_count": 0,
+        "legacy_allow_count_for_mutations": 0,
+        "denyHistogram": {}
+      }
+    },
+    {
+      "phase": "LEVEL_3",
+      "totalRequests": 126100,
+      "successRequests": 126100,
+      "errorRequests": 0,
+      "avgLatency": 0.35836986439333535,
+      "p50": 0.3017000000108965,
+      "p95": 0.7528999999631196,
+      "p99": 1.835300000035204,
+      "infra": {
+        "cpuLoad": 1.4311977619312264,
+        "memUsageMB": 102.609375,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 0,
+        "readonly_block_count": 0,
+        "untracked_delegation_count": 0,
+        "mutation_delegation_count": 0,
+        "legacy_allow_count_for_mutations": 0,
+        "denyHistogram": {}
+      }
+    },
+    {
+      "phase": "RECOVERY",
+      "totalRequests": 4870,
+      "successRequests": 4870,
+      "errorRequests": 0,
+      "avgLatency": 0.4343810472280878,
+      "p50": 0.40509999997448176,
+      "p95": 0.8403999999864027,
+      "p99": 1.3379999999888241,
+      "infra": {
+        "cpuLoad": 0.193022056767249,
+        "memUsageMB": 94.203125,
+        "dbLatencyAvg": "unavailable",
+        "poolUsage": "unavailable"
+      },
+      "governance": {
+        "fallbackCount": 0,
+        "autoDisableCount": 0,
+        "crossOrgLeak": 0,
+        "writeEscape": 0,
+        "readonly_block_count": 0,
+        "untracked_delegation_count": 0,
+        "mutation_delegation_count": 0,
+        "legacy_allow_count_for_mutations": 0,
+        "denyHistogram": {}
+      }
+    }
+  ],
+  "finalDecision": "Aprovado por performance e governança.",
+  "exitCode": 0
+}
