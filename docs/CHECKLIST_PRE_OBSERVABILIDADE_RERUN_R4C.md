@@ -28,6 +28,7 @@ O objetivo é garantir que o coletor de telemetria está operando antes de subme
 - [ ] **Abortar Rerun** se o primeiro lote de 60 tablets não gerar telemetria visível em menos de 1 minuto. Não prosseguir para o burst de 300 se a observabilidade estiver cega.
 
 ---
-**Status de Prontidão**: [ ] Aguardando Execução  
-**Data Prevista**: ____/____/2026  
-**Responsável**: ______________________
+**Status de Prontidão**: [X] Aguardando Execução (Protocolo Ativo)  
+**Data Prevista**: 30/03/2026  
+**Responsável**: Engenharia de Pilotagem | Porto Alegre  
+**Eng. Observabilidade**: Coordenação Técnica de Pilotagem (Monitoramento Síncrono)
