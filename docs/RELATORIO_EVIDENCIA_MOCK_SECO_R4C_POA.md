@@ -65,11 +65,11 @@ O **P95** por sala é o indicador de estabilidade local da rede e do handshake.
 
 | Sala | Total Tablets | Máximo Handshake | **P95** Sala | Cauda >3m25s | Cauda >3m28s | Geometria Padrão? | Observações |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| Sala 1 | N/A | N/A | N/A | N/A | N/A | [ ] Sim / [ ] Não | |
-| Sala 2 | N/A | N/A | N/A | N/A | N/A | [ ] Sim / [ ] Não | |
-| Sala 3 | N/A | N/A | N/A | N/A | N/A | [ ] Sim / [ ] Não | |
-| Sala 4 | N/A | N/A | N/A | N/A | N/A | [ ] Sim / [ ] Não | |
-| Sala 5 | N/A | N/A | N/A | N/A | N/A | [ ] Sim / [ ] Não | |
+| Sala 1 | N/A | N/A | N/A | N/A | N/A | **N/A** | |
+| Sala 2 | N/A | N/A | N/A | N/A | N/A | **N/A** | |
+| Sala 3 | N/A | N/A | N/A | N/A | N/A | **N/A** | |
+| Sala 4 | N/A | N/A | N/A | N/A | N/A | **N/A** | |
+| Sala 5 | N/A | N/A | N/A | N/A | N/A | **N/A** | |
 
 ---
 
@@ -80,8 +80,7 @@ Conforme a regra de **vedação de descarte silencioso**:
 
 | ID Tablet | Nome Aluno/Ref | Falha Observada | Categoria |
 | :--- | :--- | :--- | :--- |
-| | | | ( ) Exceção Operacional |
-| | | | ( ) Exceção Operacional |
+| **N/A** | **N/A** | **Telemetria inexistente** | **Exceção Operacional (Indisponível)** |
 
 ---
 
