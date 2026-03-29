@@ -24,9 +24,9 @@ O ensaio sintético realizado para calibração do motor de governança projetou
 > **Threshold de Alerta**: Durante o rerun, o sistema emitirá um alerta operacional se o P95 end-to-end de campo ultrapassar **1.5s** em qualquer estágio preliminar. Este threshold é um alerta interno e não altera os critérios normativos do Gate oficial.
 
 ## 4. Declaração de Prontidão
-O pacote de governança, incluindo relatórios blindados, checklists e harness de teste, está consolidado sob o commit `0e58dc1`. Não há pendências técnicas ou de documentação para o início da operação.
+O pacote de governança, incluindo relatórios blindados, checklists e harness de teste, está consolidado sob o commit `a9148ac`. Não há pendências técnicas ou de documentação para o início da operação.
 
 ---
 **Parecer Executivo**: Aprovado para o **Rerun Oficial**.
 
-**Responsável**: Antigravity AI Engine | Governança de Pilotagem
+**Responsável**: Engenharia de Pilotagem | Porto Alegre
