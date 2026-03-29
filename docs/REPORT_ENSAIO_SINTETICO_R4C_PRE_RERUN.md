@@ -30,7 +30,8 @@ Validar o comportamento do motor de governança do **Authority Pilot** sob carga
 ## 4. Recomendações para o Rerun Oficial
 1. **Configuração do Lote**: Manter o limite de 300 tablets para a Tentativa Oficial 2.
 2. **Coleta de Telemetria**: Priorizar a verificação imediata dos logs de `audit_logs` e `PilotExecutionLog` pós-ensaio para evitar o bloqueio por "Zero Telemetry".
-3. **Threshold de Alerta**: Configurar o P95 End-to-End para disparar alerta se ultrapassar 1.5s em campo.
+3. **Threshold de Alerta**: Configurar um **threshold interno de alerta operacional** para o rerun se o P95 end-to-end de campo ultrapassar 1.5s em qualquer estágio de observação preliminar.  
+   **Observação**: Este threshold não substitui os critérios oficiais do Gate R4C.
 
 ---
 **Documento Gerado para Calibração Operacional**  

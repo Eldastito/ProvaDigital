@@ -20,7 +20,7 @@ Consolidação dos principais indicadores de performance e disponibilidade do en
 | **Total >3m28s** | **N/A** | **N/A** |
 | **Exceções Nominais** | **N/A** | **N/A** |
 | **Watchdog Recovery (T2-T0)**\* | **N/A** | **N/A** |
-| **Veredito Técnico Preliminar** | **BLOQUEIO OPERACIONAL** | **FAIL (GOVERNANCE)** |
+| **Veredito Técnico Preliminar** | **BLOQUEIO OPERACIONAL** | **INCONCLUSIVO POR AUSÊNCIA DE TELEMETRIA OFICIAL** |
 
 *\*Se Gate 2 for NÃO EXECUTADO, preencher como: **N/A — bloqueado por falha eliminatória do Gate 1**.*
 
@@ -41,23 +41,22 @@ O resultado dos Gates registrados abaixo segue a **Matriz de Decisão Oficial** 
 ## 3. Auditoria Detalhada: Gate 2 (Resiliência & Watchdog)
 Estatísticas do teste de queda controlada para validação da robustez do sistema.
 
--   **Gate 2 Executado?** [ ] Sim / [ ] Não
--   *Se não, justificar: ____________________________________*
+-   **Gate 2 Executado?** **Não**
+-   *Justificativa: Não executado / não auditável devido à ausência de telemetria oficial do Gate 1*
 
--   **Sala Testada**: ____________
--   **T0 (Queda Gateway)**: ____________
--   **T1 (Início Recuperação)**: ____________
--   **T2 (Recuperação Plena)**: ____________
--   **Tempo de Recuperação (T2 - T0)**: **______ segundos**
+-   **Sala Testada**: **N/A**
+-   **T0 (Queda Gateway)**: **N/A**
+-   **T1 (Início Recuperação)**: **N/A**
+-   **T2 (Recuperação Plena)**: **N/A**
+-   **Tempo de Recuperação (T2 - T0)**: **N/A**
 
 **Diagnóstico Operacional**:
--   Houve perda de rastreabilidade? [ ] Sim / [ ] Não
--   Houve necessidade de intervenção manual? [ ] Sim / [ ] Não
--   Observação de impacto operacional no lote: _____________________________________
+-   Houve perda de rastreabilidade? **N/A**
+-   Houve necessidade de intervenção manual? **N/A**
+-   Observação de impacto operacional no lote: **N/A — Bloqueio do Gate 1**
 
 **Evidências Mandatórias**:
--   [ ] Log de eventos do sistema anexado.
--   [ ] Captura do painel regional pós-queda anexada.
+-   **[X] N/A — Inexistentes por ausência de execução**
 
 ---
 
