@@ -12,14 +12,14 @@ Consolidação dos principais indicadores de performance e disponibilidade do en
 
 | Métrica | Resultado | Status (Pass/Fail) |
 | :--- | :---: | :---: |
-| **P50 Global** | | |
-| **P95 Global** | | |
-| **P99 Global** | | |
-| **Máximo Absoluto** | | |
-| **Total >3m25s** | | |
-| **Total >3m28s** | | |
-| **Exceções Nominais** | | |
-| **Watchdog Recovery (T2-T0)**\* | | |
+| **P50 Global** | **N/A** | **N/A** |
+| **P95 Global** | **N/A** | **N/A** |
+| **P99 Global** | **N/A** | **N/A** |
+| **Máximo Absoluto** | **N/A** | **N/A** |
+| **Total >3m25s** | **N/A** | **N/A** |
+| **Total >3m28s** | **N/A** | **N/A** |
+| **Exceções Nominais** | **N/A** | **N/A** |
+| **Watchdog Recovery (T2-T0)**\* | **N/A** | **N/A** |
 | **Veredito Técnico Preliminar** | **BLOQUEIO OPERACIONAL** | **FAIL (GOVERNANCE)** |
 
 *\*Se Gate 2 for NÃO EXECUTADO, preencher como: **N/A — bloqueado por falha eliminatória do Gate 1**.*
@@ -31,8 +31,8 @@ O resultado dos Gates registrados abaixo segue a **Matriz de Decisão Oficial** 
 
 | Gate | Status | Critério Mandatório | Evidência Técnica |
 | :--- | :--- | :--- | :--- |
-| **Gate 1** | [ ] SUCESSO<br>[ ] FALHA | **P95** Global < 3m15s | [Link Telemetria] |
-| **Gate 2** | [ ] SUCESSO<br>[ ] FALHA<br>[ ] NÃO EXECUTADO* | **Recuperação Watchdog < 15s, sem perda de rastreabilidade e sem necessidade de intervenção manual** | [Auditoria Detalhada Seção 3] |
+| **Gate 1** | **[X] NÃO AVALIÁVEL** | **P95** Global < 3m15s | [Sem Telemetria Regional] |
+| **Gate 2** | **[X] NÃO EXECUTADO / NÃO AVALIÁVEL** | **Recuperação Watchdog < 15s** | [N/A] |
 
 *\*Bloqueado por falha eliminatória do Gate 1.*
 
@@ -66,11 +66,11 @@ O **P95** por sala é o indicador de estabilidade local da rede e do handshake.
 
 | Sala | Total Tablets | Máximo Handshake | **P95** Sala | Cauda >3m25s | Cauda >3m28s | Geometria Padrão? | Observações |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| Sala 1 | | | | | | [ ] Sim / [ ] Não | |
-| Sala 2 | | | | | | [ ] Sim / [ ] Não | |
-| Sala 3 | | | | | | [ ] Sim / [ ] Não | |
-| Sala 4 | | | | | | [ ] Sim / [ ] Não | |
-| Sala 5 | | | | | | [ ] Sim / [ ] Não | |
+| Sala 1 | N/A | N/A | N/A | N/A | N/A | [ ] Sim / [ ] Não | |
+| Sala 2 | N/A | N/A | N/A | N/A | N/A | [ ] Sim / [ ] Não | |
+| Sala 3 | N/A | N/A | N/A | N/A | N/A | [ ] Sim / [ ] Não | |
+| Sala 4 | N/A | N/A | N/A | N/A | N/A | [ ] Sim / [ ] Não | |
+| Sala 5 | N/A | N/A | N/A | N/A | N/A | [ ] Sim / [ ] Não | |
 
 ---
 

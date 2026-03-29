@@ -1,5 +1,5 @@
 # 🧪 Relatório de Ensaio Sintético: Calibração R4C POA
-**AVISO CRÍTICO**: Este documento contém apenas **BENCHMARKS PROJETADOS (SINTÉTICOS)**. Não constitui evidência oficial de campo e não substitui os dados reais necessários para o encerramento do Gate R4C.
+**AVISO CRÍTICO**: Este documento contém apenas **BENCHMARKS PROJETADOS (SINTÉTICOS)**. Não constitui evidência oficial de campo e não substitui os dados reais necessários para o encerramento do Gate R4C. As métricas abaixo representam comportamento do simulador/harness em ambiente controlado e **não são equivalentes aos tempos de handshake end-to-end (segundos/minutos) usados no Gate oficial de campo**.
 
 ---
 
@@ -11,12 +11,12 @@ Validar o comportamento do motor de governança do **Authority Pilot** sob carga
 ## 2. Benchmarks Projetados (Cenário 5 Salas)
 *Dados obtidos via simulador de estresse regional (Burst Script).*
 
-| Métrica Projetada | Valor de Calibração | Status Sugerido para Rerun |
+| Métrica Projetada (Motor Interno) | Valor de Calibração (ms) | Status Sugerido para Rerun |
 | :--- | :---: | :---: |
-| **P95 Latência (Handshake)** | **< 1.85ms** | Estável |
-| **P99 Latência** | **< 4.20ms** | Estável |
-| **Taxa de Sucesso (Carga)** | **100%** | Conforme |
-| **Watchdog Recovery (Sintético)** | **~2.40s** | Seguro |
+| **P95 do Simulador de Burst Interno** | **< 1.85ms** | Estável (Simulado) |
+| **P99 do Simulador de Burst Interno** | **< 4.20ms** | Estável (Simulado) |
+| **Taxa de Sucesso (Carga Local)** | **100%** | Conforme |
+| **Recuperação Watchdog em Ensaio Sintético** | **~2.40s** | Seguro (Simulado) |
 
 ---
 
