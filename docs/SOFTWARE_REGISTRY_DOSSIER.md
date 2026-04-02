@@ -7,8 +7,9 @@ Este documento identifica a estrutura funcional e os módulos prioritários da p
 ## 1. Identificação do Sistema
 - **Nome Comercial**: FORGE
 - **Escopo**: Sistema de avaliação digital resiliente com persistência local e comunicação em malha.
-- **Titular Jurídico**: ExamePad Tecnologia Ltda (CNPJ: 00.000.000/0000-00 - Placeholder)
-- **Autoria Técnica**: Engenharia de Pilotagem | Porto Alegre (Em consolidação documental de titularidade)
+- **Titular Jurídico**: em consolidação formal (ExamePad Tecnologia Ltda)
+- **Autoria Técnica**: Equipe técnica responsável pelo desenvolvimento desta baseline: Engenharia de Pilotagem | Porto Alegre
+- **Baseline de Referência**: Commit `bb64cd4`
 
 ---
 
@@ -28,7 +29,7 @@ Este documento identifica a estrutura funcional e os módulos prioritários da p
 ## 3. Evidências de Desenvolvimento (Baseline)
 - **Marco de Versão**: Alpha-Hardened (Fase 3 do Authority Pilot)
 - **Branch**: `main`
-- **Hash Canônico (SHA)**: `9826697`
+- **Hash Canônico (SHA)**: `bb64cd4`
 - **Data da Baseline**: 29/03/2026
 
 ---

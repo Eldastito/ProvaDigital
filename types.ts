@@ -1275,7 +1275,7 @@ export interface SecurityEvent {
 }
 
 export interface StoredSession {
-  // Identificação Canônica (Trava #2)
+  // Identificação Canônica
   sessionId: string; // UUID Técnico
   storage_key: string; // storage_${eventId}_${studentId}_${examId}
   studentId: string;
@@ -1284,6 +1284,26 @@ export interface StoredSession {
   eventId: string;
   attempt_id?: string; // ID oficial da tentativa no servidor
   
+  // Controle de Integridade e Ciclo de Vida (Fase 2)
+  status: 'ACTIVE' | 'SUPERSEDED' | 'COMPLETED' | 'ABORTED';
+  origin: 'CANONICAL' | 'LEGACY_MIGRATED';
+  version: number; // Controle de versão para atomicidade lógica
+  requestId?: string; // Chave de idempotência (Trava #1)
+  supersededByAttemptId?: string; // Encadeamento histórico (Trava #2)
+  
+  // Timestamps
+  createdAt: string;
+  updatedAt: string;
+  lastAccessedAt: string;
+  finishedAt?: string;
+  
+  // Trilha de Migração (Fase 2)
+  migrationMetadata?: {
+    migratedAt: string;
+    source: string; // ex: 'scan_fallback'
+    version: string; // ex: 'phase2_v1'
+  };
+
   // Dados de Sessão
   encryptedAnswers: Array<{
     questionId: number;
@@ -1291,7 +1311,7 @@ export interface StoredSession {
     timestamp: string;
   }>;
   
-  // Telemetria e Segurança (Sprint 3/4)
+  // Telemetria e Segurança
   securityEvents: Array<{
     type: string;
     severity: 'LOW' | 'MEDIUM' | 'HIGH';
@@ -1306,17 +1326,12 @@ export interface StoredSession {
     networkQuality: number[];
   };
 
-  // Ciclo de Vida
-  startedAt: string;
-  finishedAt?: string;
-  totalDuration?: number;
+  // Status de Sincronização
   synced: boolean;
   uploadedToServer: boolean;
   uploadedAt?: string;
+  totalDuration?: number;
   qrCodeGenerated: boolean;
-  
-  // Transição (Dual Read)
-  migrated_legacy?: boolean;
 }
 
 // ============================================

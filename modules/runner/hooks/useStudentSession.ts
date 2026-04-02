@@ -44,20 +44,21 @@ export function useStudentSession({ examId, eventId }: UseStudentSessionProps): 
     /**
      * Inicia nova sessão para o aluno (ou reativa local existente)
      */
-    const startSession = useCallback(async (studentId: string, studentName: string, attemptId?: string) => {
+    const startSession = useCallback(async (studentId: string, studentName: string, attemptId?: string, requestId?: string) => {
         try {
             const session = await service.startSession(
                 studentId,
                 studentName,
                 examId,
                 eventId,
-                attemptId
+                attemptId,
+                requestId
             );
 
             setCurrentSession(session);
             setIsSessionActive(true);
 
-            console.log(`✅ Sessão ${session.sessionId.startsWith('auth_') ? 'reativada' : 'iniciada'}: ${studentName}`);
+            console.log(`✅ Sessão ${session.status === 'ACTIVE' && session.version > 1 ? 'reativada' : 'iniciada'}: ${studentName}`);
 
         } catch (error) {
             console.error('❌ Erro ao iniciar sessão:', error);
@@ -185,8 +186,8 @@ export function useStudentSession({ examId, eventId }: UseStudentSessionProps): 
     }, []);
 
     /**
-     * ❄️ Cold Boot Recovery (T2)
-     * Recupera sessão do IndexedDB se a RAM estiver vazia mas houver contexto
+     * ❄️ Cold Boot Recovery (Fase 2)
+     * Recupera sessão via Context Pointer (O(1)) com fallback para Dual-Read.
      */
     useEffect(() => {
         const recoverSession = async () => {
@@ -196,34 +197,60 @@ export function useStudentSession({ examId, eventId }: UseStudentSessionProps): 
             }
 
             try {
-                const sessions = await service.getAllSessions();
-                const relevantSession = sessions.find(s => 
-                    s.examId === examId && 
-                    s.eventId === eventId && 
-                    !s.finishedAt
-                );
+                // 1. Primário: Lookup via Ponteiro Ativo (O(1))
+                console.log('❄️ [COLD BOOT] Buscando ponteiro ativo...');
+                let session = await service.findActiveAttemptByContext(eventId, '', examId);
 
-                if (relevantSession) {
-                    console.log('❄️ [COLD BOOT] Recuperando sessão ativa encontrada no storage...');
-                    const session = await service.startSession(
-                        relevantSession.studentId,
-                        relevantSession.studentName,
-                        relevantSession.examId,
-                        relevantSession.eventId,
-                        relevantSession.attempt_id
+                // 2. Fallback: Dual-Read p/ Migração de Legado (Varredura Ampla)
+                if (!session) {
+                    console.log('📡 [DUAL-READ] Ponteiro não encontrado ou inconsistente. Iniciando varredura de legado...');
+                    const allSessions = await service.getAllSessions();
+                    const legacySession = allSessions.find(s => 
+                        s.examId === examId && 
+                        s.eventId === eventId && 
+                        s.status === 'ACTIVE'
                     );
-                    
+
+                    if (legacySession) {
+                        console.log('♻️ [MIGRATION] Sessão legada encontrada. Convertendo para modelo canônico...');
+                        session = await service.startSession(
+                            legacySession.studentId,
+                            legacySession.studentName,
+                            legacySession.examId,
+                            legacySession.eventId,
+                            legacySession.attempt_id,
+                            legacySession.requestId
+                        );
+                        
+                        // Adicionar metadado de migração
+                        session.origin = 'LEGACY_MIGRATED';
+                        session.migrationMetadata = {
+                            migratedAt: new Date().toISOString(),
+                            source: 'cold_boot_dual_read',
+                            version: 'phase2_v1'
+                        };
+                    }
+                }
+
+                if (session) {
+                    console.log(`✅ [COLD BOOT] Sessão recuperada: ${session.sessionId}`);
                     setCurrentSession(session);
                     setIsSessionActive(true);
                 }
+
             } catch (err) {
-                console.warn('⚠️ Erro na hidratação de sessão:', err);
+                console.warn('⚠️ Erro na recuperação de Cold Boot:', err);
             } finally {
                 setIsHydrating(false);
             }
         };
 
-        recoverSession();
+        // Só tenta recuperar se soubermos os IDs básicos (depende do contexto da prova)
+        if (examId && eventId) {
+            recoverSession();
+        } else {
+            setIsHydrating(false);
+        }
     }, [examId, eventId, isSessionActive]);
 
     /**

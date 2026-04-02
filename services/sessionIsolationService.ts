@@ -28,32 +28,50 @@ export class SessionIsolationService {
         studentName: string,
         examId: string,
         eventId: string,
-        attemptId?: string
+        attemptId?: string,
+        requestId?: string // Trava #1: Idempotência
     ): Promise<StudentSession> {
 
         // 1. Verificar se há sessão ativa na RAM
         if (this.currentSession && 
             this.currentSession.studentId === studentId && 
             this.currentSession.examId === examId) {
+            
+            // Verificação de Idempotência
+            if (requestId && this.currentSession.requestId === requestId) {
+                console.log('🔄 [IDEMPOTENCY] Reativando sessão via requestId (RAM)...');
+                return this.currentSession;
+            }
+            
             console.log('🔄 Reativando sessão da RAM...');
             return this.currentSession;
         }
 
-        // 2. Tentar encontrar sessão persistente (O(1) via Gateway)
-        let existingSession = await this.findSessionByContext(eventId, studentId, examId);
+        // 2. Tentar encontrar sessão ativa via Context Pointer (O(1))
+        let existingSession = await this.findActiveAttemptByContext(eventId, studentId, examId);
+
+        // Verificação de Idempotência na persistência
+        if (requestId && existingSession && existingSession.requestId === requestId) {
+            console.log('📡 [IDEMPOTENCY] Sessão encontrada via requestId (Persistência)...');
+            this.currentSession = existingSession;
+            return this.currentSession;
+        }
 
         if (existingSession) {
-            console.log(`📡 [RESUME] Sessão compatível encontrada: ${existingSession.sessionId}`);
+            console.log(`📡 [RESUME] Sessão ativa encontrada: ${existingSession.sessionId}`);
             this.currentSession = existingSession;
             
             if (attemptId && !this.currentSession.attempt_id) {
                 this.currentSession.attempt_id = attemptId;
             }
         } else {
+            // Se houve um requestId e não encontramos a sessão, mas encontramos uma SUPERSEDED com o mesmo requestId,
+            // poderíamos retornar um erro ou a SUPERSEDED. Aqui, criaremos uma nova ACTIVE.
+            
             const sessionId = `auth_${crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 11)}`;
             const storageKey = this.generateStorageKey(eventId, studentId, examId);
 
-            // Criar nova sessão
+            // Criar nova sessão determinística
             this.currentSession = {
                 sessionId: sessionId,
                 storage_key: storageKey,
@@ -62,6 +80,13 @@ export class SessionIsolationService {
                 examId,
                 eventId,
                 attempt_id: attemptId,
+                requestId,
+                status: 'ACTIVE',
+                origin: 'CANONICAL',
+                version: 1,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                lastAccessedAt: new Date().toISOString(),
                 encryptedAnswers: [],
                 securityEvents: [],
                 telemetry: {
@@ -70,12 +95,15 @@ export class SessionIsolationService {
                     batteryLevels: [],
                     networkQuality: []
                 },
-                startedAt: new Date().toISOString(),
                 qrCodeGenerated: false,
                 synced: false,
                 uploadedToServer: false
             };
-            console.log(`✅ Nova sessão criada para ${studentName} (${sessionId})`);
+            
+            // Marcar a anterior como superseded se aplicável
+            await this.setActiveAttemptForContext(eventId, studentId, examId, sessionId, requestId);
+            
+            console.log(`✅ Nova sessão ACTIVE criada para ${studentName} (${sessionId})`);
         }
 
         // Criar estado volátil (RAM) se não houver
@@ -92,7 +120,7 @@ export class SessionIsolationService {
             };
         }
 
-        // Persistir (Update ou Create) via Gateway
+        // Persistir via Gateway
         if (this.currentSession) {
             await PersistenceGateway.saveSession(this.currentSession);
         }
@@ -108,24 +136,69 @@ export class SessionIsolationService {
     }
 
     /**
-     * Busca sessão por contexto (O(1))
+     * Busca sessão ativa por Context Pointer (O(1))
      */
-    async findSessionByContext(
+    async findActiveAttemptByContext(
         eventId: string, 
         studentId: string, 
         examId: string
     ): Promise<StudentSession | null> {
-        const storageKey = this.generateStorageKey(eventId, studentId, examId);
+        const contextKey = `context:${eventId}:${studentId}:${examId}:active`;
+        const attemptId = await PersistenceGateway.findSessionByStorageKey(contextKey) as any;
         
-        // Busca Direta via Índice storage_key (O(1)) no Gateway
-        const session = await PersistenceGateway.findSessionByStorageKey(storageKey);
+        if (!attemptId) return null;
+
+        // Se o valor do ponteiro for o ID da sessão, buscamos a sessão real
+        const session = await PersistenceGateway.findSessionByStorageKey(`attempt:${attemptId}`) as StudentSession;
         
         if (session) {
-            console.log(`📡 [RESUME] Sessão canônica encontrada: ${session.sessionId}`);
-            return session as StudentSession;
+            if (session.status === 'ACTIVE') {
+                session.lastAccessedAt = new Date().toISOString();
+                return session;
+            } else {
+                // LOG-CB-PTR-ERR-001: Ponteiro inconsistente (aponta para algo não ACTIVE)
+                console.warn(`[LOG-CB-PTR-ERR-001] Ponteiro inconsistente para contexto ${contextKey}. Status: ${session.status}`);
+            }
         }
 
-        return null;
+        return null; // Caso não encontre ACTIVE, o chamador (Dual-Read) tentará reconstrução
+    }
+
+    /**
+     * Define a tentativa ativa para um contexto e faz a transição da anterior
+     */
+    private async setActiveAttemptForContext(
+        eventId: string,
+        studentId: string,
+        examId: string,
+        attemptId: string,
+        requestId?: string
+    ): Promise<void> {
+        const contextKey = `context:${eventId}:${studentId}:${examId}:active`;
+        
+        // 1. Localizar anterior
+        const previousId = await PersistenceGateway.findSessionByStorageKey(contextKey) as any;
+        
+        if (previousId && previousId !== attemptId) {
+            const prevSession = await PersistenceGateway.findSessionByStorageKey(`attempt:${previousId}`) as StudentSession;
+            if (prevSession && prevSession.status === 'ACTIVE') {
+                // Transição: ACTIVE -> SUPERSEDED (Auditável)
+                prevSession.status = 'SUPERSEDED';
+                prevSession.supersededByAttemptId = attemptId;
+                prevSession.updatedAt = new Date().toISOString();
+                prevSession.version += 1;
+                await PersistenceGateway.saveSession(prevSession);
+                console.log(`[TRANSITION] Session ${previousId} superseded by ${attemptId}`);
+            }
+        }
+
+        // 2. Atualizar Ponteiro (O(1))
+        // Nota: No nosso Gateway, tratamos storage_key como chave primária. 
+        // Aqui o "valor" do ponteiro é o attemptId.
+        await PersistenceGateway.saveSession({
+            storage_key: contextKey,
+            sessionId: attemptId // Link para a sessão real
+        } as any);
     }
 
     /**
@@ -155,6 +228,9 @@ export class SessionIsolationService {
         } else {
             this.currentSession.encryptedAnswers.push(answerData);
         }
+
+        this.currentSession.updatedAt = new Date().toISOString();
+        this.currentSession.version += 1;
 
         // Persistir via Gateway
         await PersistenceGateway.saveSession(this.currentSession);
@@ -217,10 +293,13 @@ export class SessionIsolationService {
             throw new Error('Nenhuma sessão ativa');
         }
 
-        const duration = Date.now() - new Date(this.currentSession.startedAt).getTime();
+        const duration = Date.now() - new Date(this.currentSession.createdAt).getTime();
 
         this.currentSession.finishedAt = new Date().toISOString();
+        this.currentSession.status = 'COMPLETED';
         this.currentSession.totalDuration = Math.floor(duration / 1000);
+        this.currentSession.updatedAt = new Date().toISOString();
+        this.currentSession.version += 1;
 
         await PersistenceGateway.saveSession(this.currentSession);
 
@@ -306,7 +385,7 @@ export class SessionIsolationService {
         const today = new Date().toISOString().split('T')[0];
 
         const todaySessions = allSessions.filter((s: StudentSession) =>
-            s.startedAt.startsWith(today)
+            s.createdAt.startsWith(today)
         );
 
         if (todaySessions.length === 0) {

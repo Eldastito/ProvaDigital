@@ -1,4 +1,6 @@
 # Relatório de Evidência: Fase 10 — Step 2 (Symptom-Based Alerting Matrix)
+> [!NOTE]
+> Documento histórico de referência; não compõe a baseline congelada da Fase 2.
 
 ## 📋 1. Veredito Executivo
 - **Status da Decisão**: ✅ **GO (Aprovado)**
@@ -20,7 +22,7 @@
 - **Latência de Sync**: P95 < 5s para deltas de 1MB.
 
 ## 📖 4. Runbooks Disponíveis
-Ações detalhadas em [RUNBOOKS_FASE_10.md](file:///c:/Users/miche/Downloads/examepad-saas-prova-digital/docs/RUNBOOKS_FASE_10.md):
+Ações detalhadas em [RUNBOOKS_FASE_10.md](docs/RUNBOOKS_FASE_10.md):
 - Protocolo de contenção de vazamento.
 - Recuperação de canal local Mesh.
 - Redrive de exportações presas em DLQ.

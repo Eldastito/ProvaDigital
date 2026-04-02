@@ -2,6 +2,10 @@
 
 Este documento contém o lastro técnico para fundamentar pedidos de **Patente de Invenção (PI)** da plataforma FORGE, descrevendo núcleos inventivos, mecanismos técnicos e efeitos pretendidos de forma não confidencial.
 
+- **Estado**: Fase 2 (Encerramento Técnico / Prova de Cold Boot)
+- **Baseline de Referência**: Commit `bb64cd4`
+- **Titularidade jurídica**: em consolidação formal, fora do escopo do presente fechamento técnico.
+
 ---
 
 ## 1. Núcleos Inventivos Principais
@@ -13,8 +17,8 @@ Este documento contém o lastro técnico para fundamentar pedidos de **Patente d
 
 ### 1.2 Retomada Segura de Sessão (Cold Boot Determinístico)
 **Problema Técnico**: Perda de integridade da sessão de usuário em dispositivos de borda após interrupções de hardware ou falhas no software cliente.  
-**Mecanismo**: Recuperação de estado via identificador determinístico de contexto baseado nos metadados da avaliação (identidade, evento) com armazenamento persistente local do cliente.  
-**Efeito Técnico**: Retomada determinística de sessão, com redução do risco de colisão lógica mesmo em cenários de múltiplos logins.
+**Mecanismo**: Recuperação de estado via identificador determinístico de contexto baseado nos metadados da avaliação (identidade, evento) com armazenamento persistente local do cliente e ponteiro de contexto atômico.  
+**Efeito Técnico**: Retomada determinística de sessão por meio de lookup direto por ponteiro canônico de contexto.
 
 ### 1.3 Isolamento Criptográfico em Envelope Híbrido
 **Problema Técnico**: Exposição de dados de resposta sensíveis ao trafegar por nós intermediários em redes locais ou mesh.  
@@ -27,10 +31,10 @@ Este documento contém o lastro técnico para fundamentar pedidos de **Patente d
 
 | Núcleo | Mecanismo | Efeito Técnico (Status) | Base de Implementação | Prova de Evidência | Classe |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Mesh Offline** | Orquestração local | Operação resiliente sem WAN. **[EM VALIDAÇÃO]** | `localServerService.ts`, `meshNetworkService.ts` | Relatórios R4B/R4C, Logs de Campo | Patent-Safe |
-| **Cold Boot** | Identificador canônico | Retomada determinística de sessão. **[EM VALIDAÇÃO]** | `sessionIsolationService.ts`, `useStudentSession.ts` | Benchmark de Recuperação | Patent-Safe |
-| **Secured Envelope** | Payload Híbrido | Isolamento criptográfico do conteúdo útil. **[EM VALIDAÇÃO]** | `e2eEncryptionService.ts`, `StudentApp.tsx` | Teste de Cifragem E2E | Patent-Safe |
-| **Mitigação Reativa** | Shadow Mode (Log) | Trilha auditável para conformidade. **[META EXP.]** | `telemetryService.ts` | Logs interno de Drift | Trade Secret |
+| **Mesh Offline** | Orquestração local | Operação resiliente sem WAN. **[VALIDADO EM LAB]** | `localServerService.ts`, `meshNetworkService.ts` | `EV-MESH-LOCAL-001` | Patent-Safe |
+| **Cold Boot** | Identificador canônico | Lookup direto por ponteiro canônico. **[VALIDADO EM LAB]** | `sessionIsolationService.ts`, `useStudentSession.ts` | `EV-DET-CB-001` | Patent-Safe |
+| **Secured Envelope** | Payload Híbrido | Isolamento criptográfico. **[VALIDADO EM LAB]** | `e2eEncryptionService.ts`, `StudentApp.tsx` | `EV-SEC-ENV-001` | Patent-Safe |
+| **Mitigação Reativa** | Shadow Mode (Log) | Trilha auditável/conformidade. **[VALIDADO EM LAB]** | `telemetryService.ts` | `LOG-CB-PTR-ERR-001` | Trade Secret |
 
 ---
 
@@ -41,6 +45,6 @@ Este dossiê **NÃO CONTÉM** os segredos industriais da FORGE. Os itens a segui
 - Heurísticas específicas de detecção de fraude e pesos do `proctoring` (Segredo Industrial).
 
 ---
-**Baseline de Referência**: Commit `9826697` (Marco Canônico de Consolidação)  
+**Baseline Técnica**: Commit `bb64cd4` (Pós-Fase 2 / Context Pointer e Cold Boot Canônico)  
 **Data da Revisão**: 29/03/2026  
 **Responsável**: Engenharia FORGE | Arquitetura de Segurança

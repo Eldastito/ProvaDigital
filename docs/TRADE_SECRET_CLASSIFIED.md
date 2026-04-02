@@ -15,6 +15,7 @@ Este documento contém informações críticas de engenharia, heurísticas de se
 ## 2. Heurísticas Operacionais e Monitoria
 - **Pesos de Violação**: Ver registro classificado **OPS-PROCTOR-001** (impacto de sinais comportamentais no score).
 - **Limiares de Alerta**: Ver registro classificado **OPS-LATENCY-001** (thresholds de latência e degradação de hardware).
+- **Padrão de Reconstrução**: Inconsistências de ponteiro (`LOG-CB-PTR-ERR-001`) acionam reconstrução automática transparente ao aluno, mas geram evento operacional obrigatório para auditoria.
 
 ## 3. Inteligência de Rede Local e Mesh
 - **Heurísticas de Transição**: Ver registro classificado **NET-MESH-001** (critérios de fallback entre modos de rede).
@@ -23,6 +24,9 @@ Este documento contém informações críticas de engenharia, heurísticas de se
 ## 4. Runbooks Críticos e Mitigação
 - **Estratégia de Contingência**: Procedimentos de transição para o legado (Acesso restrito ADMIN).
 - **Kill Switch Operacional**: Capacidade de mitigação operacional classificada; uso condicionado a governança e feature flag (automação ativa não liberada nesta baseline).
+
+---
+**Baseline Técnica**: Commit `bb64cd4`
 
 ---
 **Política de Não Divulgação**: Qualquer transferência de tecnologia ou auditoria externa deve excluir os itens listados neste dossiê, protegendo a vantagem competitiva e a segurança da FORGE.
