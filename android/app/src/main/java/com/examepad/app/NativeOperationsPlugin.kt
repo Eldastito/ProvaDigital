@@ -57,11 +57,28 @@ class NativeOperationsPlugin : Plugin() {
     }
 
     @PluginMethod
-    fun speakText(call: PluginCall) {
-        val text = call.getString("text") ?: ""
-        if (text.isNotEmpty()) {
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "ExamePadTTS")
+    fun getBLEPresence(call: PluginCall) {
+        val ret = JSObject()
+        ret.put("source", "ble")
+        ret.put("timestamp", System.currentTimeMillis())
+
+        val currentActivity = activity
+        if (currentActivity is RunnerActivity) {
+            val lastSeen = currentActivity.getBleLastSeen()
+            val timeout = currentActivity.getBleTimeout()
+            val now = System.currentTimeMillis()
+            
+            val isPresent = (now - lastSeen) < timeout
+            
+            ret.put("ok", true)
+            ret.put("present", isPresent)
+            call.resolve(ret)
+        } else {
+            ret.put("ok", false)
+            ret.put("present", false)
+            ret.put("errorCode", "RUNNER_ACTIVITY_NOT_ACTIVE")
+            ret.put("errorMessage", "BLE Presence available only in RunnerActivity")
+            call.resolve(ret)
         }
-        call.resolve()
     }
 }

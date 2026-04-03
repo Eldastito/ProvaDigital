@@ -1,11 +1,25 @@
 import { registerPlugin, Capacitor } from '@capacitor/core';
 
+export interface BlePresenceResult {
+  ok: boolean;
+  present: boolean;
+  source: 'ble';
+  timestamp: number;
+  errorCode?: 'RUNNER_ACTIVITY_NOT_ACTIVE' | 'BRIDGE_UNAVAILABLE' | 'INTERNAL_BRIDGE_ERROR';
+  errorMessage?: string;
+}
+
 export interface NativeOperationsPlugin {
   startKioskMode(): Promise<void>;
   stopKioskMode(): Promise<void>;
   sendUDPTelemetry(options: { payload: string }): Promise<void>;
   getKioskStatus(): Promise<{ isActive: boolean }>;
+  getBLEPresence(): Promise<BlePresenceResult>;
 }
+
+const FEATURE_FLAGS = {
+  FEATURE_BLE_PRESENCE_BRIDGE: true
+};
 
 const NativeOperations = registerPlugin<NativeOperationsPlugin>('NativeOperations');
 
@@ -160,6 +174,47 @@ export class NativeBridgeService {
         resolve(true);
       }, 3000);
     });
+  }
+
+  /**
+   * Verifica se o aluno está fisicamente presente na sala (via BLE)
+   * Requisito E1 - Fase 1 da Convergência Nativa
+   */
+  async isBleRoomPresent(): Promise<BlePresenceResult> {
+    if (!FEATURE_FLAGS.FEATURE_BLE_PRESENCE_BRIDGE) {
+      return { 
+        ok: false, 
+        present: false, 
+        source: 'ble', 
+        timestamp: Date.now(), 
+        errorCode: 'BRIDGE_UNAVAILABLE', 
+        errorMessage: 'Feature flag disabled' 
+      };
+    }
+
+    if (!this.isNative) {
+      return { 
+        ok: false, 
+        present: false, 
+        source: 'ble', 
+        timestamp: Date.now(), 
+        errorCode: 'BRIDGE_UNAVAILABLE' 
+      };
+    }
+
+    try {
+      const result = await NativeOperations.getBLEPresence();
+      return result;
+    } catch (e) {
+      return { 
+        ok: false, 
+        present: false, 
+        source: 'ble', 
+        timestamp: Date.now(), 
+        errorCode: 'INTERNAL_BRIDGE_ERROR',
+        errorMessage: e instanceof Error ? e.message : String(e)
+      };
+    }
   }
 
   /**

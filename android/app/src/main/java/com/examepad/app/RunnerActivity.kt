@@ -427,6 +427,9 @@ class RunnerActivity : BridgeActivity() {
         } catch (e: Exception) {}
     }
 
+    fun getBleLastSeen(): Long = lastBleSeenTime
+    fun getBleTimeout(): Int = BLE_TIMEOUT_MS
+
     override fun onDestroy() { 
         heartbeatHandler.removeCallbacks(heartbeatRunnable); kioskManager.stopKioskMode()
         cameraProvider?.unbindAll()
