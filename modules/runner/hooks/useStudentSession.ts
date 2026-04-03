@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getSessionService, StudentSession } from '../../../services/sessionIsolationService';
+import { nativeBridge } from '../../../services/nativeBridgeService';
 
 export interface UseStudentSessionProps {
     examId: string;
@@ -81,6 +82,18 @@ export function useStudentSession({ examId, eventId }: UseStudentSessionProps): 
             // Atualizar estado local
             const updatedSession = service.getCurrentSession();
             setCurrentSession(updatedSession);
+
+            // [E2] Double-Write SQLite (Redundância Nativa)
+            if (updatedSession) {
+                nativeBridge.saveNativeAnswer({
+                    examId: updatedSession.examId,
+                    studentId: updatedSession.studentId,
+                    questionId: String(questionId),
+                    value: typeof answer === 'string' ? answer : JSON.stringify(answer),
+                    requestId: updatedSession.requestId || `REQ-${Date.now()}`,
+                    savedAt: new Date().toISOString()
+                }).catch((e: any) => console.warn('⚠️ Double-Write failed:', e));
+            }
 
         } catch (error) {
             console.error('❌ Erro ao salvar resposta:', error);

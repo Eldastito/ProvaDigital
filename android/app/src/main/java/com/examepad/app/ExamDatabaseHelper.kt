@@ -13,7 +13,7 @@ class ExamDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
 
     companion object {
         private const val DATABASE_NAME = "examepad_local.db"
-        private const val DATABASE_VERSION = 1
+        private const val DATABASE_VERSION = 2
 
         const val TABLE_LOGS = "audit_logs"
         const val COL_LOG_ID = "id"
@@ -25,6 +25,10 @@ class ExamDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
         const val COL_ANS_ID = "question_id"
         const val COL_ANS_VALUE = "answer_value"
         const val COL_ANS_SYNCED = "is_synced"
+        const val COL_ANS_EXAM_ID = "exam_id"
+        const val COL_ANS_STUDENT_ID = "student_id"
+        const val COL_ANS_REQUEST_ID = "request_id"
+        const val COL_ANS_SAVED_AT = "saved_at"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -44,9 +48,20 @@ class ExamDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        db.execSQL("DROP TABLE IF EXISTS $TABLE_LOGS")
-        db.execSQL("DROP TABLE IF EXISTS $TABLE_ANSWERS")
-        onCreate(db)
+        if (oldVersion < 2) {
+            try {
+                db.execSQL("ALTER TABLE $TABLE_ANSWERS ADD COLUMN $COL_ANS_EXAM_ID TEXT DEFAULT ''")
+                db.execSQL("ALTER TABLE $TABLE_ANSWERS ADD COLUMN $COL_ANS_STUDENT_ID TEXT DEFAULT ''")
+                db.execSQL("ALTER TABLE $TABLE_ANSWERS ADD COLUMN $COL_ANS_REQUEST_ID TEXT DEFAULT ''")
+                db.execSQL("ALTER TABLE $TABLE_ANSWERS ADD COLUMN $COL_ANS_SAVED_AT TEXT DEFAULT ''")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_answer_context ON $TABLE_ANSWERS ($COL_ANS_EXAM_ID, $COL_ANS_STUDENT_ID, $COL_ANS_ID)")
+            } catch (e: Exception) {
+                // Se falhar a migração incremental por algum motivo estrutural, recria de forma segura
+                db.execSQL("DROP TABLE IF EXISTS $TABLE_LOGS")
+                db.execSQL("DROP TABLE IF EXISTS $TABLE_ANSWERS")
+                onCreate(db)
+            }
+        }
     }
 
     fun insertLog(event: String, description: String) {
@@ -61,14 +76,25 @@ class ExamDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
         } catch (e: Exception) { e.printStackTrace() }
     }
 
-    fun saveAnswer(questionId: String, value: String, isSynced: Boolean = false) {
+    /**
+     * Salva ou atualiza uma resposta usando política de UPSERT (E2)
+     * Contexto único: (exam_id, student_id, question_id)
+     */
+    fun saveAnswer(questionId: String, value: String, isSynced: Boolean = false, examId: String = "", studentId: String = "", requestId: String = "", savedAt: String = "") {
         val db = this.writableDatabase
-        val values = ContentValues().apply {
-            put(COL_ANS_ID, questionId)
-            put(COL_ANS_VALUE, value)
-            put(COL_ANS_SYNCED, if (isSynced) 1 else 0)
-        }
-        db.insertWithOnConflict(TABLE_ANSWERS, null, values, SQLiteDatabase.CONFLICT_REPLACE)
+        val sql = """
+            INSERT INTO $TABLE_ANSWERS ($COL_ANS_ID, $COL_ANS_VALUE, $COL_ANS_EXAM_ID, $COL_ANS_STUDENT_ID, $COL_ANS_REQUEST_ID, $COL_ANS_SAVED_AT, $COL_ANS_SYNCED)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT($COL_ANS_EXAM_ID, $COL_ANS_STUDENT_ID, $COL_ANS_ID) 
+            DO UPDATE SET 
+                $COL_ANS_VALUE = excluded.$COL_ANS_VALUE,
+                $COL_ANS_REQUEST_ID = excluded.$COL_ANS_REQUEST_ID,
+                $COL_ANS_SAVED_AT = excluded.$COL_ANS_SAVED_AT,
+                $COL_ANS_SYNCED = excluded.$COL_ANS_SYNCED
+        """.trimIndent()
+
+        val syncedInt = if (isSynced) 1 else 0
+        db.execSQL(sql, arrayOf(questionId, value, examId, studentId, requestId, savedAt, syncedInt))
     }
 
     fun markAsSynced(questionId: String) {

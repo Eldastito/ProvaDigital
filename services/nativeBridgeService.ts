@@ -9,16 +9,34 @@ export interface BlePresenceResult {
   errorMessage?: string;
 }
 
+export type SaveNativeAnswerResult = {
+  ok: boolean;
+  persisted: boolean;
+  storage: 'sqlite';
+  timestamp: number;
+  errorCode?: 'INVALID_PAYLOAD' | 'SQLITE_ERROR' | 'BRIDGE_UNAVAILABLE';
+  errorMessage?: string;
+};
+
 export interface NativeOperationsPlugin {
   startKioskMode(): Promise<void>;
   stopKioskMode(): Promise<void>;
   sendUDPTelemetry(options: { payload: string }): Promise<void>;
   getKioskStatus(): Promise<{ isActive: boolean }>;
   getBLEPresence(): Promise<BlePresenceResult>;
+  saveNativeAnswer(options: { 
+    examId: string; 
+    studentId: string; 
+    questionId: string; 
+    value: string; 
+    requestId: string; 
+    savedAt: string; 
+  }): Promise<SaveNativeAnswerResult>;
 }
 
 const FEATURE_FLAGS = {
-  FEATURE_BLE_PRESENCE_BRIDGE: true
+  FEATURE_BLE_PRESENCE_BRIDGE: true,
+  FEATURE_NATIVE_SQL_DOUBLE_WRITE: true
 };
 
 const NativeOperations = registerPlugin<NativeOperationsPlugin>('NativeOperations');
@@ -212,6 +230,42 @@ export class NativeBridgeService {
         source: 'ble', 
         timestamp: Date.now(), 
         errorCode: 'INTERNAL_BRIDGE_ERROR',
+        errorMessage: e instanceof Error ? e.message : String(e)
+      };
+    }
+  }
+
+  /**
+   * Realiza a persistência redundante no SQLite nativo (E2)
+   * Respeita a política de "Truthful Success" do plugin.
+   */
+  async saveNativeAnswer(options: {
+    examId: string;
+    studentId: string;
+    questionId: string;
+    value: string;
+    requestId: string;
+    savedAt: string;
+  }): Promise<SaveNativeAnswerResult> {
+    const timestamp = Date.now();
+
+    if (!FEATURE_FLAGS.FEATURE_NATIVE_SQL_DOUBLE_WRITE) {
+      return { ok: false, persisted: false, storage: 'sqlite', timestamp, errorCode: 'BRIDGE_UNAVAILABLE', errorMessage: 'Feature flag disabled' };
+    }
+
+    if (!this.isNative) {
+      return { ok: false, persisted: false, storage: 'sqlite', timestamp, errorCode: 'BRIDGE_UNAVAILABLE' };
+    }
+
+    try {
+      return await NativeOperations.saveNativeAnswer(options);
+    } catch (e) {
+      return { 
+        ok: false, 
+        persisted: false, 
+        storage: 'sqlite', 
+        timestamp, 
+        errorCode: 'SQLITE_ERROR',
         errorMessage: e instanceof Error ? e.message : String(e)
       };
     }
