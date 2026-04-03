@@ -93,6 +93,16 @@ export function useStudentSession({ examId, eventId }: UseStudentSessionProps): 
                     requestId: updatedSession.requestId || `REQ-${Date.now()}`,
                     savedAt: new Date().toISOString()
                 }).catch((e: any) => console.warn('⚠️ Double-Write failed:', e));
+
+                // [E3] UDP/Mesh Redundancy (Emissão Protegida AES-GCM)
+                nativeBridge.broadcastNativeAnswer({
+                    examId: updatedSession.examId,
+                    studentId: updatedSession.studentId,
+                    questionId: String(questionId),
+                    value: typeof answer === 'string' ? answer : JSON.stringify(answer),
+                    requestId: updatedSession.requestId || `REQ-${Date.now()}`,
+                    savedAt: new Date().toISOString()
+                }).catch((e: any) => console.warn('⚠️ Mesh Broadcast failed:', e));
             }
 
         } catch (error) {

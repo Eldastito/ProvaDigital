@@ -14,6 +14,10 @@ android {
         aaptOptions {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
+        buildConfigField "String", "MESH_SECRET_KEY", "\"MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=\""
+    }
+    buildFeatures {
+        buildConfig = true
     }
     buildTypes {
         release {

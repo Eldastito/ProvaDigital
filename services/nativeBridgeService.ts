@@ -18,6 +18,13 @@ export type SaveNativeAnswerResult = {
   errorMessage?: string;
 };
 
+export type BroadcastNativeAnswerResult = {
+  ok: boolean;
+  type: 'UDP_BROADCAST';
+  errorCode?: 'ENCRYPTION_ERROR' | 'BRIDGE_UNAVAILABLE';
+  errorMessage?: string;
+};
+
 export interface NativeOperationsPlugin {
   startKioskMode(): Promise<void>;
   stopKioskMode(): Promise<void>;
@@ -32,11 +39,20 @@ export interface NativeOperationsPlugin {
     requestId: string; 
     savedAt: string; 
   }): Promise<SaveNativeAnswerResult>;
+  broadcastNativeAnswer(options: { 
+    examId: string; 
+    studentId: string; 
+    questionId: string; 
+    value: string; 
+    requestId: string; 
+    savedAt: string; 
+  }): Promise<BroadcastNativeAnswerResult>;
 }
 
 const FEATURE_FLAGS = {
   FEATURE_BLE_PRESENCE_BRIDGE: true,
-  FEATURE_NATIVE_SQL_DOUBLE_WRITE: true
+  FEATURE_NATIVE_SQL_DOUBLE_WRITE: true,
+  FEATURE_UDP_MESH_REDUNDANCY: true
 };
 
 const NativeOperations = registerPlugin<NativeOperationsPlugin>('NativeOperations');
@@ -266,6 +282,38 @@ export class NativeBridgeService {
         storage: 'sqlite', 
         timestamp, 
         errorCode: 'SQLITE_ERROR',
+        errorMessage: e instanceof Error ? e.message : String(e)
+      };
+    }
+  }
+
+  /**
+   * Realiza o broadcast redundante via UDP Mesh (E3)
+   * Payload protegido por AES-GCM-256 no nativo.
+   */
+  async broadcastNativeAnswer(options: {
+    examId: string;
+    studentId: string;
+    questionId: string;
+    value: string;
+    requestId: string;
+    savedAt: string;
+  }): Promise<BroadcastNativeAnswerResult> {
+    if (!FEATURE_FLAGS.FEATURE_UDP_MESH_REDUNDANCY) {
+      return { ok: false, type: 'UDP_BROADCAST', errorCode: 'BRIDGE_UNAVAILABLE', errorMessage: 'Feature flag disabled' };
+    }
+
+    if (!this.isNative) {
+      return { ok: false, type: 'UDP_BROADCAST', errorCode: 'BRIDGE_UNAVAILABLE' };
+    }
+
+    try {
+      return await NativeOperations.broadcastNativeAnswer(options);
+    } catch (e) {
+      return { 
+        ok: false, 
+        type: 'UDP_BROADCAST', 
+        errorCode: 'ENCRYPTION_ERROR',
         errorMessage: e instanceof Error ? e.message : String(e)
       };
     }
