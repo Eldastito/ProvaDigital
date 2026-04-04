@@ -282,13 +282,19 @@ export const RedundancyMonitorView: React.FC = () => {
               Modo Técnico
             </button>
 
-            {/* Limpar buffer */}
+            {/* Limpar buffer — apenas visual, sem impacto no núcleo */}
             <button
-              onClick={handleClearBuffer}
+              onClick={() => {
+                if (events.length === 0) return;
+                if (window.confirm('Limpar o log visual desta sessão?\n\nIsso NÃO apaga dados do sistema, banco de dados ou prova.\nApenas limpa a visualização temporária do monitor.')) {
+                  handleClearBuffer();
+                }
+              }}
+              title="Limpa apenas o buffer visual desta sessão. Não afeta dados do sistema, banco de dados ou prova em andamento."
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-500 border border-slate-700/50 hover:bg-slate-700/50 transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              Limpar
+              Limpar Visão
             </button>
 
             {/* Indicador de sessão */}

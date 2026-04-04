@@ -29,7 +29,9 @@ const STATUS_CONFIG: Record<HealthStatus, { label: string; color: string; bg: st
 };
 
 export const PersistenceHealthCard: React.FC<PersistenceHealthCardProps> = ({ events }) => {
-  const idbStatus: HealthStatus = 'HEALTHY'; // IDB (E1) não tem falha observada nas ondas
+  // NOTA: IDB não possui telemetria dedicada nesta fase.
+  // O status é inferido como "sem falha observada", não como saúde absoluta.
+  const idbStatus: HealthStatus = 'HEALTHY';
   const sqliteStatus = deriveE2Status(events);
 
   const e2Events = events.filter(e => e.layer === 'E2');
@@ -47,8 +49,8 @@ export const PersistenceHealthCard: React.FC<PersistenceHealthCardProps> = ({ ev
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        {/* IndexedDB (Primária) */}
-        <StatusBadge label="IndexedDB" sublabel="Primária" status={idbStatus} />
+        {/* IndexedDB (Primária) — sem telemetria dedicada nesta fase */}
+        <StatusBadge label="IndexedDB" sublabel="Sem falha observada" status={idbStatus} />
         {/* SQLite (Secundária) */}
         <StatusBadge label="SQLite" sublabel="Secundária (E2)" status={sqliteStatus} />
       </div>

@@ -94,7 +94,15 @@ const FEATURE_FLAGS = {
   FEATURE_BLE_PRESENCE_BRIDGE: true,
   FEATURE_NATIVE_SQL_DOUBLE_WRITE: true,
   FEATURE_UDP_MESH_REDUNDANCY: true,
-  /** Fase 4: Habilita emissão de telemetria para UI de monitoramento */
+  /**
+   * Fase 4: Habilita emissão de telemetria para UI de monitoramento.
+   *
+   * DÍVIDA TÉCNICA REGISTRADA:
+   * Esta flag opera de forma simplificada (hardcoded true).
+   * Evolução futura: migrar para gate por ambiente/build via
+   * import.meta.env.VITE_ENABLE_REDUNDANCY_MONITOR para controle
+   * real por deploy. Não bloqueia homologação.
+   */
   FEATURE_REDUNDANCY_MONITOR: true
 };
 
