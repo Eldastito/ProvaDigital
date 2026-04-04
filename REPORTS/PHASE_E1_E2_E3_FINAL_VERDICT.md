@@ -8,9 +8,9 @@ Este documento registra o veredito oficial de encerramento das fases de desenvol
 
 | Fase de Redundância | Veredito | Resumo da Entrega |
 | :--- | :--- | :--- |
-| **Fase 1 (E1)** | **FECHADO** | Bridge BLE Presence funcional e isolada na `RunnerActivity`. |
-| **Fase 2 (E2)** | **FECHADO** | Double-Write SQLite V2 em prod/debug. |
-| **Fase 3 (E3)** | **FECHADO** | Emissão UDP Mesh protegida por AES-GCM-256. |
+| **Fase 1 (E1)** | **EM HOMOLOGAÇÃO** | Bridge BLE Presence funcional e isolada na `RunnerActivity`. |
+| **Fase 2 (E2)** | **EM HOMOLOGAÇÃO** | Double-Write SQLite V2 em prod/debug. |
+| **Fase 3 (E3)** | **EM HOMOLOGAÇÃO** | Emissão UDP Mesh protegida por AES-GCM-256. |
 
 ---
 

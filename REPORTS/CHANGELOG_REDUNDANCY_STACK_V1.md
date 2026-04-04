@@ -6,6 +6,9 @@ Histórico técnico do desenvolvimento das camadas de resiliência e integridade
 
 ## [v1.0.0-redundancy-closure] - 2026-04-03
 
+> [!CAUTION]
+> **FECHAMENTO COM RESSALVAS**: Este ciclo está fechado para implementação, mas possui limitações técnicas e riscos de segurança conhecidos. Antes de homologar, consulte: [KNOWN_LIMITATIONS_AND_RISKS.md](./KNOWN_LIMITATIONS_AND_RISKS.md).
+
 ### ✅ Fase 1 (E1): BLE Presence Bridge
 - **Adição**: Getters públicos `getBleLastSeen()` e `getBleTimeout()` na `RunnerActivity`.
 - **Adição**: Método `getBLEPresence` no `NativeOperationsPlugin`.
@@ -22,7 +25,7 @@ Histórico técnico do desenvolvimento das camadas de resiliência e integridade
 - **Adição**: Inclusão de **AAD** (Additional Authenticated Data) para autenticação de metadados críticos (`rid`, `ts`, `src`).
 - **Adição**: Provisionamento de **App UUID** (Persistente em SharedPreferences).
 - **Adição**: Método `broadcastNativeAnswer` com emissão UDP imediata e protegida (Best-Effort).
-- **Adição**: Script de Auditoria [mesh_audit_listener.js](file:///c:/Users/miche/Downloads/examepad-saas-prova-digital/android/mesh_audit_listener.js).
+- **Adição**: Script de Auditoria [mesh_audit_listener.js](../android/mesh_audit_listener.js).
 
 ---
 *Fim do Ciclo de Redundância v1.*

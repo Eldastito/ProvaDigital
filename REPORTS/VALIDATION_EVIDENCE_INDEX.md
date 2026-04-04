@@ -18,7 +18,7 @@ Este documento centraliza os pontos de prova técnica gerados durante o desenvol
 ### 3. UDP Mesh Protected (Fase 3)
 - **Padrão**: AES-GCM-256 (Criptografia Autenticada).
 - **Prova de Emissão**: O envelope JSON externo não possui PII. O logcat confirma `📡 Mesh Protected Broadcast`.
-- **Prova de Recepção**: O script [mesh_audit_listener.js](file:///c:/Users/miche/Downloads/examepad-saas-prova-digital/android/mesh_audit_listener.js) decifra e valida o AAD (`pv|rid|ts|src`) com sucesso.
+- **Prova de Recepção**: O script [mesh_audit_listener.js](../android/mesh_audit_listener.js) decifra e valida o AAD (`pv|rid|ts|src`) com sucesso.
 
 ---
 
