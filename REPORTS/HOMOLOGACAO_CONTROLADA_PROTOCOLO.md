@@ -40,7 +40,8 @@ O avanço entre as ondas **não é determinado por tempo fixo**, mas sim pelo cu
     - [ ] Sistema tolera Clock Drift dentro da janela de 60s (E3).
     - [ ] Deduplicação por `rid` funciona (Receptor ignora duplicatas).
     - [ ] Replays vencidos são descartados silenciosamente.
-    - [ ] Prova de que 0% das respostas foram perdidas no IndexedDB (Verdade Absoluta).
+    - [ ] **Resiliência Primária**: Prova de que 0% das respostas foram perdidas no IndexedDB.
+    - [ ] **Degradação Operacional**: Ausência de sinais observáveis de travamento ou degradação crítica (Memória/Processamento) sem instrumentação adicional.
 
 ---
 
