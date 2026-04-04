@@ -74,6 +74,7 @@ const ProfessorDashboardView = lazy(() => import('./modules/analytics/ProfessorD
 const ExamScheduler = lazy(() => import('./modules/coordinator/ExamScheduler').then(m => ({ default: m.ExamScheduler })));
 const CommandCenter = lazy(() => import('./modules/coordinator/CommandCenter').then(m => ({ default: m.CommandCenter })));
 const ClassCouncilView = lazy(() => import('./modules/coordinator/ClassCouncilView').then(m => ({ default: m.ClassCouncilView })));
+const RedundancyMonitorView = lazy(() => import('./modules/coordinator/RedundancyMonitorView').then(m => ({ default: m.RedundancyMonitorView })));
 
 // Other modules
 const CommunicationView = lazy(() => import('./modules/communication/CommunicationView').then(m => ({ default: m.CommunicationView })));
@@ -221,7 +222,16 @@ export const appRoutes = (isAuthenticated: boolean): RouteObject[] => [
                     { index: true, element: <S><CustodianOperationsView /></S> }
                 ]
             },
-            { path: 'professor/config/router', element: <S><RouterSetupWrapper /></S> }
+            { path: 'professor/config/router', element: <S><RouterSetupWrapper /></S> },
+
+            // Coordinator — Redundancy Monitor (Phase 4: Observational Only)
+            {
+                path: 'coordinator/redundancy-monitor',
+                element: <ProtectedRoute resource="PLATFORM_HEALTH" fallbackPath="/dashboard" />,
+                children: [
+                    { index: true, element: <S><RedundancyMonitorView /></S> }
+                ]
+            }
         ]
     },
     // Full screen / No layout apps

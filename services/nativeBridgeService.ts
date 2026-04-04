@@ -1,5 +1,46 @@
 import { registerPlugin, Capacitor } from '@capacitor/core';
 
+// ============================================================
+// Phase 4 — Redundancy Telemetry (Observational Only)
+// ============================================================
+
+/** Taxonomia canônica de eventos de redundância */
+export type RedundancyEventCode =
+  // E1 — BLE Presence
+  | 'E1_BLE_PRESENT'
+  | 'E1_BLE_ABSENT'
+  | 'E1_BLE_FALSE_TOGGLE'
+  | 'E1_BLE_BRIDGE_ERROR'
+  // E2 — SQLite Double-Write
+  | 'E2_SQLITE_OK'
+  | 'E2_SQLITE_LOCKED'
+  | 'E2_SQLITE_IO_ERROR'
+  | 'E2_BRIDGE_UNAVAILABLE'
+  // E3 — UDP Mesh
+  | 'E3_MESH_EMITTED'
+  | 'E3_MESH_RECEIVED'
+  | 'E3_DUPLICATE_RID'
+  | 'E3_REPLAY_REJECTED'
+  | 'E3_CLOCK_SKEW_INVALID'
+  | 'E3_DECRYPTION_ERROR'
+  | 'E3_BRIDGE_UNAVAILABLE';
+
+/** Severidade do evento para classificação na UI */
+export type RedundancyEventSeverity = 'OK' | 'WARNING' | 'CRITICAL';
+
+/** Evento de telemetria de redundância — puramente observacional */
+export interface RedundancyTelemetryEvent {
+  id: string;
+  timestamp: number;
+  code: RedundancyEventCode;
+  severity: RedundancyEventSeverity;
+  layer: 'E1' | 'E2' | 'E3';
+  latency?: number; // undefined quando não instrumentada
+  metadata?: Record<string, unknown>;
+}
+
+export type RedundancyTelemetrySubscriber = (event: RedundancyTelemetryEvent) => void;
+
 export interface BlePresenceResult {
   ok: boolean;
   present: boolean;
@@ -52,14 +93,28 @@ export interface NativeOperationsPlugin {
 const FEATURE_FLAGS = {
   FEATURE_BLE_PRESENCE_BRIDGE: true,
   FEATURE_NATIVE_SQL_DOUBLE_WRITE: true,
-  FEATURE_UDP_MESH_REDUNDANCY: true
+  FEATURE_UDP_MESH_REDUNDANCY: true,
+  /** Fase 4: Habilita emissão de telemetria para UI de monitoramento */
+  FEATURE_REDUNDANCY_MONITOR: true
 };
 
 const NativeOperations = registerPlugin<NativeOperationsPlugin>('NativeOperations');
 
+/** Tamanho máximo do buffer efêmero de telemetria */
+const TELEMETRY_BUFFER_MAX = 200;
+
+let _telemetryIdCounter = 0;
+function nextTelemetryId(): string {
+  return `tel_${Date.now()}_${++_telemetryIdCounter}`;
+}
+
 export class NativeBridgeService {
   private static instance: NativeBridgeService;
   private isNative: boolean;
+
+  // --- Phase 4: Telemetry Observational Layer ---
+  private _telemetrySubscribers: Set<RedundancyTelemetrySubscriber> = new Set();
+  private _telemetryBuffer: RedundancyTelemetryEvent[] = [];
 
   constructor() {
     this.isNative = Capacitor.isNativePlatform();
@@ -274,8 +329,24 @@ export class NativeBridgeService {
     }
 
     try {
-      return await NativeOperations.saveNativeAnswer(options);
+      const result = await NativeOperations.saveNativeAnswer(options);
+      // Phase 4: Emitir evento de telemetria (sem bloquear)
+      this.emitTelemetryEvent({
+        code: result.ok ? 'E2_SQLITE_OK' : 'E2_SQLITE_LOCKED',
+        severity: NativeBridgeService.severityFor(result.ok ? 'E2_SQLITE_OK' : 'E2_SQLITE_LOCKED'),
+        layer: 'E2',
+        metadata: { requestId: options.requestId, persisted: result.persisted },
+      });
+      return result;
     } catch (e) {
+      const errorCode: RedundancyEventCode = 'E2_SQLITE_IO_ERROR';
+      // Phase 4: Emitir evento de erro
+      this.emitTelemetryEvent({
+        code: errorCode,
+        severity: NativeBridgeService.severityFor(errorCode),
+        layer: 'E2',
+        metadata: { requestId: options.requestId, error: e instanceof Error ? e.message : String(e) },
+      });
       return { 
         ok: false, 
         persisted: false, 
@@ -308,8 +379,24 @@ export class NativeBridgeService {
     }
 
     try {
-      return await NativeOperations.broadcastNativeAnswer(options);
+      const result = await NativeOperations.broadcastNativeAnswer(options);
+      // Phase 4: Emitir evento de telemetria (sem bloquear)
+      this.emitTelemetryEvent({
+        code: result.ok ? 'E3_MESH_EMITTED' : 'E3_BRIDGE_UNAVAILABLE',
+        severity: NativeBridgeService.severityFor(result.ok ? 'E3_MESH_EMITTED' : 'E3_BRIDGE_UNAVAILABLE'),
+        layer: 'E3',
+        metadata: { requestId: options.requestId },
+      });
+      return result;
     } catch (e) {
+      const errorCode: RedundancyEventCode = 'E3_DECRYPTION_ERROR';
+      // Phase 4: Emitir evento de erro
+      this.emitTelemetryEvent({
+        code: errorCode,
+        severity: NativeBridgeService.severityFor(errorCode),
+        layer: 'E3',
+        metadata: { requestId: options.requestId, error: e instanceof Error ? e.message : String(e) },
+      });
       return { 
         ok: false, 
         type: 'UDP_BROADCAST', 
@@ -324,6 +411,80 @@ export class NativeBridgeService {
    */
   getIsNative(): boolean {
     return this.isNative;
+  }
+
+  // ============================================================
+  // Phase 4 — Telemetry Observer API (Read-Only / Ephemeral)
+  // ============================================================
+
+  /**
+   * Inscreve um subscriber para receber eventos de telemetria.
+   * Retorna uma função de unsubscribe.
+   */
+  subscribeTelemetry(subscriber: RedundancyTelemetrySubscriber): () => void {
+    this._telemetrySubscribers.add(subscriber);
+    return () => { this._telemetrySubscribers.delete(subscriber); };
+  }
+
+  /** Retorna cópia somente-leitura do buffer efêmero */
+  getTelemetryBuffer(): ReadonlyArray<RedundancyTelemetryEvent> {
+    return [...this._telemetryBuffer];
+  }
+
+  /** Limpa o buffer (ação de UI, não afeta o núcleo) */
+  clearTelemetryBuffer(): void {
+    this._telemetryBuffer = [];
+  }
+
+  /**
+   * Emite um evento de telemetria para todos os subscribers.
+   * Não bloqueia o fluxo de salvamento — notificação assíncrona via queueMicrotask.
+   */
+  private emitTelemetryEvent(event: Omit<RedundancyTelemetryEvent, 'id' | 'timestamp'>): void {
+    if (!FEATURE_FLAGS.FEATURE_REDUNDANCY_MONITOR) return;
+
+    const fullEvent: RedundancyTelemetryEvent = {
+      ...event,
+      id: nextTelemetryId(),
+      timestamp: Date.now(),
+    };
+
+    // Buffer circular efêmero
+    this._telemetryBuffer.push(fullEvent);
+    if (this._telemetryBuffer.length > TELEMETRY_BUFFER_MAX) {
+      this._telemetryBuffer = this._telemetryBuffer.slice(-TELEMETRY_BUFFER_MAX);
+    }
+
+    // Notificação assíncrona — nunca bloqueia o save path
+    queueMicrotask(() => {
+      this._telemetrySubscribers.forEach(sub => {
+        try { sub(fullEvent); } catch { /* subscriber crash não afeta o núcleo */ }
+      });
+    });
+  }
+
+  /** Mapeia severidade a partir do código de evento */
+  private static severityFor(code: RedundancyEventCode): RedundancyEventSeverity {
+    // Alertas visuais imediatos (CRITICAL)
+    if ([
+      'E2_SQLITE_LOCKED',
+      'E2_SQLITE_IO_ERROR',
+      'E3_DECRYPTION_ERROR',
+    ].includes(code)) return 'CRITICAL';
+
+    // Logs técnicos esperados (WARNING)
+    if ([
+      'E1_BLE_FALSE_TOGGLE',
+      'E1_BLE_ABSENT',
+      'E1_BLE_BRIDGE_ERROR',
+      'E2_BRIDGE_UNAVAILABLE',
+      'E3_DUPLICATE_RID',
+      'E3_REPLAY_REJECTED',
+      'E3_CLOCK_SKEW_INVALID',
+      'E3_BRIDGE_UNAVAILABLE',
+    ].includes(code)) return 'WARNING';
+
+    return 'OK';
   }
 }
 
