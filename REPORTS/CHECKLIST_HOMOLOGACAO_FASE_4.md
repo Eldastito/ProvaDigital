@@ -129,7 +129,8 @@
 | Coordenador identificou estado (saudável/degradada/crítica)? | SIM / NÃO |
 | Coordenador entendeu taxa bruta? | SIM / NÃO |
 | Coordenador diferenciou emissão vs recepção? | SIM / NÃO |
-| Sentiu falta de gráfico histórico? | SIM / NÃO |
+| A informação atual foi suficiente para decidir o estado da mesh? | SIM / NÃO |
+| Gráfico histórico agregaria valor operacional real? | SIM / NÃO |
 | **Status** | 🟢 GO / 🟡 CONDICIONADO / 🔴 NO-GO |
 | Ajuste recomendado | |
 
@@ -175,9 +176,9 @@
 
 | Critério | Resultado |
 |---|---|
-| **🟢 GO** | Todos os cenários GO |
-| **🟡 GO CONDICIONADO** | ≤2 pontos de ajuste leve (linguagem, hierarquia visual) |
-| **🔴 NO-GO** | Interpretação errada de persistência, pânico com alertas, BLE ilegível, mesh incompreensível, ou degradação de fluidez |
+| **🟢 GO** | Nenhum cenário crítico em `NO-GO` e no máximo 1 ajuste leve de UX |
+| **🟡 GO CONDICIONADO** | Até 2 ajustes leves documentados, sem erro de interpretação crítica |
+| **🔴 NO-GO** | Erro crítico de interpretação (ex: achar que perdeu prova), ruído excessivo ou degradação de fluidez |
 
 ### Decisão
 
