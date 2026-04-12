@@ -1,0 +1,200 @@
+{
+  "generatedAt": "2026-04-12T23:51:42.625Z",
+  "algorithm": "SHA-256",
+  "rootDirectory": "C:\\Users\\miche\\Downloads\\examepad-saas-prova-digital",
+  "patentModules": {
+    "services/meshNetworkService.ts": {
+      "sha256": "70b845bbe5de1097f20b461c77682b45e80a41b9f82ba30c499089a668e9940d",
+      "sizeBytes": 16787,
+      "lastModified": "2026-04-12T23:42:12.592Z"
+    },
+    "services/localServerService.ts": {
+      "sha256": "143c8d1a4d340ef0c426f1fe4b00b3b73180c3040e5968e6bc89ad55ad62fa0d",
+      "sizeBytes": 12494,
+      "lastModified": "2026-03-29T14:40:35.764Z"
+    },
+    "services/webrtcClient.ts": {
+      "sha256": "24d3378507eceed7e513f3c7d10aac1b245eb38eb0dc85e52580ee7668fcd90a",
+      "sizeBytes": 13015,
+      "lastModified": "2026-03-04T00:13:57.016Z"
+    },
+    "services/bluetoothMeshService.ts": {
+      "sha256": "cf9de18a0e2572b5d612c6ad56685288b3abf6c880baf86a82a423375a0c2362",
+      "sizeBytes": 3090,
+      "lastModified": "2026-03-07T11:08:11.158Z"
+    },
+    "services/wifiHotspotService.ts": {
+      "sha256": "619c7569372fd49a5f34f292c14a42b7cc799c64f773fefb39d7cba3f613e436",
+      "sizeBytes": 10728,
+      "lastModified": "2026-03-02T01:20:25.504Z"
+    },
+    "services/pilotMeshService.ts": {
+      "sha256": "8f6f8dfa56ff0a481478e41ecc733691d3288510725652d9781979ed5ed629a6",
+      "sizeBytes": 2891,
+      "lastModified": "2026-03-20T22:21:01.083Z"
+    },
+    "services/telemetryService.ts": {
+      "sha256": "611f3fdd79f43f46e4a1de4f8aae35d5f0ab1d5169b828518afbc5e77efc7963",
+      "sizeBytes": 9352,
+      "lastModified": "2026-04-12T23:43:19.474Z"
+    },
+    "services/sessionIsolationService.ts": {
+      "sha256": "c90dccf980575dcafae20250c92173fd176c16a0254a35ad75675205300824b7",
+      "sizeBytes": 19295,
+      "lastModified": "2026-04-12T23:40:51.176Z"
+    },
+    "services/persistenceGateway.ts": {
+      "sha256": "d5b4c5c0f0ce6585a2bb5a7c32a0baf209697c42ee131ca4d4134b4b8d34caad",
+      "sizeBytes": 9140,
+      "lastModified": "2026-04-12T23:41:33.963Z"
+    },
+    "services/offlineDb.ts": {
+      "sha256": "ebbfde92258191a8ef47d9bf01006538d15d0e97dd5a769f5fa6f4f1ba60ea92",
+      "sizeBytes": 7320,
+      "lastModified": "2026-04-12T23:42:52.416Z"
+    },
+    "services/security/e2eEncryptionService.ts": {
+      "sha256": "3fefc6929c438eb90839f0469808ee4c998c9ee9482c442b8c0caf3d0017c989",
+      "sizeBytes": 10313,
+      "lastModified": "2026-04-12T23:48:01.434Z"
+    },
+    "services/cryptoService.ts": {
+      "sha256": "d86d049105e03acc3cc74a24aca3582d43388cce12a217148227b80ace76194b",
+      "sizeBytes": 8111,
+      "lastModified": "2026-04-12T23:48:21.100Z"
+    },
+    "services/governanceService.ts": {
+      "sha256": "a859dce1d755152ce6f41bd3839bf7938225ed8a75c1a83962935529324cf069",
+      "sizeBytes": 29033,
+      "lastModified": "2026-04-12T23:48:37.449Z"
+    },
+    "constants/securityClassification.ts": {
+      "sha256": "404e170dc3aec4657da4662874eee1160bc446e171720bf29666753bbd930a49",
+      "sizeBytes": 5275,
+      "lastModified": "2026-04-12T23:44:04.006Z"
+    },
+    "types.ts": {
+      "sha256": "2668d579bbec7117341ab1b96e2bed42e3b4735eaa3cb8c69e372bdceac66abf",
+      "sizeBytes": 44370,
+      "lastModified": "2026-04-12T23:43:30.915Z"
+    }
+  },
+  "softwareRegistryModules": {
+    "modules/analytics/AnalyticsDashboard.tsx": {
+      "sha256": "19f58320a791bfdfb9b045be65e8cbced072b3f31a93432598bd8454d5b9d144",
+      "sizeBytes": 9418,
+      "lastModified": "2026-01-29T12:54:09.756Z"
+    },
+    "modules/analytics/PredictiveRiskDashboard.tsx": {
+      "sha256": "26bbb935b0d9e329c1493119f81293dd13586083fb2504d933949dee403b3133",
+      "sizeBytes": 12142,
+      "lastModified": "2026-02-26T03:22:12.980Z"
+    },
+    "modules/analytics/PedagogicalDashboard.tsx": {
+      "sha256": "82b055e32d88e168e160e260dda9c88cd5bf14bba78bf975ea1e66179736fcde",
+      "sizeBytes": 27159,
+      "lastModified": "2026-03-03T00:42:21.052Z"
+    },
+    "modules/analytics/NetworkDashboardView.tsx": {
+      "sha256": "9e613ccc50a8e5f3642b0fe94c347a7be535b773692b808944f3b5b4b6098b91",
+      "sizeBytes": 31016,
+      "lastModified": "2026-02-22T12:30:49.416Z"
+    },
+    "modules/analytics/GeoMap.tsx": {
+      "sha256": "3a254c161e55294bae1dfd32556d12b1a59452833f9aa62da10beeba9a5dd517",
+      "sizeBytes": 43972,
+      "lastModified": "2026-02-10T11:28:33.841Z"
+    },
+    "modules/builder/ExamBuilderView.tsx": {
+      "sha256": "25c25ca02dcd2c748b9ce7dcc55468cef892971bcde7c39acd689fc3f9c0cd85",
+      "sizeBytes": 20607,
+      "lastModified": "2026-03-04T22:43:36.291Z"
+    },
+    "modules/builder/AIQuestionGeneratorView.tsx": {
+      "sha256": "92490386f0952c2046b4f342c8779cb9ee33d1f83a1ad0241b58990ab955cfbd",
+      "sizeBytes": 34748,
+      "lastModified": "2026-02-12T12:12:01.593Z"
+    },
+    "modules/coordinator/CommandCenter.tsx": {
+      "sha256": "5390fb5d86e5d103989267a3d69a9901eb9473558ce20bb3fe6efbec13bb643a",
+      "sizeBytes": 31948,
+      "lastModified": "2026-02-10T04:35:39.040Z"
+    },
+    "modules/coordinator/RedundancyMonitorView.tsx": {
+      "sha256": "937e6c3a553a0da1a95138c4fe6923cb61bf69cea9944179bad05b2db4c45383",
+      "sizeBytes": 12883,
+      "lastModified": "2026-04-04T13:08:40.430Z"
+    },
+    "modules/coordinator/ExamScheduler.tsx": {
+      "sha256": "4d5487ac912e7ac3546ea6f7e0795f86b01042ada6b7d52b8c9271331c855e06",
+      "sizeBytes": 49228,
+      "lastModified": "2026-03-04T10:22:55.077Z"
+    },
+    "modules/runner/student-app/StudentApp.tsx": {
+      "sha256": "7099a8b6bdfa4b2d222e0ceb2dd413709e43c8b1d23fa16024ed13289a59d9d6",
+      "sizeBytes": 76642,
+      "lastModified": "2026-03-28T18:41:30.797Z"
+    },
+    "modules/runner/student-app/ProfessorApp.tsx": {
+      "sha256": "e737f5e495aa7713610a11cc82082dee146d87afc4c6742aea251a8611f6335d",
+      "sizeBytes": 42967,
+      "lastModified": "2026-03-28T01:28:51.323Z"
+    },
+    "modules/runner/student-app/CoordinatorApp.tsx": {
+      "sha256": "4fc6674d44ebe7be0862cbb95f35a2803ad1ee90298011996d98fa56acfc2935",
+      "sizeBytes": 37462,
+      "lastModified": "2026-03-07T11:08:41.872Z"
+    },
+    "modules/student-portal/StudentDashboardView.tsx": {
+      "sha256": "60d5b247b4ca68b5a8bc18b965a2e0520b79224afd643774401275c14f26b9f6",
+      "sizeBytes": 7159,
+      "lastModified": "2026-03-03T00:31:47.076Z"
+    },
+    "modules/student-portal/OwlTutorView.tsx": {
+      "sha256": "cf08f5caa96651cde30bd15316f29e40bdba82b2bb52926d9ed6ebe3d8dad342",
+      "sizeBytes": 14233,
+      "lastModified": "2026-02-27T03:10:17.991Z"
+    },
+    "modules/student-portal/StudentBattleView.tsx": {
+      "sha256": "1540e345b9309931a1c04181caaa5842de19afa001b6ad2dd3c6fd02a855bc04",
+      "sizeBytes": 31360,
+      "lastModified": "2026-01-15T00:27:05.211Z"
+    },
+    "modules/student-portal/ArcadeView.tsx": {
+      "sha256": "bc08a8e039902a2bc39c5f08666f8ee06f3444ebf50aaef45214c59332db9312",
+      "sizeBytes": 13644,
+      "lastModified": "2026-02-10T23:31:43.975Z"
+    },
+    "modules/student-portal/SurvivalView.tsx": {
+      "sha256": "5d9edd8ef292999c3295b4439cf5b34511a9361118b634a5e126d52216128cfd",
+      "sizeBytes": 18917,
+      "lastModified": "2026-01-15T00:26:49.924Z"
+    },
+    "modules/gamification/GamifiedEventsManager.tsx": {
+      "sha256": "494f4ec531a26fb2e4bb7b3e86c632a38fb5173556b7c6cc59f2f28a683c6f5a",
+      "sizeBytes": 21465,
+      "lastModified": "2026-01-29T12:50:41.058Z"
+    },
+    "modules/neuro-screening/NeuroScreeningView.tsx": {
+      "sha256": "2d29cb8d8cd44ba0d7ab7520a0ec5dbf648238ee1cd615bd5779a9b319fd475a",
+      "sizeBytes": 14849,
+      "lastModified": "2026-02-18T12:46:13.240Z"
+    },
+    "modules/communication/CommunicationView.tsx": {
+      "sha256": "2d3a4bab2995e22acd09c9044c9dc7496f8c9de2e3f5459ec6984339979fe6a6",
+      "sizeBytes": 12613,
+      "lastModified": "2026-03-11T10:52:06.885Z"
+    },
+    "modules/school-management/ManagementView.tsx": {
+      "sha256": "3a81b4823130435a122914adf64ec3584373b712f416168dc08e10c8527144c8",
+      "sizeBytes": 38772,
+      "lastModified": "2026-03-01T04:13:35.278Z"
+    }
+  },
+  "summary": {
+    "totalFiles": 37,
+    "totalBytes": 804418,
+    "patentFiles": 15,
+    "registryFiles": 22
+  }
+}
