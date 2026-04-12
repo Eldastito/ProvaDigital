@@ -1,9 +1,64 @@
+/**
+ * @module PersistenceGateway
+ * @description Camada de desacoplamento de I/O para persistência local.
+ * 
+ * Implementa o padrão Gateway para isolar os serviços de alto nível
+ * da implementação específica de armazenamento (IndexedDB/Dexie),
+ * evitando dependências circulares e permitindo substituição
+ * do motor de persistência sem afetar a lógica de negócio.
+ * 
+ * Este é o componente "Trava 2" do sistema de integridade:
+ * garante que toda operação de I/O passa por um ponto único de controle.
+ * 
+ * @patent-safe Este módulo é parte do dossiê de Patente de Invenção FORGE.
+ * @see sessionIsolationService.ts para o consumidor principal.
+ */
+
 import { db } from './offlineDb';
 import { StoredSession } from '../types';
 
 /**
- * PersistenceGateway: Camada de desacoplamento de I/O (Trava 2)
- * Evita dependência circular entre offlineDb.ts e serviços de alto nível.
+ * Estrutura de metadados de migração para auditoria operacional.
+ * Registra o histórico de migrações entre versões do banco local.
+ */
+export interface MigrationManifesto {
+    /** Identificador único do manifesto */
+    id: string;
+    /** Versão da migração aplicada */
+    migrationVersion: string;
+    /** Timestamp de início da migração (epoch ms) */
+    startedAt: number;
+    /** Timestamp de conclusão (epoch ms), undefined se não concluída */
+    completedAt?: number;
+    /** Banco de dados de origem detectado */
+    sourceDbDetected: string;
+    /** Número de sessões migradas com sucesso */
+    migratedSessionCount: number;
+    /** Se a validação pós-migração passou */
+    validationPassed: boolean;
+    /** Se os dados antigos podem ser removidos */
+    cleanupEligible: boolean;
+    /** Detalhes adicionais da migração */
+    details?: string;
+}
+
+/**
+ * Entrada de configuração unificada do dispositivo local.
+ */
+export interface ConfigEntry {
+    /** Chave única da configuração */
+    key: string;
+    /** Valor da configuração (serializável em JSON) */
+    value: string | number | boolean | Record<string, unknown>;
+    /** Data/hora da configuração (ISO 8601) */
+    configuredAt: string;
+}
+
+/**
+ * Gateway de Persistência — Ponto único de I/O para dados operacionais.
+ * 
+ * Todas as operações de leitura/escrita no IndexedDB passam por este gateway,
+ * garantindo consistência e rastreabilidade de operações.
  */
 export const PersistenceGateway = {
     /**
@@ -42,16 +97,30 @@ export const PersistenceGateway = {
     },
 
     /**
-     * Gerenciamento do Manifesto de Migração (Auditoria Operacional)
+     * Recupera manifesto de migração para auditoria operacional.
+     * @param id - Identificador do manifesto (padrão: 'main_migration')
+     * @returns Manifesto de migração ou undefined se não existir
      */
-    getMigrationManifesto: async (id: string = 'main_migration') => {
-        return await db.migrationMetadata.get(id);
+    getMigrationManifesto: async (id: string = 'main_migration'): Promise<MigrationManifesto | undefined> => {
+        return await db.migrationMetadata.get(id) as MigrationManifesto | undefined;
     },
 
-    updateMigrationManifesto: async (id: string, data: any) => {
-        const existing = await db.migrationMetadata.get(id);
-        const manifesto = {
+    /**
+     * Atualiza campos específicos do manifesto de migração.
+     * @param id - Identificador do manifesto
+     * @param data - Campos a serem atualizados
+     * @returns Manifesto atualizado
+     */
+    updateMigrationManifesto: async (id: string, data: Partial<MigrationManifesto>): Promise<MigrationManifesto> => {
+        const existing = await db.migrationMetadata.get(id) as MigrationManifesto | undefined;
+        const manifesto: MigrationManifesto = {
             id,
+            migrationVersion: '',
+            startedAt: 0,
+            sourceDbDetected: '',
+            migratedSessionCount: 0,
+            validationPassed: false,
+            cleanupEligible: false,
             ...existing,
             ...data,
             completedAt: data.validationPassed ? Date.now() : undefined
@@ -60,8 +129,14 @@ export const PersistenceGateway = {
         return manifesto;
     },
 
-    initMigrationManifesto: async (version: string, source: string) => {
-        const manifesto = {
+    /**
+     * Inicializa manifesto de migração para uma nova operação.
+     * @param version - Versão da migração
+     * @param source - Banco de dados de origem
+     * @returns Manifesto inicializado
+     */
+    initMigrationManifesto: async (version: string, source: string): Promise<MigrationManifesto> => {
+        const manifesto: MigrationManifesto = {
             id: 'main_migration',
             migrationVersion: version,
             startedAt: Date.now(),
@@ -96,9 +171,11 @@ export const PersistenceGateway = {
     },
 
     /**
-     * CONFIGURAÇÕES UNIFICADAS (F3B)
+     * Salva uma configuração unificada do dispositivo local.
+     * @param key - Chave da configuração
+     * @param value - Valor da configuração
      */
-    saveConfig: async (key: string, value: any): Promise<void> => {
+    saveConfig: async (key: string, value: ConfigEntry['value']): Promise<void> => {
         await db.config.put({
             key,
             value,
@@ -106,7 +183,12 @@ export const PersistenceGateway = {
         });
     },
 
-    getConfig: async (key: string): Promise<any | undefined> => {
+    /**
+     * Recupera uma configuração pelo sua chave.
+     * @param key - Chave da configuração
+     * @returns Valor da configuração ou undefined
+     */
+    getConfig: async (key: string): Promise<ConfigEntry['value'] | undefined> => {
         const item = await db.config.get(key);
         return item?.value;
     },

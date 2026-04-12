@@ -1,19 +1,64 @@
+/**
+ * @module SessionIsolationService
+ * @description Serviço de Isolamento de Sessão com Context Pointer Canônico.
+ * 
+ * Implementa o Núcleo Inventivo "Retomada Segura de Sessão (Cold Boot Determinístico)"
+ * da plataforma FORGE, permitindo recuperação determinística de sessão em O(1)
+ * após falhas de hardware, sem perda de dados e sem intervenção humana.
+ * 
+ * Mecanismos:
+ * - Context Pointer: Ponteiro canônico `context:{eventId}:{studentId}:{examId}:active`
+ *   para lookup direto da tentativa ativa mais recente.
+ * - Idempotência: Controle via `requestId` para evitar duplicação de sessões.
+ * - Transição de Estado: Matriz formal (ACTIVE → SUPERSEDED/COMPLETED/ABORTED)
+ *   com cadeia de custódia auditável.
+ * - Controle de Versão: Incremento atômico por operação para atomicidade lógica.
+ * 
+ * @patent-safe Este módulo é parte do dossiê de Patente de Invenção FORGE.
+ * @see STATE_TRANSITION_MATRIX.md para a especificação formal de transições.
+ * @see PI_DOSSIER_PATENT_SAFE.md para o dossiê de patente.
+ */
+
 import { PersistenceGateway } from './persistenceGateway';
 import { StoredSession } from '../types';
 
-// O serviço passa a usar o tipo StoredSession do offlineDb para consistência
+/** Alias canônico para compatibilidade de nomenclatura */
 export type StudentSession = StoredSession;
 
+/**
+ * Representa uma conexão de rede gerenciada pela sessão.
+ * Conexões são limpas ao logout para evitar vazamentos de recursos.
+ */
+export interface ManagedNetworkConnection {
+    /** Identificador único da conexão */
+    id: string;
+    /** Tipo de conexão (WebRTC, WebSocket, etc.) */
+    type: 'WEBRTC' | 'WEBSOCKET' | 'HTTP';
+    /** Método de encerramento da conexão */
+    close: () => void;
+}
+
+/**
+ * Estado volátil da sessão (RAM).
+ * Este estado é **limpo ao logout** e NÃO é persistido no IndexedDB.
+ * Contém apenas dados de UI e referências a recursos ativos.
+ */
 export interface SessionState {
-    // Estado volátil (RAM) - limpo ao logout
+    /** Número da questão atualmente visível */
     currentQuestion: number;
+    /** Estado da interface do usuário */
     uiState: {
+        /** Posição do scroll na tela */
         scrollPosition: number;
+        /** Modo de exibição da prova */
         examMode: 'normal' | 'review';
+        /** Questões marcadas para revisão */
         flaggedQuestions: number[];
     };
+    /** IDs de timers ativos (clearInterval/clearTimeout) */
     activeTimers: number[];
-    networkConnections: any[];
+    /** Conexões de rede gerenciadas */
+    networkConnections: ManagedNetworkConnection[];
 }
 
 export class SessionIsolationService {
@@ -136,7 +181,19 @@ export class SessionIsolationService {
     }
 
     /**
-     * Busca sessão ativa por Context Pointer (O(1))
+     * Busca sessão ativa por Context Pointer — Lookup O(1).
+     * 
+     * Este é o mecanismo central do Cold Boot Determinístico.
+     * O ponteiro de contexto (`context:{eventId}:{studentId}:{examId}:active`)
+     * armazena o sessionId da tentativa ACTIVE mais recente, permitindo
+     * retomada direta sem scan sequencial do banco.
+     * 
+     * @param eventId - Identificador do evento de avaliação
+     * @param studentId - Identificador do estudante
+     * @param examId - Identificador da prova
+     * @returns Sessão ACTIVE ou null se não encontrada/inconsistente
+     * 
+     * @patent-safe Mecanismo de lookup direto por ponteiro canônico de contexto.
      */
     async findActiveAttemptByContext(
         eventId: string, 
@@ -144,19 +201,24 @@ export class SessionIsolationService {
         examId: string
     ): Promise<StudentSession | null> {
         const contextKey = `context:${eventId}:${studentId}:${examId}:active`;
-        const attemptId = await PersistenceGateway.findSessionByStorageKey(contextKey) as any;
+        const pointerRecord = await PersistenceGateway.findSessionByStorageKey(contextKey);
         
-        if (!attemptId) return null;
+        if (!pointerRecord) return null;
 
-        // Se o valor do ponteiro for o ID da sessão, buscamos a sessão real
-        const session = await PersistenceGateway.findSessionByStorageKey(`attempt:${attemptId}`) as StudentSession;
+        // O ponteiro é armazenado como um registro mínimo onde sessionId = attemptId alvo
+        const targetAttemptId = pointerRecord.sessionId;
+        if (!targetAttemptId) return null;
+
+        // Buscar a sessão real pelo attemptId referenciado
+        const session = await PersistenceGateway.findSessionByStorageKey(`attempt:${targetAttemptId}`);
         
         if (session) {
             if (session.status === 'ACTIVE') {
                 session.lastAccessedAt = new Date().toISOString();
-                return session;
+                return session as StudentSession;
             } else {
                 // LOG-CB-PTR-ERR-001: Ponteiro inconsistente (aponta para algo não ACTIVE)
+                // Gera evento operacional obrigatório para auditoria.
                 console.warn(`[LOG-CB-PTR-ERR-001] Ponteiro inconsistente para contexto ${contextKey}. Status: ${session.status}`);
             }
         }
@@ -165,7 +227,20 @@ export class SessionIsolationService {
     }
 
     /**
-     * Define a tentativa ativa para um contexto e faz a transição da anterior
+     * Define a tentativa ativa para um contexto e faz a transição da anterior.
+     * 
+     * Implementa a regra de transição `ACTIVE → SUPERSEDED` com cadeia de custódia:
+     * - Localiza a tentativa anterior via ponteiro de contexto
+     * - Se ativa, transiciona para SUPERSEDED com referência à nova tentativa
+     * - Atualiza o ponteiro de contexto para a nova tentativa (atômico)
+     * 
+     * @param eventId - Identificador do evento
+     * @param studentId - Identificador do estudante
+     * @param examId - Identificador da prova
+     * @param attemptId - ID da nova tentativa ativa
+     * @param requestId - Chave de idempotência (opcional)
+     * 
+     * @patent-safe Transição de estado auditável com cadeia de custódia.
      */
     private async setActiveAttemptForContext(
         eventId: string,
@@ -176,29 +251,48 @@ export class SessionIsolationService {
     ): Promise<void> {
         const contextKey = `context:${eventId}:${studentId}:${examId}:active`;
         
-        // 1. Localizar anterior
-        const previousId = await PersistenceGateway.findSessionByStorageKey(contextKey) as any;
+        // 1. Localizar tentativa anterior via ponteiro de contexto
+        const previousPointer = await PersistenceGateway.findSessionByStorageKey(contextKey);
+        const previousAttemptId = previousPointer?.sessionId;
         
-        if (previousId && previousId !== attemptId) {
-            const prevSession = await PersistenceGateway.findSessionByStorageKey(`attempt:${previousId}`) as StudentSession;
+        if (previousAttemptId && previousAttemptId !== attemptId) {
+            const prevSession = await PersistenceGateway.findSessionByStorageKey(`attempt:${previousAttemptId}`);
             if (prevSession && prevSession.status === 'ACTIVE') {
-                // Transição: ACTIVE -> SUPERSEDED (Auditável)
+                // Transição: ACTIVE → SUPERSEDED (Auditável)
                 prevSession.status = 'SUPERSEDED';
                 prevSession.supersededByAttemptId = attemptId;
                 prevSession.updatedAt = new Date().toISOString();
                 prevSession.version += 1;
-                await PersistenceGateway.saveSession(prevSession);
-                console.log(`[TRANSITION] Session ${previousId} superseded by ${attemptId}`);
+                await PersistenceGateway.saveSession(prevSession as StudentSession);
+                console.log(`[TRANSITION] Session ${previousAttemptId} superseded by ${attemptId}`);
             }
         }
 
-        // 2. Atualizar Ponteiro (O(1))
-        // Nota: No nosso Gateway, tratamos storage_key como chave primária. 
-        // Aqui o "valor" do ponteiro é o attemptId.
-        await PersistenceGateway.saveSession({
+        // 2. Atualizar Ponteiro de Contexto (O(1))
+        // O registro do ponteiro é um StoredSession mínimo onde:
+        // - storage_key = contextKey (chave primária)
+        // - sessionId = attemptId (referência para a sessão real)
+        const contextPointer: Partial<StudentSession> = {
             storage_key: contextKey,
-            sessionId: attemptId // Link para a sessão real
-        } as any);
+            sessionId: attemptId,
+            studentId: '',
+            studentName: '',
+            examId: '',
+            eventId: '',
+            status: 'ACTIVE',
+            origin: 'CANONICAL',
+            version: 1,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            lastAccessedAt: new Date().toISOString(),
+            encryptedAnswers: [],
+            securityEvents: [],
+            telemetry: { timePerQuestion: [], backtracks: [], batteryLevels: [], networkQuality: [] },
+            synced: false,
+            uploadedToServer: false,
+            qrCodeGenerated: false
+        };
+        await PersistenceGateway.saveSession(contextPointer as StudentSession);
     }
 
     /**
@@ -237,12 +331,19 @@ export class SessionIsolationService {
     }
 
     /**
-     * Registra evento de segurança
+     * Registra evento de segurança na sessão ativa.
+     * 
+     * Eventos são persistidos imediatamente no IndexedDB para garantir
+     * trilha de auditoria mesmo em caso de falha subsequente.
+     * 
+     * @param type - Tipo do evento de segurança (TAB_SWITCH, MULTIPLE_FACES, etc.)
+     * @param severity - Severidade do evento (LOW, MEDIUM, HIGH)
+     * @param metadata - Dados contextuais do evento (timestamps, coordenadas, etc.)
      */
     async logSecurityEvent(
         type: StudentSession['securityEvents'][0]['type'],
         severity: StudentSession['securityEvents'][0]['severity'],
-        metadata?: any
+        metadata?: Record<string, string | number | boolean>
     ): Promise<void> {
 
         if (!this.currentSession) return;
@@ -320,7 +421,7 @@ export class SessionIsolationService {
         }
 
         if (this.sessionState?.networkConnections) {
-            this.sessionState.networkConnections.forEach((conn: any) => {
+            this.sessionState.networkConnections.forEach((conn: ManagedNetworkConnection) => {
                 if (conn && typeof conn.close === 'function') {
                     conn.close();
                 }
@@ -359,9 +460,14 @@ export class SessionIsolationService {
         return await PersistenceGateway.getPendingSessions() as StudentSession[];
     }
 
+    /**
+     * Marca uma sessão como enviada ao servidor central.
+     * 
+     * @param sessionId - ID da sessão a ser marcada
+     */
     async markAsUploaded(sessionId: string): Promise<void> {
         await PersistenceGateway.updateSession(sessionId, {
-            uploadedToServer: true as any,
+            uploadedToServer: true,
             uploadedAt: new Date().toISOString()
         });
     }

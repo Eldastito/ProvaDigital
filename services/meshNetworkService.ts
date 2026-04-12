@@ -1,21 +1,41 @@
 /**
- * Mesh Network Service
+ * @module MeshNetworkService
+ * @description Serviço de Rede Mesh P2P para comunicação offline entre dispositivos.
  * 
- * Orquestra rede mesh P2P entre múltiplos tablets usando WebRTC.
- * Gerencia descoberta de peers, broadcast de mensagens e tolerância a falhas.
+ * Implementa o Núcleo Inventivo "Execução Offline-Local Orquestrada" da plataforma FORGE,
+ * permitindo a execução de avaliações digitais em larga escala em ambientes sem
+ * conectividade internet, usando rede local mesh P2P entre dispositivos.
  * 
- * Sprint 2 - Fase 3
+ * Mecanismos:
+ * - Descoberta de peers via WebRTC Signaling
+ * - Broadcast confiável com cache de messageId para evitar loops
+ * - Heartbeat periódico (5s) para detecção de nós ativos/inativos
+ * - Cleanout automático de nós inativos (30s timeout)
+ * - Envelope Híbrido (MeshHybridEnvelope) com separação header/payload cifrado
+ * - Handshake de identidade (Professor ↔ Aluno) para habilitação de prova
+ * 
+ * Efeito Técnico: Resiliência operacional com redução material da dependência
+ * de conectividade externa durante a aplicação da avaliação.
+ * 
+ * @patent-safe Este módulo é parte do dossiê de Patente de Invenção FORGE.
+ * @see PI_DOSSIER_PATENT_SAFE.md para o dossiê de patente.
  */
 
 import { getWebRTCClient, DataChannelMessage, PeerConnection } from './webrtcClient';
 
 // Tipos
 export interface MeshMessage {
+    /** Tipo de mensagem do protocolo mesh */
     type: 'HEARTBEAT' | 'TELEMETRY' | 'ALERT' | 'ANSWER' | 'HANDSHAKE_REQUEST' | 'HANDSHAKE_RESPONSE' | 'ENABLE_EXAM' | 'CUSTOM' | 'UNLOCK_SCREEN' | 'AUTOSAVE' | 'HANDSHAKE_SUBMIT' | 'CONFIRM_RECEIPT';
-    from: string; // studentId ou tabletId
+    /** ID do remetente (studentId ou tabletId) */
+    from: string;
+    /** ID do destinatário ou 'BROADCAST' para todos */
     to: string | 'BROADCAST';
-    payload: any;
+    /** Dados da mensagem (formato depende do type) */
+    payload: Record<string, unknown>;
+    /** Timestamp da mensagem (epoch ms) */
     timestamp: number;
+    /** Identificador único da mensagem para dedup */
     messageId: string;
 }
 
@@ -48,13 +68,22 @@ export interface MeshHybridEnvelope {
     signature: string; // HMAC-SHA256
 }
 
+/**
+ * Representa um nó na rede mesh (tablet conectado).
+ */
 export interface MeshNode {
+    /** Identificador único do nó */
     id: string;
+    /** Tipo/papel do dispositivo na rede */
     type: 'PROFESSOR' | 'STUDENT' | 'COORDINATOR' | 'ROUTER';
+    /** Nome legível do nó */
     name: string;
+    /** Timestamp do último heartbeat recebido (epoch ms) */
     lastSeen: number;
+    /** Se o nó está ativamente conectado */
     isConnected: boolean;
-    metadata?: any;
+    /** Metadados adicionais do nó (bateria, versão, etc.) */
+    metadata?: Record<string, unknown>;
 }
 
 export interface MeshStats {
@@ -66,9 +95,13 @@ export interface MeshStats {
 }
 
 /**
- * Serviço de Rede Mesh
+ * Serviço de Rede Mesh — Orquestrador de comunicação P2P offline.
  * 
- * Coordena comunicação P2P entre todos os dispositivos na rede local.
+ * Coordena toda a comunicação entre dispositivos na rede local,
+ * gerenciando ciclo de vida de nós, broadcast de mensagens e
+ * tolerância a falhas de conexão.
+ * 
+ * @patent-safe Protocolo de transporte e descoberta de nós.
  */
 export class MeshNetworkService {
     private client = getWebRTCClient();

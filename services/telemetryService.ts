@@ -1,37 +1,67 @@
 /**
- * Telemetry Service
+ * @module TelemetryService
+ * @description Serviço de telemetria para enviar dados do estudante ao professor via rede mesh.
  * 
- * Serviço de telemetria para enviar dados do aluno ao professor
- * via rede mesh em tempo real.
+ * Transmite em tempo real o progresso, eventos de segurança e estado do dispositivo
+ * do tablet do estudante para o tablet do professor via rede mesh P2P.
  * 
- * Sprint 2 - Fase 5
+ * Dados transmitidos:
+ * - Progresso da prova (questão atual, total respondidas)
+ * - Eventos de segurança (TAB_SWITCH, MULTIPLE_FACES, etc.)
+ * - Estado do dispositivo (bateria, qualidade de rede)
+ * 
+ * @patent-safe Este módulo é parte do dossiê de Patente de Invenção FORGE.
+ * @see meshNetworkService.ts para o transporte P2P.
  */
 
 import { getMeshNetwork } from './meshNetworkService';
 
-// Tipos
+/**
+ * Dados de telemetria do estudante transmitidos via mesh.
+ */
 export interface TelemetryData {
+    /** ID do estudante */
     studentId: string;
+    /** Nome do estudante */
     studentName: string;
+    /** ID da prova */
     examId: string;
+    /** ID do evento de avaliação */
     eventId: string;
+    /** Número da questão atual */
     currentQuestion: number;
+    /** Quantidade de questões respondidas */
     answeredCount: number;
+    /** Total de questões na prova */
     totalQuestions: number;
+    /** Número de violações de segurança */
     violations: number;
+    /** Descrição da última violação */
     lastViolation?: string;
+    /** Nível de bateria do dispositivo (0-100) */
     batteryLevel: number;
-    lastQuestion: number; // F3C Tracking
+    /** Última questão visualizada (F3C Tracking) */
+    lastQuestion: number;
+    /** Timestamp do dado (epoch ms) */
     timestamp: number;
-    metadata?: any;
+    /** Metadados adicionais (latência, qualidade de sinal, etc.) */
+    metadata?: Record<string, string | number | boolean>;
 }
 
+/**
+ * Evento de segurança registrado durante a prova.
+ */
 export interface SecurityEvent {
+    /** ID do estudante envolvido */
     studentId: string;
+    /** Tipo de evento de segurança */
     eventType: 'TAB_SWITCH' | 'MULTIPLE_FACES' | 'NO_FACE' | 'COPY_PASTE' | 'SCREEN_SHARE' | 'OTHER';
+    /** Severidade do evento */
     severity: 'LOW' | 'MEDIUM' | 'HIGH';
+    /** Timestamp do evento (epoch ms) */
     timestamp: number;
-    metadata?: any;
+    /** Metadados do evento (coordenadas, screenshots, etc.) */
+    metadata?: Record<string, string | number | boolean>;
 }
 
 /**

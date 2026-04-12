@@ -1316,7 +1316,7 @@ export interface StoredSession {
     type: string;
     severity: 'LOW' | 'MEDIUM' | 'HIGH';
     timestamp: string;
-    metadata?: any;
+    metadata?: Record<string, string | number | boolean>;
   }>;
   
   telemetry: {
