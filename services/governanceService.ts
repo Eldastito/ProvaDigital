@@ -1,3 +1,25 @@
+/**
+ * @module GovernanceService
+ * @description Motor de Autorização Multi-Escopo com Authority Pilot.
+ * 
+ * Implementa o Núcleo Inventivo "Governança Multi-Escopo com Authority Pilot"
+ * da plataforma FORGE, permitindo migração gradual e segura do motor de
+ * autorização em produção, com rollback automático e sem downtime.
+ * 
+ * Mecanismos:
+ * - Shadow Mode: Motor core opera em paralelo com legado, registrando divergências
+ * - Authority Pilot: Motor core assume decisão para recursos/escopos whitelisted
+ * - Kill Switch automático: Desabilita pilot após N fallbacks na mesma sessão
+ * - Escrita Controlada: Feature flags granulares para cada tipo de mutação
+ * - Isolamento Cross-Tenant: Fail-closed para mutações entre organizações
+ * - Auditoria de Divergência: Severidade calculada por tipo (CRITICAL/HIGH/MEDIUM/LOW)
+ * - Telemetria: Contadores operacionais para observabilidade
+ * 
+ * Hierarquia RBAC: MEC (GLOBAL) → Secretarias (ORG) → Escolas (UNIT)
+ * 
+ * @patent-safe Este módulo é parte do dossiê de Patente de Invenção FORGE.
+ * @see PI_DOSSIER_PATENT_SAFE.md para o dossiê de patente.
+ */
 
 import { User, UserRole } from '../types';
 

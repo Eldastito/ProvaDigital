@@ -1,9 +1,23 @@
+/**
+ * @module CryptoService
+ * @description Primitivas criptográficas assimétricas (PKI) e simétricas (AES-GCM).
+ * 
+ * Provê operações de baixo nível para o sistema de segurança da plataforma FORGE:
+ * - AES-256-GCM: Cifra simétrica para payloads de dados
+ * - RSA-OAEP (2048-bit): Cifra assimétrica para transporte seguro de chaves
+ * - Wrap/Unwrap de chaves: Encapsulamento de chave AES com chave pública RSA
+ * - Geração de pares de chaves RSA: Para provisionamento de dispositivos
+ * 
+ * Este módulo é consumido pelo E2EEncryptionService e pelo MeshNetworkService
+ * para implementar o Envelope Híbrido (header público + payload cifrado).
+ * 
+ * @patent-safe Este módulo é parte do dossiê de Patente de Invenção FORGE.
+ * @see e2eEncryptionService.ts para derivação de chave por aluno (PBKDF2).
+ */
 
-// uuid removed
-
-
-// AES-GCM Configuration
+/** Algoritmo de cifra simétrica */
 const ALGORITHM = 'AES-GCM';
+/** Comprimento da chave simétrica em bits */
 const KEY_LENGTH = 256;
 
 export interface EncryptedPayload {

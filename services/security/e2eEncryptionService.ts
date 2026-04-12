@@ -1,16 +1,25 @@
 /**
- * E2E Encryption Service - WhatsApp-style Security
+ * @module E2EEncryptionService
+ * @description Serviço de Criptografia de Ponta a Ponta (E2E).
  * 
- * Implementa criptografia de ponta a ponta usando Web Crypto API:
- * - AES-256-GCM para criptografia de respostas
- * - PBKDF2 para derivação de chaves por aluno
- * - HMAC-SHA256 para integridade de QR Codes
+ * Implementa o Núcleo Inventivo "Isolamento Criptográfico em Envelope Híbrido"
+ * da plataforma FORGE, garantindo que dados sensíveis do estudante
+ * nunca sejam expostos a nós intermediários na rede mesh.
+ * 
+ * Primitivas Criptográficas:
+ * - AES-256-GCM: Cifra simétrica para payload de respostas
+ * - PBKDF2 (100K iterações, SHA-256): Derivação de chave por aluno/evento
+ * - HMAC-SHA256: Integridade de QR Codes e payloads assinados
+ * - IV aleatório (12 bytes): Unicidade criptográfica por operação
  * 
  * Fluxo:
  * 1. Aluno finaliza prova → Criptografa respostas com chave única derivada do contexto.
  * 2. Professor escaneia QR/Recebe via Mesh → Armazena dados criptografados (NÃO descriptografa).
  * 3. Consolidação → Descriptografa com as chaves derivadas dos alunos para processamento.
  * 4. Servidor/Coordenador → Coleta evidências e gera relatório de notas.
+ * 
+ * @patent-safe Este módulo é parte do dossiê de Patente de Invenção FORGE.
+ * @see cryptoService.ts para primitivas RSA-OAEP (transporte de chave).
  */
 
 import { StudentAnswer } from '../../types';
@@ -20,10 +29,18 @@ export interface EncryptedPackage {
     data: string; // Ciphertext (base64)
 }
 
+/**
+ * Payload assinado para transporte seguro via QR Code ou mesh.
+ * Contém dados, assinatura HMAC e metadados de auditoria.
+ */
 export interface SignedPayload {
+    /** Tipo de payload (submissão individual, batch de sala ou escola) */
     type: 'STUDENT_SUBMISSION' | 'CLASSROOM_BATCH' | 'SCHOOL_BATCH';
-    payload: Record<string, any>;
-    signature: string; // HMAC signature
+    /** Dados do payload (formato depende do type) */
+    payload: Record<string, unknown>;
+    /** Assinatura HMAC-SHA256 em base64 */
+    signature: string;
+    /** Timestamp ISO 8601 de criação */
     timestamp: string;
 }
 
