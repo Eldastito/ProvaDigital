@@ -286,7 +286,7 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
 
     return (
         <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-900">
-            <header className="bg-[#0f1d2e] text-white p-4 shadow-md flex justify-between items-center">
+            <header className="bg-[var(--forge-bg-deep)] text-white p-4 shadow-md flex justify-between items-center">
                 <div className="flex items-center gap-4">
                     <button onClick={onBack} className="p-2 hover:bg-white/10 rounded-full"><ArrowLeft size={20} /></button>
                     <div>

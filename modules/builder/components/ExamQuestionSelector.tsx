@@ -286,7 +286,7 @@ export const ExamQuestionSelector = ({
                                         REMOVER
                                     </button>
                                 </div>
-                                <div className="flex-1 overflow-y-auto p-5 bg-[#f8fafc]">
+                                <div className="flex-1 overflow-y-auto p-5 bg-[var(--forge-bg-app)]">
                                     {currentPreviewItem && (
                                         <div className="animate-in slide-in-from-right-4 duration-300">
                                             <div className="text-sm text-slate-800 font-medium leading-relaxed mb-4">{currentPreviewItem.statement}</div>

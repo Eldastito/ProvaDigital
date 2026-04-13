@@ -40,7 +40,7 @@ export const LiveDemoActiveDashboard = ({
     return (
         <div className="flex-1 flex flex-col lg:flex-row">
             {/* LEFT: QR CODE ALUNOS (Ou STATUS FECHADO) */}
-            <div className="lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center items-center text-center border-b lg:border-b-0 lg:border-r border-white/10 bg-gradient-to-br from-[#0f1d2e] to-[#1e293b]">
+            <div className="lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center items-center text-center border-b lg:border-b-0 lg:border-r border-white/10 bg-gradient-to-br from-[var(--forge-bg-deep)] to-[var(--forge-bg-muted)]">
                 {!isEntryLocked ? (
                     <>
                         <div className="mb-8">

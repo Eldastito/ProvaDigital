@@ -109,7 +109,7 @@ export const CommunicationView = () => {
             />
 
             {/* Área de Chat */}
-            <div className="flex-1 flex flex-col bg-[#F8FAFC]">
+            <div className="flex-1 flex flex-col bg-[var(--forge-bg-app)]">
                 {selectedContact ? (
                     <>
                         {/* Header do Chat */}

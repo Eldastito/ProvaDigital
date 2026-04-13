@@ -368,7 +368,7 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
     }
 
     if (!classData) return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0f1d] text-white p-8">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-[var(--forge-bg-deep)] text-white p-8">
             {/* Background Effects */}
             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-500/10 blur-[120px] rounded-full" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 blur-[120px] rounded-full" />

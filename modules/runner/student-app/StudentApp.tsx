@@ -60,7 +60,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     render() {
         if (this.state.hasError) {
             return (
-                <div className="fixed inset-0 bg-[#0f1d2e] flex flex-col items-center justify-center p-6 text-center text-white z-50">
+                <div className="fixed inset-0 bg-[var(--forge-bg-deep)] flex flex-col items-center justify-center p-6 text-center text-white z-50">
                     <AlertTriangle size={48} className="text-red-500 mb-4" />
                     <h2 className="text-xl font-bold mb-2">Algo deu errado</h2>
                     <p className="text-slate-400 mb-6 max-w-sm text-sm p-2 bg-slate-900 rounded border border-slate-700 font-mono">
@@ -526,7 +526,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
 
     if (loadingExam || (isItemsEmpty && !loadError)) {
         return (
-            <div className="fixed inset-0 bg-[#0f1d2e] flex flex-col items-center justify-center text-white p-8 text-center z-50">
+            <div className="fixed inset-0 bg-[var(--forge-bg-deep)] flex flex-col items-center justify-center text-white p-8 text-center z-50">
                 <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-brand-primary border-r-transparent mb-4"></div>
                 <p>Carregando Questões...</p>
             </div>
@@ -1096,7 +1096,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
 
     if (step === 'LOGIN_FORM') {
         return (
-            <div className="fixed inset-0 bg-[#0f1d2e] flex flex-col items-center justify-center p-6 text-center z-50">
+            <div className="fixed inset-0 bg-[var(--forge-bg-deep)] flex flex-col items-center justify-center p-6 text-center z-50">
                 <div className="w-full max-w-md">
                     <div className="mb-8">
                         <Wifi size={48} className="text-emerald-400 mx-auto mb-4 animate-pulse" />
@@ -1188,7 +1188,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     // ❄️ [F3C.1] Overlay de Hidratação (Bloqueio de UI durante Cold Boot)
     if (isHydrating) {
         return (
-            <div className="fixed inset-0 bg-[#0f172a] flex flex-col items-center justify-center z-[9999] text-white">
+            <div className="fixed inset-0 bg-[var(--forge-bg-deep)] flex flex-col items-center justify-center z-[9999] text-white">
                 <div className="relative">
                     <div className="w-20 h-20 border-4 border-slate-800 border-t-brand-primary rounded-full animate-spin"></div>
                     <Lock className="absolute inset-0 m-auto text-brand-primary animate-pulse" size={32} />
@@ -1225,7 +1225,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
 
     if (step === 'SENDING') {
         return (
-            <div className="fixed inset-0 bg-[#0f1d2e] flex flex-col items-center justify-center text-white p-8 text-center z-50">
+            <div className="fixed inset-0 bg-[var(--forge-bg-deep)] flex flex-col items-center justify-center text-white p-8 text-center z-50">
                 <div className="relative mb-12">
                     <div className="w-24 h-24 border-4 border-slate-700 rounded-full"></div>
                     <div className="w-24 h-24 border-4 border-emerald-500 rounded-full border-t-transparent absolute top-0 left-0 animate-spin"></div>
@@ -1318,7 +1318,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 <AlertTriangle size={16} /> {violationCount} Infrações Detectadas
             </div>
 
-            <div className={`h-14 flex justify-between items-center px-4 shadow-md flex-shrink-0 z-20 ${a11y.theme === 'high-contrast' ? 'bg-black text-yellow-400 border-b border-yellow-400' : 'bg-[#0f1d2e] text-white'}`}>
+            <div className={`h-14 flex justify-between items-center px-4 shadow-md flex-shrink-0 z-20 ${a11y.theme === 'high-contrast' ? 'bg-black text-yellow-400 border-b border-yellow-400' : 'bg-[var(--forge-bg-deep)] text-white'}`}>
                 <div className="text-sm font-bold truncate max-w-[150px] md:max-w-none">{studentData.name}</div>
                 <div className="flex gap-2 items-center">
                     <div className={`px-2 py-1 rounded font-mono text-[10px] md:text-xs border flex items-center gap-1 ${a11y.theme === 'high-contrast' ? 'border-yellow-400 text-yellow-400' : 'bg-slate-800 border-slate-700 text-emerald-400'}`}>

@@ -93,22 +93,22 @@
 
     /* Fix for select dropdown options (browser default needs handling) */
     option {
-      background-color: var(--bg-surface, #ffffff);
-      color: var(--text-primary, #0f172a);
+      background-color: var(--forge-bg-surface, #ffffff);
+      color: var(--forge-text-primary, #0f172a);
     }
 
     /* --- Standard Button Gradient --- */
     .btn-gradient {
-      background: linear-gradient(135deg, #0077b6 0%, #00b4d8 100%);
+      background: linear-gradient(135deg, var(--forge-brand-primary) 0%, var(--forge-brand-secondary) 100%);
       color: white;
       transition: all 0.3s ease;
-      box-shadow: 0 4px 6px -1px rgba(0, 119, 182, 0.3);
+      box-shadow: 0 4px 6px -1px rgba(27, 108, 168, 0.3);
     }
 
     .btn-gradient:hover {
-      background: linear-gradient(135deg, #023e8a 0%, #0077b6 100%);
+      background: linear-gradient(135deg, var(--forge-brand-navy) 0%, var(--forge-brand-primary) 100%);
       transform: translateY(-1px);
-      box-shadow: 0 6px 8px -1px rgba(0, 119, 182, 0.4);
+      box-shadow: 0 6px 8px -1px rgba(27, 108, 168, 0.4);
     }
 
     .btn-gradient:active {
@@ -121,16 +121,16 @@
     }
 
     .rich-content code {
-      background: #f1f5f9;
-      color: #ef4444;
+      background: var(--forge-bg-muted, #f1f5f9);
+      color: var(--forge-color-danger, #ef4444);
       padding: 2px 4px;
       border-radius: 4px;
-      font-family: monospace;
+      font-family: var(--forge-font-mono, monospace);
     }
 
     .rich-content pre {
-      background: #1e293b;
-      color: #e2e8f0;
+      background: var(--forge-bg-deep, #1e293b);
+      color: var(--forge-text-inverse, #e2e8f0);
       padding: 1rem;
       border-radius: 0.5rem;
       overflow-x: auto;
@@ -138,10 +138,10 @@
     }
 
     .rich-content blockquote {
-      border-left: 4px solid #00b4d8;
+      border-left: 4px solid var(--forge-brand-secondary, #00b4d8);
       padding-left: 1rem;
       font-style: italic;
-      color: #475569;
+      color: var(--forge-text-secondary, #475569);
     }
 
     .rich-content .katex-display {

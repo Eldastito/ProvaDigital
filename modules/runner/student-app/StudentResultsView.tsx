@@ -19,7 +19,7 @@ export const StudentResultsView = ({ studentName, score, total, items, answers, 
     const passed = percentage >= 70;
 
     return (
-        <div className="fixed inset-0 bg-[#0f1d2e] flex flex-col font-sans overflow-hidden animate-in fade-in duration-500 z-50">
+        <div className="fixed inset-0 bg-[var(--forge-bg-deep)] flex flex-col font-sans overflow-hidden animate-in fade-in duration-500 z-50">
             {/* HEADER */}
             <div className="bg-slate-800 p-6 pb-12 rounded-b-[2.5rem] shadow-2xl relative z-10 text-center">
                 <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4 shadow-xl border-4 ${passed ? 'bg-emerald-500 border-emerald-300' : 'bg-amber-500 border-amber-300'}`}>

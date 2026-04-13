@@ -109,7 +109,7 @@ export const TabletLauncher = ({ onSelectApp, onBack }: TabletLauncherProps) => 
     }, []);
 
     return (
-        <div className="fixed inset-0 bg-[#0a0f1d] flex flex-col items-center justify-center p-8 text-white">
+        <div className="fixed inset-0 bg-[var(--forge-bg-deep)] flex flex-col items-center justify-center p-8 text-white">
             {/* Glossy Background Effect */}
             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-primary/10 blur-[120px] rounded-full" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 blur-[120px] rounded-full" />

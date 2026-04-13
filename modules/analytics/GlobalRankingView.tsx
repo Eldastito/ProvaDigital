@@ -53,7 +53,7 @@ export const GlobalRankingView = ({ state, onClose }: GlobalRankingViewProps) =>
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col border border-slate-200">
 
                 {/* Header */}
-                <div className="p-6 bg-[#0f1d2e] text-white rounded-t-2xl flex justify-between items-start">
+                <div className="p-6 bg-[var(--forge-bg-deep)] text-white rounded-t-2xl flex justify-between items-start">
                     <div>
                         <h2 className="text-2xl font-bold flex items-center gap-3">
                             <Trophy className="text-yellow-400" size={32} /> Ranking Acadêmico

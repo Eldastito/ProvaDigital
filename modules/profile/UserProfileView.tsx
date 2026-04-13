@@ -115,7 +115,7 @@ export const UserProfileView = () => {
             {/* Header Section */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-0 flex flex-col relative overflow-hidden print:hidden">
                 {/* Banner Background */}
-                <div className="h-40 bg-gradient-to-r from-[#0f1d2e] to-[#0077b6] relative">
+                <div className="h-40 bg-gradient-to-r from-[var(--forge-brand-navy)] to-[var(--forge-brand-primary)] relative">
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
                 </div>
 

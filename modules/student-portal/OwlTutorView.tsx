@@ -144,7 +144,7 @@ export const OwlTutorView = () => {
     return (
         <div className="h-[calc(100vh-140px)] flex flex-col bg-white rounded-xl border border-brand-primary/20 shadow-lg overflow-hidden max-w-4xl mx-auto">
             {/* Header */}
-            <div className="bg-[#0f1d2e] p-4 text-white">
+            <div className="bg-[var(--forge-bg-deep)] p-4 text-white">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                         <div className="bg-brand-secondary p-2 rounded-full">

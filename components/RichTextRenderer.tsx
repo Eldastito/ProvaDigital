@@ -109,7 +109,7 @@ export const RichTextRenderer = ({ content, className = '', onLibrasDetected }: 
             return pushPlaceholder(
                 `<div class="my-4 rounded-lg overflow-hidden border border-slate-700 shadow-sm block clear-both">
                     <div class="bg-slate-800 px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-700">Código</div>
-                    <pre class="bg-[#0f1d2e] text-slate-50 p-4 overflow-x-auto font-mono text-sm leading-relaxed whitespace-pre-wrap"><code>${escaped}</code></pre>
+                    <pre class="bg-[var(--forge-bg-deep)] text-slate-50 p-4 overflow-x-auto font-mono text-sm leading-relaxed whitespace-pre-wrap"><code>${escaped}</code></pre>
                 </div>`
             );
         });

@@ -59,10 +59,10 @@ export const GeoMap = ({ level, dataPoints, onSelect }: GeoMapProps) => {
     };
 
     return (
-        <div className="relative w-full h-full bg-[#0f1d2e] rounded-xl overflow-hidden shadow-2xl border border-slate-700 group">
+        <div className="relative w-full h-full bg-[var(--forge-bg-deep)] rounded-xl overflow-hidden shadow-2xl border border-slate-700 group">
             {/* Background Grid & Texture */}
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 pointer-events-none"></div>
-            <div className="absolute inset-0 bg-gradient-to-b from-[#0f1d2e] via-[#162a42] to-[#0f1d2e] opacity-90 pointer-events-none"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-[var(--forge-bg-deep)] via-[var(--forge-bg-surface)] to-[var(--forge-bg-deep)] opacity-90 pointer-events-none"></div>
 
             {/* Grid Lines Overlay */}
             <div className="absolute inset-0" style={{
@@ -171,7 +171,7 @@ export const GeoMap = ({ level, dataPoints, onSelect }: GeoMapProps) => {
                                 )}
 
                                 {/* The Dot */}
-                                <div className={`relative inline-flex rounded-full h-3 w-3 border-2 border-[#0f1d2e] shadow-lg transition-transform duration-300 ${hoveredPoint === point.id ? 'scale-150' : 'scale-100'} ${getStatusColor(point.status).split(' ')[1]}`}></div>
+                                <div className={`relative inline-flex rounded-full h-3 w-3 border-2 border-[var(--forge-bg-deep)] shadow-lg transition-transform duration-300 ${hoveredPoint === point.id ? 'scale-150' : 'scale-100'} ${getStatusColor(point.status).split(' ')[1]}`}></div>
 
                                 {/* Futuristic Tooltip (Ajustado para dentro do foreignObject) */}
                                 <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-slate-900/95 backdrop-blur-md border-t-2 rounded-xl p-0 z-50 pointer-events-none transform transition-all duration-300 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.5)] ${hoveredPoint === point.id ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'} ${point.status === 'CRITICAL' ? 'border-rose-500' : point.status === 'WARNING' ? 'border-amber-400' : 'border-emerald-400'}`}>
