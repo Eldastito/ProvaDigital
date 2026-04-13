@@ -3,10 +3,12 @@ import React, { useState } from 'react';
 import { Upload, FileText, CheckCircle, AlertTriangle, Download, X } from 'lucide-react';
 import { parseCSV, validateAndImportData, getTemplateUrl, ImportType, ImportResult } from '../../../services/importService';
 import { useAppStore } from '../../../store/useAppStore';
+import { useToast } from '../../../components/ui/Toast';
 
 export const BulkImportView = () => {
     const { currentUser } = useAppStore();
     const [importType, setImportType] = useState<ImportType>('STUDENTS');
+    const toast = useToast();
     const [file, setFile] = useState<File | null>(null);
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<ImportResult | null>(null);
@@ -28,7 +30,7 @@ export const BulkImportView = () => {
             setResult(importResult);
         } catch (error) {
             console.error(error);
-            alert("Erro ao processar arquivo");
+            toast.error("Erro ao processar arquivo");
         } finally {
             setLoading(false);
         }

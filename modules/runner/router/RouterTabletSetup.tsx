@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Router Tablet Setup Component
  * 
  * Interface para configurar tablet como roteador Wi-Fi
@@ -13,6 +13,7 @@ import { WifiHotspotService, wifiHotspotService, HotspotConfig, HotspotStatus } 
 import { getLocalServer } from '../../../services/localServerService';
 import { useAppStore } from '../../../store/useAppStore';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../../../components/ui/Toast';
 
 interface RouterTabletSetupProps {
     eventId?: string;
@@ -32,6 +33,7 @@ export const RouterTabletSetup: React.FC<RouterTabletSetupProps> = ({
     const schoolId = propSchoolId || currentUser?.schoolId || 'unknown';
     const eventId = propEventId || `MESH-${schoolId}-${new Date().toISOString().split('T')[0]}`;
     const [step, setStep] = useState<'SETUP' | 'STARTING' | 'ACTIVE'>('SETUP');
+    const toast = useToast();
     const [hotspotStatus, setHotspotStatus] = useState<HotspotStatus | null>(null);
     const [ssid, setSSID] = useState('');
     const [password, setPassword] = useState('');
@@ -131,7 +133,7 @@ export const RouterTabletSetup: React.FC<RouterTabletSetupProps> = ({
     const handleCopyCredentials = () => {
         const text = `Rede: ${ssid}\nSenha: ${password}`;
         navigator.clipboard.writeText(text);
-        alert('Credenciais copiadas!');
+        toast.info('Credenciais copiadas!');
     };
 
     return (

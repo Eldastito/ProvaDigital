@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Mesh Router Panel
  * 
  * Interface para transformar o tablet em um roteador de rede local (Hotspot)
@@ -11,6 +11,7 @@ import React, { useState, useEffect } from 'react';
 import { Wifi, Server, Activity, Power, Shield, Users, AlertTriangle } from 'lucide-react';
 import { wifiHotspotService, HotspotStatus, WifiHotspotService } from '../../../services/wifiHotspotService';
 import { getLocalServer } from '../../../services/localServerService';
+import { useToast } from '../../../components/ui/Toast';
 
 interface MeshRouterPanelProps {
     schoolId: string;
@@ -19,6 +20,7 @@ interface MeshRouterPanelProps {
 
 export const MeshRouterPanel: React.FC<MeshRouterPanelProps> = ({ schoolId, eventId }) => {
     const [loading, setLoading] = useState(false);
+    const toast = useToast();
     const [status, setStatus] = useState<HotspotStatus | null>(null);
     const [serverStats, setServerStats] = useState<any>(null);
     const [config, setConfig] = useState({
@@ -64,7 +66,7 @@ export const MeshRouterPanel: React.FC<MeshRouterPanelProps> = ({ schoolId, even
             }
             await refreshStatus();
         } catch (error) {
-            alert('Erro ao alterar estado do roteador');
+            toast.error('Erro ao alterar estado do roteador');
         } finally {
             setLoading(false);
         }

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { X, Building2, Shield, Users, Mail, Calendar, FileText, CheckCircle2 } from 'lucide-react';
 import { Tenant, TenantType } from '../../../types';
 import { uuidv4 } from '../../../utils/helpers';
 import { useSafeAppStore } from '../../../store/useAppStore';
+import { useToast } from '../../../components/ui/Toast';
 
 interface TenantFormModalProps {
     isOpen: boolean;
@@ -12,6 +13,7 @@ interface TenantFormModalProps {
 export const TenantFormModal = ({ isOpen, onClose }: TenantFormModalProps) => {
     const { addTenant } = useSafeAppStore();
     const [submitting, setSubmitting] = useState(false);
+    const toast = useToast();
 
     const [formData, setFormData] = useState({
         name: '',
@@ -44,9 +46,9 @@ export const TenantFormModal = ({ isOpen, onClose }: TenantFormModalProps) => {
 
             await addTenant(newTenant);
             onClose();
-            alert('✅ Cliente/Prefeitura cadastrado com sucesso!');
+            toast.success('✅ Cliente/Prefeitura cadastrado com sucesso!');
         } catch (error) {
-            alert('❌ Erro ao cadastrar cliente. Verifique os dados e tente novamente.');
+            toast.error('❌ Erro ao cadastrar cliente. Verifique os dados e tente novamente.');
         } finally {
             setSubmitting(false);
         }

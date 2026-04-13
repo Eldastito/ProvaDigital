@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
 import { Item, ItemVersion, QuestionType, DifficultyLevel } from '../../../types';
 import { Save, History, ArrowLeft, AlertTriangle, Plus, Trash2, Video, Music, Image as ImageIcon, ShoppingBag } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { RichTextEditor } from '../../../components/RichTextEditor';
+import { useToast } from '../../../components/ui/Toast';
 
 export const ItemEditorV2 = () => {
     const { id } = useParams<{ id: string }>();
@@ -11,6 +12,7 @@ export const ItemEditorV2 = () => {
     const { items, updateItemWithVersion, currentUser } = useAppStore();
 
     const [item, setItem] = useState<Item | null>(null);
+    const toast = useToast();
     const [changeReason, setChangeReason] = useState('');
     const [activeTab, setActiveTab] = useState<'EDIT' | 'HISTORY'>('EDIT');
     const [isSaving, setIsSaving] = useState(false);
@@ -24,7 +26,7 @@ export const ItemEditorV2 = () => {
 
     const handleSave = async () => {
         if (!item || !changeReason.trim()) {
-            alert("Por favor, descreva o motivo da alteração para o histórico.");
+            toast.info("Por favor, descreva o motivo da alteração para o histórico.");
             return;
         }
         setIsSaving(true);

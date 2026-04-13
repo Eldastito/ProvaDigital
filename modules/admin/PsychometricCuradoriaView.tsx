@@ -18,10 +18,12 @@ import { Item, LiteracyDomain, ItemLifecycleStatus } from '../../types';
 import { CalibrationService } from '../../services/calibrationService';
 import { Badge } from '../../components/ui/Badge';
 import { translateDifficultyLevel, translateLiteracyDomain } from '../../utils/translations';
+import { useToast } from '../../components/ui/Toast';
 
 export const PsychometricCuradoriaView = () => {
     const { items, updateItem, updateItemWithVersion } = useAppStore();
     const [filter, setFilter] = useState('');
+    const toast = useToast();
     const [statusFilter, setStatusFilter] = useState<'ALL' | 'MODEL_ESTIMATED' | 'DATA_CALIBRATED' | 'FLAGGED'>('ALL');
     const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
     const [isCalibrating, setIsCalibrating] = useState(false);
@@ -47,7 +49,7 @@ export const PsychometricCuradoriaView = () => {
             for (const item of calibrated) {
                 await updateItem(item);
             }
-            alert('Calibração concluída para ' + calibrated.length + ' itens.');
+            toast.success('Calibração concluída', calibrated.length + ' itens calibrados');
         } finally {
             setIsCalibrating(false);
         }

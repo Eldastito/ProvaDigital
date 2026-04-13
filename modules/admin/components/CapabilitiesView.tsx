@@ -4,6 +4,7 @@ import { Shield, Check, X, Save, AlertTriangle, Building, Link2, AlertCircle } f
 import { useAppStore } from '../../../store/useAppStore';
 import { Action, Resource, UserRole, PermissionMatrix, RESOURCE_DEPENDENCIES } from '../../../types';
 import { useResourceDependencies } from '../../../hooks/useResourceDependencies';
+import { useToast } from '../../../components/ui/Toast';
 
 const RESOURCES: { id: Resource; label: string; description: string }[] = [
     { id: 'SCHOOL_DATA', label: 'Gestão de Escolas', description: 'Gerir escolas, turmas e matrículas' },
@@ -34,6 +35,7 @@ const ACTIONS: Action[] = ['VIEW', 'CREATE', 'EDIT', 'DELETE'];
 export const CapabilitiesView = () => {
     const { globalPermissions, updatePermissions, tenants, updateTenantFeatures } = useAppStore();
     const [localMatrix, setLocalMatrix] = useState<PermissionMatrix>(JSON.parse(JSON.stringify(globalPermissions)));
+    const toast = useToast();
     const [selectedTenant, setSelectedTenant] = useState<string>('');
     const { getDependents, getMissingDependencies, getDisableCascade, getDependencyInfo } = useResourceDependencies();
 
@@ -57,7 +59,7 @@ export const CapabilitiesView = () => {
     const togglePermission = (role: UserRole, resource: Resource, action: Action) => {
         // Bloqueia a edição do SUPER_ADMIN para evitar lockout acidental
         if (role === UserRole.SUPER_ADMIN) {
-            alert("As permissões de Super Admin são absolutas e não podem ser revogadas nesta interface.");
+            toast.info("As permissões de Super Admin são absolutas e não podem ser revogadas nesta interface.");
             return;
         }
 
@@ -88,11 +90,10 @@ export const CapabilitiesView = () => {
             const missing = getMissingDependencies(resource, currentTenant.id);
             if (missing.length > 0) {
                 const depInfo = getDependencyInfo(resource);
-                alert(
-                    `⚠️ Não é possível habilitar "${resource}"\n\n` +
-                    `Dependências desabilitadas:\n${missing.map(r => `• ${r}`).join('\n')}\n\n` +
-                    `${depInfo?.impactWarning || ''}\n\n` +
-                    `Habilite essas funcionalidades primeiro.`
+                const depNames = missing.map(r => `• ${r}`).join(', ');
+                toast.warning(
+                    `Não é possível habilitar "${resource}"`,
+                    `Dependências desabilitadas: ${depNames}. Habilite-as primeiro.`
                 );
                 return;
             }
@@ -122,7 +123,7 @@ export const CapabilitiesView = () => {
 
     const saveGlobal = () => {
         updatePermissions(localMatrix);
-        alert("Matriz global de permissões atualizada com sucesso!");
+        toast.success("Matriz global de permissões atualizada com sucesso!");
     };
 
     return (

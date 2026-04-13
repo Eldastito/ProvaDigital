@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     ChevronLeft, Users, Activity, ShieldAlert, Wifi, Battery,
@@ -12,6 +12,7 @@ import { getMeshNetwork, MeshMessage } from '../../../services/meshNetworkServic
 import { saveSession } from '../../../services/offlineDb';
 import { wifiHotspotService, WifiHotspotService, HotspotStatus } from '../../../services/wifiHotspotService';
 import { envConfig } from '../../../services/environmentConfig';
+import { useToast } from '../../../components/ui/Toast';
 
 export const LiveExamMonitorView = () => {
     const state = useSafeAppStore();
@@ -23,6 +24,7 @@ export const LiveExamMonitorView = () => {
 
     // --- REALTIME PRESENCE ---
     const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+    const toast = useToast();
 
     useEffect(() => {
         if (examId) {
@@ -78,7 +80,7 @@ export const LiveExamMonitorView = () => {
                 setHotspotState(status);
             } catch (err) {
                 console.error("Falha Hotspot", err);
-                alert("Ocorreu um erro ao ativar o modo Roteador.");
+                toast.error("Ocorreu um erro ao ativar o modo Roteador.");
             } finally {
                 setIsStartingHotspot(false);
             }
@@ -189,7 +191,7 @@ export const LiveExamMonitorView = () => {
             timestamp: new Date().toISOString()
         });
         
-        alert('Comando de destravamento emitido. A aba do aluno já deve estar liberada.');
+        toast.info('Comando de destravamento emitido. A aba do aluno já deve estar liberada.');
     };
 
     // Process live data

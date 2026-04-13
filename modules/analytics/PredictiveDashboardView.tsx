@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
     BarChart3, TrendingUp, AlertTriangle, FileText, Database,
     Download, RefreshCw, CheckCircle2, Server
@@ -7,10 +7,12 @@ import { useAppStore } from '../../store/useAppStore';
 import { reportingService } from '../../services/reportingService';
 import { dataLakeService, DataLakeJob } from '../../services/dataLakeService';
 import { predictiveService } from '../../services/predictiveService';
+import { useToast } from '../../components/ui/Toast';
 
 export const PredictiveDashboardView = () => {
     const { students, auditLogs, schools } = useAppStore();
     const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+    const toast = useToast();
     const [isExtracting, setIsExtracting] = useState(false);
     const [lastJob, setLastJob] = useState<DataLakeJob | null>(null);
     const [riskData, setRiskData] = useState<any[]>([]);
@@ -48,7 +50,7 @@ export const PredictiveDashboardView = () => {
             window.URL.revokeObjectURL(url);
         } catch (error) {
             console.error('Report generation failed', error);
-            alert('Erro ao gerar relatório');
+            toast.error('Erro ao gerar relatório');
         } finally {
             setIsGeneratingReport(false);
         }
@@ -62,13 +64,13 @@ export const PredictiveDashboardView = () => {
             const job = await dataLakeService.startFullExtraction();
             setLastJob(job);
             if (job.status === 'completed') {
-                alert(`Extração concluída! ${job.recordCount} registros enviados.`);
+                toast.info(`Extração concluída! ${job.recordCount} registros enviados.`);
             } else {
-                alert('Falha na extração. Verifique os logs.');
+                toast.error('Falha na extração. Verifique os logs.');
             }
         } catch (error) {
             console.error('Extraction failed', error);
-            alert('Erro crítico na extração.');
+            toast.error('Erro crítico na extração.');
         } finally {
             setIsExtracting(false);
         }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
     Download, 
     Database, 
@@ -10,6 +10,7 @@ import {
     ExternalLink
 } from 'lucide-react';
 import { dataExportService } from '../../services/dataExportService';
+import { useToast } from '../../components/ui/Toast';
 
 /**
  * DataSovereigntyView - Fase 7
@@ -18,6 +19,7 @@ import { dataExportService } from '../../services/dataExportService';
  */
 export default function DataSovereigntyView() {
     const [isExporting, setIsExporting] = useState(false);
+    const toast = useToast();
     const [lastExport, setLastExport] = useState<string | null>(null);
 
     const handleBulkExport = async () => {
@@ -34,7 +36,7 @@ export default function DataSovereigntyView() {
             await dataExportService.exportSchoolBatch('SCHOOL_001', mockData);
             setLastExport(new Date().toLocaleString());
         } catch (error) {
-            alert('Falha na exportação de soberania.');
+            toast.error('Falha na exportação de soberania.');
         } finally {
             setIsExporting(false);
         }

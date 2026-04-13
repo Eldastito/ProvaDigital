@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
     MonitorPlay,
     Library,
@@ -20,6 +20,7 @@ import { Interactive3DViewer } from '../../components/3d/Interactive3DViewer';
 import { useAppStore } from '../../store/useAppStore';
 import { ProjectionMaterial } from '../../types';
 import { supabase } from '../../services/supabaseClient';
+import { useToast } from '../../components/ui/Toast';
 
 const DEFAULT_MATERIALS: ProjectionMaterial[] = [
     {
@@ -90,6 +91,7 @@ export const ProjectionLabView = () => {
     } = useAppStore();
 
     const [selectedItem, setSelectedItem] = useState<ProjectionMaterial | null>(null);
+    const toast = useToast();
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState<ProjectionMaterial['type'] | 'ALL'>('ALL');
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -139,7 +141,7 @@ export const ProjectionLabView = () => {
     const handleAddSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!currentUser) {
-            alert("Sessão expirada. Faça login novamente.");
+            toast.info("Sessão expirada. Faça login novamente.");
             return;
         }
 
@@ -166,7 +168,7 @@ export const ProjectionLabView = () => {
             }
 
             if (!resolvedTenantId || !resolvedSchoolId) {
-                alert("Erro: Não foi possível identificar a Escola ou Tenant para vincular este material. O usuário precisa estar vinculado a uma escola.");
+                toast.error("Erro: Não foi possível identificar a Escola ou Tenant para vincular este material. O usuário precisa estar vinculado a uma escola.");
                 setIsSubmitting(false);
                 return;
             }
@@ -226,7 +228,7 @@ export const ProjectionLabView = () => {
             setSelectedFile(null);
         } catch (error) {
             console.error(error);
-            alert("Erro ao adicionar material.");
+            toast.error("Erro ao adicionar material.");
         } finally {
             setIsSubmitting(false);
         }
@@ -241,7 +243,7 @@ export const ProjectionLabView = () => {
                     setSelectedItem(null);
                 }
             } catch (err) {
-                alert("Erro ao excluir material.");
+                toast.error("Erro ao excluir material.");
             }
         }
     };

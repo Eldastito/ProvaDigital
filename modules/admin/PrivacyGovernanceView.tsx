@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
     ShieldAlert, 
     Lock, 
@@ -11,6 +11,7 @@ import {
     Search
 } from 'lucide-react';
 import { privacyService } from '../../services/privacyService';
+import { useToast } from '../../components/ui/Toast';
 
 /**
  * PrivacyGovernanceView - Fase 9
@@ -18,6 +19,7 @@ import { privacyService } from '../../services/privacyService';
  */
 export default function PrivacyGovernanceView() {
     const [logs, setLogs] = useState<any[]>([]);
+    const toast = useToast();
     const [isPurging, setIsPurging] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -36,7 +38,7 @@ export default function PrivacyGovernanceView() {
         setIsPurging(true);
         setTimeout(() => {
             setIsPurging(false);
-            alert('Expurgo de dados concluído com sucesso (Conformidade Anexo G).');
+            toast.success('Expurgo de dados concluído com sucesso (Conformidade Anexo G).');
         }, 1500);
     };
 

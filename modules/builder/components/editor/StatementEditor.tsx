@@ -1,8 +1,9 @@
-import React from 'react';
+﻿import React from 'react';
 import { Sparkles, Loader2, GripVertical, Brain, Video, Music, Wifi, Upload, ImageIcon } from 'lucide-react';
 import { RichTextEditor } from '../../../../components/RichTextEditor';
 import { QuestionType } from '../../../../types';
 import { fileSecurityService } from '../../../../services/fileSecurityService';
+import { useToast } from '../../../../components/ui/Toast';
 
 interface StatementEditorProps {
     form: any;
@@ -144,7 +145,7 @@ export const StatementEditor: React.FC<StatementEditorProps> = ({
                                             finalFile = new File([sanitizedBlob], file.name, { type: sanitizedBlob.type });
                                         } catch (err) {
                                             console.error("Segurança: Falha na sanitização da imagem:", err);
-                                            alert("Este arquivo foi rejeitado pelo Porteiro de Segurança IA.");
+                                            toast.error("Este arquivo foi rejeitado pelo Porteiro de Segurança IA.");
                                             return;
                                         }
                                     }
@@ -156,7 +157,7 @@ export const StatementEditor: React.FC<StatementEditorProps> = ({
                                         ...form,
                                         multimedia: [{ type, url: objectUrl, description: `Arquivo offline: ${finalFile.name}` }]
                                     });
-                                    alert("Arquivo carregado com sucesso! Este recurso estará disponível offline no tablet.");
+                                    toast.success("Arquivo carregado com sucesso! Este recurso estará disponível offline no tablet.");
                                 }}
                             />
                         </label>

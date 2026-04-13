@@ -1,8 +1,9 @@
-
+﻿
 import React, { useState, useMemo } from 'react';
 import { Users, Download, Check } from 'lucide-react';
 import { AppState, Exam, SchoolClass, ExamStatus } from '../../types';
 import { Badge } from '../../components/ui/Badge';
+import { useToast } from '../../components/ui/Toast';
 
 import { useSafeAppStore } from '../../store/useAppStore';
 
@@ -10,6 +11,7 @@ export const AllocationView = () => {
     const state = useSafeAppStore();
     const { updateExamAllocation } = state;
     const [selectedExamId, setSelectedExamId] = useState<string>('');
+    const toast = useToast();
     const { currentUser } = state;
     const userSchoolId = currentUser?.schoolId;
 
@@ -51,7 +53,7 @@ export const AllocationView = () => {
             })
         };
         console.log("Exporting JSON for Tablets:", exportData);
-        alert("Arquivo de alocação gerado! Verifique o console para o JSON.");
+        toast.success("Arquivo de alocação gerado! Verifique o console para o JSON.");
     };
 
     return (

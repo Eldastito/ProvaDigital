@@ -16,6 +16,7 @@ import { AdaptiveModeSelector } from './components/AdaptiveModeSelector';
 import { AdaptiveMode, detectDeviceCapability } from '../../services/offlineAdaptiveEngine';
 import { predictNextExamConfiguration, SmartFormPrediction } from '../../services/smartFormService';
 import { UserRole, type Exam } from '../../types';
+import { useToast } from '../../components/ui/Toast';
 
 interface ExamSchedulerProps {
     onClose?: () => void;
@@ -24,6 +25,7 @@ interface ExamSchedulerProps {
 export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
     const store = useSafeAppStore();
     const navigate = useNavigate();
+    const toast = useToast();
 
     // Estados
     const [schedules, setSchedules] = useState<ScheduledExam[]>([]);
@@ -139,7 +141,7 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
             await loadSchedules();
         } catch (error) {
             console.error('Erro ao deletar:', error);
-            alert('Erro ao deletar agendamento');
+            toast.error('Erro ao deletar agendamento');
         }
     };
 
@@ -152,7 +154,7 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
             await loadSchedules();
         } catch (error) {
             console.error('Erro ao cancelar:', error);
-            alert('Erro ao cancelar agendamento');
+            toast.error('Erro ao cancelar agendamento');
         }
     };
 
@@ -160,22 +162,22 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
     const handleSave = async () => {
         // Validações
         if (!selectedExamId) {
-            alert('Selecione uma prova ou escolha "Agendar sem prova definida"');
+            toast.warning('Selecione uma prova', 'Escolha uma prova ou "Agendar sem prova definida"');
             return;
         }
 
         if (selectedExamId === 'PENDING' && !provisionalTitle.trim()) {
-            alert('Informe um título provisório para a prova');
+            toast.warning('Título obrigatório', 'Informe um título provisório para a prova');
             return;
         }
 
         if (selectedClassIds.length === 0) {
-            alert('Selecione pelo menos uma turma');
+            toast.warning('Turma obrigatória', 'Selecione pelo menos uma turma');
             return;
         }
 
         if (!scheduledDate || !scheduledTime) {
-            alert('Informe data e hora');
+            toast.warning('Data obrigatória', 'Informe data e hora');
             return;
         }
 
@@ -187,7 +189,7 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
         minDate.setHours(0, 0, 0, 0);
 
         if (scheduledFor < minDate) {
-            alert('A data de agendamento deve ter um mínimo de 7 dias de antecedência para preparo logístico dos tablets.');
+            toast.warning('Data inválida', 'Mínimo de 7 dias de antecedência para preparo logístico dos tablets.');
             return;
         }
 
@@ -203,7 +205,7 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
             });
 
             if (blockedEvent) {
-                alert(`Data Bloqueada pela Gestão da Escola: ${blockedEvent.title}. Não é possível agendar avaliações para este dia.`);
+                toast.error('Data Bloqueada', `${blockedEvent.title}. Não é possível agendar avaliações para este dia.`);
                 return;
             }
         }
@@ -217,7 +219,7 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
             } else {
                 const selectedExam = store.exams?.find(e => e.id === selectedExamId);
                 if (!selectedExam) {
-                    alert('Prova não encontrada');
+                    toast.error('Prova não encontrada');
                     return;
                 }
                 finalExamTitle = selectedExam.title;
@@ -255,7 +257,7 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
             await loadSchedules();
         } catch (error: any) {
             console.error('Erro ao salvar:', error);
-            alert(error.message || 'Erro ao salvar agendamento');
+            toast.error('Erro ao salvar', error.message || 'Erro ao salvar agendamento');
         }
     };
 
@@ -738,13 +740,13 @@ export const ExamScheduler: React.FC<ExamSchedulerProps> = ({ onClose }) => {
                                             type="button"
                                             onClick={() => {
                                                 if (selectedClassIds.length === 0) {
-                                                    alert("Selecione a turma primeiro para buscar a grade.");
+                                                    toast.warning('Selecione a turma primeiro', 'Necessário para buscar a grade.');
                                                     return;
                                                 }
                                                 // Mock da automação da Grade de Aulas
                                                 setScheduledTime('07:15');
                                                 setDuration(45);
-                                                alert("Grade encontrada! Aula de Biologia começa às 07:15 com duração de 45m na turma selecionada.");
+                                                toast.success('Grade encontrada!', 'Aula de Biologia às 07:15 com duração de 45m.');
                                             }}
                                             className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
                                             title="Autopreencher baseado na grade de aulas da escola configurada no sistema"

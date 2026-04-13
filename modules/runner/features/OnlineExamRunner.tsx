@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
 import { nativeBridge } from '../../../services/nativeBridgeService';
 import { getMeshNetwork, MeshMessage } from '../../../services/meshNetworkService';
@@ -16,6 +16,7 @@ import { EssayQuestionRenderer } from './EssayQuestionRenderer';
 import { useProctoring } from '../../../hooks/useProctoring';
 import { supabase } from '../../../services/supabaseClient';
 import { reportingService } from '../../../services/reportingService';
+import { useToast } from '../../../components/ui/Toast';
 
 interface OnlineExamRunnerProps {
     examId: string;
@@ -28,6 +29,7 @@ interface OnlineExamRunnerProps {
 export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onComplete }: OnlineExamRunnerProps) => {
     const state = useAppStore();
     const [a11y, setA11y] = useState<AccessibilityConfig>(DEFAULT_ACCESSIBILITY_CONFIG);
+    const toast = useToast();
 
 
 
@@ -114,7 +116,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                 await registerCachedExam(exam.id, exam.title);
                 setIsOfflineReady(true);
             } else {
-                alert("Falha ao baixar prova. Verifique sua conexão.");
+                toast.error("Falha ao baixar prova. Verifique sua conexão.");
             }
         } catch (err) {
             console.error("Erro no download offline:", err);
@@ -302,7 +304,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
                 });
             }
             if (type === 'FOCUS_LOST') {
-                alert("⚠️ ATENÇÃO: O foco na prova foi perdido. O professor foi notificado e uma captura de tela foi registrada.");
+                toast.info("⚠️ ATENÇÃO: O foco na prova foi perdido. O professor foi notificado e uma captura de tela foi registrada.");
             }
         }
     });
@@ -403,7 +405,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
         const selectedAltId = answers[currentItem.id];
 
         if (!selectedAltId) {
-            alert("Por favor, selecione uma resposta para continuar.");
+            toast.info("Por favor, selecione uma resposta para continuar.");
             return;
         }
 
@@ -470,7 +472,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
 
         } catch (error) {
             console.error("❌ [CAT] Error in Server-Side Calculation:", error);
-            alert("Erro de conexão com o motor neural. Verifique sua internet e tente novamente.");
+            toast.error("Erro de conexão com o motor neural. Verifique sua internet e tente novamente.");
         } finally {
             setIsComputing(false);
         }
@@ -630,7 +632,7 @@ export const OnlineExamRunner = ({ examId, studentId, variantId, onExit, onCompl
 
     const handlePreventClipboard = (e: React.ClipboardEvent) => {
         e.preventDefault();
-        alert('Ação bloqueada por segurança.');
+        toast.info('Ação bloqueada por segurança.');
     };
 
     // --- ACCESSIBILITY LOGIC (TTS) hook must be before any return ---

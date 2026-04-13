@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Brain, Heart, Briefcase, Globe, Sparkles, ArrowRight, BookOpen, Target, Compass } from 'lucide-react';
 import { generateVocationalAnalysis } from '../../services/geminiService';
 import { VocationalProfile } from '../../types';
+import { useToast } from '../../components/ui/Toast';
 
 import { useAppStore } from '../../store/useAppStore';
 import { AssessmentType, UserRole } from '../../types';
 
 export const VocationalCompassView = () => {
     const [step, setStep] = useState<'INTRO' | 'SURVEY' | 'LOADING' | 'RESULT'>('INTRO');
+    const toast = useToast();
     const [interests, setInterests] = useState('');
     const [profile, setProfile] = useState<VocationalProfile | null>(null);
 
@@ -54,7 +56,7 @@ export const VocationalCompassView = () => {
             setProfile(result);
             setStep('RESULT');
         } catch (error) {
-            alert("Erro ao consultar o Oráculo Vocacional: " + error);
+            toast.error('Erro no Oráculo Vocacional', String(error));
             setStep('INTRO');
         }
     };

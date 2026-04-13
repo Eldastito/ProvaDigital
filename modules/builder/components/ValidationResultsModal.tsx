@@ -1,9 +1,10 @@
-import React from 'react';
+﻿import React from 'react';
 import { X, CheckCircle, AlertTriangle, FileText, ThumbsUp, Eye, Calendar } from 'lucide-react';
 import { DualValidationResult } from '../../../types';
 import { useAppStore } from '../../../store/useAppStore';
 import { mapPedagogicalInsightToTask } from '../../../services/actionableTaskService';
 import { SkillInsight } from '../../../services/PredictivePedagogicalService';
+import { useToast } from '../../../components/ui/Toast';
 
 interface ValidationResultsModalProps {
     isOpen: boolean;
@@ -36,7 +37,7 @@ export const ValidationResultsModal: React.FC<ValidationResultsModalProps> = ({
             actionType: 'BNCC'
         };
         addTask(mapPedagogicalInsightToTask(mockSkillInsight));
-        alert('Tarefa de revisão agendada com sucesso!');
+        toast.success('Tarefa de revisão agendada com sucesso!');
     };
 
     return (

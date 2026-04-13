@@ -5,6 +5,7 @@ import { meshService } from '../../../services/localMeshService';
 import { envConfig } from '../../../services/environmentConfig';
 import { QRDataTransfer } from '../../../services/qrCodecService';
 import { QRCodeSVG } from 'qrcode.react';
+import { useToast } from '../../../components/ui/Toast';
 
 interface CommandCenterProps {
     state: AppState;
@@ -12,6 +13,7 @@ interface CommandCenterProps {
 }
 
 export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
+    const toast = useToast();
     const [activeTab, setActiveTab] = useState<'PRODUCTION' | 'EXPEDITION' | 'QUALITY'>((localStorage.getItem('cc_activeTab') as any) || 'PRODUCTION');
     const [peers, setPeers] = useState<MeshPeer[]>([]);
     const [selectedSchoolId, setSelectedSchoolId] = useState<string>(localStorage.getItem('cc_schoolId') || '');
@@ -173,9 +175,9 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
     };
 
     const handleStartProvisioning = async () => {
-        if (availableTablets.length === 0) return alert("Nenhum tablet detectado na 'Sala de Carga'.");
-        if (selectedExamIds.length === 0) return alert("Selecione pelo menos uma prova.");
-        if (!selectedSchoolId) return alert("Selecione a escola de destino.");
+        if (availableTablets.length === 0) return toast.warning('Nenhum tablet detectado', 'Verifique a Sala de Carga.');
+        if (selectedExamIds.length === 0) return toast.warning('Selecione pelo menos uma prova');
+        if (!selectedSchoolId) return toast.warning('Selecione a escola de destino');
 
         setIsProvisioning(true);
         setProvisioningProgress(0);
@@ -211,11 +213,11 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
 
         setIsProvisioning(false);
         setLoadingStep(4);
-        alert("Provisionamento concluído com sucesso!");
+        toast.success('Provisionamento concluído!', 'Todos os dispositivos foram carregados.');
     };
 
     const handleGenerateQR = async () => {
-        if (selectedExamIds.length === 0) return alert("Selecione as provas primeiro.");
+        if (selectedExamIds.length === 0) return toast.warning('Selecione as provas primeiro');
 
         const payload = {
             type: 'FORGE_OFFLINE_PACKAGE',
@@ -815,7 +817,7 @@ export const CommandCenter = ({ state, userSchoolId }: CommandCenterProps) => {
                                                 setCurrentChunkIdx(prev => prev + 1);
                                             } else {
                                                 setShowQrModal(false);
-                                                alert("Carga concluída! O dispositivo agora possui todos os dados necessários.");
+                                                toast.success('Carga concluída!', 'O dispositivo possui todos os dados necessários.');
                                             }
                                         }}
                                         className="flex-3 py-4 px-8 rounded-xl bg-brand-primary text-white font-bold shadow-lg hover:bg-brand-dark transition"

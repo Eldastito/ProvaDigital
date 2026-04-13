@@ -16,6 +16,7 @@ import { operationalHealthService } from '../../services/operationalHealthServic
 import { MetricsCard } from '../../components/Metrics/MetricsCard';
 import { useNavigate } from 'react-router-dom';
 import { MeshRouterPanel } from '../runner/professor/MeshRouterPanel';
+import { useToast } from '../../components/ui/Toast';
 
 interface CommandCenterProps {
     onClose?: () => void;
@@ -23,6 +24,7 @@ interface CommandCenterProps {
 
 export const CommandCenter: React.FC<CommandCenterProps> = ({ onClose }) => {
     const navigate = useNavigate();
+    const toast = useToast();
 
     // Estados
     const [sessions, setSessions] = useState<ExamSession[]>([]);
@@ -109,7 +111,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({ onClose }) => {
             await commandCenterService.pauseSession(sessionId);
             await loadData();
         } catch (error) {
-            alert('Erro ao pausar sessão');
+            toast.error('Erro ao pausar sessão');
         }
     };
 
@@ -118,7 +120,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({ onClose }) => {
             await commandCenterService.resumeSession(sessionId);
             await loadData();
         } catch (error) {
-            alert('Erro ao retomar sessão');
+            toast.error('Erro ao retomar sessão');
         }
     };
 
@@ -130,7 +132,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({ onClose }) => {
             await commandCenterService.extendTime(sessionId, parseInt(minutes));
             await loadData();
         } catch (error) {
-            alert('Erro ao estender tempo');
+            toast.error('Erro ao estender tempo');
         }
     };
 
@@ -141,7 +143,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({ onClose }) => {
             await commandCenterService.endSession(sessionId);
             await loadData();
         } catch (error) {
-            alert('Erro ao encerrar sessão');
+            toast.error('Erro ao encerrar sessão');
         }
     };
 
@@ -160,7 +162,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({ onClose }) => {
             setMessageText('');
             setSelectedSession(null);
         } catch (error) {
-            alert('Erro ao enviar mensagem');
+            toast.error('Erro ao enviar mensagem');
         }
     };
 

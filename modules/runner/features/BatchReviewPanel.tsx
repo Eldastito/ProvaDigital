@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Check, X, Edit3, Trash2, ArrowRight, CheckCircle2, AlertCircle, Sparkles, RefreshCw, Loader2 } from 'lucide-react';
 import { useSafeAppStore, useAppStore } from '../../../store/useAppStore';
 import { AppState, Item, ItemLifecycleStatus, DifficultyLevel } from '../../../types';
@@ -7,6 +7,7 @@ import { Badge } from '../../../components/ui/Badge';
 import { ItemEditModal } from './ItemEditModal';
 import { translateDifficultyLevel } from '../../../utils/translations';
 import DOMPurify from 'dompurify';
+import { useToast } from '../../../components/ui/Toast';
 
 interface BatchReviewPanelProps {
     batchId: string;
@@ -18,6 +19,7 @@ interface BatchReviewPanelProps {
 export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, items: initialItems, onFinish, finishLabel = "Concluir" }) => {
     const { approveOneItem, discardOneItem, removeItems, updateItem, forceFetchBatchItems } = useAppStore();
     const [localItems, setLocalItems] = useState<Item[]>(initialItems);
+    const toast = useToast();
     const [editingItem, setEditingItem] = useState<Item | null>(null);
     const [rescuing, setRescuing] = useState(false);
 
@@ -31,7 +33,7 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
             if (approveOneItem) await approveOneItem(id);
             setLocalItems(prev => prev.map(i => i.id === id ? { ...i, lifecycleStatus: ItemLifecycleStatus.APPROVED } : i));
         } catch (e) {
-            alert("Erro ao aprovar item.");
+            toast.error("Erro ao aprovar item.");
         }
     };
 
@@ -40,7 +42,7 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
             if (discardOneItem) await discardOneItem(id);
             setLocalItems(prev => prev.map(i => i.id === id ? { ...i, lifecycleStatus: ItemLifecycleStatus.REJECTED } : i));
         } catch (e) {
-            alert("Erro ao descartar item.");
+            toast.error("Erro ao descartar item.");
         }
     };
 
@@ -49,7 +51,7 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
 
         // Guard: Prevent known invalid ID "t1" from crashing RPC
         if (!batchId || !batchId.includes('-')) {
-            alert("Erro: Lote com ID inválido. Operação bloqueada.");
+            toast.error("Erro: Lote com ID inválido. Operação bloqueada.");
             return;
         }
 
@@ -57,7 +59,7 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
             await useAppStore.getState().approveAllItemsInBatch(batchId);
             setLocalItems(prev => prev.map(i => ({ ...i, lifecycleStatus: ItemLifecycleStatus.APPROVED })));
         } catch (e) {
-            alert("Erro ao aprovar todas as questões.");
+            toast.error("Erro ao aprovar todas as questões.");
         }
     };
 
@@ -68,7 +70,7 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
                 await removeItems(ids);
                 setLocalItems([]);
             } catch (e) {
-                alert("Erro ao descartar lote.");
+                toast.error("Erro ao descartar lote.");
             }
         }
     };
@@ -88,7 +90,7 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
             await forceFetchBatchItems(batchId);
             // O useEffect que sincroniza initialItems cuidará do resto
         } catch (e) {
-            alert("Erro ao tentar resgatar itens do banco.");
+            toast.error("Erro ao tentar resgatar itens do banco.");
         } finally {
             setRescuing(false);
         }
@@ -251,7 +253,7 @@ export const BatchReviewPanel: React.FC<BatchReviewPanelProps> = ({ batchId, ite
                                                             handleSaveEdit({ ...item, imageUrl: result.url });
                                                         }
                                                     } catch (e) {
-                                                        alert("Erro ao gerar imagem: " + e);
+                                                        toast.error('Erro ao gerar imagem', String(e));
                                                     }
                                                 }
                                             }}

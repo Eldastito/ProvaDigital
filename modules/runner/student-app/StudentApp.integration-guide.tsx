@@ -1,4 +1,4 @@
-/**
+﻿/**
  * EXEMPLO DE INTEGRAÇÃO: useStudentSession no StudentApp
  * 
  * Este arquivo mostra como integrar o sistema multi-login no StudentApp.tsx
@@ -142,7 +142,7 @@ const handleFinishExam = async () => {
         
     } catch (error) {
         console.error('❌ Erro ao finalizar:', error);
-        alert('Erro ao finalizar prova. Tente novamente.');
+        toast.error('Erro ao finalizar prova', 'Tente novamente.');
         setStep('EXAM');
     }
 };

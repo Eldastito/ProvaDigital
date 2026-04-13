@@ -1,15 +1,17 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { UserRole } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
 import { Users, FileText, Mic, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { generateAssessmentReport, predictStudentOutcome, generateCouncilMinutes } from '../../services/geminiService';
+import { useToast } from '../../components/ui/Toast';
 
 export const ClassCouncilView: React.FC = () => {
     const state = useAppStore();
     const analytics = useMemo(() => new AnalyticsService(), []);
 
     const [selectedClassId, setSelectedClassId] = useState<string>('');
+    const toast = useToast();
     const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
     const [isRecording, setIsRecording] = useState(false);
     const [transcription, setTranscription] = useState('');
@@ -45,7 +47,7 @@ export const ClassCouncilView: React.FC = () => {
             setAiAnalysis(prediction);
         } catch (e) {
             console.error(e);
-            alert("Erro ao analisar aluno.");
+            toast.error("Erro ao analisar aluno.");
         } finally {
             setLoadingAI(false);
         }
@@ -54,7 +56,7 @@ export const ClassCouncilView: React.FC = () => {
     // --- SPEECH RECOGNITION (WEB API) ---
     const startRecording = () => {
         if (!('webkitSpeechRecognition' in window)) {
-            return alert("Seu navegador não suporta transcrição de áudio.");
+            return toast.warning("Seu navegador não suporta transcrição de áudio.");
         }
 
         const recognition = new (window as any).webkitSpeechRecognition();
@@ -96,7 +98,7 @@ export const ClassCouncilView: React.FC = () => {
         if (!transcription) return;
 
         if (!selectedStudentId) {
-            alert("Por favor, selecione um aluno na lista à esquerda para vincular esta ata.");
+            toast.info("Por favor, selecione um aluno na lista à esquerda para vincular esta ata.");
             return;
         }
 
@@ -114,7 +116,7 @@ export const ClassCouncilView: React.FC = () => {
             }));
         } catch (error) {
             console.error('Erro ao gerar ata:', error);
-            alert('Erro ao gerar ata. Tente novamente.');
+            toast.error('Erro ao gerar ata. Tente novamente.');
         } finally {
             setLoadingAI(false);
         }

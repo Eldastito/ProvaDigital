@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { User, UserRole, School } from '../../../types';
 import { UserFilters } from './UserFilters';
 import { UserList } from './UserList';
@@ -8,6 +8,7 @@ import { userService } from '../../../services/userService';
 import { useSafeAppStore } from '../../../store/useAppStore';
 import { Plus, Table, X, Lock, Unlock, AlertTriangle } from 'lucide-react';
 import { BatchImportModal } from './BatchImportModal';
+import { useToast } from '../../../components/ui/Toast';
 
 interface UserManagementTabProps {
     currentUser: User;
@@ -37,6 +38,7 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
 
     // States
     const [searchTerm, setSearchTerm] = useState('');
+    const toast = useToast();
     const [roleFilter, setRoleFilter] = useState<UserRole | 'ALL'>(forcedRole);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -115,7 +117,7 @@ export const UserManagementTab: React.FC<UserManagementTabProps> = ({
     const handleResetPassword = async (email: string) => {
         if (confirm(`Enviar link de redefinição de senha para ${email}?`)) {
             await userService.resetPassword(email);
-            alert('Link enviado com sucesso (Mock)');
+            toast.success('Link enviado com sucesso (Mock)');
         }
     };
 

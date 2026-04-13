@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Globe, BookOpen, ShieldCheck, Download, Users, BarChart3, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Exam, ExamModel, ExamStatus } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
+import { useToast } from '../../components/ui/Toast';
 
 export const OECDPortalView = ({ onBack }: { onBack: () => void }) => {
     const state = useAppStore();
@@ -73,7 +74,7 @@ export const OECDPortalView = ({ onBack }: { onBack: () => void }) => {
                                                     onClick={() => {
                                                         if (window.confirm(`Deseja distribuir "${exam.title}" para toda a rede? Esta ação é irreversível.`)) {
                                                             state.distributeOECDExam(exam.id);
-                                                            alert('Ação de distribuição iniciada com sucesso.');
+                                                            toast.success('Ação de distribuição iniciada com sucesso.');
                                                         }
                                                     }}
                                                     className="bg-brand-primary text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg shadow-brand-primary/20 hover:scale-105 transition flex items-center gap-2"

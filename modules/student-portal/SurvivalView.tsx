@@ -1,7 +1,8 @@
-
+﻿
 import React, { useState, useEffect, useMemo } from 'react';
 import { Heart, Shield, Zap, Flame, Trophy, Coins, SkipForward, AlertTriangle, ArrowRight, CheckCircle, XCircle, LogOut } from 'lucide-react';
 import { AppState, User, QuestionType, UserProfileExtended, Item, DifficultyLevel, ItemOrigin } from '../../types';
+import { useToast } from '../../components/ui/Toast';
 
 import { useSafeAppStore } from '../../store/useAppStore';
 
@@ -31,6 +32,7 @@ export const SurvivalView = () => {
 
     // Game State
     const [gameState, setGameState] = useState<'START' | 'PLAYING' | 'GAME_OVER'>('START');
+    const toast = useToast();
     const [lives, setLives] = useState(3);
     const [score, setScore] = useState(0);
     const [streak, setStreak] = useState(0);
@@ -109,22 +111,22 @@ export const SurvivalView = () => {
     // --- POWER-UPS LOGIC ---
 
     const buyHeart = () => {
-        if (userProfile.owlCoins < 50) return alert("Moedas insuficientes!");
-        if (lives >= 3) return alert("Vida cheia!");
+        if (userProfile.owlCoins < 50) return toast.warning("Moedas insuficientes!");
+        if (lives >= 3) return toast.warning("Vida cheia!");
 
         updateCoins(-50);
         setLives(l => l + 1);
     };
 
     const buySkip = () => {
-        if (userProfile.owlCoins < 30) return alert("Moedas insuficientes!");
+        if (userProfile.owlCoins < 30) return toast.warning("Moedas insuficientes!");
 
         updateCoins(-30);
         nextQuestion();
     };
 
     const buy5050 = () => {
-        if (userProfile.owlCoins < 40) return alert("Moedas insuficientes!");
+        if (userProfile.owlCoins < 40) return toast.warning("Moedas insuficientes!");
         if (eliminatedAlts.length > 0) return; // Already active
 
         const currentQ = questionsQueue[currentQIndex];

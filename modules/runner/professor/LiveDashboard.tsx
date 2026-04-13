@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Live Dashboard - Professor
  * 
  * Dashboard em tempo real para professor monitorar alunos
@@ -25,6 +25,7 @@ import {
 import { getMeshNetwork, MeshNode, MeshMessage, MeshHybridEnvelope } from '../../../services/meshNetworkService';
 import { E2EEncryptionService } from '../../../services/security/e2eEncryptionService';
 import { envConfig } from '../../../services/environmentConfig';
+import { useToast } from '../../../components/ui/Toast';
 
 interface StudentData {
     id: string;
@@ -52,6 +53,7 @@ export const LiveDashboard: React.FC<LiveDashboardProps> = ({
     totalQuestions
 }) => {
     const [students, setStudents] = useState<Map<string, StudentData>>(new Map());
+    const toast = useToast();
     const [meshStats, setMeshStats] = useState<any>(null);
     const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
     const [alertMessage, setAlertMessage] = useState('');
@@ -330,7 +332,7 @@ export const LiveDashboard: React.FC<LiveDashboardProps> = ({
         });
 
         console.log('🚀 Comando ENABLE_EXAM enviado para todos os nodes');
-        alert('✅ Comando enviado! A prova será liberada nos dispositivos dos alunos.');
+        toast.success('✅ Comando enviado! A prova será liberada nos dispositivos dos alunos.');
     };
 
     /**

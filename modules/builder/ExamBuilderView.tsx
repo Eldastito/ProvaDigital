@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { X, Brain, Loader2, FileText, Upload, ArrowRight, Sparkles } from 'lucide-react';
+import { useToast } from '../../components/ui/Toast';
 
 import { useExamBuilder } from './hooks/useExamBuilder';
 import { ExamBasicInfo } from './components/ExamBasicInfo';
@@ -48,6 +49,7 @@ export const ExamBuilderView = () => {
 
 
     const [isGenerating, setIsGenerating] = useState(false);
+    const toast = useToast();
     const [importModalOpen, setImportModalOpen] = useState(false);
     const [importContext, setImportContext] = useState('');
     const [importFile, setImportFile] = useState<File | null>(null);
@@ -66,7 +68,7 @@ export const ExamBuilderView = () => {
                     const text = await extractTextFromPDF(file);
                     setImportContext(text);
                 } catch (err) {
-                    alert('Erro ao ler PDF: ' + err);
+                    toast.error('Erro ao ler PDF', String(err));
                 } finally {
                     setIsGenerating(false);
                 }
@@ -80,7 +82,7 @@ export const ExamBuilderView = () => {
                 };
                 reader.readAsDataURL(file);
             } else {
-                alert('Formato não suportado. Envie um arquivo PDF ou uma Imagem.');
+                toast.info('Formato não suportado. Envie um arquivo PDF ou uma Imagem.');
                 setImportFile(null);
             }
         }
@@ -149,7 +151,7 @@ export const ExamBuilderView = () => {
 
         } catch (error) {
             console.error(error);
-            alert('Falha na geração: ' + error);
+            toast.error('Falha na geração', String(error));
         } finally {
             setIsGenerating(false);
         }

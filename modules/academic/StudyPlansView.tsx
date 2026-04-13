@@ -8,6 +8,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { RichTextRenderer } from '../../components/RichTextRenderer';
 import { Interactive3DViewer } from '../../components/3d/Interactive3DViewer';
 import { generateQuestionsFromText } from '../../services/geminiService';
+import { useToast } from '../../components/ui/Toast';
 
 interface StudyPlansViewProps {
     state: AppState;
@@ -17,6 +18,7 @@ interface StudyPlansViewProps {
 export const StudyPlansView = () => {
     const state = useAppStore();
     const { currentUser: user } = state;
+    const toast = useToast();
     // Decide which student we are acting on
     const isParent = user.role === UserRole.PAIS;
     const isStudent = user.role === UserRole.ALUNO;
@@ -97,18 +99,18 @@ export const StudyPlansView = () => {
                         owlCoins: (userProfile.owlCoins || 0) + 10,
                         xp: (userProfile.xp || 0) + 50
                     });
-                    alert("🎉 Foco concluído! +10 Moedas ganhas! Hora de uma pausa.");
+                    toast.success('🎉 Foco concluído!', '+10 Moedas ganhas! Hora de uma pausa.');
                 } else {
-                    alert("Foco concluído! Hora de uma pausa.");
+                    toast.info('Foco concluído!', 'Hora de uma pausa.');
                 }
             } else {
-                alert("Foco concluído! Hora de uma pausa.");
+                toast.info('Foco concluído!', 'Hora de uma pausa.');
             }
 
             setPomoMode('BREAK');
             setPomoTime(5 * 60);
         } else {
-            alert("Pausa concluída! De volta aos estudos.");
+            toast.info('Pausa concluída!', 'De volta aos estudos.');
             setPomoMode('FOCUS');
             setPomoTime(25 * 60);
         }
@@ -206,13 +208,13 @@ export const StudyPlansView = () => {
         // Simulate IA processing
         await new Promise(resolve => setTimeout(resolve, 2000));
         setIsRecalculating(false);
-        alert("Planejamento otimizado com sucesso com base no desempenho da turma!");
+        toast.success('Planejamento otimizado!', 'Sucesso com base no desempenho da turma.');
     };
 
     // --- ACTIONS ---
 
     const handleCreateLessonPlan = () => {
-        if (!lpForm.classId || !lpForm.topic) return alert('Preencha os campos obrigatórios.');
+        if (!lpForm.classId || !lpForm.topic) return toast.warning('Campos obrigatórios', 'Preencha turma e tópico.');
         const newPlan: LessonPlan = {
             id: uuidv4(),
             professorId: user.id,
@@ -229,7 +231,7 @@ export const StudyPlansView = () => {
     };
 
     const handleGenerateLessonAI = async () => {
-        if (!lpForm.classId || !lpForm.topic) return alert('Selecione uma turma e defina um tópico para a IA começar.');
+        if (!lpForm.classId || !lpForm.topic) return toast.warning('Campos obrigatórios', 'Selecione uma turma e defina um tópico para a IA.');
 
         setAiLoading(true);
         try {
@@ -251,7 +253,7 @@ export const StudyPlansView = () => {
             }));
         } catch (error) {
             console.error(error);
-            alert("Erro ao gerar plano. Verifique a conexão.");
+            toast.error('Erro ao gerar plano', 'Verifique a conexão.');
         } finally {
             setAiLoading(false);
         }
@@ -259,7 +261,7 @@ export const StudyPlansView = () => {
 
     const handleCreateStudyPlan = () => {
         const finalStudentId = isProfessor ? spForm.studentId : targetStudentId;
-        if (!finalStudentId || !spForm.title || spTasks.length === 0) return alert('Dados incompletos.');
+        if (!finalStudentId || !spForm.title || spTasks.length === 0) return toast.warning('Dados incompletos', 'Preencha o título e adicione tarefas.');
         const newPlan: StudyPlan = {
             id: uuidv4(),
             studentId: finalStudentId,
@@ -283,7 +285,7 @@ export const StudyPlansView = () => {
 
     const handleGenerateAI = async () => {
         const finalStudentId = isProfessor ? spForm.studentId : targetStudentId;
-        if (!finalStudentId) return alert("Aluno não identificado.");
+        if (!finalStudentId) return toast.warning('Aluno não identificado');
         setAiLoading(true);
         const stats = analytics.getStudentStats(finalStudentId);
         if (stats) {
@@ -332,7 +334,7 @@ export const StudyPlansView = () => {
     }, [state.items]);
 
     const startSimulator = () => {
-        if (!simConfig.subject) return alert("Selecione uma matéria.");
+        if (!simConfig.subject) return toast.warning('Selecione uma matéria');
 
         const normalize = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
         const targetNormalized = normalize(simConfig.subject);
@@ -411,7 +413,7 @@ export const StudyPlansView = () => {
             setSimStep('TAKING');
         } catch (error) {
             console.error(error);
-            alert("Erro ao gerar questões com IA.");
+            toast.error('Erro ao gerar questões', 'Falha na comunicação com a IA.');
         } finally {
             setIsGeneratingSimulator(false);
         }
@@ -580,7 +582,7 @@ export const StudyPlansView = () => {
                                             <BookOpen size={18} />
                                         </button>
                                         <button
-                                            onClick={() => alert(`Criando prova para o tema: ${item.topic}`)}
+                                            onClick={() => toast.info('Criar Prova', `Criando prova para o tema: ${item.topic}`)}
                                             className="p-2 hover:bg-brand-primary/10 text-brand-primary rounded-lg transition"
                                             title="Criar Prova sobre o tema"
                                         >
@@ -1060,7 +1062,7 @@ export const StudyPlansView = () => {
                                     <div className="pt-4 border-t border-slate-200">
                                         <button
                                             className="w-full py-2 bg-slate-900 text-white rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-800 transition"
-                                            onClick={() => alert(`Simulando geração de itens para ${lpForm.topic}...`)}
+                                            onClick={() => toast.info('Gerando itens', `Simulando geração de itens para ${lpForm.topic}...`)}
                                         >
                                             <Target size={14} className="text-brand-secondary" /> Gerar Itens de Avaliação p/ este Tema
                                         </button>

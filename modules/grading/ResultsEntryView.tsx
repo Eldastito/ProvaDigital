@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Save, CheckCircle, AlertCircle, Wand2, CheckSquare, Brain, Loader2, Shield, X } from 'lucide-react';
 import { AppState, Exam, ExamResult, StudentAnswer, QuestionType } from '../../types';
 import { uuidv4 } from '../../utils/helpers';
 import { gradeEssayAnswer, batchGradeAnswers } from '../../services/geminiService';
+import { useToast } from '../../components/ui/Toast';
 
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSafeAppStore } from '../../store/useAppStore';
@@ -18,6 +19,7 @@ export const ResultsEntryView = () => {
     const onBack = () => navigate(-1);
     const exam = state.exams.find(e => e.id === examId);
     const [selectedClassId, setSelectedClassId] = useState<string>('');
+    const toast = useToast();
     const [localResults, setLocalResults] = useState<Record<string, Record<string, string>>>({});
     const [saving, setSaving] = useState(false);
     const [gradingLoading, setGradingLoading] = useState<string | null>(null); // ItemId being graded
@@ -156,7 +158,7 @@ export const ResultsEntryView = () => {
     const handleBulkAIGrading = async () => {
         const essayItems = examItems.filter(item => item.type === QuestionType.ESSAY);
         if (essayItems.length === 0) {
-            alert('Nenhuma questão discursiva.');
+            toast.info('Nenhuma questão discursiva.');
             return;
         }
 
@@ -186,7 +188,7 @@ export const ResultsEntryView = () => {
         });
 
         if (pendingContexts.length === 0) {
-            alert("Todas as questões já estão corrigidas!");
+            toast.info("Todas as questões já estão corrigidas!");
             return;
         }
 
@@ -220,11 +222,11 @@ export const ResultsEntryView = () => {
             });
 
             setBulkProgress({ current: pendingContexts.length, total: pendingContexts.length });
-            alert(`✅ ${results.length} sugestões geradas! Revise e clique em 'Aceitar'.`);
+            toast.info(`✅ ${results.length} sugestões geradas! Revise e clique em 'Aceitar'.`);
 
         } catch (error) {
             console.error("Erro no Batch Grading:", error);
-            alert("Houve um erro ao processar o lote. Tente novamente ou use a correção individual.");
+            toast.error("Houve um erro ao processar o lote. Tente novamente ou use a correção individual.");
         } finally {
             setBulkGrading(false);
         }

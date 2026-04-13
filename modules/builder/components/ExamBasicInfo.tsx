@@ -1,6 +1,7 @@
-import React from 'react';
+﻿import React from 'react';
 import { Settings2, Sparkles, Brain, ShieldCheck, GripVertical, Trash, X, ArrowRight, Loader2 } from 'lucide-react';
 import { ExamModel } from '../../../types';
+import { useToast } from '../../../components/ui/Toast';
 
 interface CoverSection {
     id: string;
@@ -348,7 +349,7 @@ export const ExamBasicInfo = ({
             <div className="pt-6 flex justify-end">
                 <button
                     onClick={() => {
-                        if (!config.title || !config.subject) return alert("Preencha Título e Disciplina");
+                        if (!config.title || !config.subject) return toast.warning("Preencha Título e Disciplina");
                         if (builderMode === 'SMART') {
                             if (handleSmartGenerate) handleSmartGenerate();
                         } else {

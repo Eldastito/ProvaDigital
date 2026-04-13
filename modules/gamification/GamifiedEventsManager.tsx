@@ -1,9 +1,10 @@
-
+﻿
 import React, { useState } from 'react';
 import { Trophy, Plus, Calendar, Users, Target, Save, Edit, Play, CheckCircle, Clock, X, Award, ChevronDown, ChevronUp, AlertCircle, Coins, Eye, Zap } from 'lucide-react';
 import { AppState, GamifiedEvent, GamifiedEventStatus, User, UserRole, GamifiedEventType } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
 import { uuidv4 } from '../../utils/helpers';
+import { useToast } from '../../components/ui/Toast';
 
 export const GamifiedEventsManager = () => {
     const state = useAppStore();
@@ -11,6 +12,7 @@ export const GamifiedEventsManager = () => {
 
     if (!user) return null;
     const [view, setView] = useState<'LIST' | 'CREATE' | 'MANAGE' | 'LIVE'>('LIST');
+    const toast = useToast();
     const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
     // Create Form State
@@ -37,7 +39,7 @@ export const GamifiedEventsManager = () => {
     // --- ACTIONS ---
 
     const handleCreate = () => {
-        if (!form.title || !form.eventDate || !form.subject) return alert("Preencha os campos obrigatórios.");
+        if (!form.title || !form.eventDate || !form.subject) return toast.warning("Preencha os campos obrigatórios.");
 
         const newEvent: GamifiedEvent = {
             id: uuidv4(),
@@ -86,7 +88,7 @@ export const GamifiedEventsManager = () => {
             status: GamifiedEventStatus.FINISHED
         });
 
-        alert("Evento finalizado e pontuações salvas!");
+        toast.success("Evento finalizado e pontuações salvas!");
         setView('LIST');
     };
 

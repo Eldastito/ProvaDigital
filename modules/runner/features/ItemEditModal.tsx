@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { X, Save, AlertCircle } from 'lucide-react';
 import { Item, DifficultyLevel } from '../../../types';
 import { RichTextEditor } from '../../../components/RichTextEditor';
+import { useToast } from '../../../components/ui/Toast';
 
 interface ItemEditModalProps {
     item: Item;
@@ -11,9 +12,10 @@ interface ItemEditModalProps {
 
 export const ItemEditModal: React.FC<ItemEditModalProps> = ({ item, onSave, onClose }) => {
     const [form, setForm] = useState<Item>({ ...item });
+    const toast = useToast();
 
     const handleSave = () => {
-        if (!form.statement.trim()) return alert('O enunciado é obrigatório.');
+        if (!form.statement.trim()) return toast.warning('O enunciado é obrigatório.');
         onSave(form);
     };
 

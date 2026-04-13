@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { X, Brain, CheckCircle, PenTool } from 'lucide-react';
 import { gradeFullEssay } from '../../services/geminiService';
 import { HighlightedEssayText } from './components/HighlightedEssayText';
 import { EssayFeedbackDisplay } from './components/EssayFeedbackDisplay';
+import { useToast } from '../../components/ui/Toast';
 
 interface EssayGradingModalProps {
     isOpen: boolean;
@@ -19,6 +20,7 @@ export const EssayGradingModal: React.FC<EssayGradingModalProps> = ({
     isOpen, onClose, studentName, examTitle, questionStatement, motivationalText, initialText, onSave
 }) => {
     const [text, setText] = useState(initialText);
+    const toast = useToast();
     const [isGrading, setIsGrading] = useState(false);
     const [correction, setCorrection] = useState<any>(null);
     const [activeTab, setActiveTab] = useState<'COMPETENCIES' | 'GRAMMAR'>('COMPETENCIES');
@@ -28,7 +30,7 @@ export const EssayGradingModal: React.FC<EssayGradingModalProps> = ({
 
     const handleGrade = async () => {
         if (!text || text.length < 10) {
-            alert("O texto é muito curto para ser corrigido.");
+            toast.info("O texto é muito curto para ser corrigido.");
             return;
         }
 
@@ -39,7 +41,7 @@ export const EssayGradingModal: React.FC<EssayGradingModalProps> = ({
             setActiveTab('COMPETENCIES'); // Switch to results view
         } catch (error) {
             console.error("Erro na correção:", error);
-            alert("Erro ao corrigir redação. Verifique sua conexão e tente novamente.");
+            toast.error("Erro ao corrigir redação. Verifique sua conexão e tente novamente.");
         } finally {
             setIsGrading(false);
         }

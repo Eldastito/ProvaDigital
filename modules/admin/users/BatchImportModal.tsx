@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef } from 'react';
 import {
     FileUp,
     CheckCircle2,
@@ -14,6 +14,7 @@ import { batchImportService, ImportCandidate } from '../../../services/batchImpo
 import { mapImportColumns } from '../../../services/geminiService';
 import { useAppStore } from '../../../store/useAppStore';
 import { UserRole } from '../../../types';
+import { useToast } from '../../../components/ui/Toast';
 
 interface BatchImportModalProps {
     onClose: () => void;
@@ -26,6 +27,7 @@ export const BatchImportModal = ({ onClose, onSuccess }: BatchImportModalProps) 
     const { tenants, currentUser } = useAppStore();
     const currentTenant = tenants.find(t => t.id === currentUser?.tenantId);
     const [step, setStep] = useState<Step>('UPLOAD');
+    const toast = useToast();
     const [file, setFile] = useState<File | null>(null);
     const [headers, setHeaders] = useState<string[]>([]);
     const [rows, setRows] = useState<any[]>([]);
@@ -51,7 +53,7 @@ export const BatchImportModal = ({ onClose, onSuccess }: BatchImportModalProps) 
             setMapping(aiMapping.mapping);
             setStep('MAPPING');
         } catch (err) {
-            alert("Erro ao ler arquivo: " + (err as Error).message);
+            toast.error('Erro ao ler arquivo', (err as Error).message);
         } finally {
             setLoading(false);
         }
@@ -70,7 +72,7 @@ export const BatchImportModal = ({ onClose, onSuccess }: BatchImportModalProps) 
             setCandidates(prepared);
             setStep('PREVIEW');
         } catch (err) {
-            alert("Erro na análise: " + (err as Error).message);
+            toast.error('Erro na análise', (err as Error).message);
         } finally {
             setLoading(false);
         }
@@ -84,7 +86,7 @@ export const BatchImportModal = ({ onClose, onSuccess }: BatchImportModalProps) 
             setStats(result);
             setStep('SUCCESS');
         } catch (err) {
-            alert("Erro na importação: " + (err as Error).message);
+            toast.error('Erro na importação', (err as Error).message);
         } finally {
             setLoading(false);
         }

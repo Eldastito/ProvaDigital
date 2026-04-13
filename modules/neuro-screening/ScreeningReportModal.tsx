@@ -1,9 +1,10 @@
-
+﻿
 import React from 'react';
 import { Activity, AlertCircle, Award, Brain, CheckCircle, Printer, X, Calendar, User, FileText, ClipboardCheck, Zap } from 'lucide-react';
 import { AssessmentResult, AssessmentType } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
 import { uuidv4 } from '../../utils/helpers';
+import { useToast } from '../../components/ui/Toast';
 
 interface ScreeningReportModalProps {
     report: AssessmentResult;
@@ -50,7 +51,7 @@ export const ScreeningReportModal = ({ report, studentName, studentId, observati
 
     const handleConfirmDelivery = async () => {
         if (!recipientName) {
-            alert('Por favor, informe o nome do responsável que recebeu o relatório.');
+            toast.info('Por favor, informe o nome do responsável que recebeu o relatório.');
             return;
         }
 
@@ -73,7 +74,7 @@ export const ScreeningReportModal = ({ report, studentName, studentId, observati
         await addNeuroReportDelivery(delivery);
         setIsConfirmed(true);
         setIsSaving(false);
-        alert('✅ Entrega registrada com sucesso no sistema de auditoria.');
+        toast.success('✅ Entrega registrada com sucesso no sistema de auditoria.');
     };
 
     return (

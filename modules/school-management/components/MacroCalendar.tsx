@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
 import { InstitutionalEvent, InstitutionalEventType } from '../../../types';
 import { v4 as uuidv4 } from 'uuid';
@@ -6,10 +6,12 @@ import { Calendar as CalendarIcon, Plus, Trash2, AlertTriangle, Info, Sparkles }
 import { holidayService } from '../../../services/holidayService';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useToast } from '../../../components/ui/Toast';
 
 export const MacroCalendar = () => {
     const { currentUser, institutionalEvents, addInstitutionalEvent, deleteInstitutionalEvent, exams, updateResults } = useAppStore(); // updateResults is a placeholder for updating exams, actually we need updateExam in useAppStore but let's see.
     const [showForm, setShowForm] = useState(false);
+    const toast = useToast();
     const [title, setTitle] = useState('');
     const [type, setType] = useState<InstitutionalEventType>(InstitutionalEventType.HOLIDAY);
     const [startDate, setStartDate] = useState('');
@@ -113,7 +115,7 @@ export const MacroCalendar = () => {
                             const newHolidays = allOfficial.filter(h => !existingDates.includes(h.date));
 
                             if (newHolidays.length === 0) {
-                                alert("Todos os feriados oficiais já estão no seu calendário.");
+                                toast.info("Todos os feriados oficiais já estão no seu calendário.");
                                 return;
                             }
 
@@ -128,7 +130,7 @@ export const MacroCalendar = () => {
                                 for (const evt of eventsToCreate) {
                                     await addInstitutionalEvent(evt);
                                 }
-                                alert(`${newHolidays.length} feriados importados com sucesso!`);
+                                toast.info(`${newHolidays.length} feriados importados com sucesso!`);
                             }
                         }}
                         className="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-emerald-100 transition-colors border border-emerald-200"

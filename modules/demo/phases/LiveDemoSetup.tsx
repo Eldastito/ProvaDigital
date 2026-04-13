@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+import { useToast } from '../../../components/ui/Toast';
 
 import { Play, Globe, Search, CheckCircle, BookOpen, Sparkles } from 'lucide-react';
 import { supabase } from '../../../services/supabaseClient';
@@ -13,6 +14,7 @@ interface LiveDemoSetupProps {
 export const LiveDemoSetup = ({ onSessionCreated }: LiveDemoSetupProps) => {
     const state = useAppStore();
     const [loading, setLoading] = useState(false);
+    const toast = useToast();
     const [config, setConfig] = useState({
         className: 'Turma Demo - Evento Ao Vivo',
         capacity: 50,
@@ -68,7 +70,7 @@ export const LiveDemoSetup = ({ onSessionCreated }: LiveDemoSetupProps) => {
     }, [state.exams]);
 
     const handleCreateSession = async () => {
-        if (!config.className || config.capacity < 1) return alert("Configure a turma.");
+        if (!config.className || config.capacity < 1) return toast.warning("Configure a turma.");
         setLoading(true);
 
         try {
@@ -155,7 +157,7 @@ export const LiveDemoSetup = ({ onSessionCreated }: LiveDemoSetupProps) => {
 
         } catch (error: any) {
             console.error("Erro ao criar sessão:", error);
-            alert("Erro ao conectar com o servidor da demo: " + error.message);
+            toast.error('Erro ao conectar', error.message);
         } finally {
             setLoading(false);
         }

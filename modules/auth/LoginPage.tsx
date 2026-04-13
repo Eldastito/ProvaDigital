@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { Lock, Mail, Loader2, AlertCircle, ArrowRight, Chrome, ShieldCheck } from 'lucide-react';
 import { AccountClaimFlow } from './AccountClaimFlow';
+import { useToast } from '../../components/ui/Toast';
 
 export const LoginPage = () => {
     const [email, setEmail] = useState('');
+    const toast = useToast();
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -224,7 +226,7 @@ export const LoginPage = () => {
                         email={claimEmail || email}
                         onSuccess={() => {
                             setIsClaiming(false);
-                            alert("Conta ativada! Agora você pode fazer login com sua nova senha.");
+                            toast.info("Conta ativada! Agora você pode fazer login com sua nova senha.");
                         }}
                         onCancel={() => setIsClaiming(false)}
                     />

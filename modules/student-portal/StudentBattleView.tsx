@@ -1,9 +1,10 @@
-
+﻿
 import React, { useState, useEffect, useMemo } from 'react';
 import { Swords, Trophy, Users, Timer, CheckCircle, XCircle, Brain, Star, Coins, ArrowRight, Zap, Play, UserPlus, Check, User as UserIcon, Shuffle, LogOut } from 'lucide-react';
 import { AppState, User, QuestionType, UserProfileExtended, Item, DifficultyLevel, ItemOrigin } from '../../types';
 import { uuidv4 } from '../../utils/helpers';
 import { useSafeAppStore } from '../../store/useAppStore';
+import { useToast } from '../../components/ui/Toast';
 
 interface StudentBattleViewProps {
     state: AppState;
@@ -122,6 +123,7 @@ export const StudentBattleView = () => {
 
     // --- GAME STATE ---
     const [gameState, setGameState] = useState<GameState>('LOBBY');
+    const toast = useToast();
     const [subject, setSubject] = useState('Geral');
     const [players, setPlayers] = useState<Player[]>([]);
     const [questions, setQuestions] = useState<any[]>([]);
@@ -145,7 +147,7 @@ export const StudentBattleView = () => {
             if (selectedOpponentIds.length < 3) {
                 setSelectedOpponentIds(prev => [...prev, id]);
             } else {
-                alert("Você pode desafiar no máximo 3 amigos por vez.");
+                toast.info("Você pode desafiar no máximo 3 amigos por vez.");
             }
         }
     };
@@ -183,7 +185,7 @@ export const StudentBattleView = () => {
 
             if (mode === 'FRIENDS') {
                 if (selectedOpponentIds.length === 0) {
-                    alert("Selecione os amigos na lista ou escolha Partida Rápida.");
+                    toast.info("Selecione os amigos na lista ou escolha Partida Rápida.");
                     setGameState('LOBBY');
                     return;
                 }

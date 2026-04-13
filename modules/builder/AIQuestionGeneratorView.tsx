@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Sparkles, Brain, Save, Trash2, Loader2, Image as ImageIcon, CheckCircle2, ArrowRight } from 'lucide-react';
 import { QuestionType, DifficultyLevel, Item, ItemOrigin, ItemLifecycleStatus } from '../../types';
 import { generateQuestionsFromText, generateEssayQuestion, generateVisualSuggestion, auditPedagogicalItem, GeneratedEssay, VisualSuggestion } from '../../services/geminiService';
@@ -6,11 +6,13 @@ import { useSafeAppStore } from '../../store/useAppStore';
 import { uuidv4 } from '../../utils/helpers';
 import { useNavigate } from 'react-router-dom';
 import { MOCK_TENANT_ID } from '../../utils/mockData';
+import { useToast } from '../../components/ui/Toast';
 
 export const AIQuestionGeneratorView = () => {
     const navigate = useNavigate();
     const state = useSafeAppStore();
     const [loading, setLoading] = useState(false);
+    const toast = useToast();
     const [step, setStep] = useState(1);
 
     // Config
@@ -120,7 +122,7 @@ export const AIQuestionGeneratorView = () => {
             }
 
         } catch (e) {
-            alert("Erro na geração: " + e);
+            toast.error('Erro na geração', String(e));
         } finally {
             setLoading(false);
         }
@@ -180,7 +182,7 @@ export const AIQuestionGeneratorView = () => {
 
         await state.addItems(newItems);
         localStorage.removeItem('ai_generator_current_draft');
-        alert(`${newItems.length} itens salvos no banco!`);
+        toast.info(`${newItems.length} itens salvos no banco!`);
         navigate('/items');
     };
 

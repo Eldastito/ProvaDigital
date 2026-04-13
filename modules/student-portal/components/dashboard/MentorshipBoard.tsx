@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { BookHeart, Zap, Users, Star } from 'lucide-react';
 import { useSafeAppStore } from '../../../../store/useAppStore';
 import { User, MentorshipStatus, GamifiedEventStatus } from '../../../../types';
 import { translateGamifiedEventStatus } from '../../../../utils/translations';
+import { useToast } from '../../../../components/ui/Toast';
 
 interface MentorshipBoardProps {
     student: User;
@@ -27,7 +28,7 @@ export const MentorshipBoard: React.FC<MentorshipBoardProps> = ({ student, isPar
                 rewardXp: 200,
                 createdAt: new Date().toISOString()
             });
-            alert("Pedido criado! Aguarde um mentor aceitar.");
+            toast.success("Pedido criado! Aguarde um mentor aceitar.");
         }
     };
 
@@ -40,7 +41,7 @@ export const MentorshipBoard: React.FC<MentorshipBoardProps> = ({ student, isPar
     const handleConfirmMentorship = (reqId: string, pin: string) => {
         const success = confirmMentorship(reqId, pin);
         if (success) {
-            alert("🎉 Mentoria validada e Concluída! Você ganhou +200 XP!");
+            toast.info("🎉 Mentoria validada e Concluída! Você ganhou +200 XP!");
             if (extendedProfile) {
                 updateUserProfile({
                     ...extendedProfile,
@@ -49,7 +50,7 @@ export const MentorshipBoard: React.FC<MentorshipBoardProps> = ({ student, isPar
                 });
             }
         } else {
-            alert("PIN incorreto. Peça ao aluno o número de 4 dígitos.");
+            toast.info("PIN incorreto. Peça ao aluno o número de 4 dígitos.");
         }
     };
 

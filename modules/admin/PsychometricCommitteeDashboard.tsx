@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { dataExportService } from '../../services/dataExportService';
 import { privacyService } from '../../services/privacyService';
@@ -25,9 +25,11 @@ import {
 } from 'lucide-react';
 
 import { PsychometricCuradoriaView } from './PsychometricCuradoriaView';
+import { useToast } from '../../components/ui/Toast';
 
 export const PsychometricCommitteeDashboard = () => {
     const [pools, setPools] = useState<any[]>([]);
+    const toast = useToast();
     const [loading, setLoading] = useState(true);
     const [selectedPool, setSelectedPool] = useState<any>(null);
     const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'AUDIT' | 'LGPD' | 'CURADORIA'>('OVERVIEW');
@@ -68,7 +70,7 @@ export const PsychometricCommitteeDashboard = () => {
         if (!error) {
             fetchPools();
             setSelectedPool(null);
-            alert('✅ Pool aprovado para produção!');
+            toast.success('✅ Pool aprovado para produção!');
         }
     };
 

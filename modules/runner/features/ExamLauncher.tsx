@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
 import { useNavigate } from 'react-router-dom';
 import { Play, FileText, Clock, AlertTriangle, Accessibility, CloudDownload, CheckCircle } from 'lucide-react';
 import { ExamStatus, ScheduledExam } from '../../../types';
 import { schedulingService } from '../../../services/schedulingService';
+import { useToast } from '../../../components/ui/Toast';
 
 export const ExamLauncher = () => {
     const { exams, currentUser, getRecommendedVariant } = useAppStore();
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
+    const toast = useToast();
     const [schedules, setSchedules] = useState<ScheduledExam[]>([]);
     const [downloadingId, setDownloadingId] = useState<string | null>(null);
     const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
@@ -76,12 +78,12 @@ export const ExamLauncher = () => {
 
         setLoadedExams(prev => ({ ...prev, [examId]: true }));
         setDownloadingId(null);
-        alert("Carga Concluída! Os dados da prova e alunos foram baixados para uso offline.");
+        toast.success("Carga Concluída! Os dados da prova e alunos foram baixados para uso offline.");
     };
 
     const handleLaunch = async (exam: any) => {
         if (!isJoinable(exam)) {
-            alert("Esta prova não está disponível no momento. Verifique o horário agendado.");
+            toast.info("Esta prova não está disponível no momento. Verifique o horário agendado.");
             return;
         }
 

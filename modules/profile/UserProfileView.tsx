@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState } from 'react';
 import { User, Camera, Mail, Brain, Activity, Smile, Zap, Lock, Play, CheckCircle, BarChart2, Stethoscope, FileText, Printer } from 'lucide-react';
 import { AppState, User as UserType, UserProfileExtended, AssessmentType, AssessmentResult, UserRole } from '../../types';
@@ -6,6 +6,7 @@ import { AssessmentRunner } from './AssessmentRunner';
 import { ScreeningReportModal } from '../neuro-screening/ScreeningReportModal';
 import { uuidv4 } from '../../utils/helpers';
 import { fileSecurityService } from '../../services/fileSecurityService';
+import { useToast } from '../../components/ui/Toast';
 
 interface UserProfileViewProps {
     state: AppState;
@@ -31,6 +32,7 @@ export const UserProfileView = () => {
     };
 
     const [activeTest, setActiveTest] = useState<AssessmentType | null>(null);
+    const toast = useToast();
     const [selectedReport, setSelectedReport] = useState<AssessmentResult | null>(null);
 
     const isAdminOrManager = user.role === UserRole.SUPER_ADMIN || user.role === UserRole.TENANT_ADMIN || user.role === UserRole.DIRETOR;
@@ -49,7 +51,7 @@ export const UserProfileView = () => {
                 reader.readAsDataURL(sanitizedBlob);
             } catch (err) {
                 console.error("Erro na sanitização de segurança:", err);
-                alert("Este arquivo foi rejeitado pelo Porteiro de Segurança IA por conter possíveis scripts maliciosos.");
+                toast.error("Este arquivo foi rejeitado pelo Porteiro de Segurança IA por conter possíveis scripts maliciosos.");
             }
         }
     };

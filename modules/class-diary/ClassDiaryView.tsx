@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import {
     Calendar,
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { uuidv4 } from '../../utils/helpers';
 import { DiaryEntry } from '../../types';
+import { useToast } from '../../components/ui/Toast';
 
 interface AttendanceRecord {
     id: string;
@@ -62,6 +63,7 @@ const QUICK_OCCURRENCES: Occurrence[] = [
 export const ClassDiaryView = () => {
     const { currentUser, students, classes, addDiaryEntries } = useAppStore();
     const [selectedClass, setSelectedClass] = useState<string>('');
+    const toast = useToast();
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [attendance, setAttendance] = useState<Map<string, AttendanceRecord['status']>>(new Map());
     const [studentOccurrences, setStudentOccurrences] = useState<Map<string, string[]>>(new Map());
@@ -115,7 +117,7 @@ export const ClassDiaryView = () => {
 
     const handleSave = async () => {
         if (!selectedClass || !currentUser) {
-            alert('Selecione uma turma primeiro.');
+            toast.info('Selecione uma turma primeiro.');
             return;
         }
 
@@ -152,7 +154,7 @@ export const ClassDiaryView = () => {
             teacherId: currentUser.id
         });
 
-        alert(`✅ Chamada e Ocorrências salvas com sucesso!\n\nOs dados qualitativos foram enviados para análise de rede (MEC/Secretaria).`);
+        toast.info(`✅ Chamada e Ocorrências salvas com sucesso!\n\nOs dados qualitativos foram enviados para análise de rede (MEC/Secretaria).`);
 
         setIsSaving(false);
     };
@@ -383,7 +385,7 @@ export const ClassDiaryView = () => {
                                                         </div>
                                                         <button
                                                             className="px-4 py-1.5 bg-rose-600 text-white text-[10px] font-black rounded-lg hover:bg-rose-700 transition"
-                                                            onClick={() => alert('Encaminhando para módulo de Neuro-Screening...')}
+                                                            onClick={() => toast.info('Encaminhando para módulo de Neuro-Screening...')}
                                                         >
                                                             INICIAR TRIAGEM
                                                         </button>

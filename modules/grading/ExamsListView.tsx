@@ -1,10 +1,11 @@
-
+﻿
 import React from 'react';
 import { Plus, MoreHorizontal, Clock, FileText, Printer, ClipboardCheck, Globe, School, Activity, ShieldCheck, Layers, Trash2, Edit, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppState, Exam, ExamStatus, QuestionType } from '../../types';
 import { Badge } from '../../components/ui/Badge';
 import { sanitizeDescription } from '../../utils/helpers';
+import { useToast } from '../../components/ui/Toast';
 
 import { useSafeAppStore } from '../../store/useAppStore';
 import { AdvancedReviewPipeline } from '../runner/features/AdvancedReviewPipeline';
@@ -93,7 +94,7 @@ export const ExamsListView = () => {
 
                                         {/* 2. IMPRIMIR - NÃO FUNCIONA */}
                                         <button
-                                            onClick={() => alert('⚠️ Funcionalidade em desenvolvimento')}
+                                            onClick={() => toast.info('⚠️ Funcionalidade em desenvolvimento')}
                                             className="text-slate-400 font-medium text-sm hover:text-slate-500 flex items-center gap-1 transition cursor-not-allowed"
                                             title="Visualizar e imprimir prova (em desenvolvimento)"
                                         >

@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { AnswerCluster } from '../../../types';
 import { ClusteringService } from '../../../services/ai/clusteringService'; // Assuming service path
 import { useAppStore } from '../../../store/useAppStore';
 import { Brain, CheckCircle, AlertTriangle, Users } from 'lucide-react';
+import { useToast } from '../../../components/ui/Toast';
 
 interface BatchGradingWidgetProps {
     clusters: AnswerCluster[];
@@ -11,6 +12,7 @@ interface BatchGradingWidgetProps {
 
 export const BatchGradingWidget: React.FC<BatchGradingWidgetProps> = ({ clusters, onGradeCluster }) => {
     const [selectedClusterId, setSelectedClusterId] = useState<string | null>(clusters[0]?.id || null);
+    const toast = useToast();
     const [grade, setGrade] = useState<number>(0);
     const [feedback, setFeedback] = useState<string>('');
 
@@ -27,7 +29,7 @@ export const BatchGradingWidget: React.FC<BatchGradingWidgetProps> = ({ clusters
     const handleApply = () => {
         if (selectedClusterId) {
             onGradeCluster(selectedClusterId, grade, feedback);
-            alert(`Nota ${grade} aplicada para ${selectedCluster?.answerIds.length} alunos com sucesso!`);
+            toast.info(`Nota ${grade} aplicada para ${selectedCluster?.answerIds.length} alunos com sucesso!`);
         }
     };
 

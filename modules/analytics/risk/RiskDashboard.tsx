@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import { useSafeAppStore } from '../../../store/useAppStore';
 import { INITIAL_SCHOOLS, INITIAL_EXAMS } from '../../../utils/mockData';
 import { calculateSchoolRisk, calculateBatchRisk, RiskAssessment } from '../../../services/riskDetectionEngine';
@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { RiskAgentAnalyst } from './components/RiskAgentAnalyst';
 import { InterventionDashboard } from '../../professor/features/InterventionDashboard';
+import { useToast } from '../../../components/ui/Toast';
 
 type FilterLevel = 'ALL' | RiskLevel;
 
@@ -33,6 +34,7 @@ export const RiskDashboard = () => {
     const { currentUser, schools, classes } = state;
 
     const [filterLevel, setFilterLevel] = useState<FilterLevel>('ALL');
+    const toast = useToast();
     const [filterClass, setFilterClass] = useState<string>('ALL');
     const [filterSchool, setFilterSchool] = useState<string>('ALL');
     const [expandedStudent, setExpandedStudent] = useState<string | null>(null);
@@ -192,7 +194,7 @@ export const RiskDashboard = () => {
     };
 
     const handleAlertParents = async (assessment: RiskAssessment) => {
-        alert(`📣 Notificação enviada para os responsáveis de ${assessment.studentName}.`);
+        toast.info(`📣 Notificação enviada para os responsáveis de ${assessment.studentName}.`);
     };
 
     const handleScheduleMeeting = (assessment: RiskAssessment) => {
