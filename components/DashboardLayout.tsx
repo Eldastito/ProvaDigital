@@ -1,12 +1,7 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate, Outlet, Navigate } from 'react-router-dom';
 import {
-    LayoutDashboard, BookOpen, GraduationCap, Users, FileText,
-    LogOut, Menu, ChevronRight, Tablet, PieChart, MessageCircle,
-    Printer, Compass, Globe,
-    PenTool, Target, UserCircle, Shield, Stethoscope, Map, Home, ChevronDown, Swords, Flame, Trophy, Cast, Calendar, Gamepad2, BarChart, Activity, CalendarCheck, Bot,
-    Gamepad as Arcade,
-    TrendingUp
+    LogOut, Menu
 } from 'lucide-react';
 import { useSafeAppStore } from '../store/useAppStore';
 import { UserRole, TenantType, ExamModel } from '../types';
@@ -17,29 +12,7 @@ import { AIOrb3D } from './layout/AIOrb3D';
 import { OECDPortalView } from '../modules/analytics/OECDPortalView';
 import { supabase } from '../services/supabaseClient';
 
-const NavItem = ({ icon: Icon, label, active, onClick }: any) => (
-    <button
-        onClick={onClick}
-        className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all border-l-4 ${active
-            ? 'bg-[#162a42] text-white border-brand-secondary'
-            : 'text-slate-400 hover:bg-[#112336] hover:text-white border-transparent'
-            } `}
-    >
-        <Icon size={20} strokeWidth={active ? 2.5 : 2} />
-        {label}
-    </button>
-);
-
-const TenantBadge = ({ type }: { type: TenantType }) => {
-    const config = {
-        [TenantType.PUBLIC_MUNICIPAL]: { color: 'bg-emerald-500', label: 'Muni' },
-        [TenantType.PUBLIC_STATE]: { color: 'bg-blue-500', label: 'Est' },
-        [TenantType.PUBLIC_FEDERAL]: { color: 'bg-indigo-600', label: 'Fed' },
-        [TenantType.PRIVATE]: { color: 'bg-amber-500', label: 'Priv' },
-    };
-    const c = config[type] || config[TenantType.PUBLIC_MUNICIPAL];
-    return <span className={`text-[9px] text-white px-1.5 py-0.5 rounded font-bold ${c.color}`}>{c.label}</span>;
-};
+/* NavItem and TenantBadge removed — now handled by ModernSidebar */
 
 export const DashboardLayout = () => {
     const store = useSafeAppStore();

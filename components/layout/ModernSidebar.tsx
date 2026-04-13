@@ -1,25 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-    LayoutDashboard, BookOpen, GraduationCap, Users, FileText,
-    LogOut, Menu, ChevronRight, Tablet, PieChart, MessageCircle,
-    Printer, Compass, Globe, PenTool, Target, UserCircle, Shield,
-    Stethoscope, Map, Home, ChevronDown, Flame, Trophy,
-    Cast, Calendar, Gamepad2, BarChart, Activity, CalendarCheck, Bot,
-    Gamepad2 as Arcade,
+    LogOut, ChevronDown,
     Sun, Moon,
-    TrendingUp,
     Settings,
-    Bird as Owl,
-    ShoppingBag,
-    Swords,
-    Zap,
-    Package,
-    FlaskConical,
-    FileUp,
-    Terminal,
-    Truck
+    UserCircle
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useSafeAppStore } from '../../store/useAppStore';
 import { UserRole, TenantType } from '../../types';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -41,7 +28,7 @@ const modules = [
 ];
 
 interface NavItemProps {
-    icon: any;
+    icon: LucideIcon;
     label: string;
     path: string;
     active: boolean;
@@ -130,7 +117,7 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
             }
         });
         return acc;
-    }, [] as any[]);
+    }, [] as Array<{ path: string; label: string; icon: LucideIcon; resource?: string }>);
 
     const myChildren = isParent && currentUser.childrenIds && students
         ? students.filter(s => currentUser.childrenIds?.includes(s.id))
@@ -138,17 +125,7 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
 
     return (
         <aside className={`${collapsed ? 'w-20' : 'w-72'} bg-white/80 backdrop-blur-xl border-r border-slate-100 flex-shrink-0 transition-all duration-500 flex flex-col relative z-50 shadow-[4px_0_24px_rgba(0,0,0,0.02)]`}>
-            {/* Pulsing Neon Logo Placeholder Style */}
-            <style dangerouslySetInnerHTML={{
-                __html: `
-                @keyframes neon-pulse {
-                    0%, 100% { filter: drop-shadow(0 0 2px rgba(16, 185, 129, 0.4)) drop-shadow(0 0 5px rgba(16, 185, 129, 0.2)); }
-                    50% { filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.8)) drop-shadow(0 0 12px rgba(16, 185, 129, 0.4)); }
-                }
-                .neon-owl {
-                    animation: neon-pulse 2.5s infinite ease-in-out;
-                }
-            `}} />
+
 
             {/* Logo Section */}
             <div className="h-24 flex items-center px-6">
@@ -284,8 +261,8 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
 
                     {!collapsed && (
                         <div className="mt-4 flex items-center gap-3 p-3 bg-white rounded-2xl border border-slate-100 shadow-sm animate-in slide-in-from-bottom-2 duration-700">
-                            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-md">
-                                <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${currentUser.name}`} alt="Avatar" className="w-full h-full object-cover" />
+                            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-md bg-[var(--forge-brand-primary)] flex items-center justify-center">
+                                <span className="text-sm font-black text-white">{currentUser.name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase()}</span>
                             </div>
                             <div className="flex-1 overflow-hidden">
                                 <p className="text-[11px] font-black text-slate-900 truncate uppercase">{currentUser.name.split(' ')[0]}</p>

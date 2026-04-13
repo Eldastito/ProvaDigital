@@ -21,6 +21,10 @@
   <link rel="icon" type="image/png" href="/social1.png">
   <link rel="apple-touch-icon" href="/social1.png">
 
+  <!-- FORGE Design System Tokens (Multi-Tenant Ready) -->
+  <link rel="stylesheet" href="/styles/design-tokens.css">
+  <link rel="stylesheet" href="/styles/typography.css">
+
   <!-- Localized Dependencies for Air-Gapped Security -->
   <link rel="stylesheet" href="/vendor/tailwind-base.css">
   <link rel="stylesheet" href="/vendor/fonts/inter.css">
@@ -85,25 +89,7 @@
     body {
       font-family: 'Inter', sans-serif;
     }
-
-    /* Custom scrollbar for cleaner UI */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: #f1f5f9;
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: #90e0ef;
-      border-radius: 3px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: #00b4d8;
-    }
+    /* Scrollbar styles moved to index.css (uses design tokens) */
 
     /* Fix for select dropdown options (browser default needs handling) */
     option {

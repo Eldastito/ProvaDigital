@@ -7,6 +7,7 @@ import { appRoutes, PageLoader } from './routes';
 import { checkConnection, supabase } from './services/supabaseClient';
 import { uuidv4 } from './utils/helpers';
 import { INITIAL_TENANTS, INITIAL_SCHOOLS } from './utils/mockData';
+import { ToastProvider } from './components/ui/Toast';
 
 // Infrastructure
 import { PrivacyPolicyModal } from './components/Legal/PrivacyPolicyModal';
@@ -207,21 +208,23 @@ export default function App() {
   }
 
   return (
-    <div className={`min-h-screen bg-secondary transition-colors duration-300 ${userRoleClass}`}>
-      <Suspense fallback={<PageLoader />}>
-        {element}
-      </Suspense>
-      {/* Alertas Globais */}
-      {currentUser && currentUser.role === UserRole.PROFESSOR && (
-        <PendingExamsAlert />
-      )}
-      {!hasConsented && (
-        <PrivacyPolicyModal
-          onAccept={() => { setHasConsented(true); localStorage.setItem('lgpd_consent', 'true'); }}
-          onReject={() => alert("O aceite é obrigatório.")}
-        />
-      )}
-    </div>
+    <ToastProvider>
+      <div className={`min-h-screen bg-secondary transition-colors duration-300 ${userRoleClass}`}>
+        <Suspense fallback={<PageLoader />}>
+          {element}
+        </Suspense>
+        {/* Alertas Globais */}
+        {currentUser && currentUser.role === UserRole.PROFESSOR && (
+          <PendingExamsAlert />
+        )}
+        {!hasConsented && (
+          <PrivacyPolicyModal
+            onAccept={() => { setHasConsented(true); localStorage.setItem('lgpd_consent', 'true'); }}
+            onReject={() => console.warn("LGPD consent rejected by user")}
+          />
+        )}
+      </div>
+    </ToastProvider>
   );
 }
 

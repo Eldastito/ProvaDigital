@@ -40,7 +40,7 @@ export const LoginPage = () => {
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log("LOGIN PAGE VERSION: 2025-12-31 - FIX LOGO"); // Cache Buster
+
         setLoading(true);
         setError(null);
 
@@ -231,7 +231,7 @@ export const LoginPage = () => {
                 )}
 
                 <p className="text-center text-slate-500 text-xs mt-8 opacity-60">
-                    &copy; 2024 ExamePad SaaS. Sistema Seguro.
+                    &copy; {new Date().getFullYear()} ExamePad SaaS. Sistema Seguro.
                 </p>
 
             </div>

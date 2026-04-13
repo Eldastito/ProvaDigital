@@ -1,0 +1,223 @@
+/* ============================================================
+   FORGE Design System — Design Tokens
+   Multi-Tenant Theming Engine
+   ============================================================
+   
+   Architecture:
+   1. Brand primitives (raw colors) → overridable per tenant
+   2. Semantic tokens (purpose-based) → consume primitives
+   3. Component tokens (specific) → consume semantic tokens
+   
+   Tenant Override: Set data-tenant="institution-slug" on <html>
+   Each tenant can override --forge-brand-* primitives.
+   ============================================================ */
+
+/* ── 1. Brand Primitives ── ExamePad Default Palette ── */
+:root {
+  /* Core Brand — From palette image (dark to light) */
+  --forge-brand-navy:      #112131;
+  --forge-brand-deep:      #0d2137;
+  --forge-brand-primary:   #1b6ca8;
+  --forge-brand-secondary: #0ca3e1;
+  --forge-brand-accent:    #46c4f3;
+  --forge-brand-mint:      #1cd3a2;
+  --forge-brand-teal:      #00ae84;
+  --forge-brand-ice:       #e8f4f8;
+  --forge-brand-cloud:     #c0cfd8;
+
+  /* Feedback Colors */
+  --forge-color-success:   #10b981;
+  --forge-color-warning:   #f59e0b;
+  --forge-color-danger:    #ef4444;
+  --forge-color-info:      #3b82f6;
+}
+
+/* ── 2. Semantic Tokens — Light Theme ── */
+:root {
+  /* Backgrounds */
+  --forge-bg-app:          #f8fafc;
+  --forge-bg-surface:      #ffffff;
+  --forge-bg-elevated:     #ffffff;
+  --forge-bg-muted:        #f1f5f9;
+  --forge-bg-deep:         var(--forge-brand-navy);
+  --forge-bg-overlay:      rgba(0, 0, 0, 0.5);
+
+  /* Text */
+  --forge-text-primary:    #112131;
+  --forge-text-secondary:  #475569;
+  --forge-text-muted:      #94a3b8;
+  --forge-text-inverse:    #f8fafc;
+  --forge-text-accent:     var(--forge-brand-primary);
+
+  /* Borders */
+  --forge-border-default:  #e2e8f0;
+  --forge-border-strong:   #cbd5e1;
+  --forge-border-subtle:   #f1f5f9;
+  --forge-border-accent:   var(--forge-brand-primary);
+
+  /* Interactive */
+  --forge-interactive-bg:        transparent;
+  --forge-interactive-bg-hover:  #f1f5f9;
+  --forge-interactive-bg-active: rgba(27, 108, 168, 0.08);
+
+  /* Sidebar */
+  --forge-sidebar-bg:      #ffffff;
+  --forge-sidebar-text:    #475569;
+  --forge-sidebar-active:  rgba(16, 185, 129, 0.08);
+  --forge-sidebar-accent:  var(--forge-color-success);
+  --forge-sidebar-border:  #f1f5f9;
+
+  /* Shadows */
+  --forge-shadow-xs:       0 1px 2px rgba(0, 0, 0, 0.04);
+  --forge-shadow-sm:       0 2px 4px rgba(0, 0, 0, 0.06);
+  --forge-shadow-md:       0 4px 12px rgba(0, 0, 0, 0.08);
+  --forge-shadow-lg:       0 8px 24px rgba(0, 0, 0, 0.10);
+  --forge-shadow-xl:       0 16px 48px rgba(0, 0, 0, 0.12);
+  --forge-shadow-glow:     0 0 20px rgba(27, 108, 168, 0.15);
+  --forge-shadow-success:  0 4px 12px rgba(16, 185, 129, 0.2);
+
+  /* Glass */
+  --forge-glass-bg:        rgba(255, 255, 255, 0.7);
+  --forge-glass-border:    rgba(17, 33, 49, 0.08);
+  --forge-glass-blur:      12px;
+
+  /* ── 3. Scale Tokens ── */
+  
+  /* Spacing */
+  --forge-space-1:   4px;
+  --forge-space-2:   8px;
+  --forge-space-3:   12px;
+  --forge-space-4:   16px;
+  --forge-space-5:   20px;
+  --forge-space-6:   24px;
+  --forge-space-8:   32px;
+  --forge-space-10:  40px;
+  --forge-space-12:  48px;
+
+  /* Border Radius */
+  --forge-radius-sm:   8px;
+  --forge-radius-md:   12px;
+  --forge-radius-lg:   16px;
+  --forge-radius-xl:   24px;
+  --forge-radius-full: 9999px;
+
+  /* Typography */
+  --forge-font-sans:    'Inter', system-ui, -apple-system, sans-serif;
+  --forge-font-mono:    'JetBrains Mono', 'Fira Code', monospace;
+
+  --forge-text-xs:      0.75rem;    /* 12px */
+  --forge-text-sm:      0.875rem;   /* 14px */
+  --forge-text-base:    1rem;       /* 16px */
+  --forge-text-lg:      1.125rem;   /* 18px */
+  --forge-text-xl:      1.25rem;    /* 20px */
+  --forge-text-2xl:     1.5rem;     /* 24px */
+  --forge-text-3xl:     1.875rem;   /* 30px */
+
+  /* Motion */
+  --forge-duration-fast:    150ms;
+  --forge-duration-normal:  300ms;
+  --forge-duration-slow:    500ms;
+  --forge-ease-default:     cubic-bezier(0.4, 0, 0.2, 1);
+  --forge-ease-spring:      cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Z-Index Scale */
+  --forge-z-dropdown:  50;
+  --forge-z-sticky:    100;
+  --forge-z-overlay:   1000;
+  --forge-z-modal:     2000;
+  --forge-z-toast:     3000;
+}
+
+/* ── Dark Theme ── */
+.dark {
+  --forge-bg-app:          #0a111a;
+  --forge-bg-surface:      #162a42;
+  --forge-bg-elevated:     #1e3a5c;
+  --forge-bg-muted:        #112131;
+  --forge-bg-deep:         #050a0f;
+  --forge-bg-overlay:      rgba(0, 0, 0, 0.7);
+
+  --forge-text-primary:    #f1f5f9;
+  --forge-text-secondary:  #94a3b8;
+  --forge-text-muted:      #64748b;
+  --forge-text-inverse:    #112131;
+
+  --forge-border-default:  #1e3a5c;
+  --forge-border-strong:   #2d4a6a;
+  --forge-border-subtle:   #162a42;
+
+  --forge-interactive-bg-hover:  rgba(255, 255, 255, 0.05);
+  --forge-interactive-bg-active: rgba(27, 108, 168, 0.15);
+
+  --forge-sidebar-bg:      #0a111a;
+  --forge-sidebar-text:    #94a3b8;
+  --forge-sidebar-active:  rgba(16, 185, 129, 0.12);
+  --forge-sidebar-border:  #1e2a3a;
+
+  --forge-shadow-xs:       0 1px 2px rgba(0, 0, 0, 0.2);
+  --forge-shadow-sm:       0 2px 4px rgba(0, 0, 0, 0.3);
+  --forge-shadow-md:       0 4px 12px rgba(0, 0, 0, 0.4);
+  --forge-shadow-lg:       0 8px 24px rgba(0, 0, 0, 0.5);
+  --forge-shadow-xl:       0 16px 48px rgba(0, 0, 0, 0.6);
+  --forge-shadow-glow:     0 0 20px rgba(27, 108, 168, 0.25);
+
+  --forge-glass-bg:        rgba(17, 33, 49, 0.7);
+  --forge-glass-border:    rgba(255, 255, 255, 0.05);
+}
+
+/* ── Tenant Theme Override Examples ──
+   Add [data-tenant="slug"] on <html> to override brand colors.
+   
+   Example: A state education department with purple branding:
+   
+   [data-tenant="seduc-rs"] {
+     --forge-brand-primary:   #7c3aed;
+     --forge-brand-secondary: #a78bfa;
+     --forge-brand-accent:    #c4b5fd;
+     --forge-brand-navy:      #1e1b4b;
+     --forge-brand-teal:      #06b6d4;
+   }
+   
+   Example: A private school with gold branding:
+   
+   [data-tenant="colegio-premium"] {
+     --forge-brand-primary:   #b45309;
+     --forge-brand-secondary: #d97706;
+     --forge-brand-accent:    #fbbf24;
+     --forge-brand-navy:      #1c1917;
+     --forge-brand-teal:      #059669;
+   }
+── */
+
+/* ── Utility Classes ── */
+
+.forge-glass {
+  background: var(--forge-glass-bg);
+  backdrop-filter: blur(var(--forge-glass-blur));
+  -webkit-backdrop-filter: blur(var(--forge-glass-blur));
+  border: 1px solid var(--forge-glass-border);
+}
+
+.forge-transition {
+  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+  transition-duration: var(--forge-duration-normal);
+  transition-timing-function: var(--forge-ease-default);
+}
+
+.forge-focus-ring:focus-visible {
+  outline: 2px solid var(--forge-brand-primary);
+  outline-offset: 2px;
+}
+
+/* Gradient backgrounds */
+.forge-gradient-brand {
+  background: linear-gradient(135deg, var(--forge-brand-primary) 0%, var(--forge-brand-secondary) 100%);
+}
+
+.forge-gradient-accent {
+  background: linear-gradient(135deg, var(--forge-brand-secondary) 0%, var(--forge-brand-accent) 100%);
+}
+
+.forge-gradient-success {
+  background: linear-gradient(135deg, var(--forge-brand-teal) 0%, var(--forge-brand-mint) 100%);
+}
