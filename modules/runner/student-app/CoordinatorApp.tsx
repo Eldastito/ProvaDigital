@@ -43,6 +43,13 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
     const [isValidating, setIsValidating] = useState(false);
     const [validationReport, setValidationReport] = useState<{ total: number; valid: number; errors: string[] } | null>(null);
 
+    // --- INLINE NOTIFICATION (replaces native alert()) ---
+    const [notification, setNotification] = useState<{msg: string; type: 'info'|'success'|'error'|'warning'} | null>(null);
+    const showNotification = (msg: string, type: 'info'|'success'|'error'|'warning' = 'info') => {
+        setNotification({ msg, type });
+        setTimeout(() => setNotification(null), 6000);
+    };
+
     // Filter data for THIS school only
     const schoolClasses = state.classes.filter(c => c.schoolId === coordinatorSchoolId);
     const schoolExams = state.exams.filter(e => e.schoolId === coordinatorSchoolId);
@@ -74,7 +81,7 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
         const targetClass = schoolClasses.find(c => c.id === classId);
         const exam = schoolExams.find(e => e.classIds.includes(classId));
 
-        if (!exam || !targetClass) return alert("Nenhuma prova agendada para esta turma.");
+        if (!exam || !targetClass) return showNotification('Nenhuma prova agendada para esta turma.', 'warning');
 
         // 1. Generate Key for this Class Session
         const eventId = `${exam.id}_${classId}`;
@@ -169,11 +176,11 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
                 const calculatedHash = await cryptoService.generateSHA256Hash(baseReport);
                 
                 if (calculatedHash !== cryptoSignature) {
-                    alert("⚠️ ALERTA DE SEGURANÇA! O selo HMAC foi quebrado ou adulterado.");
+                    showNotification('⚠️ ALERTA DE SEGURANÇA! O selo HMAC foi quebrado ou adulterado.', 'error');
                     return;
                 }
 
-                alert(`✅ Custódia Válida! Recebendo ${baseReport.submissions?.length || 0} provas offline extraídas do Mesh da sala ${baseReport.className}.`);
+                showNotification(`✅ Custódia Válida! Recebendo ${baseReport.submissions?.length || 0} provas offline extraídas do Mesh da sala ${baseReport.className}.`, 'success');
                 
                 setRoundsData(prev => ({
                     ...prev,
@@ -214,10 +221,10 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
 
                 setView('ROUNDS');
             } else {
-                alert("Este QR Code não corresponde a um pacote de entrega final.");
+                showNotification('Este QR Code não corresponde a um pacote de entrega final.', 'warning');
             }
         } catch (e) {
-            alert("Erro fatal ao analisar a assinatura digital da prova.");
+            showNotification('Erro fatal ao analisar a assinatura digital da prova.', 'error');
             console.error(e);
         }
     };
@@ -274,7 +281,7 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
             }
 
         } catch (e) {
-            alert("Erro ao acessar o banco de dados de custódia.");
+            showNotification('Erro ao acessar o banco de dados de custódia.', 'error');
         } finally {
             setIsValidating(false);
         }
@@ -534,7 +541,7 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
                                 <button
                                     onClick={async () => {
                                         if (!validationReport || validationReport.valid === 0) {
-                                            alert("⚠️ Você precisa validar a integridade dos arquivos antes do envio final.");
+                                            showNotification('⚠️ Você precisa validar a integridade dos arquivos antes do envio final.', 'warning');
                                             return;
                                         }
                                         
@@ -545,7 +552,7 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
                                         try {
                                             const { syncService } = await import('../../../services/synchronizationService');
                                             
-                                            alert("Enviando dados para a nuvem... Por favor, aguarde.");
+                                            showNotification('Enviando dados para a nuvem... Por favor, aguarde.', 'info');
                                             
                                             // 1. Sincronizar submissões coletadas via QR Handoff
                                             const result = await syncService.syncOfflineSubmissions();
@@ -567,11 +574,11 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
                                                 }
                                             });
 
-                                            alert(`✅ Evento finalizado com sucesso!\n\nSincronizados: ${result.success}\nFalhas: ${result.failed}`);
+                                            showNotification(`✅ Evento finalizado com sucesso! Sincronizados: ${result.success} | Falhas: ${result.failed}`, 'success');
                                             onBack();
                                         } catch (e) {
                                             console.error(e);
-                                            alert("Erro crítico na sincronização final. Tente novamente ou contate o suporte.");
+                                            showNotification('Erro crítico na sincronização final. Tente novamente ou contate o suporte.', 'error');
                                         }
                                     }}
                                     className="w-full py-4 bg-emerald-600 text-white rounded-xl font-bold text-lg hover:bg-emerald-700 shadow-lg flex items-center justify-center gap-3 transition-transform active:scale-95"
@@ -609,6 +616,19 @@ export const CoordinatorApp = ({ initialPayload, onBack, onSyncUp }: Coordinator
                     onResult={handleScannerResult} 
                     title="Escanear Entrega do Professor"
                 />
+            )}
+
+            {/* INLINE NOTIFICATION BANNER */}
+            {notification && (
+                <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[9999] max-w-md w-full px-5 py-3 rounded-xl shadow-2xl border flex items-start gap-3 animate-in slide-in-from-top-4 fade-in duration-300 ${
+                    notification.type === 'success' ? 'bg-emerald-900/95 border-emerald-500 text-emerald-100' :
+                    notification.type === 'error' ? 'bg-rose-900/95 border-rose-500 text-rose-100' :
+                    notification.type === 'warning' ? 'bg-amber-900/95 border-amber-500 text-amber-100' :
+                    'bg-sky-900/95 border-sky-500 text-sky-100'
+                }`}>
+                    <span className="text-sm font-medium flex-1">{notification.msg}</span>
+                    <button onClick={() => setNotification(null)} className="shrink-0 opacity-60 hover:opacity-100 text-lg leading-none">&times;</button>
+                </div>
             )}
         </div>
     );

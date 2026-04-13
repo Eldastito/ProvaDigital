@@ -124,7 +124,7 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
         : [];
 
     return (
-        <aside className={`${collapsed ? 'w-20' : 'w-72'} bg-white/80 backdrop-blur-xl border-r border-slate-100 flex-shrink-0 transition-all duration-500 flex flex-col relative z-50 shadow-[4px_0_24px_rgba(0,0,0,0.02)]`}>
+        <aside className={`${collapsed ? 'w-20' : 'w-72'} bg-[var(--forge-bg-surface)]/95 backdrop-blur-xl border-r border-[var(--forge-border-default)] flex-shrink-0 transition-all duration-500 flex flex-col relative z-50 shadow-[var(--forge-shadow-sm)]`}>
 
 
             {/* Logo Section */}
@@ -140,7 +140,7 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
                     </div>
                     {!collapsed && (
                         <div className="animate-in fade-in slide-in-from-left-4 duration-700">
-                            <h2 className="text-xl font-black text-slate-900 tracking-tighter uppercase leading-tight">ExamePad</h2>
+                            <h2 className="text-xl font-black text-[var(--forge-text-primary)] tracking-tighter uppercase leading-tight">ExamePad</h2>
                             <p className="text-[9px] text-emerald-600 font-black tracking-[0.25em] -mt-0.5 uppercase">Digital Platform</p>
                         </div>
                     )}
@@ -164,10 +164,10 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
                 {/* 2. Parent Context Selection */}
                 {isParent && myChildren.length > 0 && !collapsed && (
                     <div className="my-6 px-1 animate-in slide-in-from-bottom-2 duration-500">
-                        <div className="bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                        <div className="bg-[var(--forge-bg-muted)] border border-[var(--forge-border-default)] rounded-2xl overflow-hidden shadow-sm">
                             <button
                                 onClick={() => setChildMenuOpen(!childMenuOpen)}
-                                className="w-full p-4 flex items-center justify-between text-[10px] font-black text-slate-500 uppercase tracking-widest hover:bg-slate-100/50 transition"
+                                className="w-full p-4 flex items-center justify-between text-[10px] font-black text-[var(--forge-text-secondary)] uppercase tracking-widest hover:bg-[var(--forge-interactive-bg-hover)] transition"
                             >
                                 <span>Aluno Ativo</span>
                                 <ChevronDown size={14} className={`transition-transform duration-300 ${childMenuOpen ? 'rotate-180' : ''}`} />
@@ -241,11 +241,11 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
             </div>
 
             {/* Bottom Panel */}
-            <div className="p-6 border-t border-slate-100 bg-slate-50/30 backdrop-blur-md rounded-t-3xl">
+            <div className="p-6 border-t border-[var(--forge-border-default)] bg-[var(--forge-bg-muted)]/30 backdrop-blur-md rounded-t-3xl">
                 <div className="flex flex-col gap-3">
                     <button
                         onClick={toggleTheme}
-                        className="w-full h-12 flex items-center justify-center gap-3 rounded-2xl bg-white border border-slate-200 text-slate-500 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 transition-all duration-300 shadow-sm"
+                        className="w-full h-12 flex items-center justify-center gap-3 rounded-2xl bg-[var(--forge-bg-surface)] border border-[var(--forge-border-default)] text-[var(--forge-text-secondary)] hover:text-[var(--forge-brand-teal)] hover:border-[var(--forge-brand-teal)]/30 hover:bg-[var(--forge-brand-teal)]/10 transition-all duration-300 shadow-sm"
                     >
                         {settings.theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
                         {!collapsed && <span className="text-xs font-black uppercase tracking-widest">{settings.theme === 'dark' ? 'Dia' : 'Noite'}</span>}
@@ -253,20 +253,20 @@ export const ModernSidebar = ({ collapsed, onToggle }: { collapsed: boolean; onT
 
                     <button
                         onClick={handleLogout}
-                        className="w-full h-12 flex items-center justify-center gap-3 rounded-2xl bg-white border border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-all duration-300 shadow-sm"
+                        className="w-full h-12 flex items-center justify-center gap-3 rounded-2xl bg-[var(--forge-bg-surface)] border border-[var(--forge-border-default)] text-[var(--forge-text-muted)] hover:text-rose-500 hover:border-rose-300 hover:bg-rose-500/10 transition-all duration-300 shadow-sm"
                     >
                         <LogOut size={20} />
                         {!collapsed && <span className="text-xs font-black uppercase tracking-widest">Sair</span>}
                     </button>
 
                     {!collapsed && (
-                        <div className="mt-4 flex items-center gap-3 p-3 bg-white rounded-2xl border border-slate-100 shadow-sm animate-in slide-in-from-bottom-2 duration-700">
+                        <div className="mt-4 flex items-center gap-3 p-3 bg-[var(--forge-bg-surface)] rounded-2xl border border-[var(--forge-border-default)] shadow-sm animate-in slide-in-from-bottom-2 duration-700">
                             <div className="w-10 h-10 rounded-xl overflow-hidden shadow-md bg-[var(--forge-brand-primary)] flex items-center justify-center">
                                 <span className="text-sm font-black text-white">{currentUser.name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase()}</span>
                             </div>
                             <div className="flex-1 overflow-hidden">
-                                <p className="text-[11px] font-black text-slate-900 truncate uppercase">{currentUser.name.split(' ')[0]}</p>
-                                <p className="text-[9px] text-slate-400 truncate">{currentUser.role}</p>
+                                <p className="text-[11px] font-black text-[var(--forge-text-primary)] truncate uppercase">{currentUser.name.split(' ')[0]}</p>
+                                <p className="text-[9px] text-[var(--forge-text-muted)] truncate">{currentUser.role}</p>
                             </div>
                             <Settings size={14} className="text-slate-300 hover:text-emerald-500 transition-colors cursor-pointer" />
                         </div>

@@ -143,6 +143,13 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     const [meshInitialized, setMeshInitialized] = useState(false);
     const [examUnlockedByMesh, setExamUnlockedByMesh] = useState(false);
 
+    // --- INLINE NOTIFICATION (replaces native alert()) ---
+    const [notification, setNotification] = useState<{msg: string; type: 'info'|'success'|'error'|'warning'} | null>(null);
+    const showNotification = (msg: string, type: 'info'|'success'|'error'|'warning' = 'info') => {
+        setNotification({ msg, type });
+        setTimeout(() => setNotification(null), 5000);
+    };
+
     // --- BEHAVIORAL PROCTORING (PHASE 4) ---
     const [isScreenLocked, setIsScreenLocked] = useState(false);
     const [lockReason, setLockReason] = useState<string>('');
@@ -536,7 +543,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     // --- SECURITY HANDLERS ---
     const handlePreventClipboard = (e: React.ClipboardEvent) => {
         e.preventDefault();
-        alert('🚫 Ação Bloqueada: Copiar e Colar não é permitido no Modo Seguro.');
+        showNotification('🚫 Ação Bloqueada: Copiar e Colar não é permitido no Modo Seguro.', 'warning');
     };
 
     const handleContextMenu = (e: React.MouseEvent) => {
@@ -656,7 +663,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
     };
 
     const handleJoinClass = async () => {
-        if (!inputName.trim()) return alert("Digite seu nome.");
+        if (!inputName.trim()) return showNotification('Digite seu nome.', 'warning');
         setJoining(true);
 
         try {
@@ -731,7 +738,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
             setStep('CONFIRM_IDENTITY');
         } catch (e: any) {
             console.error(e);
-            alert("Erro ao entrar na sala: " + e.message);
+            showNotification('Erro ao entrar na sala: ' + e.message, 'error');
         } finally {
             setJoining(false);
         }
@@ -1035,10 +1042,10 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                 // A persistência já foi garantida pelo SessionIsolationService (saveAnswer)
                 // O fallback aqui é para exibir o QR Code de contingência
                 console.warn("⚠️ Sem conexão com o servidor. Respostas seguras em cache local.");
-                alert("⚠️ Sem conexão com o servidor.\n\nSua prova foi salva com segurança no MEMÓRIA SEGURA deste tablet.\n\nAvise o professor para realizar a sincronização manual.");
-                setStep('OFFLINE_SUBMISSION'); // Mostrar QR mesmo com fallback
+                showNotification('⚠️ Sem conexão com o servidor. Sua prova foi salva com segurança no MEMÓRIA SEGURA deste tablet. Avise o professor para realizar a sincronização manual.', 'warning');
+                setStep('OFFLINE_SUBMISSION');
             } else {
-                alert("Erro crítico ao salvar prova.");
+                showNotification('Erro crítico ao salvar prova.', 'error');
                 setStep('EXAM');
             }
         }
@@ -1507,7 +1514,7 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                             type: 'HELP_REQUEST',
                             message: `${studentData.name} precisa de ajuda na questão ${currentQuestionIdx + 1}`
                         });
-                        alert('✅ Pedido de ajuda enviado ao professor!');
+                        showNotification('✅ Pedido de ajuda enviado ao professor!', 'success');
                     }}
                     className="fixed bottom-20 right-4 bg-yellow-500 text-white p-4 rounded-full shadow-lg hover:scale-110 transition-transform z-30"
                     title="Pedir Ajuda"
@@ -1538,6 +1545,18 @@ const StudentAppContent = ({ onBack }: StudentAppProps) => {
                             OK, Entendi
                         </button>
                     </div>
+                </div>
+            )}
+            {/* INLINE NOTIFICATION BANNER (replaces native alert()) */}
+            {notification && (
+                <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[9999] max-w-md w-full px-5 py-3 rounded-xl shadow-2xl border flex items-start gap-3 animate-in slide-in-from-top-4 fade-in duration-300 ${
+                    notification.type === 'success' ? 'bg-emerald-900/95 border-emerald-500 text-emerald-100' :
+                    notification.type === 'error' ? 'bg-rose-900/95 border-rose-500 text-rose-100' :
+                    notification.type === 'warning' ? 'bg-amber-900/95 border-amber-500 text-amber-100' :
+                    'bg-sky-900/95 border-sky-500 text-sky-100'
+                }`}>
+                    <span className="text-sm font-medium flex-1">{notification.msg}</span>
+                    <button onClick={() => setNotification(null)} className="shrink-0 opacity-60 hover:opacity-100 text-lg leading-none">&times;</button>
                 </div>
             )}
         </div>

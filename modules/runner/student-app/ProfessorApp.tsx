@@ -51,6 +51,13 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
     const [handoffScanning, setHandoffScanning] = useState(false);
     const [handoffConfirmed, setHandoffConfirmed] = useState(false);
 
+    // --- INLINE NOTIFICATION (replaces native alert()) ---
+    const [notification, setNotification] = useState<{msg: string; type: 'info'|'success'|'error'|'warning'} | null>(null);
+    const showNotification = (msg: string, type: 'info'|'success'|'error'|'warning' = 'info') => {
+        setNotification({ msg, type });
+        setTimeout(() => setNotification(null), 5000);
+    };
+
     useEffect(() => {
         if (isLiveController && liveClassId) {
             setView('LIVE_CONTROLLER');
@@ -235,7 +242,7 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
         if (pinInput === '1234') {
             setIsAuthenticated(true);
         } else {
-            alert("PIN Incorreto. Olhe para o telão do evento.");
+            showNotification('PIN Incorreto. Olhe para o telão do evento.', 'error');
             setPinInput('');
         }
     };
@@ -248,7 +255,7 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
             examId: classData?.examId
         });
 
-        alert("🚀 Comando de habilitação enviado para a sala!");
+        showNotification('🚀 Comando de habilitação enviado para a sala!', 'success');
     };
 
     const handleUnlockClass = async () => {
@@ -459,11 +466,11 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
                                             console.log("✅ Prova desbloqueada na memória RAM via Faísca do Coordenador.");
                                             setHandoffConfirmed(true);
                                         } else {
-                                            alert("⚠️ PROVA NÃO ENCONTRADA\n\nEste tablet do professor não fez o download prévio e criptografado da prova na Internet (Pré-requisito do Caminho A).\n\nConecte-se à rede e abra a prova no painel para realizar o Cache Seguro antes de autorizar a turma.");
+                                            showNotification('⚠️ PROVA NÃO ENCONTRADA: Este tablet do professor não fez o download prévio e criptografado da prova na Internet. Conecte-se à rede e abra a prova no painel para realizar o Cache Seguro.', 'error');
                                         }
                                     } catch (e) {
                                         console.error(e);
-                                        alert("A chave recebida do coordenador é inválida para esta prova.");
+                                        showNotification('A chave recebida do coordenador é inválida para esta prova.', 'error');
                                     }
                                 }}
                                 className="w-full py-5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-3xl font-black transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
@@ -555,7 +562,7 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
                                     if (classData) {
                                         const success = await offlineCacheService.downloadClassDataForOffline(classData.classId, classData.students);
                                         if (success) {
-                                            alert(`Pacote da turma "${classData.className}" baixado com sucesso!`);
+                                            showNotification(`Pacote da turma "${classData.className}" baixado com sucesso!`, 'success');
                                         }
                                     }
                                 }}
@@ -723,6 +730,19 @@ export const ProfessorApp = ({ onBack }: ProfessorAppProps) => {
                     eventId={`evt_${classData.classId}_${new Date().toISOString().split('T')[0]}`}
                     onClose={() => setShowOfflineScanner(false)}
                 />
+            )}
+
+            {/* INLINE NOTIFICATION BANNER */}
+            {notification && (
+                <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[9999] max-w-md w-full px-5 py-3 rounded-xl shadow-2xl border flex items-start gap-3 animate-in slide-in-from-top-4 fade-in duration-300 ${
+                    notification.type === 'success' ? 'bg-emerald-900/95 border-emerald-500 text-emerald-100' :
+                    notification.type === 'error' ? 'bg-rose-900/95 border-rose-500 text-rose-100' :
+                    notification.type === 'warning' ? 'bg-amber-900/95 border-amber-500 text-amber-100' :
+                    'bg-sky-900/95 border-sky-500 text-sky-100'
+                }`}>
+                    <span className="text-sm font-medium flex-1">{notification.msg}</span>
+                    <button onClick={() => setNotification(null)} className="shrink-0 opacity-60 hover:opacity-100 text-lg leading-none">&times;</button>
+                </div>
             )}
         </div>
     );
