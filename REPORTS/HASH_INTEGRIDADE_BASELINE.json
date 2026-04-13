@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-13T00:01:16.340Z",
+  "generatedAt": "2026-04-13T10:16:23.082Z",
   "algorithm": "SHA-256",
   "rootDirectory": "C:\\Users\\miche\\Downloads\\examepad-saas-prova-digital",
   "patentModules": {
@@ -96,29 +96,29 @@
       "lastModified": "2026-03-03T00:42:21.052Z"
     },
     "modules/analytics/NetworkDashboardView.tsx": {
-      "sha256": "9e613ccc50a8e5f3642b0fe94c347a7be535b773692b808944f3b5b4b6098b91",
-      "sizeBytes": 31016,
-      "lastModified": "2026-02-22T12:30:49.416Z"
+      "sha256": "0ce1a6fc8b579d51d821ceca92d8f34f8a6196358d59317bb3aa441346c077b2",
+      "sizeBytes": 31029,
+      "lastModified": "2026-04-13T00:48:50.143Z"
     },
     "modules/analytics/GeoMap.tsx": {
-      "sha256": "3a254c161e55294bae1dfd32556d12b1a59452833f9aa62da10beeba9a5dd517",
-      "sizeBytes": 43972,
-      "lastModified": "2026-02-10T11:28:33.841Z"
+      "sha256": "0d0cacb7eb5da6d76e15a37501fbdc02734cceee299e9c939e84205a6baf4904",
+      "sizeBytes": 44040,
+      "lastModified": "2026-04-13T00:49:34.603Z"
     },
     "modules/builder/ExamBuilderView.tsx": {
-      "sha256": "25c25ca02dcd2c748b9ce7dcc55468cef892971bcde7c39acd689fc3f9c0cd85",
-      "sizeBytes": 20607,
-      "lastModified": "2026-03-04T22:43:36.291Z"
+      "sha256": "bde4218a72ac6d9085d57b55a341e8bd35d3499b3ff6beec42cb27014fac35df",
+      "sizeBytes": 20723,
+      "lastModified": "2026-04-13T01:17:21.367Z"
     },
     "modules/builder/AIQuestionGeneratorView.tsx": {
-      "sha256": "92490386f0952c2046b4f342c8779cb9ee33d1f83a1ad0241b58990ab955cfbd",
-      "sizeBytes": 34748,
-      "lastModified": "2026-02-12T12:12:01.593Z"
+      "sha256": "8e7a6590c4402b60cde23390a828e96dc7eafb60cf360c8a8903069fa80b50af",
+      "sizeBytes": 34853,
+      "lastModified": "2026-04-13T01:17:21.357Z"
     },
     "modules/coordinator/CommandCenter.tsx": {
-      "sha256": "5390fb5d86e5d103989267a3d69a9901eb9473558ce20bb3fe6efbec13bb643a",
-      "sizeBytes": 31948,
-      "lastModified": "2026-02-10T04:35:39.040Z"
+      "sha256": "98c25c763e7526a4873791a8740d10f0d81ad9286818ef6af73b9efa638cc28d",
+      "sizeBytes": 32064,
+      "lastModified": "2026-04-13T01:10:57.368Z"
     },
     "modules/coordinator/RedundancyMonitorView.tsx": {
       "sha256": "937e6c3a553a0da1a95138c4fe6923cb61bf69cea9944179bad05b2db4c45383",
@@ -126,24 +126,24 @@
       "lastModified": "2026-04-04T13:08:40.430Z"
     },
     "modules/coordinator/ExamScheduler.tsx": {
-      "sha256": "4d5487ac912e7ac3546ea6f7e0795f86b01042ada6b7d52b8c9271331c855e06",
-      "sizeBytes": 49228,
-      "lastModified": "2026-03-04T10:22:55.077Z"
+      "sha256": "fb59462af46a985156d99bc25cab35bbad0515c3f8e1593fcd4a785679193b4d",
+      "sizeBytes": 49450,
+      "lastModified": "2026-04-13T01:10:26.943Z"
     },
     "modules/runner/student-app/StudentApp.tsx": {
-      "sha256": "7099a8b6bdfa4b2d222e0ceb2dd413709e43c8b1d23fa16024ed13289a59d9d6",
-      "sizeBytes": 76642,
-      "lastModified": "2026-03-28T18:41:30.797Z"
+      "sha256": "9a5f2088fdac7d2369bdd2d1b08e3b1781997f2083d4e641f2ef7be3a835137d",
+      "sizeBytes": 78219,
+      "lastModified": "2026-04-13T01:02:05.790Z"
     },
     "modules/runner/student-app/ProfessorApp.tsx": {
-      "sha256": "e737f5e495aa7713610a11cc82082dee146d87afc4c6742aea251a8611f6335d",
-      "sizeBytes": 42967,
-      "lastModified": "2026-03-28T01:28:51.323Z"
+      "sha256": "b10ca12dccd01eda1c4edd80c45e308cfa9b921529cdcdda3f1ca09cfe16d9ba",
+      "sizeBytes": 44408,
+      "lastModified": "2026-04-13T01:03:03.949Z"
     },
     "modules/runner/student-app/CoordinatorApp.tsx": {
-      "sha256": "4fc6674d44ebe7be0862cbb95f35a2803ad1ee90298011996d98fa56acfc2935",
-      "sizeBytes": 37462,
-      "lastModified": "2026-03-07T11:08:41.872Z"
+      "sha256": "5ecdcb8accf7d95c73a0c6462dc2ec8b511dd8940803c36dfa06703aeead194f",
+      "sizeBytes": 39068,
+      "lastModified": "2026-04-13T01:03:43.648Z"
     },
     "modules/student-portal/StudentDashboardView.tsx": {
       "sha256": "60d5b247b4ca68b5a8bc18b965a2e0520b79224afd643774401275c14f26b9f6",
@@ -151,14 +151,14 @@
       "lastModified": "2026-03-03T00:31:47.076Z"
     },
     "modules/student-portal/OwlTutorView.tsx": {
-      "sha256": "cf08f5caa96651cde30bd15316f29e40bdba82b2bb52926d9ed6ebe3d8dad342",
-      "sizeBytes": 14233,
-      "lastModified": "2026-02-27T03:10:17.991Z"
+      "sha256": "ef238738e20f86a2c85e724e062f6681b91c31156fbe346d0021f8baa0014049",
+      "sizeBytes": 14246,
+      "lastModified": "2026-04-13T00:48:42.609Z"
     },
     "modules/student-portal/StudentBattleView.tsx": {
-      "sha256": "1540e345b9309931a1c04181caaa5842de19afa001b6ad2dd3c6fd02a855bc04",
-      "sizeBytes": 31360,
-      "lastModified": "2026-01-15T00:27:05.211Z"
+      "sha256": "1a2d09908e662f2f1361087c5e90765f6aa32e53ab49fd9437aeb7781242072a",
+      "sizeBytes": 31459,
+      "lastModified": "2026-04-13T01:17:21.456Z"
     },
     "modules/student-portal/ArcadeView.tsx": {
       "sha256": "bc08a8e039902a2bc39c5f08666f8ee06f3444ebf50aaef45214c59332db9312",
@@ -166,14 +166,14 @@
       "lastModified": "2026-02-10T23:31:43.975Z"
     },
     "modules/student-portal/SurvivalView.tsx": {
-      "sha256": "5d9edd8ef292999c3295b4439cf5b34511a9361118b634a5e126d52216128cfd",
-      "sizeBytes": 18917,
-      "lastModified": "2026-01-15T00:26:49.924Z"
+      "sha256": "dca5dcf8e33f65ea0f44116fc5be9d74423b580efc365cf9b6f32f3926067330",
+      "sizeBytes": 19038,
+      "lastModified": "2026-04-13T01:17:21.463Z"
     },
     "modules/gamification/GamifiedEventsManager.tsx": {
-      "sha256": "494f4ec531a26fb2e4bb7b3e86c632a38fb5173556b7c6cc59f2f28a683c6f5a",
-      "sizeBytes": 21465,
-      "lastModified": "2026-01-29T12:50:41.058Z"
+      "sha256": "001457f306d56e2acfc2d4cccf573fff386f6b5e0204793b8f3411222818a71e",
+      "sizeBytes": 21570,
+      "lastModified": "2026-04-13T01:17:21.405Z"
     },
     "modules/neuro-screening/NeuroScreeningView.tsx": {
       "sha256": "2d29cb8d8cd44ba0d7ab7520a0ec5dbf648238ee1cd615bd5779a9b319fd475a",
@@ -181,9 +181,9 @@
       "lastModified": "2026-02-18T12:46:13.240Z"
     },
     "modules/communication/CommunicationView.tsx": {
-      "sha256": "2d3a4bab2995e22acd09c9044c9dc7496f8c9de2e3f5459ec6984339979fe6a6",
-      "sizeBytes": 12613,
-      "lastModified": "2026-03-11T10:52:06.885Z"
+      "sha256": "5c933db561d106022f02228cfc4f728bead51aec99b378b5022f7e99e6f676c1",
+      "sizeBytes": 12625,
+      "lastModified": "2026-04-13T00:48:44.816Z"
     },
     "modules/school-management/ManagementView.tsx": {
       "sha256": "3a81b4823130435a122914adf64ec3584373b712f416168dc08e10c8527144c8",
@@ -193,7 +193,7 @@
   },
   "summary": {
     "totalFiles": 37,
-    "totalBytes": 804418,
+    "totalBytes": 810032,
     "patentFiles": 15,
     "registryFiles": 22
   }

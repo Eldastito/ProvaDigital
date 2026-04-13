@@ -2,10 +2,10 @@
 
 Este documento contém o lastro técnico para fundamentar pedidos de **Patente de Invenção (PI)** da plataforma FORGE, descrevendo núcleos inventivos, mecanismos técnicos e efeitos pretendidos de forma não confidencial.
 
-- **Estado**: Fase 3 (Documentação Formal para Depósito)
-- **Baseline de Referência**: Commit `e094eaf` (tag `v1.0-patent-baseline`)
+- **Estado**: Fase 4 (Documentação Finalizada para Depósito)
+- **Baseline de Referência**: Commit `bb47e84` (tag `v1.1-patent-baseline`)
 - **Titularidade jurídica**: em consolidação formal, fora do escopo do presente fechamento técnico.
-- **Data da Revisão**: 12/04/2026
+- **Data da Revisão**: 13/04/2026
 
 ---
 
@@ -49,6 +49,8 @@ Este documento contém o lastro técnico para fundamentar pedidos de **Patente d
 | **Cold Boot** | Context Pointer Canônico O(1) | Retomada determinística. **[COMPROVADO]** | `sessionIsolationService.ts`, `persistenceGateway.ts`, `offlineDb.ts` | `EV-DET-CB-001` | Patent-Safe |
 | **Secured Envelope** | Envelope Híbrido AES-GCM + HMAC | Isolamento criptográfico. **[COMPROVADO]** | `e2eEncryptionService.ts`, `cryptoService.ts` | `EV-SEC-ENV-001` | Patent-Safe |
 | **Authority Pilot** | Shadow Mode + Kill Switch | Migração segura em produção. **[COMPROVADO]** | `governanceService.ts` | `EV-GOV-AP-001` | Patent-Safe |
+| **Transporte Óptico QR** | QR Code + HMAC Assinado | Transmissão sem rede. **[COMPROVADO]** | `qrCodecService.ts`, `OfflineSubmissionFlow.tsx` | `EV-QR-OPT-001` | Patent-Safe |
+| **CAT Offline** | TRI 3PL + Serialização | Avaliação adaptativa offline. **[COMPROVADO]** | `offlineAdaptiveEngine.ts`, `catEngine.ts` | `EV-CAT-OFF-001` | Patent-Safe |
 
 ---
 
@@ -79,6 +81,6 @@ Este dossiê **NÃO CONTÉM** os segredos industriais da FORGE. Os itens a segui
 - Número real de iterações PBKDF2 em produção (Segredo Industrial).
 
 ---
-**Baseline Técnica**: Commit `e094eaf` (Pós-Fase 3 / Patent Readiness)  
-**Data da Revisão**: 12/04/2026  
+**Baseline Técnica**: Commit `bb47e84` (Pós-Fase 4 / Patent Readiness)  
+**Data da Revisão**: 13/04/2026  
 **Responsável**: Engenharia FORGE | Arquitetura de Segurança

@@ -6,11 +6,13 @@ Este documento serve como guia para a preparação da plataforma FORGE para prot
 
 | Núcleo Inventivo | Base no Codebase | Status Atual |
 | :--- | :--- | :--- |
-| **Execução Offline-Local com Malha** | `MeshNetworkService`, `LocalServerService` | Estável, mas com fallback fraco. |
-| **Retomada Segura (Cold Boot)** | `sessionIsolationService`, `useStudentSession` | Funcional, mas busca não-canônica. |
-| **Envelope Híbrido Criptográfico** | `e2eEncryptionService`, `StudentApp` | Implementado, com ambiguidade na narrativa. |
-| **Autenticação Contextual (F3A)** | `LocalServerService` (RBAC + JTI) | Implementado, aguarda fechamento de segredo. |
-| **Observabilidade Reativa (Kill Switch)** | `telemetryService` | **Lacuna**: Precisa de mitigação ativa. |
+| **Execução Offline-Local com Malha** | `MeshNetworkService`, `LocalServerService` | ✅ Estável, multi-transporte (WebRTC/BLE/WiFi). |
+| **Retomada Segura (Cold Boot)** | `sessionIsolationService`, `useStudentSession` | ✅ Funcional, Context Pointer canônico O(1). |
+| **Envelope Híbrido Criptográfico** | `e2eEncryptionService`, `StudentApp` | ✅ Implementado, narrativa sanada. |
+| **Autenticação Contextual (F3A)** | `LocalServerService` (RBAC + JTI) | ✅ Implementado, segredo protegido. |
+| **Authority Pilot (Kill Switch)** | `governanceService` | ✅ Mitigação ativa com kill switch automático. |
+| **Transporte Óptico QR** | `qrCodecService`, `OfflineSubmissionFlow` | ✅ Implementado, HMAC assinado. |
+| **CAT Offline (TRI 3PL)** | `offlineAdaptiveEngine`, `catEngine` | ✅ Motor funcional com serialização. |
 
 ---
 

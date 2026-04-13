@@ -79,15 +79,29 @@ Este documento identifica a estrutura funcional e os módulos prioritários da p
 | 50 | **Rankings** | `GlobalRankingView.tsx` | 9.7KB | Rankings globais e por competência |
 | 51 | **Portal OCDE** | `OECDPortalView.tsx` | 11KB | Indicadores alinhados ao PISA/OCDE |
 
+### 2.3 Módulos Adicionais Descobertos (Auditoria 13/04/2026)
+
+| # | Módulo | Arquivo-Fonte | Tamanho | Função de Software |
+| :--- | :--- | :--- | :--- | :--- |
+| 52 | **Motor CAT Offline** | `offlineAdaptiveEngine.ts` | 10.3KB | Teste adaptativo TRI 3PL com serialização para IndexedDB |
+| 53 | **Engine CAT** | `catEngine.ts` | 7KB | Motor de teste adaptativo computadorizado |
+| 54 | **Motor de Risco** | `riskDetectionEngine.ts` | 9.6KB | Detecção preditiva de risco de evasão escolar |
+| 55 | **Correção Automática** | `autoGradingService.ts` | 12.5KB | Auto-grading com rubrica e fallback manual |
+| 56 | **Clustering IA** | `clusteringService.ts` | 5.6KB | Agrupamento de alunos por perfil cognitivo |
+| 57 | **Codec QR Assinado** | `qrCodecService.ts` | 5.7KB | Serialização/assinatura de dados para QR Code |
+| 58 | **Submissão Offline** | `OfflineSubmissionFlow.tsx` | 10.4KB | Fluxo de envio de resultados via QR |
+| 59 | **Scanner Consolidação** | `SchoolConsolidationScanner.tsx` | 18.4KB | Scanner de consolidação por QR Code |
+| 60 | **Roteiros de Estudo** | `StudyPlansView.tsx` | 16.1KB | Planos de estudo personalizados com IA |
+
 ---
 
 ## 3. Métricas do Código-Fonte
 
 | Métrica | Valor |
 | :--- | :--- |
-| **Total de arquivos inventariados** | 51 |
-| **Código-fonte total inventariado** | ~785.6 KB |
-| **Linhas de código estimadas** | ~30.000+ |
+| **Total de arquivos inventariados** | 60 |
+| **Código-fonte total inventariado** | ~891 KB |
+| **Linhas de código estimadas** | ~35.000+ |
 | **Linguagem principal** | TypeScript (TSX/TS) |
 | **Framework UI** | React 18 |
 | **Persistência local** | IndexedDB (Dexie.js) |
@@ -97,11 +111,11 @@ Este documento identifica a estrutura funcional e os módulos prioritários da p
 ---
 
 ## 4. Evidências de Desenvolvimento (Baseline)
-- **Marco de Versão**: Patent-Ready v1.0
+- **Marco de Versão**: Patent-Ready v1.1
 - **Branch**: `main`
 - **Hash Canônico (SHA-256)**: Disponível em `REPORTS/HASH_INTEGRIDADE_BASELINE.json`
-- **Commit de Baseline**: `e094eaf`
-- **Data da Baseline**: 12/04/2026
+- **Commit de Baseline**: `bb47e84`
+- **Data da Baseline**: 13/04/2026
 - **Algoritmo de Hash**: SHA-256 (Web Crypto API)
 
 ---

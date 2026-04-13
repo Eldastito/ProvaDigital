@@ -36,6 +36,7 @@ export const CapabilitiesView = () => {
     const { globalPermissions, updatePermissions, tenants, updateTenantFeatures } = useAppStore();
     const [localMatrix, setLocalMatrix] = useState<PermissionMatrix>(JSON.parse(JSON.stringify(globalPermissions)));
     const toast = useToast();
+    const [pendingDisable, setPendingDisable] = useState<string | null>(null);
     const [selectedTenant, setSelectedTenant] = useState<string>('');
     const { getDependents, getMissingDependencies, getDisableCascade, getDependencyInfo } = useResourceDependencies();
 
@@ -104,13 +105,18 @@ export const CapabilitiesView = () => {
             const activeDependents = dependents.filter(d => !currentDisabled.includes(d));
 
             if (activeDependents.length > 0) {
-                const confirm = window.confirm(
-                    `⚠️ ATENÇÃO: Desabilitar "${resource}" afetará:\n\n` +
-                    `${activeDependents.map(r => `• ${r}`).join('\n')}\n\n` +
-                    `Essas funcionalidades também serão DESABILITADAS automaticamente.\n\n` +
-                    `Deseja continuar?`
-                );
-                if (!confirm) return;
+                // Confirmação em dois cliques — primeiro clique avisa, segundo confirma
+                if (pendingDisable !== resource) {
+                    setPendingDisable(resource);
+                    const depNames = activeDependents.map(r => `• ${r}`).join(', ');
+                    toast.warning(
+                        `Desabilitar "${resource}" afetará: ${depNames}`,
+                        'Clique novamente para confirmar a desativação em cascata.'
+                    );
+                    setTimeout(() => setPendingDisable(null), 5000); // Reset após 5s
+                    return;
+                }
+                setPendingDisable(null);
 
                 // Desabilitar em cascata
                 newDisabled = [...currentDisabled, resource, ...activeDependents];

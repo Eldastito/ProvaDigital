@@ -108,6 +108,38 @@ Método conforme reivindicação 8, em que as divergências entre o motor legado
 
 ---
 
+## Reivindicação 11 (Dependente de 6 — Transporte Óptico via QR Code Assinado)
+
+Método conforme reivindicação 6, em que os dados cifrados são **adicionalmente transportáveis por canal óptico** compreendendo as etapas de:
+
+a) serializar o pacote cifrado (compreendendo vetor de inicialização e dados cifrados) em formato de texto codificado;
+
+b) gerar código QR contendo o pacote serializado e uma assinatura HMAC-SHA256 do conteúdo;
+
+c) exibir o código QR no dispositivo de origem (estudante) para captura óptica pelo dispositivo de destino (professor/coordenador);
+
+d) no dispositivo de destino, decodificar o código QR, verificar a assinatura HMAC para detecção de adulteração, e armazenar o pacote cifrado para posterior consolidação;
+
+em que o efeito técnico resultante é a **transmissão de dados de avaliação cifrados sem qualquer infraestrutura de rede**, por meio de canal óptico unidirecional autenticado.
+
+---
+
+## Reivindicação 12 (Dependente de 1 e 3 — Teste Adaptativo Computadorizado Offline)
+
+Método conforme reivindicações 1 e 3, em que o sistema compreende adicionalmente um **motor de teste adaptativo computadorizado** operando localmente no dispositivo de borda, caracterizado por:
+
+a) selecionar a próxima questão para o estudante com base no critério de Máxima Informação de Fisher, calculado a partir dos parâmetros TRI (Teoria de Resposta ao Item) modelo 3PL de cada questão disponível no banco local;
+
+b) atualizar a estimativa de habilidade do estudante (theta) após cada resposta, usando método de estimação EAP (Expected A Posteriori) com otimização Newton-Raphson;
+
+c) serializar o estado completo do motor adaptativo (theta, erro padrão, itens utilizados, respostas) em formato persistível localmente, permitindo retomada determinística do teste adaptativo após interrupção;
+
+d) detectar automaticamente a capacidade computacional do dispositivo de borda e selecionar o modo de operação apropriado dentre: LOCAL (adaptação em tempo real), PRECOMPUTED (caminho pré-calculado) e HYBRID (fallback automático);
+
+em que o efeito técnico resultante é a **execução de avaliação adaptativa personalizada** sem dependência de servidor central para cálculo de seleção de itens.
+
+---
+
 ## Quadro de Referência Cruzada
 
 | Reivindicação | Tipo | Núcleo Inventivo | Módulo de Referência |
@@ -122,13 +154,16 @@ Método conforme reivindicação 8, em que as divergências entre o motor legado
 | 8 | Independente | Authority Pilot | `governanceService.ts` |
 | 9 | Dependente (8) | Authority Pilot | `governanceService.ts` |
 | 10 | Dependente (8) | Authority Pilot | `governanceService.ts` |
+| 11 | Dependente (6) | Transporte Óptico QR | `qrCodecService.ts`, `OfflineSubmissionFlow.tsx` |
+| 12 | Dependente (1, 3) | CAT Offline | `offlineAdaptiveEngine.ts`, `catEngine.ts` |
 
 ---
 
-**Total**: 4 reivindicações independentes + 6 reivindicações dependentes = **10 reivindicações**
+**Total**: 4 reivindicações independentes + 8 reivindicações dependentes = **12 reivindicações**
 
 > **CONFORMIDADE**: Todas as reivindicações foram redigidas em conformidade com o `CLAIMS_HYGIENE_CHECKLIST.md`:
 > - ✅ Nenhum termo absoluto ("100% seguro", "infalível", "tempo real absoluto")
 > - ✅ Todos os efeitos são "técnicos" e mensuráveis
 > - ✅ Termos como "redução material", "não exposição", "recuperação determinística"
 > - ✅ Cada reivindicação cita mecanismo técnico específico
+
